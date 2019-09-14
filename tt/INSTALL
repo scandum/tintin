@@ -1,0 +1,45 @@
+INSTALLATION
+------------
+
+Installation should be easy; cd to the src/ directory, then type:
+
+./configure
+
+make install
+
+If this went without errors or serious warnings type this to start tintin:
+
+tt++
+
+You might need to install the following libraries:
+
+  pcre: pcre.org
+  zlib: zlib.net
+gnutls: gnutls.org
+
+If you have any trouble with installing/compiling tintin you should check out
+the install section on the website.
+
+https://tintin.sourceforge.io/install.php
+
+If that doesn't do the trick you can ask for assistance on the forum.
+
+
+TERMINAL EMULATION
+------------------
+
+In order to run tintin full featured you will need a vt100 emulator. If your
+OS doesn't use one per default it's suggested to install xterm.
+
+
+STATIC LINKING
+--------------
+
+This is more so a note to myself to statically link PCRE on Cygwin.
+
+$ wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.34.tar.bz2
+$ tar xvf pcre-8.34.tar.bz2
+$ cd pcre-8.34/
+$ ./configure CC=i686-pc-mingw32-gcc CXX=i686-pc-mingw32-g++ --enable-jit --enable-unicode-properties --disable-shared
+$ make
+$ ./configure --libdir='../pcre-8.34' --includedir='../pcre-8.34'

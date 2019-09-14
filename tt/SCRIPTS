@@ -1,0 +1,290 @@
+#nop -------------------------------------------------------------------------
+#nop Loop through room 1 to 1000 and change the color of rooms with the
+#nop static (16) flag to <168>.
+#nop -------------------------------------------------------------------------
+
+#loop 1 1000 vnum
+{
+	#map goto $vnum;
+	#map get roomflags result;
+	#if {$result & 16}
+	{
+		#map set roomcolor <168>
+	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Capture system information. #script stores the output as a list,
+#nop hence the need to convert it into a normal variable.
+#nop -------------------------------------------------------------------------
+
+#script {dir} {pwd}
+#var dir $dir[1]
+
+#script {home} {echo $HOME}
+#var home $home[1]
+
+#nop -------------------------------------------------------------------------
+#nop Automatically reconnect on disconnect.
+#nop -------------------------------------------------------------------------
+
+#event {SESSION CONNECTED}
+{
+	#event {SESSION DISCONNECTED}
+	{
+		#gts #delay 5 {#session %0 %1 %3}
+	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Execute a random social at random time intervals.
+#nop -------------------------------------------------------------------------
+
+#tick {randomsocial}
+{
+	#delay {1d180}
+	{
+		#switch {1d4}
+		{
+			#case {1} {cheer}
+			#case {2} {greet all}
+			#case {3} {smile}
+			#case {4} {laugh self}
+		}
+	}
+}
+{200}
+
+#nop -------------------------------------------------------------------------
+#nop Maintain a friendlist.
+#nop -------------------------------------------------------------------------
+
+#variable {friendlist}
+{
+	{bubba};{pamela};{cookie};{harry potter}
+}
+
+#function isfriend
+{
+	#format name %l {%0};
+
+	#return &friendlist[$name];
+}
+
+#act {%1 follows you.}
+{
+	#if {@isfriend{%1}}
+	{
+		group %1
+	};
+	#else
+	{
+		unfollow %1
+	}
+}
+
+#alias {addfriend}
+{
+	#format name %l {%0};
+
+	#var friendlist[$name] {};
+
+	#showme $name has been added to your friendlist.
+}
+
+#alias {delfriend}
+{
+	#format name %l {%0};
+
+	#if {@isfriend{$name}}
+	{
+		#unvar friendlist[$name];
+		#showme $name has been deleted from your friendlist.
+	};
+	#else
+	{
+		#showme $name is not on your friendlist.
+	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Append a goto to your current room when saving a map
+#nop -------------------------------------------------------------------------
+
+#alias {savemap}
+{
+	#map write %0;
+	#map get roomvnum room;
+	#system echo '#map goto $room' >> %0
+}
+
+#nop -------------------------------------------------------------------------
+#nop Log all text to a file with a timestamp with decisecond precision.
+#nop -------------------------------------------------------------------------
+
+#function {timestamp}
+{
+	#format utime {%U};
+
+	#format result {%t.%m} {%Y-%m-%d %H:%M:%S} {$utime % 1000000 / 100000}
+}
+
+#event {RECEIVED LINE}
+{
+	#line log mylog.txt {<178>@timestamp{} \};
+	#line log mylog.txt
+}
+
+#nop -------------------------------------------------------------------------
+#nop Old school tick support.
+#nop -------------------------------------------------------------------------
+
+#tick {oldtick}
+{
+	#delay 50 #showme #10 SECONDS TO TICK!!;
+	#showme #TICK!!!
+}
+{60}
+
+#nop -------------------------------------------------------------------------
+#nop Execute speedwalks with .
+#nop -------------------------------------------------------------------------
+
+#alias {.%0}
+{
+	#var cnt {};
+
+	#parse {%0} {char}
+	{
+		#if {"$char" >= "0" && "$char" <= "9"}
+		{
+			#var cnt $cnt$char
+		};
+		#elseif {"$cnt" == ""}
+		{
+			#send $char
+		};
+		#else
+		{
+			#$cnt #send $char;
+			#var cnt {}
+		}
+	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Targetting script
+#nop -------------------------------------------------------------------------
+
+#var targets {}
+
+#alias {target}
+{
+	#if {"%0" == ""}
+	{
+		#showme {Current targets: $targets[]}
+	};
+	#elseif {&targets[%0]}
+	{
+		#unvar targets[%0];
+		#showme Target '%0' removed.
+	};
+	#else
+	{
+		#var targets[%0] {};
+		#showme Target '%0' added.
+	}
+}
+
+#act {%1 arrives}
+{
+	#if {&targets[%1]} {kill %1}
+}
+
+#act {%1 is standing here}
+{
+	#if {&targets[%1]} {kill %1}
+}
+
+#action {%1 is dead! R.I.P.}
+{
+	#if {&targets[%1]} {target %1}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Show xterm 256 colors.
+#nop -------------------------------------------------------------------------
+
+#var temp {}
+
+#foreach {0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15} {var1}
+{
+	#showme {$var1 \e[38;5;${var1}m}
+}
+
+#foreach {a;b;c;d;e;f} {var1}
+{
+	#foreach {a;b;c;d;e;f} {var2}
+	{
+		#foreach {a;b;c;d;e;f} {var3}
+		{
+			#var temp {$temp <$var1$var2$var3><<888>$var1$var2$var3>}
+		};
+		#showme $temp;
+		#var temp {}
+	}
+}
+
+#loop 0 23 cnt
+{
+	#format temp {$temp <g%+02s><<888>g%+02s} {$cnt} {$cnt};
+}
+
+#showme $temp
+
+#nop -------------------------------------------------------------------------
+#nop Draw a health bar.
+#nop -------------------------------------------------------------------------
+
+#alias {hpbar}
+{
+	#math {hp_percent}{100 * %1 / %2};
+	#math {hpbars1}   {$hp_percent / 5};
+	#math {hpbars2}   {20 - $hpbars1};
+
+	#format {hpbar} {<011>%+${hpbars1}s<099><000>%+${hpbars2}s<099> };
+
+	#showme [$hpbar]
+}
+
+#alias {test}
+{
+	hpbar 30 100
+}
+
+#nop -------------------------------------------------------------------------
+#nop Syntax: sleep <seconds to delay> {commands}
+#nop
+#nop If there is already a pending sleep the delay will be stacked.
+#nop -------------------------------------------------------------------------
+
+#var sleeptime 0
+#var sleepcurr 0
+
+#alias {sleep %1 %2}
+{
+	#format sleeptime %U;
+
+	#if {$sleeptime > $sleepcurr}
+	{
+		#math sleepcurr $sleeptime + (%1) * 1000000;
+
+		#delay {%1} %2;
+	};
+	#else
+	{
+		#math sleepcurr $sleepcurr + (%1) * 1000000;
+	
+		#delay {($sleepcurr - $sleeptime) / 1000000.000} %2
+	}
+}

@@ -1,0 +1,282 @@
+CHARACTERS
+----------
+          The following special characters are defined:
+
+#         The hashtag is the default character for starting a command and is
+          subsequently known as the command character or tintin character.
+          When loading a command file the command character is set to the
+          first character in the file. The character can also be redefined
+          using #config.
+
+;         The semi-colon is used as the command separator and can be used to
+          separate two commands. Multiple commands can be strung together as
+          well. Trailing semi-colons are ignored when reading a script file
+          as this is a common error.
+
+{ }       Curly brackets aka braces are used for seperating multi word command
+          arguments, nesting commands, and nesting variables. Braces cannot
+          easily be escaped and must always be used in pairs.
+
+" "       Quote characters are used for strings in the #math, #if, #switch,
+          and #case commands. It is however suggested to use an extra
+          set of braces { } to define strings. Quote support will be
+          phased out eventually since TT++ is typeless.
+
+!         The exclamation sign is used to repeat commands, see #help history.
+          The character can be redefined using #config.
+
+\         An input line starting with a backslash is send verbatim if you are
+          connected to a server. This character can be configured with
+          #config.
+
+
+
+SUBSTITUTIONS
+-------------
+
+$&*@      All variable and function names must begin with an alphabetic
+          character, followed by any number of alphanumeric characters
+          and underscores.
+
+$         The dollar sign is used to retrieve the value of a variable.
+
+&         The ampersand sign is used to retrieve the index of a variable.
+
+*         The astrix sign is used to retrieve the name of a variable.
+
+@         The at sign followed by an alphanumeric string is used for functions.
+
+[ ]       Brackets are used for nested variables which function as an
+          associative array. Associative arrays are also known as tables and
+          maps. Regex can be used within brackets to match multiple variables.
+
+&0- &99   The ampersand sign followed by a number is used for arguments in the
+          regex command.
+
+<000>     Three alphanumeric characters encapsulated by the less- and greater-
+          than signs are used for 4 and 8 bit color codes.
+
+<0000>    Either a B (background) or F (foreground) followed by three
+          hexadecimal characters encapsulated by < > signs are used for 12
+          bit color codes. Requires truecolor capable terminal.
+
+<0000000> Either a B (background) or F (foreground) followed by six
+          hexadecimal characters encapsulated by < > signs are used for 24
+          bit color codes. Requires truecolor capable terminal.
+
+          More information is available at #help color.
+
+\         The back slash is used to escape a character. Available options
+          are listed at #help escape. Escapes are typically escaped when text
+          leaves the client, by being send to a server, the shell, or being
+          displayed on the screen.
+
+          All variables and functions can be escaped by doubling the sign,
+          like $$variable_name or @@function_name. To escape a variable
+          twice use $$$var_name. One escape is removed each time tintin
+          needs to substitute a variable or function.
+
+
+
+COORDINATES
+-----------
+
+          When the 0,0 coordinate is in the upper left corner TinTin++ uses
+          a y,x / rows,cols notation. When the 0,0 coordinate is in the
+          bottom left corner tintin uses a x,y / cols/rows notation.
+
+MATH
+----
+          Operators       Priority     Function
+          ------------------------------------------------
+          !               0            logical not
+          ~               0            bitwise not
+          *               1            integer multiply
+          **              1            integer power
+          /               1            integer divide
+          //              1            integer sqrt // 2 or cbrt // 3
+          %               1            integer modulo
+          d               1            integer random dice roll
+          +               2            integer addition
+          -               2            integer subtraction
+          <<              3            bitwise shift
+          >>              3            bitwise shift
+          >               4            logical greater than
+          >=              4            logical greater than or equal
+          <               4            logical less than
+          <=              4            logical less than or equal
+          ==              5            logical equal (can use regex)
+          !=              5            logical not equal (can use regex)
+           &              6            bitwise and
+           ^              7            bitwise xor
+           |              8            bitwise or
+          &&              9            logical and
+          ^^             10            logical xor
+          ||             11            logical or
+
+:         The colon can be used in #math to indicate a time value.
+1:30      This means 1 minute and 30 seconds and equals 90 seconds.
+2:1:30    This means 2 hours, 1 minute and 30 seconds.
+6:2:1:30  This means 6 days, 2 hours, 1 minute and 30 seconds.
+          #math time 6:2:1:30 equals 525690
+
+{ }       Braces can be used in #math to perform string operations.
+{a} > {b} This checks if the string "a" is greater than "b".
+
+,         Commas in numbers are ignored, as well as spaces and tabs.
+
+.         Dots can be used in #math to perform floating point calculations.
+          The precision is set to the highest precision number used in the
+          calculation.
+
+( )       Braces can be used in #math to prioritize a calculation.
+
+
+STATEMENTS
+----------
+
+         TT++ has the following commands which behave like statements.
+
+         #break
+         #case {value} {true}
+         #continue
+         #default {commands}
+         #else {commands}
+         #elseif {expression} {true}
+         #foreach {list} {variable} {commands}
+         #if {expression} {true}
+         #loop {min} {max} {variable} {commands}
+         #parse {string} {variable} {commands}
+         #return {value}
+         #switch {expression} {commands}
+         #while {expression} {commands}
+
+REGEX
+-----
+
+        ^ force match of start of line.
+        $ force match of end of line.
+        \ escape one character.
+   %1-%99 lazy match of any text, available at %1-%99.
+       %0 should be avoided in triggers, and if left alone lists all matches.
+      { } embed a raw regular expression, matches are stored to %1-%99.
+    %!{ } embed a raw regular expression, matches are not stored.
+          [ ] . + | ( ) ? * are treated as normal text unlessed used within
+          braces. Keep in mind that { } is replaced with ( ) automatically
+          unless %!{ } is used.
+
+          Of the following the (lazy) match is available at %1-%99
+
+       %w match zero to any number of word characters.
+       %W match zero to any number of non word characters.
+       %d match zero to any number of digits.
+       %D match zero to any number of non digits.
+       %s match zero to any number of spaces.
+       %S match zero to any number of non spaces.
+
+       %? match zero or one character.
+       %. match one character.
+       %+ match one to any number of characters.
+       %* match zero to any number of characters.
+
+       %i matching becomes case insensitive.
+       %I matching becomes case sensitive (default).
+
+ESCAPE
+------
+
+    \a    beep the terminal.
+    \c    send a control character, \ca for ctrl-a.
+    \e    start an escape sequence.
+    \n    send a line feed.
+    \r    send a carriage return.
+    \t    send a horizontal tab.
+    \x    print an 8 bit character using hexadecimal, \xFF for example.
+    \x7B  send the '{' character.
+    \x7D  send the '}' character.
+    \u    print a 16 bit unicode character, \uFFFD for example.
+    \U    print a 21 bit unicode character, \U02AF21 for example.
+    \v    send a vertical tab
+
+COLOR CODES
+-----------
+         <xyz>  with x, y, z being parameters
+
+         Parameter 'x': VT100 code
+
+         0 - Reset all colors and codes to default
+         1 - Bold
+         2 - Dim
+         4 - Underscore
+         5 - Blink
+         7 - Reverse
+         8 - Skip (use previous code)
+
+         Parameter 'y':  Foreground color
+         Parameter 'z':  Background color
+
+         0 - Black                5 - Magenta
+         1 - Red                  6 - Cyan
+         2 - Green                7 - White
+         3 - Yellow               8 - Skip
+         4 - Blue                 9 - Default
+
+         For xterm 256 colors support use <aaa> to <fff> for RGB foreground
+         colors and <AAA> to <FFF> for RGB background colors. For the grayscale
+         foreground colors use <g00> to <g23>, for grayscale background colors
+         use <G00> to <G23>.
+
+         The tertiary colors are as follows:
+
+         <acf> - Azure            <afc> - Jade
+         <caf> - Violet           <cfa> - Lime
+         <fac> - Pink             <fca> - Orange
+
+Example: #showme <acf>Azure    <afc>Jade     <caf>Violet
+Example: #showme <cfa>Lime     <fac>Pink     <fca>Orange
+
+         For 12 bit truecolor use <F000> to <FFFF> for foreground colors and
+         <B000> to <BFFF> for background colors.
+
+         For 24 bit truecolor use \e[38;2;R;G;Bm where R G B are red/green/blue
+         intensities between 0 and 255. For example: \e[37;2;50;100;150m. Use
+         \e[48;2;R;G;Bm for background colors.
+
+HELP
+----
+    [ ]   Argument is optional.
+    < >   Argument is required.
+    { }   Argument is literally the same.
+     |    Used to separate arguments with multiple options.
+
+CONFIGURATION DEFAULTS
+----------------------
+[AUTO TAB      ] [    5000] Scroll back buffer lines used for tab completion
+[BUFFER SIZE   ] [   20000] The size of the scroll back buffer
+[CHARSET       ] [    AUTO] The character set encoding used by TinTin++
+[CHILD LOCK    ] [     OFF] TinTin++ is not child locked.
+[COLOR MODE    ] [     256] The color code encoding used by TinTin++
+[COLOR PATCH   ] [     OFF] TinTin++ will leave color handling to the server
+[COMMAND COLOR ] [   <078>] The color of echoed commands
+[COMMAND ECHO  ] [      ON] Your commands are echoed in split mode
+[CONNECT RETRY ] [       0] Seconds TinTin++ sessions try to connect on failure
+[CONVERT META  ] [     OFF] TinTin++ doesn't convert meta prefixed characters
+[HISTORY SIZE  ] [    1000] The size of the command history
+[INHERITANCE   ] [      ON] The startup session is inherited
+[LOG           ] [     RAW] The data format of the log files
+[LOG LEVEL     ] [    HIGH] TinTin++ only logs high level mud data
+[MCCP          ] [      ON] MCCP is enabled.
+[MOUSE TRACKING] [     OFF] Your terminal does not generate mouse events.
+[PACKET PATCH  ] [    0.00] Seconds TinTin++ will try to patch broken packets
+[RANDOM SEED   ] [    AUTO] Seed value used for the random number engine
+[REPEAT ENTER  ] [     OFF] You send a carriage return on an enter
+[REPEAT CHAR   ] [       !] The character used for repeating commands
+[SCREEN READER ] [     OFF] You are not using a screen reader
+[SCROLL LOCK   ] [      ON] You do not see mud output while scrolling
+[SPEEDWALK     ] [     OFF] Your input is not scanned for speedwalk directions
+[TINTIN CHAR   ] [       #] The character used for TinTin++ commands
+[VERBATIM      ] [     OFF] Your keyboard input is parsed by TinTin++
+[VERBATIM CHAR ] [       \] The character used for unparsed text
+[VERBOSE       ] [     OFF] Messages while reading in a script file are gagged
+[WORDWRAP      ] [      ON] Mud output is word wrapped
+

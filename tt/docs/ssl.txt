@@ -1,0 +1,113 @@
+SERVER CONFIGURATION
+--------------------
+
+No changes are made to tintin or script configuration. The plan is to tunnel
+an SSL connection to your #port or #chat port.
+
+One problem is that redirected connections will appear to originate from
+localhost. Fortunately tintin can handle this if needed.
+
+You'll need to install the 'stunnel' package or download it from the
+www.stunnel.org website. There is a Windows version of stunnel with
+essentially the same interface.
+
+You'll also need the 'openssl' package.
+
+If you do this on Ubuntu the package might install the command as stunnel4
+while stunnel calls stunnel3. Be mindful of that.
+
+Create a directory to store the certificates, and the stunnel config file.
+
+Create a self-signed certificate using openssl. For more info see:
+http://www.stunnel.org/faq/certs.html
+
+Switch to the directory where you want to store the certs, and then run the
+command to generate a self-signed cert:
+
+openssl req -new -x509 -days 3650 -nodes -out stunnel.pem -keyout stunnel.pem
+
+It will prompt you for some information. The only thing you really need to
+change from default, is the Common Name entry, which you should specify the
+full hostname of your server, for example:  server.domain.com
+
+Do not enter a passphrase for the cert, otherwise you will be prompted to
+enter this passphrase every single time you start stunnel.
+
+Run chmod 660 stunnel.pem
+
+Stunnel will fail if the permissions are not correct on the file.
+
+Create the config file for stunnel4, for example tinssl.conf, and use the
+following contents, adjusting where necessary:
+
+Code: [Select]
+foreground = no
+pid=/home/user/.tintin/ssl/tinssl.pid
+
+[tinssl]
+accept=4051
+cert=/home/user/.tintin/ssl/stunnel.pem
+key=/home/user/.tintin/ssl/stunnel.pem
+client=no
+connect=localhost:4050
+
+The foreground option - change this to 'yes' to keep stunnel in the foreground
+initially. Useful to see errors. Specify the pid to a writable path, or set it
+to "pid=" for no pid file. If you don't know what a pid file is you can leave
+it blank.
+
+The segment headed by [tinssl] is the service entry. The name is arbitrary,
+and there can be multiple entries if you want more tunnels. "accept=4051" is
+the port for stunnel to listen for connections. "client=no" is software
+default - this specifies a server connection, so stunnel must listen on 4051
+for SSL connections. "connect=localhost:4050" This specifies where stunnel
+will direct the incoming SSL connection. In this case, to tintin's default
+chat port.
+
+Now run: stunnel4 tinssl.conf
+
+It should disappear into the background, or if you set foreground=yes, you
+will see the basic log.
+
+Run "ps -aux|grep stunnel" to verify that stunnel is running. There will
+probably be around 4 processes running (For some odd reason). For
+Windows, you should have an icon in the system tray.
+
+With tintin you can now connect to the port using the #ssl command. To
+connect to a chat port you'd have to run the connection through another
+stunnel proxy. If there are problems check the logs and verify you opened
+the port on your firewall, etc.
+
+CLIENT CONFIGURATION
+--------------------
+
+If you want to use an SSL connection over #chat you can set up stunnel in
+client mode to connect to your new SSL proxy. In this case we'll use 
+Windows, but it's virtually identical on any supported platform.
+
+Install stunnel for Windows.
+
+Edit the stunnel config from the convenient menu entry. Leave everything as
+is, and add a service entry at the bottom of the file:
+
+Code: [Select]
+[tinssl]
+accept = 12345
+connect = server.domain.com:4051
+client = yes
+
+"accept=12345" is the LOCAL port for stunnel to listen on.
+"connect=server.domain.com:4051" is the SSL server to connect to, in this
+case, your newly configured stunnel on your host server.
+
+"client=yes" This is important, stunnel will NOT work properly if you do not
+set client=yes here.
+
+Run stunnel, and you will get a new icon in your systray. You can right-click
+it and 'View Log' to see what's going on, if you like. Run tintin and create
+a chat connection to localhost, port 12345 (or whatever you configured).
+
+You should be momentarily connected to the given ssl server.
+
+
+Special thanks to Vilentus for the original documentation.

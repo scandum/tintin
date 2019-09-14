@@ -1,0 +1,261 @@
+Due to continuous improvements old tintin scripts aren't always compatible
+with new versions. This document tries to list most compatibility conflicts.
+
+TinTin++ 2.02.0
+---------------
+
+02) You'll have to issue #map color reset and #map legend reset to get
+    your old map files straightened out. Once the map is saved again
+    it should work without issues.
+
+03) There were two big problems that needed to be addressed to continue
+    smooth development.
+
+    1. In VT100 row 1 is the top line, while in tintin row 1 is the split
+       line.
+
+    2. In VT100 row, col (y, x) notation is used, while tintin has been
+       favoring col, row (x, y) notation.
+
+    While this may seem like a minor issue, I'm utilizing VT100 more often
+    using more complex operations, and TinTin++ is currently pretty much
+    mirrored in the way it behaves opposed to VT100.
+
+    This has resulted in relatively simple math becoming weird unintuitive
+    math, making already complex code even more complex, resulting in bugs
+    and unreadable code that requires a lot of mental gymnastics to figure
+    out.
+
+    Subsequently I decided on a major interface change that will result in
+    several compatibility issues.
+
+    #split will stay the way it is.
+
+    #showme {text} will stay the same.
+    #showme {text} {0} will become invalid.
+    #showme {text} {1} will print on the top line.
+    #showme {text} {2} will print on the second line from the top.
+    #showme {text} {-1} will print on the bottom line / input line.
+    #showme {text} {-2} will print on the default split line.
+
+    #prompt {text} {substitution} will stay the same.
+    #prompt {text} {substitution} {0} will become invalid.
+    #prompt {test] {substitution} {1} will write to the top line.
+    #prompt {text} {substitution} {-1} will write to the bottom / input line.
+    #prompt {text} {substitution} {-2} will write to the 2nd line from the
+       bottom, which is the default split line.
+
+    All code that takes {col} {row} as an argument will be changed to instead
+    use {row} {col}. The main reason for this change is consistency, and
+    because I've repeatedly swapped row and col in VT100 which can be a tricky
+    bug to track down.
+
+TinTin++ 2.01.8
+---------------
+
+01) Changed the software license from GPL2 to GPL3.
+
+02) The SYSTEM START event will no longer report the client name and version
+    as %0 and %1. Instead you can use #info system save, which will save
+    CLIENT_NAME and CLIENT_VERSION to the $info[SYSTEM] variable.
+
+TinTin++ 2.01.7
+---------------
+
+    Added proper class nesting. When closing the active class, the last active
+    class is activated. This change will cause trouble for scripts that don't
+    properly close classes.
+
+TinTin++ 2.01.5
+---------------
+
+01) The #FORALL command has been removed and instead #FOREACH should be used.
+
+02) Removed dot notation support for variables. #var bla.bli blo is no longer
+    valid, nor is $bla.bli.
+
+TinTin++ 2.01.4
+---------------
+
+    Added support for *{variable} to show variable names.
+
+TinTin++ 2.00.2
+---------------
+
+    Removed the #suspend command, it's been moved to #cursor suspend.
+
+TinTin++ 1.99.7
+---------------
+
+01) #LOOP, #FOREACH, and #PARSE take an additional argument which contains
+    the variable used for storing the intermediate values.
+
+    #LOOP {min} {max} {variable} {commands}
+
+    #FOREACH {list} {variable} {commands}
+
+    #PARSE {string} {variable} {commands}
+
+02) #format {variable} {syntax} {{arg1} {arg2}} has been changed to
+    #format {variable} {syntax} {arg1} {arg2}
+
+03) Renamed #replacestring to #replace
+
+04) Variables can be nested using brackets. Non existent nested variables
+    report 0 if the base variable exists and always report 0 when the name
+    is encapsulated in braces.
+
+    Using & instead of $ will report the index of a variable.
+
+    Using $variable[+1] will report the first nest, and $variable[-1] will
+    report the last nest, $variable[-2] the second last nest, etc.
+
+    To display all nests use $variable[]
+
+    To check if a variable exists use: #if {&{variable}} which will report
+    0 if non existent, and the numeric index if the variable is found.
+
+05) #LIST now works with nested variables. Read #HELP VARIABLE.
+
+06) The #SWITCH, #CASE, #DEFAULT, #FOREACH, #BREAK, #CONTINUE, #ELSE, #ELSEIF,
+    and #RETURN statements have been added and should work more or less as
+    expected.
+
+TinTin++ 1.99.1
+---------------
+
+01) The #regex command now uses the same regular expression syntax as triggers.
+
+02) #if {"%0" == "?test*"} needs to be replaced with #if {"%0" == "%?test%*"}
+    as per the regex syntax documented in #HELP ACTION, or use 
+    #if {&{test} != 0} to see if a variable exists.
+
+03) old lists need to be converted as following:
+    #var {friends} {{Alicia} {Bubba} {Cathie} {Kayla} {Zorro}}
+
+    to
+
+    #var {friends} {{1}{Alicia} {2}{Bubba} {3}{Cathie} {4}{Kayla} {5}{Zorro}}
+
+    or
+
+    #list friends create {{Alicia} {Bubba} {Cathie} {Kayla} {Zorro}}
+
+TinTin++ 1.99.1
+---------------
+
+    Triggers now use PCRE (Perl Compatible Regular Expressions).
+    See #help regex for details.
+
+TinTin++ 1.96.6
+---------------
+
+    #PATHDIR is now specificly designed to hold a direction, the opposite
+    direction, and the vector of said direction for the #MAP command.
+
+TinTin++ 1.95.0
+---------------
+
+    Removed #antisubsittute as its utility was too limited for inclusion.
+
+TinTin++ 1.94.4
+---------------
+
+01) #SPLIT supports 2 arguments to set the top and bottom row.
+
+02) In order to make a color trigger start a trigger with a tilda. In order to see
+    color codes the way tintin wants you to enter them type: #CONFIG convert on
+    when done use: #CONFIG convert off.
+
+    #action {~\0;32m%0 says '%1'} {say I don't like green says.}
+
+TinTin++ 1.94.0
+---------------
+
+    #SLEEP has been removed. The #DELAY command can be used instead.
+
+TinTin++ 1.91.0
+---------------
+
+    Removed the #speedwalk command, it's been moved to the #config menu.
+
+TinTin++ 1.90.0
+---------------
+
+01) !<argument> will repeat the last command starting with that argument.
+    score
+    who all
+    area
+    !          --> repeats area
+    !w         --> repeats who all
+    !s         --> repeats score
+    !ll        --> sends !ll as a command
+
+TinTin++ 1.89.0
+---------------
+
+01) #HIGHLIGHT is now parsed as: #HIGHLIGHT {string} {color}. You can
+    combine several colors by separating them by semicolons. The color
+    argument can be a color code. See #HELP COLORS.
+
+02) $result is now a default variable that can be used in #FUNCTION.
+
+    #function dosomething {#math result 1 + 1}
+
+    say @dosomething{} will print 2, the #RESULT command has been removed.
+
+    It's possible to use #return <value> to exit the function and at the same
+    time set the result variable.
+
+03) #MATH and #IF support 64 floating point arithmatic expressions. They also
+    support strings, which must be enclosed in quotes. See #HELP MATH for more
+    information.
+
+TinTin++ 1.88.0
+---------------
+
+01) #FORMAT has been introduced and replaces a wide variety of commands.
+
+
+02) #MESSAGE, #CONFIG, #IGNORE, #DEBUG are all you need to configure tintin,
+    changes made with #CONFIG are written to file with #WRITE.
+
+03) The old walk code has been removed, instead you can use the #PATH command.
+
+04) #TICK has been changed quite a bit, new commands: #TICK and #UNTICK, you
+    can have as many tickers as you want. The old #TICK command is gone.
+
+    Syntax: #TICK {name} {commands} {seconds to tick}
+
+    The name is added so you can delete it. You will no longer receive spam,
+    but with a little bit of creativity you can rebuild the old tintin ticker
+    spam.
+
+    Use #READ to load the following ticker which emulates old behavior:
+
+    #tick {oldtick}
+    {
+            #delay 50 #showme #10 SECONDS TO TICK!!;
+            #showme #TICK!!!
+    }
+    {60}
+
+05) #READ now supports multiline triggers, it also checks the nesting level
+    before doing anything so you don't end up with bogus, and trims leading 
+    spaces/tabs. Make sure to remove non matching { }'s from #NOP comments,
+    cause it will (and should) create error messages. The error message
+    will try to inform you on what line the error occured.
+
+06) Added #MACRO for macro support.
+
+07) Defaults are no longer in a default .rc file.
+
+08) Can now have multiple prompt triggers, the 2nd argument is the substitution
+    string that works the same as #SUBSTITUTE. the 3rd argument is the row the
+    line should be printed on, if left blank it picks the default split line.
+
+09) All settings are inherited from the startup session when creating a new
+    session.
+
+10) A scrollback buffer has been added, which can be browsed with page up,
+    page down, and the #GREP and #BUFFER command.

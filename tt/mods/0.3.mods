@@ -1,0 +1,84 @@
+10/6/1992       TINTIN III
+
+                TINTIN III is a mud client special designed to help
+                dikumudders. It runs under various UNIX implementations.
+                This third release of TINTIN contains a bunch of new
+                features, which I hope you'll enjoy. I know that there're
+                many TINTINIII beta versions around. I'd advice the people
+                running these, to get a copy of the final release of
+                TINTIN-III, coz the various BETA versions are pretty buggy.
+
+                BTW thanks to the beta testers for their great support.
+
+                People used to TINTIN v2.0 shouldn't have too many trouble
+                with this version. But do notice anyway, that there has been
+                a bunch of syntax changes:
+
+                THE V2.0 COMMANDFILES ARE NOT COMPATIBLE WITH THIS V3.0!!!!!!!
+
+                TINTIN and the future
+
+                This was the last time I'll release a totally rewritten TINTIN
+                code. Although  new versions of TINTIN might occure, they'll
+                be of the format ver.3.x, and will only be released if new
+                bugs are found and/or portability problems with this version
+                can be fixed. People are invited to release clones of TINTIN
+                if they feel they've added something neat. If you release an
+                extended version of TINTIN, THEN MAKE SURE TO INCLUDE YOUR 
+                NAME IN THE TITLE-TEXT! This way I hope we can avoid nasty
+                parallel-versions. I might code a tintin with a X-windows
+                interface tho.
+
+                TINTIN and bugs
+
+                Well I might have left a bug or two around, but nothing fatal
+                I hope. Should you find any bugs(and debug'em too *HURRAY*)
+                then please lemmie know..
+
+                TINTIN and portability
+
+                TINTIN v3.0 has succesfully been compiled and run under these
+                UNIX-implementations:
+
+                SunOS
+                HPUX
+                Sequent
+                AIX
+                DEC ULTRIX
+                VAX with ULTRIX 4.1
+                NeXT
+                and some more....
+
+                If you have trouble with compiling under your system, and you
+                know how to fix it, then please gimmie a mail.
+
+
+                Makefile for TINTIN III
+
+                I'm using GNU's gcc compiler. The most important is that the
+                compiler is ANSI-compatible. If gcc isn't installed on your
+                system, then try change the 'gcc' below to 'cc' If CC = gcc
+
+                Some people's ANSI-compiler somehow don't have the full
+                ANSI-defined standard-library. Uncomment the lines below
+                if your compiler don't have 'strstr' F1 = -DDUNNO_strstr
+
+                If you recive lots of error from the 'echo.c' file, then try
+                to uncomment the next line: F2 = -DDO_TERMIO
+
+                Somehow people using Sun and gcc have to redefine the values
+                for the macros TIOCGETP and TIOCSETP. This is really dirty
+                coding and shouldn't be nercessary(but it is sometime).
+
+1/4/1992        T I N T I N
+
+                (T)he K(I)cki(N) (T)ick D(I)kumud Clie(N)t
+
+                (hell I simply wanted it to be called TINTIN....)
+
+                This client is more or less a byproduct from a robot-player
+                prog I'm coding at the moment. This means that the prog. don't
+                has the same amount of features that progs like PMF and
+                tinymugys have(weird features that you don't use anyway...).
+                The prog has however some features special designed to diku-mud
+                that might make it interesting for you. The prog is UNIX only..
