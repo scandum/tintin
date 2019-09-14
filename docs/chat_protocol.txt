@@ -1,0 +1,257 @@
+Mud Master Chat Protocol
+
+Establishing a Connection
+
+Caller: Once a connection is made the caller sends a connection string;
+which looks like: "CHAT:<chat name>\n<ip address><port>".   The sprintf
+syntax is: "CHAT:%s\n%s%-5u".  The port must be 5 characters, padded on the
+right side with spaces. Once this string has been sent it waits for a
+response from the other side.  If a "NO" is received the call is cancelled. 
+If the call was accepted the string "YES:<chat name>\n" is received.
+
+Receiver
+
+When a socket call is detected it accepts the socket then waits
+for the "CHAT:" string to be send from the caller.  If the receiver wishes
+to deny the call, the string "NO" needs to be sent back to the caller.  To
+accept the call, the string "YES:<chat name>\n" is sent back.
+
+Chat Data Blocks
+
+A chat data block looks like this:  <block ID byte><data><end of data byte>. 
+All data dealing with needs to follow this format with a couple exceptions. 
+The connection process doesn't use the data blocks and the file transfer
+blocks are a fixed size and don't need the <end of data> byte.
+
+Default Port
+
+The default port should always be 4050.
+
+
+Below is a list of the <block ID> values:
+
+#define CHAT_NAME_CHANGE                      1
+#define CHAT_REQUEST_CONNECTIONS              2
+#define CHAT_CONNECTION_LIST                  3
+#define CHAT_TEXT_EVERYBODY                   4
+#define CHAT_TEXT_PERSONAL                    5
+#define CHAT_TEXT_GROUP                       6
+#define CHAT_MESSAGE                          7
+#define CHAT_DO_NOT_DISTURB                   8
+
+#define CHAT_VERSION                         19
+#define CHAT_FILE_START                      20
+#define CHAT_FILE_DENY                       21
+#define CHAT_FILE_BLOCK_REQUEST              22
+#define CHAT_FILE_BLOCK                      23
+#define CHAT_FILE_END                        24
+#define CHAT_FILE_CANCEL                     25
+#define CHAT_PING_REQUEST                    26
+#define CHAT_PING_RESPONSE                   27
+
+#define CHAT_PEEK_CONNECTIONS                28
+#define CHAT_PEEK_LIST                       29
+#define CHAT_SNOOP_START                     30
+#define CHAT_SNOOP_DATA                      31
+
+#define CHAT_END_OF_COMMAND                 255
+
+The <end of data> byte is 255:
+
+
+
+<CHAT_NAME_CHANGE><new name><CHAT_END_OF_COMMAND>
+
+When a user changes their chat name the new name needs to be broadcast to
+all of their connections.
+
+
+
+<CHAT_REQUEST_CONNECTIONS><CHAT_END_OF_COMMAND>
+
+The sender requests connections from another connection asking to see all the
+people that person has marked as public, then try to connect to all of those
+yourself.
+
+
+
+<CHAT_CONNECTION_LIST><address>,<port>,<address>,<port><CHAT_END_OF_COMMAND>
+
+The receiver needs to put all the ip addresses and port numbers in a comma
+delimited string and send them back as a connection list.
+
+
+
+<CHAT_TEXT_EVERYBODY><text to send><CHAT_END_OF_COMMAND>
+
+Used to send some chat text to everybody.  All the text you want to be
+displayed needs to be generated on the sender's side, including the line
+feeds and the "<chat name> chats to everybody" string.
+
+Receiver:
+
+If the chat connection isn't being ignored, you simply print the
+string.  If you have any connections marked as being served you need to echo
+this string to those connections.  Or if this is coming from a connection
+being served, you need to echo to all your other connections.  This allows
+people who cannot connect directly to each other to connect with a 3rd
+person who *can* connect to both and be a server for them.
+
+
+
+<CHAT_TEXT_PERSONAL><text to send><CHAT_END_OF_COMMAND>
+
+This works the same way as CHAT_TEXT_EVERYBODY as far as what you need to
+send.  The text should obviously be changed so the person receiving knows
+this was a personal chat and not broadcast to everybody.  "\n%s chats to
+you, '%s'\n"
+
+Receiver:
+
+Just print the string that comes in if you aren't ignoring this connection.
+
+
+
+<CHAT_TEXT_GROUP><group><text to send><CHAT_END_OF_COMMAND>
+
+Used when you send text to a specific group of connections.  Works basically
+the same as the other text commands.  The group name is a 15 character
+string.  It *must* be 15 characters long, pad it on the right with spaces
+to fill it out.  "\n%s chats to the group, '%s'\n"
+
+Receiver:
+
+Just print the string that comes in if you aren't ignoring this
+connection.
+
+
+
+<CHAT_MESSAGE><message><CHAT_END_OF_COMMAND>
+
+This is used to send a message to another chat connection.  An example of
+this is when you try to send a command (action, alias, etc) to another chat
+connection and they don't have you flagged as accepting commands.  In that
+case a chat message is sent back to the sender telling them that command are
+not being accepted.  To let the other side know the message is generated
+from the chat program it is a good idea to make the string resemble
+something like: "\n<CHAT> %s is not allowing commands.\n"
+
+Receiver: Just print the message string.
+
+
+
+<CHAT_VERSION><version string><CHAT_END_OF_COMMAND>
+
+This is used to send your client's name and version.
+
+
+
+<CHAT_FILE_START><filename,length><CHAT_END_OF_COMMAND>
+
+This is sent to start sending a chat connection a file.  The filename should
+be just the filename and not a path.  Length is the size of the file in
+bytes.
+
+Receiver:
+
+First should check to make sure you are allowing files from this
+connection.  Make sure the filename is valid and that the length was
+trasnmitted.  MM by default won't allow you to overwrite files; which keeps
+people from messing with file already in your directory.  If for any reason
+the data isn't valid or you don't want to accept files from this person a
+CHAT_FILE_DENY should be sent back to abort the transfer.  If you want to
+continue with the transfer you need to start it off by requesting a block of
+data with CHAT_FILE_BLOCK_REQUEST.
+
+
+
+<CHAT_FILE_DENY><message><CHAT_END_OF_COMMAND>
+
+This is used when a CHAT_FILE_START has been received and you want to
+prevent the transfer from continuing.  <message> is a string telling the
+reason it was denied.  For example, if the file already existed you might
+deny it with: "File already exists."
+
+Receiver:
+
+Print the deny message.  Deal with cleaning up any files you
+opened when you tried to start the transfer.
+
+
+
+<CHAT_FILE_BLOCK_REQUEST><CHAT_END_OF_COMMAND>
+
+Sent to request the next block of data in a transfer.
+
+Receiver:
+
+Need to create a file block to be sent back.  File blocks are
+fixed length so they don't need the CHAT_END_OF_COMMAND byte.  If the end of
+file is reached need to send a CHAT_FILE_END close up the files and let the
+user know it is done sending.
+
+
+
+<CHAT_FILE_BLOCK><block of data>
+
+A file block is 500 bytes.  A file block is ALWAYS 500 bytes so no CHAT_END_OF_COMMAND should be added.
+
+Receiver:
+
+The receiver needs to keep track of the number of bytes written to
+properly write the last block of data.  If you keep track of the bytes
+written you know when to expect that last block that probably doesn't have a
+full 500 bytes to be saved.  File transfers are receiver driven, so for each
+block of data you accept, you need to send another CHAT_FILE_BLOCK_REQUEST
+back out to get more data.
+
+
+
+<CHAT_FILE_END><CHAT_END_OF_COMMAND>
+
+Close up your files and be done with it. This command isn't required for TinTin since it keeps track of the file transfer progress itself.
+
+
+
+<CHAT_FILE_CANCEL><CHAT_END_OF_COMMAND>
+Either side can send this command to abort a file transfer in progress.
+
+
+
+<CHAT_PING_REQUEST><timing data><CHAT_END_OF_COMMAND>
+
+The timing data is up to the ping requester. TinTin sends a 64 bit time stamp.
+
+
+
+<CHAT_PING_RESPONSE><timing data><CHAT_END_OF_COMMAND>
+
+Send back the timing data is the data that was sent with the CHAT_PING_REQUEST.
+
+
+
+<CHAT_PEEK_CONNECTIONS><CHAT_END_OF_COMMAND>
+
+The sender requests connections from another connection asking to see all the
+people that person has marked as public.
+
+
+
+<CHAT_PEEK_LIST><address>~<port>~<name>~<CHAT_END_OF_COMMAND>
+
+The receiver needs to put all the ip addresses, port numbers, and names in a
+tilda delimited string and send them back as a peek list.
+
+
+
+<CHAT_SNOOP_START><CHAT_END_OF_COMMAND>
+
+The sender requests to start or stop snooping data from a chat connection.
+The Receiver decides whether to allow snooping or not.
+
+
+
+<CHAT_SNOOP_DATA><message><CHAT_END_OF_COMMAND>
+
+Send by a client in snoop or forward mode. The message should be echoed by
+the receiver, but not be further forwarded to avoid infinite loops.

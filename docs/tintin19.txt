@@ -1,0 +1,344 @@
+
+         ooooooooooo ooooo oooo   oooo ooooooooooo ooooo oooo   oooo
+         88  888  88  888   8888o  88  88  888  88  888   8888o  88 
+             888      888   88 888o88      888      888   88 888o88 
+             888      888   88   8888      888      888   88   8888 
+            o888o    o888o o88o    88     o888o    o888o o88o    88 
+
+
+                               ooo         ooo
+                               888         888
+                           oooo888oooo oooo888oooo
+                               888         888
+                               888         888
+
+
+                    Original documentation by Peter Unold
+
+
+                             Table of Contents
+                             -----------------
+
+     1)  What is TinTin++? .............................
+     2)  Giving Credit Where Credit is Due .............
+     3)  Starting TinTin++ .............................
+     3)  Basic Features ................................
+     4)  Connecting to a MUD ...........................
+     5)  Split Screen ..................................
+     6)  Aliases .......................................
+     7)  Actions .......................................
+     8)  Highlights ....................................
+     9)  Speedwalk .....................................
+    10)  Tickers .......................................
+    11)  Command Files .................................
+    12)  Command History ...............................
+    13)  Path Tracking .................................
+    14)  Advanced Features .............................
+    15)  Help ..........................................
+
+
+
+                               T I N T I N ++
+
+                 (T)he K(I)cki(N) (T)ick D(I)kumud Clie(N)t
+
+
+
+                   =========  What is TinTin++?  =========
+
+     TinTin++ is a client program specialized to help playing muds. This is a
+     souped up version of TINTIN III with many new features.
+
+
+
+            =========  Giving Credit Where Credit is Due ========
+
+     None of this work would be possible, without the work done by Peter Unold.
+     He was the author of TINTIN III, the base of TinTin++.  Hats off to ya
+     Peter, You started the ball rolling.
+
+
+
+                   =========  Starting TinTin++  =========
+
+     The syntax for starting tintin is: ./tt++ [command file]
+
+     Read more about the command file in the 'files' section below. Remember
+     one thing however. All actions, aliases, substitutions, etc, defined when
+     starting up TinTin++ are inherited by all sessions.
+
+     If you want to get out of tintin after starting it type: #end or press
+     ctrl-d. If you want to paste text use shift-insert, text is automatically
+     copied upon selection.
+
+
+
+                     ========  Basic Features  =========
+
+     I'll start by explaining some of the very basic and important features:
+
+     All TinTin++ commands starts with a '#'. (can be changed with #config)
+
+     Example: #help -- #help is a client command, and isn't send to the mud.
+
+     All TinTin++ commands can be abbreviated when typed.
+
+     Example: #he -- Typing #he is the same as typing #help
+
+     All commands can be separated with a ';'.
+
+     Example: n;l green;s;say Dan Dare is back! -- do these 4 commands
+
+     There are several ways ';'s can be overruled.
+
+     Example: \say Hello ;) -- Lines starting with a '\' aren't parsed by
+     tintin.
+
+     Example: say Hello \;) -- The escape character can esape 1 letter.
+
+
+
+                      ========  Connecting to a Mud  =========
+
+     Command: #session {session name} {mud address} {port} {filename}
+
+     Example: #session bob tintin.sf.net 4321
+
+     You can have more than one session, in which case you can switch between
+     sessions typing #<session name>.
+
+     You can get a list of all sessions by typing: #session.
+
+     Providing a filename is optional.
+
+
+
+                      ========  Split Screen  =========
+
+     Command: #split
+
+     The split command will create a separated input and output area. This
+     allows you to see the entire line that you are typing, without having
+     the mud scroll your text off the screen, or breaking up the line.
+
+     Using the #prompt command you can capture the prompt and place it on the
+     split line. To get rid of the split interface you can use #unsplit which
+     will restore the terminal settings to default.
+
+
+
+                        =========  Aliases  =========
+
+     Command: #alias
+
+     Usage: #alias {name} {commands}
+
+     Use this command to define aliases. The variables %0, %1.. %9 contain the
+     arguments to the aliases-command as follows:
+
+     the %0 variable contains ALL the arguments.
+     the %1 variable contains the 1. argument
+     ....
+     the %9 variable contains the 9. argument
+
+     Example: #alias nice say Hello Mr %1
+
+     If there are no variables on the right-side of the alias definition, any
+     arguments following the aliases-command will be appended to the command
+     string.
+
+     Example: #alias ff cast 'fireball' -- 'ff bob' equals: cast 'fireball' bob
+
+     If you want an alias to execute more commands, you must use braces.
+
+     Example: #alias ws {wake;stand}
+
+     To delete an alias use the #unalias command.
+
+     TinTin++ doesn't baby sit, and will not check for recursive aliases! You
+     can avoid recursion by escaping the entire line so it is send directly to
+     the mud.
+
+     Example: #alias put \put %1 in %2
+
+
+
+                        =========  Actions  =========
+
+     Command: #action
+
+     Usage: #action {action-text} {commands}
+
+     Actions, also known as triggers, are used to define an action to take
+     place when a particular text appears on your screen. There are 99
+     variables you can use as wildcards in the action-text. These variables
+     are %1, %2....%9, %10....%98, %99.
+
+     Examples:
+
+     #action {You are hungry} {get bread bag;eat bread}
+
+     #action {%1 has arrived.} shake %1 -- shake hands with people arriving.
+
+     #action {%1 tells you '%2'} {tell bob %1 told me '%2'} -- forward tells
+     to Bob.
+
+     #action {tells you} #bell -- beep the terminal when you get a tell.
+
+     You can have tintin ignore the actions if you type '#ignore action on'.
+
+     You can see what commands TINTIN executes when an action triggers, by
+     typing '#debug action on'.
+
+     You can remove actions with the #unaction command.
+
+
+
+                        =========  Highlights  =========
+
+     Command: #highlight (remember you can abbreviate commands)
+
+     Usage: #high {text} {color}
+
+     This command works a bit like #action. The purpose of this command is to
+     substitute text from the mud with color you provide. This command is a
+     simplified version of the #substitute command.
+
+     Examples:
+
+     #high {Snowy} {light yellow} -- colors the word Snowy.
+
+     #high {%1Snowy%2} {light yellow} -- colors a line containing Snowy
+
+     Use #unhigh to delete highlights.
+
+
+
+                       =========  Speedwalk  =========
+
+     If you type a command consisting ONLY of numbers and the letters n, e, s,
+     w, u, d - then this command can be interpreted as a serie of directions
+     you want to go to.
+
+     Example: ssw2n -- go south, south, west, north, north
+
+     If you have problems with typing some commands that actually ONLY consists
+     of these words, then type them in CAPS. For example when checking the NEWS
+     or when asked to enter NEW as your name.
+
+     You must enable speedwalking with: #config speedwalk on
+
+
+
+                        =========  Tickers  =========
+
+     Command: #ticker {name} {commands} {seconds}
+
+     Every 60 seconds on a standard dikumud a so called tick occures. You
+     regenerate faster hp/mana/mp if you're sleeping/resting during a tick. So
+     it's pretty nice to know when the next tick occurs. TinTin++ helps you
+     with that.
+
+     #ticker {tick} {#show TICK!!!;#delay 50 #show 10 SECONDS TO TICK!} {60}
+
+     This creates a ticker with the name {tick} which will print TICK!!!, as
+     well as print a warning when the next tick will occure.
+
+     Use #untick to delete tickers.
+
+
+
+                     =========  Command Files  =========
+
+     When you order TinTin++ to read a command file, tintin parses all the
+     text in the file. You can use command files to keep aliases/actions in,
+     login to a mud(name, password etc..) and basically all kinds of commands.
+
+     You can make the command files with either a text editor (strongly
+     suggested), or use the #write command to write out a file.
+
+     Commands for files:
+
+     #read filename -- read and execute the file.
+
+     #write filename -- write all actions/aliases/substitutes known for the
+     current session to a file.
+
+     When you use #session you can tell it to read a command file with the 4th
+     argument.
+
+     Example: #session bob tintin.sf.net 4321 bobthemage.tin
+
+
+
+                    =========  Command History  =========
+
+     If you want to use your command history you have 2 options. If you gave
+     Mashiranou a 4 lines long tell about the weather or something, but she
+     was AFK, and 15 minuts later she comes back to the keyboard and you want
+     to give her the exact same message you would type: !tell mashiran
+     TinTin++ will search through your command history for the command
+     starting with 'tell mashiran' and execute it.
+
+     Another slightly more flexible option is typing control-r which will
+     display the reverse search prompt. Simply type in a substring of a
+     command previously entered and it will keep showing matches till you
+     find the command you are looking for.
+
+
+
+                     =========  Path Tracking  =========
+
+     Tintin tries to keep track of your movement. That is whenever you type
+     either north/south/east/west/up/down, tintin will push the direction and
+     it's opposite direction into a queue (the path) if '#path new' has been
+     used.
+
+     Commands for path:
+
+     #path new -- start path mode, and resets queue.
+     #path end -- stop path mode.
+     #path map -- show the path
+     #path ins {forward} {backward} -- insert commands into the queue
+     #path del -- forget last move in the path
+     #path save {f|b} {alias} -- save the path to the given alias
+     #path load {alias} -- load a path alias into the map queue
+     #path walk {forward|backward} -- walk 1 step forward or backward of a queue.
+
+     #action {Alas, you cannot go that way.} {#path del}
+
+     real life example.. tatataaaa:
+
+     You want a fast run to the master mindflayer and back. You go to the dump
+     and type: #path new. Then you run down and kill the master. To go back you
+     just type: #path save backward tmp;$tmp
+
+     You could of course just as well have recalled out of there, but... Hell
+     it's just an example.
+
+
+
+                   =========  Advanced Features  =========
+
+     Command: #run {name} {shell command}
+
+     #run lets you run any console application interactively inside tintin.
+
+     Learning how to use tintin will not only allow you to customize and
+     automate a telnet connection, but any console application can be
+     enhanced with triggers.
+
+
+
+                         =========  Help  =========
+
+     Command: #help {subject}
+
+     The help command is your friend, and also contains the most up to date
+     information of all available tintin commands. If you type #help without
+     an argument you will see the various help subjects, most of which aren't
+     described in this manual since it only covers the basics to get you 
+     started.
+
+
+     Enjoy

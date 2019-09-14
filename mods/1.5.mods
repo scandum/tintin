@@ -1,0 +1,332 @@
+1/25/95		Added #split <n> functionality, in case screen size
+		autodetection doesn't work.  Added #purist mode:
+		in #split mode, commands typed at the bottom window
+		are not echoed in the top window too.  Diddled with
+		the ./configure, Makefile, install.sh, gripe stuff in
+		hopes of making it a bit more portable.
+
+1/5/95		Added string comparison capability to #if; format is
+			#if {[string1=string2]} ...
+		Thanks to jes3659@gold.acns.fsu.edu (Jeff Sandler)
+		for the code!  Changed: ivars.c		-- daw
+
+1/5/95		Added else to #if command; new format is
+			#if {expression} {then-cmd} [ else {else-cmd} ]
+		where stuff inside [ ] is optional.  Thanks to
+		Greg Jarman <amigo@deakin.edu.au> for the code!
+		Changed: ivars.c			-- daw
+
+1/5/95		Added SOCKS #ifdefs as requested by Jim Goddard
+		<jgoddard@sun470.rd.qms.com>; now people who want
+		to use SOCKS can define the -DSOCKS part of
+		Makefile.in.  This is only intended for the clueful
+		user. Changed: Makefile.in main.c parse.c	-- daw
+
+1/5/95		Added FreeBSD bug fixes kindly submitted by Andrew
+		Chernov ache@astral.msk.su.
+		Changed: main.c misc.c net.c parse.c utils.c configure
+		configure.in				-- daw
+
+1/4/95		Fixed all the bugs on the bigbuglist: mostly easy
+		(but important) portability fixes.  Added autodetection
+		of screen size for #split mode.  Added autodetection
+		when screen is resized (i.e. with an xterm).  Added: scrsize.c
+		Changed: main.c rl.c Makefile.in Makefile	-- daw
+
+10/26/94	Made ! and ^d behave more like the old tintin.  Hopefully
+		fixed bug with #zap logging people out.  Fixed history
+		expansion so it only expands on lines that begin with !.
+		Added redraw, according to #redraw (only in #unsplit mode).
+		Added echoing of each command in #split mode.  Decided
+		that echo.c is now useless.	Deleted: echo.c
+		Changed: rl.c rlhist.c			-- daw
+
+10/25/94	Changed to readline 2.0.  Fixed a few bugs; there were
+		still spaces before #defines, and still an ANSI function
+		declaration left over from pl6, and I made a dumb mistake
+		in the Makefile which I fixed.  Added a compile script;
+		hope it's convenient and durable.  Fixed bug where tt++
+		got in an infinite loop if it never connected.
+		New files: install, src/readline/*
+		Changed: README, INSTALL, Makefile.in, help.c, aliases.c,
+		net.c and maybe a few more.		-- daw
+
+10/24/94	Added readline support.  Now works in both #split and
+		#unsplit modes -- but better in #split.  Added history
+		expansion and whatnot.  Rewrote the tab stuff, fixed
+		the bugs, and added #tabsave command.  Fixes the bug
+		with keystrokes getting dropped because of raw mode.
+		No longer need echo.c and associated unportabilities
+		(I think).  Rewrote the ticker, because alarms() and
+		readline don't seem to like each other.  [It was doing
+		an alarm() every second anyways! <puke>]  Fixed loop
+		in the Makefile.  Made lotsa random changes throughout
+		the code to get it to coexist happily with readline.
+		Probably lots of bugs left to fix. :-(  Still need to
+		write docs for all this. :-(
+		New files: rl.c rltab.c rlhist.c rlvt100.c rltick.c log.c
+		Changed: main.c parse.c misc.c utils.c ticks.c and maybe more.
+						-- daw
+
+8/28/94         Patch 6: Fixed to use Autoconf which makes installation 
+		alot more easier. Also fixed help.c so it works better.
+		(David Hedbot, neotron@lysator.liu.se)
+		Changed: All files, more or less.
+
+7/21/94		Patch 5: Fixed compile errors for HP-UX users.  HP-UX likes
+		to use their own structure name conventions which differs 
+		slightly from SYS V conventions.  Placed a few #if's for (HPUX)
+		and the rest is history.  Compiles like a champ now :-).
+		Makefile totally re-written to elieviate the common questions
+		asked about compiling.  New script called gripe added.  Helps
+		us in determining what you have when you have a problem.  If a 
+		problem occurs during compile, just type gripe and follow the
+		instructions.  Mail will be sent to the devel team 
+		automatically.
+		(JE/DW)
+		Changed: echo.c  main.c  tintin.h  Makefile install.sh gripe
+
+
+7/10/94		Patch 4: Fixed #return once and for all.  The moves were being 
+		placed back onto the path list when you did a return 
+		That's a BIG NONO.  Linked List bug fixed (priority vairable
+		was being assigned improperly).  Help file corrections and
+		README changed to hopefully help users out more.
+		.tintinrc now shows the proper pathdirs, to allow #return to 
+		play nicely with the rest of the program.  Makefile now 
+		calls the install script copying the helpfile automatically
+		to the home directory (If users don't like it, we'll know).
+		(JE)
+		Changed: llist.c path.c tintin.h docs/tintin15.*
+
+5/13/94		Patch 3: fix for speedwalking.  Tintin will no longer 
+		go apeshit on text like "u7";  Also changed llist.c
+		and glob.c.  Made pre-decalrations and function
+		declarations conform to K&R C. (See 4/20/94 for
+		how new functions should look) (JE)
+		Changed: llist.c, parse.c, tintin.h, glob.c
+
+4/30/94		Patch 2: fix for #action {^%0 foo}; removed memory
+		leak in insert_history(); added #toupper and #tolower;
+		added the help text for #variable, which was somehow
+		inadvertently left out; a few minor #includes added.
+		Thanks you Spencer Sun and Harald Evensen! (DW)
+
+4/27/94		Patch 1: no error message shown if ~/.tintinrc can't
+		be found; if can't find ./tab.txt look for ~/tab.txt;
+		changed help so that the helpfile can go into a
+		non-world-writeable directory; #showme is now tested
+		for actions; bug fix -- it would sometimes coredump
+		upon exiting session. (JE)
+
+4/25/94		Fixed bug in insertnode_list.  #action {zzzz} {foo} {0}
+		was guaranteed to delete all actions in the list that
+		had priority 1 or higher because a ->next pointer was
+		getting set to NULL when it should have been set to point
+		to the rest of the list.  Affects llist.c.  (DW)
+
+4/24/94         Fixed logging so that all ^M's were removed before writing
+		to the log.  This can be changed back to the origional
+		type of logging, by modifying tintin.h (OLD_LOG).
+		Changed: main.c, tintin.h  (JE)
+
+4/24/94		Changed part of Dave's modification to session.c.  I
+		have been getting messages (and experiencing myself), cores
+		when you try to open a "sign" session, which shows a sign
+		then closes the session.  Problem being though, for some
+		reason, even though a pointer may exist of (char *), 
+		and the length of the string is 0, free cores.  Being that
+		Mem fixes like this can take a long time, I've fudged it for
+		now, in that it won't free up pointers that have strlen's of
+		less than 1.  
+		Changed: session.c	(JE)
+
+4/24/94		Fixed -v option and changed a couple of notification
+                messages in action.c and alias.c, basically just making
+		a couple more messages lower case and less annoying.
+                Changed: action.c, alias.c, files.c (BR)
+
+
+4/22/94		Fixed highlighting to make it backwards compatible, 1-32
+		should now be valid fields for highlighting, there is
+		a little more that can be done to speed up highlighting a
+		bit.  Not critical, we'll see how this works.
+		Changed: highlight.c (BR)
+
+
+4/20/94		Nothing major, just re-wrote Dave's function declaration
+		for his stop signal trapper.  Converted it to the convention
+		we have been using since 1.2:
+			<type> <funct_name>(name of args)
+			    <type_arg1> <name of arg1>;
+			    <type_arg2> <name of arg2>;
+			    <type_arg3> <name of arg3>;
+			{
+			}
+		Changed: main.c	(JE)
+
+4/19/94		Minor plug to a memory leak in session_cleanup.  It
+		never killed all the linked lists associated with
+		actions, aliases, sub, highlights, etc, so I added
+		that.  Also changed kill_all so that it deletes stuff
+		from the path lists, too.  Also, kill_all was made to 
+		remove lists completely if session was being killed
+		(kill_all used to reinitialize the list.)  Now it only 
+		initializes IF mode CLEAN is sent to kill_all.  If
+		END is sent, then it removes and does not re-initialize
+		the list.
+		Changed: llist.c, session.c (DW/JE)
+
+4/19/94		Bug fix to searchnode_list: it assumed that linked lists
+		were in alphabetical order, but as this assumption is now
+		invalid, the function needed a small change.  Files
+		affected: llist.c.  Doesn't affect the speed of action
+		matching on lines that come from the mud!! (JE/DW)
+
+4/17/94		Bug fix to the wildcard matching in search_list_with_wild.
+		#unaction {* foo} removed all actions, when it obviously
+		shouldn't.  Also added backslash recognition to escape
+		asterisks.  This change affects #action, #alias, #sub,
+		and their corresponding #un commands.  [Maybe more.]
+		llist.c, Makefile, .tt_help.tar.Z changed; glob.c added. (DW)
+
+4/14/94		Quick fix to the session delete code to remove a minor
+		memory leak.  session.c was the only file changed. (DW)
+
+4/11/94		Added #tabadd and #tabdelete.  Adding of words to the tab
+		completion list are done to the end of the list.  #tabdelete
+		just searches the list for the word designated, and deletes it
+		from the list.  Also corrected a bug that I found in my tablist
+		routine.  The complete tablist wasn't being displayed.
+		edited files: files.c, parse.c, misc.c  (JE)
+
+4/10/94		Added #cr command.  Useful for sending carriage returns to
+		different sessions.  You would do something like #grim {#cr}.
+		main.c, parse.c, misc.c were edited..(JE)
+
+4/9/94 		Ohh.. forgot to mention.. another new command is #killall.
+		It'll nuke just about every list related to a session.  Now
+		you don't have to exit tintin++ to load up a new set of 
+		coms.  (JE)
+
+4/8/94		Fixed the double-echoing bug that bit you when tintin++ was
+		suspended and then resumed.  Added a SUSPEND command, which
+		simply acts just as though you had typed control-z at the
+		keyboard.  Anyone wanna test this thang on a SysV machine?
+		I only have access to SunOS today, and god only knows if
+		signal() and friends are compatible...
+
+		Also added a fix to the way aliases and their parameters
+		are expanded.  Brace grouping used to be ignored for aliases
+		but now it has an effect.  Try these commands
+
+			#alias foo {#showme $1; #showme $2; #showme $3}
+			foo testing {testing 125}
+
+		and compare between the new and old versions.
+
+		Finally, I added #include <stdio.h> back into tintin.h.
+		Who removed that?  Grr... :-)  The affected files were
+		main.c, parse.c, tintin.h, and .tt_help.txt.Z. (DW)
+
+
+4/1/94 		Made Tintin++ think by itself! (April Fools!!!  Sorry.. I 
+		had to get that in :-)  Anyways, Here are the final changes
+		for this revision.  First off, the Makefile has been
+		completely re-written, adding to it clean and install. Also
+		added was the TEXTIN command, and fixed it so that Jeremy's
+		path commands worked (added PATHDIR).  A few more compilation
+		bugs were removed, and some install scripts were written.
+		Time to go BETA with this pup now. (JE) 
+
+3/8/94		Made numberous bug fixes.  Eliminated the bug with #split and
+		no argument.  Fixed #sys to work on most (if not all) system.
+		The bug was, that the user would receive an alarm call and the
+		user would still be at the prompt.  Hopefully, this is fixed.
+		People using SGI machines and Linux please get back to me on
+		this one.  You were the ones having the most problems.  #loop
+		now accepts large numbers as well. 
+
+		Added a new command called #info.  It allows the user to get
+		some statistical information about their current session.
+
+		Added a compiler option called -DDEBUG.  It turns all alarms
+		off.  The tickcounter won't work, but hey.. You're not playing
+		with this flag set.  It's so gdb will work properly. (JE) 
+	
+2/2/94          Rewrote insertlist_node in llist.c.  Added a mode switch to
+                the parameters (as well as the additional priority field for
+                the listnode).  Mode PRIORITY will insert the node onto the
+                list according to the priority the node was given (0 highest
+                pritority, 9 lowest).  Mode ALPHA will insert nodes
+                alphabetically.  Thinking was that if the node appears
+                closer to the head of the list, the action would react sooner.
+                All inserts were changed throughout the code.
+
+                Rewrote searchnode_list_begin in llist.c as well, to take care
+                of searches based on priority or alphabetically stored lists.
+                All searchs were modified throughout the code.
+
+                Added #retab, which allows the user to re-load tab.txt.  All
+                I do is just make another call to read_complete().  Rather
+                simple and effective.
+
+                Added #tablist, which will display all the words in the
+                tab completion list. (in order from beginning to end).
+
+                Modified help.txt to accomodate the changes I've made as of
+                now.  Once all changes are complete, I'll re-modify help.txt
+		(JE)
+
+1/24/94		Moved the ignore variable to the session struct.  Now
+		the #ignore command is isolated within a session.  (i.e.
+		you can have one session ignored, and one session not)
+		The default is now set to DEFAULT_IGNORE in new_session. (JCJ)
+
+1/19/94		Rewrote path.c to take a different set up.  Rewritten to
+		a link list structure.  Added #pathdir command.  Upped
+		mesvar to size 7 with mesvar[6] being #pathdir.  Wrote
+		fixed array style linked list as well, but not
+		implemented.  Added addnode_list to file.c to add a node
+		to the end of a list (not in lexicographical order as
+		insertnode_list does).  Implemented pathdir using the
+		listnode struct, but it does not use the char *right.
+		This can be improved.  Perhaps with the completenode
+		struct. (JCJ)
+
+1/10/94		Rewrote the highlight parse functions to a) not use the
+		ends and tails, b) use the color names instead of the
+		numbers, c) allow multiple types to the first arg. (JCJ)
+
+6/1/93          TINTIN++ V1.0 beta test version
+
+                New commands since tintin3
+                #antisubstitute
+                #gag
+                #loop
+                #message
+                #map
+                #savepath 
+                #variable
+                #highlight
+                #math
+                #togglesubs
+                #presub
+                #showme
+                maybe more...
+
+                This version has fixed a few bugs with the original tintin
+                code as well as the older tt++ versions.  Highlighting now
+                works correctly and is much more powerful.  Subs and actions
+                are faster, and work better.  There was also a bug in the
+                #alias statement, look in tintin.doc for more info.
+
+                I have definitely created some new bugs with all of the new
+                stuff I added since 0.9 and I'm sorry for any inconvenience.
+                Please report bugs to me, and I'll endeavor to fix them.
+                I'm sorry for any delay on bug fixes from old versions, but
+                I thought this version would be done much sooner, and the
+                bugs were fixed in this version.
+
+                Bill Reiss (reiss@eggo.csee.usf.edu)
+
