@@ -203,18 +203,29 @@ DO_CONFIG(config_wordwrap)
 {
 	if (!strcasecmp(arg, "ON"))
 	{
-		SET_BIT(ses->flags, SES_FLAG_WORDWRAP);
+		ses->wrap = -1;
 	}
 	else if (!strcasecmp(arg, "OFF"))
 	{
-		DEL_BIT(ses->flags, SES_FLAG_WORDWRAP);
+		ses->wrap = 0;
+	}
+	else if (is_number(arg))
+	{
+		if (atoi(arg) < 1 || atoi(arg) > 10000)
+		{
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG BUFFER: PROVIDE A NUMBER BETWEEN 1 and 10000");
+
+			return NULL;
+		}
+		ses->wrap = atoi(arg);
 	}
 	else
 	{
-		show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+		show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF|NUMBER>", config_table[index].name);
 
 		return NULL;
 	}
+
 	update_node_list(ses->list[LIST_CONFIG], config_table[index].name, capitalize(arg), "", "");
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_RESETBUFFER);
@@ -222,22 +233,25 @@ DO_CONFIG(config_wordwrap)
 	return ses;
 }
 
-DO_CONFIG(config_log)
+DO_CONFIG(config_logmode)
 {
 	if (!strcasecmp(arg, "HTML"))
 	{
-		DEL_BIT(ses->flags, SES_FLAG_LOGPLAIN);
-		SET_BIT(ses->flags, SES_FLAG_LOGHTML);
+		SET_BIT(ses->logmode, LOG_FLAG_HTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
 	}
 	else if (!strcasecmp(arg, "PLAIN"))
 	{
-		SET_BIT(ses->flags, SES_FLAG_LOGPLAIN);
-		DEL_BIT(ses->flags, SES_FLAG_LOGHTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
+		SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
 	}
 	else if (!strcasecmp(arg, "RAW"))
 	{
-		DEL_BIT(ses->flags, SES_FLAG_LOGPLAIN);
-		DEL_BIT(ses->flags, SES_FLAG_LOGHTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		SET_BIT(ses->logmode, LOG_FLAG_RAW);
 	}
 	else
 	{
@@ -416,6 +430,34 @@ DO_CONFIG(config_debugtelnet)
 	return ses;
 }
 
+DO_CONFIG(config_telnet)
+{
+	if (!strcasecmp(arg, "ON"))
+	{
+		DEL_BIT(ses->telopts, TELOPT_FLAG_DEBUG);
+		SET_BIT(ses->flags, SES_FLAG_TELNET);
+	}
+	else if (!strcasecmp(arg, "OFF"))
+	{
+		DEL_BIT(ses->telopts, TELOPT_FLAG_DEBUG);
+		DEL_BIT(ses->flags, SES_FLAG_TELNET);
+	}
+	else if (!strcasecmp(arg, "DEBUG"))
+	{
+		SET_BIT(ses->telopts, TELOPT_FLAG_DEBUG);
+		SET_BIT(ses->flags, SES_FLAG_TELNET);
+	}
+	else
+	{
+		show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF|DEBUG>", config_table[index].name);
+
+		return NULL;
+	}
+	update_node_list(ses->list[LIST_CONFIG], config_table[index].name, capitalize(arg), "", "");
+
+	return ses;
+}
+
 DO_CONFIG(config_convertmeta)
 {
 	if (!strcasecmp(arg, "ON"))
@@ -441,11 +483,11 @@ DO_CONFIG(config_loglevel)
 {
 	if (!strcasecmp(arg, "LOW"))
 	{
-		SET_BIT(ses->flags, SES_FLAG_LOGLEVEL);
+		SET_BIT(ses->logmode, LOG_FLAG_LOW);
 	}
 	else if (!strcasecmp(arg, "HIGH"))
 	{
-		DEL_BIT(ses->flags, SES_FLAG_LOGLEVEL);
+		DEL_BIT(ses->logmode, LOG_FLAG_LOW);
 	}
 	else
 	{

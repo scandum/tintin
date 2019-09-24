@@ -39,7 +39,7 @@ DO_COMMAND(do_variable)
 	{
 		show_list(root, 0);
 	}
-	else if (*arg1 && *arg == 0)
+	else if (*arg == 0)
 	{
 		node = search_nest_node(root, arg1);
 
@@ -53,7 +53,7 @@ DO_COMMAND(do_variable)
 
 				view_nest_node(node, &str_result, 0, 1);
 
-				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, node->arg1, str_result);
+				print_lines(ses, SUB_NONE, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, node->arg1, str_result);
 
 				str_free(str_result);
 			}
@@ -288,13 +288,75 @@ void charactertonumber(struct session *ses, char *str)
 
 void colorstring(struct session *ses, char *str)
 {
-	char result[BUFFER_SIZE] = { 0 };
+	char result[BUFFER_SIZE];
 
-	get_highlight_codes(ses, str, result);
-
-	strcpy(str, result);
+	get_color_names(ses, str, result);
 
 	strcpy(str, result);
+}
+
+int get_color_names(struct session *ses, char *string, char *result)
+{
+	int cnt;
+
+	*result = 0;
+
+	if (*string == '<')
+	{
+		substitute(ses, string, result, SUB_COL);
+
+		return TRUE;
+	}
+
+	if (*string == '\\')
+	{
+		substitute(ses, string, result, SUB_ESC);
+
+		return TRUE;
+	}
+
+	while (*string)
+	{
+		if (isalpha(*string))
+		{
+			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+			{
+				if (is_abbrev(color_table[cnt].name, string))
+				{
+					substitute(ses, color_table[cnt].code, result, SUB_COL);
+
+					result += strlen(result);
+
+					break;
+				}
+			}
+
+			if (*color_table[cnt].name == 0)
+			{
+				return FALSE;
+			}
+
+			string += strlen(color_table[cnt].name);
+		}
+
+		switch (*string)
+		{
+			case ' ':
+			case ';':
+			case ',':
+			case '{':
+			case '}':
+				string++;
+				break;
+
+			case 0:
+				return TRUE;
+
+			default:
+				return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 void headerstring(char *str)
@@ -490,7 +552,7 @@ void wrapstring(struct session *ses, char *str)
 
 				get_color_codes(color, tmp, color);
 
-				sprintf(tmp, "%.*s", pti - sos, sos);
+				sprintf(tmp, "%.*s", (int) (pti - sos), sos);
 
 				substitute(ses, tmp, sec, SUB_SEC);
 
@@ -505,7 +567,7 @@ void wrapstring(struct session *ses, char *str)
 
 				get_color_codes(color, tmp, color);
 
-				sprintf(tmp, "%.*s", lis - sos, sos);
+				sprintf(tmp, "%.*s", (int) (lis - sos), sos);
 
 				substitute(ses, tmp, sec, SUB_SEC);
 

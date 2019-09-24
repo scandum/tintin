@@ -51,7 +51,7 @@ DO_COMMAND(do_ssl)
 	{
 		ses = new_session(ses, arg1, arg, 0, 1);
 	}
-	return gtd->ses;
+	return ses;
 }
 
 gnutls_session_t ssl_negotiate(struct session *ses)
@@ -69,7 +69,7 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 	gnutls_init(&ssl_ses, GNUTLS_CLIENT);
 	gnutls_set_default_priority(ssl_ses);
 	gnutls_credentials_set(ssl_ses, GNUTLS_CRD_CERTIFICATE, ssl_cred);
-	gnutls_transport_set_ptr(ssl_ses, (gnutls_transport_ptr_t) ses->socket);
+	gnutls_transport_set_ptr(ssl_ses, (gnutls_transport_ptr_t) (long int) ses->socket);
 
 	do 
 	{

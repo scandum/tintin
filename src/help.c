@@ -41,6 +41,8 @@ char *help_related(struct session *ses, int index, int html)
 	char tmp[BUFFER_SIZE], link[BUFFER_SIZE];
 	static char buf[BUFFER_SIZE];
 
+	push_call("help_related(%p,%d,%d)",ses,index,html);
+
 	arg = help_table[index].also;
 
 	buf[0] = 0;
@@ -67,10 +69,11 @@ char *help_related(struct session *ses, int index, int html)
 			}
 			else
 			{
-				cat_sprintf(buf, " and %s.");
+				cat_sprintf(buf, " and %s.", tmp);
 			}
 		}
 	}
+	pop_call();
 	return buf;
 }
 
@@ -89,7 +92,7 @@ DO_COMMAND(do_help)
 		{
 			if (strlen(buf) + 19 > gtd->screen->cols)
 			{
-				show_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
+				print_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
 
 				*buf = 0;
 			}
@@ -98,7 +101,7 @@ DO_COMMAND(do_help)
 
 		if (*buf)
 		{
-			show_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
+			print_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
 		}
 	}
 	else if (!strcasecmp(arg1, "dump"))
@@ -107,7 +110,7 @@ DO_COMMAND(do_help)
 
 		do_configure(ses, "{log} {html}");
 
-		if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
+		if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
 		{
 			write_html_header(ses, logfile);
 		}
@@ -213,11 +216,11 @@ DO_COMMAND(do_help)
 		{
 			if (is_abbrev(arg1, help_table[cnt].name))
 			{
-				show_lines(ses, SUB_COL, "%s<088>\n", help_table[cnt].text);
+				print_lines(ses, SUB_COL, "%s<088>\n", help_table[cnt].text);
 				
 				if (*help_table[cnt].also)
 				{
-					show_lines(ses, SUB_COL, "%s<088>\n\n", help_related(ses, cnt, 0));
+					print_lines(ses, SUB_COL, "%s<088>\n\n", help_related(ses, cnt, 0));
 				}
 				return ses;
 			}
@@ -228,11 +231,11 @@ DO_COMMAND(do_help)
 		{
 			if (match(ses, help_table[cnt].name, arg1, SUB_VAR|SUB_FUN))
 			{
-				show_lines(ses, SUB_COL, "%s<088>\n", help_table[cnt].text);
+				print_lines(ses, SUB_COL, "%s<088>\n", help_table[cnt].text);
 
 				if (*help_table[cnt].also)
 				{
-					show_lines(ses, SUB_COL, "%s<088>\n\n", help_related(ses, cnt, 0));
+					print_lines(ses, SUB_COL, "%s<088>\n\n", help_related(ses, cnt, 0));
 				}
 				found = TRUE;
 			}
@@ -454,6 +457,47 @@ struct help_type help_table[] =
 		"<178>Example<278>: #macro {\\e[F} {#buffer end}\n",
 
 		"echo grep macro showme screen"
+	},
+	{
+		"BUTTON",
+
+		"<178>Command<278>: #button <178>{<278>square<178>} {<278>commands<178>} {<278>priority<178>}<278>\n"
+		"\n"
+		"         The #button command can be used to respond with one or several\n"
+		"         commands to a mouse click received within the specified square.\n"
+		"         The click coordinates are stored in %0-%3 and can be used in the\n"
+		"         command part of the button.\n"
+		"\n"
+		"         The square part should exists of two coordinates defining the\n"
+		"         upper left and bottom right corner using row, col, row, col syntax.\n"
+		"         The square arguments should be separated by spaces, semi-colons or\n"
+		"         braces.\n"
+		"\n"
+		"         By default the button is set to respond to a mouse button press, to\n"
+		"         respond to other button presses you must add a 5th argument to the\n"
+		"         square that defines the button press type. You can enable #info\n"
+		"         button on to see button events and their type as they happen.\n"
+		"\n"
+		"         The priority part is optional and determines the priority of the\n"
+		"         button, it defaults to 5.\n"
+		"\n"
+		"         You must enable #config {mouse tracking} on for buttons to work.\n"
+		"\n"
+		"         This command draws no visible button, you'll have to do so separately\n"
+		"         if needed.\n"
+		"\n"
+		"<178>Example<278>: #button {1;1;2;2} {#showme You clicked the upper left corner.}\n"
+		"\n"
+		"         Buttons are ordered alphabetically and only one button can trigger at\n"
+		"         a time. To change the order you can assign a priority, which defaults\n"
+		"         to 5, with a lower number indicating a higher priority. The priority\n"
+		"         can be a floating point number.\n"
+		"\n"
+		"<178>Comment<278>: To see button clicks trigger use #info button on.\n"
+		"\n"
+		"<178>Comment<278>: You can remove a button with the #unbutton command.\n",
+
+		"delay event ticker"
 	},
 	{
 		"CASE",
@@ -765,6 +809,33 @@ struct help_type help_table[] =
 		"event ticker"
 	},
 	{
+		"DRAW",
+		
+		"<178>Command<278>: #draw <178>{<278>option<178>} {<278>square<178>} {<278>argument<178>}\n"
+		"<278>\n"
+		"         The draw commands allows you to draw various lines and shapes on the\n"
+		"         screen. Available options and a brief description are provided when\n"
+		"         you type #draw without an argument.\n"
+		"\n"
+		"         The square argument should exists of two coordinates defining the\n"
+		"         upper left and bottom right corner using row, col, row, col syntax.\n"
+		"\n"
+		"         You can prefix the option as following:\n"
+		"\n"
+		"         PRUNED  will prune the corners of any drawn shape.\n"
+		"         ROUNDED will round the corners.\n"
+		"         CROSSED will cross the corners.\n"
+		"\n"
+		"         Some draw options take an additional argument, most notably the\n"
+		"         BOX TEXT option which allows you to place the given text inside\n"
+		"         the drawn box.\n"
+		"\n"
+		"<178>Example<278>: #draw {box text} 1 1 3 20 {Hello world!}\n",
+
+		"buffer echo grep showme"
+	},
+
+	{
 		"ECHO",
 
 		"<178>Command<278>: #echo <178>{<278>format<178>} {<278>argument1<178>} {<278>argument2<178>} {<278>etc<178>}<278>\n"
@@ -904,7 +975,7 @@ struct help_type help_table[] =
 		"         SCAN CSV LINE         %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
 		"         SCAN TSV HEADER       %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
 		"         SCAN TSV LINE         %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
-		"         SCREEN RESIZE         %0 rows %1 cols\n"
+		"         SCREEN RESIZE         %0 rows %1 cols %1 height %2 width\n"
 		"         SCROLLED <VAR>        %0 row %1 col %2 -row %3 -col %4 word %5 line\n"
 		"         SECOND                %6 second\n"
 		"         SEND OUTPUT           %0 raw text %1 size\n"
@@ -921,17 +992,20 @@ struct help_type help_table[] =
 		"         TRIPLE-CLICKED <VAR>  %0 row %1 col %2 -row %3 -col %4 word %5 line\n"
 		"         UNKNOWN COMMAND       %0 raw text\n"
 		"         VARIABLE UPDATE <VAR> %0 name %1 value\n"
-		"         VT100 SCROLL REGION   %0 top row %1 bot row\n"
+		"         VT100 SCROLL REGION   %0 top row %1 bot row %2 rows %3 cols %4 wrap\n"
 		"         WEEK <DAY>            %2 day of the week\n"
 		"         WINDOW FOCUS IN       %0 name\n"
 		"         WINDOW FOCUS OUT      %0 name\n"
 		"         YEAR                  %0 year\n"
 		"\n"
+		"         To see all events trigger use #event info on. Since this can quite\n"
+		"         spammy it's possible to gag event info messages.\n"
+		"\n"
 		"<178>Example<278>: #event {SESSION CONNECTED} {#read mychar.tin}\n"
 		"\n"
 		"<178>Comment<278>: You can remove an event with the #unevent command.\n",
 		
-		"delay ticker"
+		"button delay ticker"
 	},
 	{
 		"FORALL",
@@ -1556,16 +1630,19 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #line <178>{<278>option<178>} {<278>argument<178>}<278>\n"
 		"\n"
-		"         #line log {filename} {[text]}          Log the current or given line to\n"
-		"                                                file.\n"
-		"\n"
-		"         #line logverbatim {filename} {[text]}  Log text without variable\n"
-		"                                                substitution.\n"
+		"         #line background                       Prevent new session activation.\n"
 		"\n"
 		"         #line gag                              Gag the next line.\n"
 		"\n"
 		"         #line ignore {argument}                Argument is executed without\n"
 		"                                                any triggers being checked.\n"
+		"\n"
+		"         #line log {filename} {[text]}          Log the current or given line to\n"
+		"                                                file.\n"
+		"\n"
+		"         #line logverbatim {filename} {[text]}  Log text without variable\n"
+		"                                                substitution.\n"
+
 		"\n"
 		"         #line quiet {argument}                 Argument is executed with\n"
 		"                                                suppression of system messages.\n"
@@ -1690,12 +1767,18 @@ struct help_type help_table[] =
 		"         Another option is pressing ctrl-v, which will enable CONVERT META for\n"
 		"         the next key pressed.\n"
 		"\n"
+		"         If you only want a key sequence to trigger at the start of an input\n"
+		"         line prefix the key sequence with ^.\n"
+		"\n"
 		"<178>Example<278>: #macro {(press ctrl-v)(press F1)} {#showme \\e[2J;#buffer lock}\n"
 		"         Clear the screen and lock the window when you press F1, useful when the\n"
 		"         boss is near.\n"
 		"\n"
 		"<178>Example<278>: #macro {\\eOM} {#cursor enter}\n"
 		"         Makes the keypad's enter key work as an enter in keypad mode.\n"
+		"\n"
+		"<178>Example<278>: #macro {^nn} {n}\n"
+		"         Makes pressing n twice on an empty line execute north.\n"
 		"\n"
 		"<178>Comment<278>: Not all terminals properly initialize the keypad key sequences.\n"
 		"         If this is the case you can still use the keypad, but instead of the\n"
@@ -1712,8 +1795,8 @@ struct help_type help_table[] =
 		"\n"
 		"         The map command is the backbone of the auto mapping feature.\n"
 		"\n"
-		"         <178>#map at <location> <command>\n"
-		"         <278>  Execute the command at the location.\n"
+		"         <178>#map at <exit|vnum> <command>\n"
+		"         <278>  Execute the command at the given exit or vnum.\n"
 		"\n"
 		"         <178>#map color <field> [value]\n"
 		"         <278>  Sets the map color for the given color field.\n"
@@ -1851,6 +1934,11 @@ struct help_type help_table[] =
 		"         <278>  If {rows} or {cols} are a negative number this number is\n"
 		"         <278>  subtracted from the scrolling window size.\n"
 		"\n"
+		"         <178>#map map <rows> <cols> draw <square>\n"
+		"         <278>  Display a drawing of the map of the given height and width.\n"
+		"         <278>  The square argument exists of 4 numbers formulating the top\n"
+		"         <278>  left corner and bottom right corner of a square.\n"
+		"\n"
 		"         <278>  If you use {append|overwrite} the map is written to the specified\n"
 		"         <278>  file name which must be given as the 4th argument.\n"
 		"         <278>  If you use {list|variable} the map is saved to the specified\n"
@@ -1877,6 +1965,8 @@ struct help_type help_table[] =
 		"         <278>  Returns you to your last known room after leaving the map\n"
 		"         <278>  or loading a map.\n"
 		"\n"
+		"         <178>#map roomflag <flags> <get|on|off>\n"
+		"         <278>\n"
 		"         <178>#map roomflag avoid\n"
 		"         <278>  When set, '#map find' will avoid a route leading\n"
 		"         <278>  through that room. Useful when you want to avoid death traps.\n"
@@ -2759,8 +2849,7 @@ struct help_type help_table[] =
 		"<178>Comment<278>: The #prompt helpfile contains more information on using the\n"
 		"         option {row} and {col} arguments.\n",
 
-		"buffer echo grep"
-		
+		"buffer draw echo grep"
 	},
 	{
 		"SNOOP",

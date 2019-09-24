@@ -277,7 +277,10 @@ int port_new(struct session *ses, int sock)
 
 	port_printf(ses, "New connection: %s D%d.", new_buddy->ip, new_buddy->fd);
 
-	announce_support(ses, new_buddy);
+	if (HAS_BIT(ses->flags, SES_FLAG_TELNET))
+	{
+		announce_support(ses, new_buddy);
+	}
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 3, "PORT CONNECTION", new_buddy->name, new_buddy->ip, ntos(new_buddy->port));
 
@@ -916,7 +919,7 @@ DO_PORT(port_zap)
 
 DO_PORT(port_color)
 {
-	if (*arg1 == 0 || get_highlight_codes(gtd->ses, arg1, arg2) == FALSE)
+	if (*arg1 == 0 || get_color_names(gtd->ses, arg1, arg2) == FALSE)
 	{
 		port_printf(ses, "Valid colors are:\n\nreset, bold, dim, light, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white");
 

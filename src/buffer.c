@@ -200,11 +200,11 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		str_hash_grep(ses->scroll->buffer[ses->scroll->row], TRUE);
 	}
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_LOGLEVEL)) // flag name could be clearer
+	if (!HAS_BIT(ses->logmode, LOG_FLAG_LOW))
 	{
 		if (ses->logfile)
 		{
-			logit(ses, linebuf, ses->logfile, TRUE);
+			logit(ses, linebuf, ses->logfile, LOG_FLAG_LINEFEED);
 		}
 	}
 
@@ -321,7 +321,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE, SUB_NONE))
 			{
 				grep_add = str_hash_lines(ses->scroll->buffer[scroll_cnt]);
 
@@ -363,7 +363,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE, SUB_NONE))
 			{
 				grep_add = str_hash_lines(ses->scroll->buffer[scroll_cnt]);
 
@@ -404,7 +404,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE, SUB_NONE))
 			{
 				grep_add = str_hash_lines(ses->scroll->buffer[scroll_cnt]);
 
@@ -507,7 +507,7 @@ int show_buffer(struct session *ses)
 
 	if (ses->scroll->buffer[scroll_cnt] && scroll_cut)
 	{
-		word_wrap_split(ses, ses->scroll->buffer[scroll_cnt], temp, TRUE, scroll_cut, scroll_tmp - ses->scroll->base);
+		word_wrap_split(ses, ses->scroll->buffer[scroll_cnt], temp, ses->wrap, scroll_cut, scroll_tmp - ses->scroll->base);
 
 		printf("%s\n", temp);
 
@@ -550,7 +550,7 @@ int show_buffer(struct session *ses)
 
 	if (ses->scroll->buffer[scroll_cnt] && scroll_cut)
 	{
-		word_wrap_split(ses, ses->scroll->buffer[scroll_cnt], temp, TRUE, 0, scroll_cut);
+		word_wrap_split(ses, ses->scroll->buffer[scroll_cnt], temp, ses->wrap, 0, scroll_cut);
 
 		printf("%s\n", temp);
 
@@ -925,7 +925,7 @@ DO_BUFFER(buffer_find)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE, SUB_NONE))
 			{
 				grep_cnt++;
 
@@ -962,7 +962,7 @@ DO_BUFFER(buffer_find)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt], arg2, SUB_NONE, SUB_NONE))
 			{
 				grep_cnt--;
 
@@ -1067,10 +1067,7 @@ DO_BUFFER(buffer_write)
 		{
 			show_message(ses, LIST_COMMAND, "#OK: WRITING BUFFER TO '%s'.", arg1);
 
-			if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
-			{
-				write_html_header(ses, fp);
-			}
+			loginit(ses, fp, LOG_FLAG_OVERWRITE | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
 
 			cnt = ses->scroll->row;
 
@@ -1090,11 +1087,11 @@ DO_BUFFER(buffer_write)
 					continue;
 				}
 
-				if (HAS_BIT(ses->flags, SES_FLAG_LOGPLAIN))
+				if (HAS_BIT(ses->logmode, LOG_FLAG_PLAIN))
 				{
 					strip_vt102_codes(ses->scroll->buffer[cnt], out);
 				}
-				else if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
+				else if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
 				{
 					vt102_to_html(ses, ses->scroll->buffer[cnt], out);
 				}

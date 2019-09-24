@@ -96,7 +96,7 @@ DO_COMMAND(do_echo)
 
 			substitute(ses, left, temp, SUB_COL|SUB_ESC);
 
-			do_one_prompt(ses, temp, row, 0);
+			split_show(ses, temp, row, 0);
 
 			return ses;
 		}

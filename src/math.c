@@ -109,7 +109,9 @@ long double get_double(struct session *ses, char *str)
 	
 void get_number_string(struct session *ses, char *str, char *result)
 {
-	sprintf(result, "%.*Lf", precision, get_number(ses, str));
+	long double val = get_number(ses, str);
+
+	sprintf(result, "%.*Lf", precision, val);
 }
 
 long double mathswitch(struct session *ses, char *left, char *right)

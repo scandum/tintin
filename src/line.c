@@ -59,6 +59,27 @@ DO_COMMAND(do_line)
 	return ses;
 }
 
+DO_LINE(line_background)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BACKGROUND} {command}.");
+
+		return ses;
+	}
+
+	gtd->background_level++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->background_level--;
+
+	return ses;
+}
 
 DO_LINE(line_gag)
 {
@@ -69,6 +90,28 @@ DO_LINE(line_gag)
 	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG");
 
 	SET_BIT(ses->flags, SES_FLAG_GAG);
+
+	return ses;
+}
+
+DO_LINE(line_ignore)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {IGNORE} {command}.");
+		
+		return ses;
+	}
+
+	gtd->ignore_level++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->ignore_level--;
 
 	return ses;
 }
@@ -89,7 +132,7 @@ DO_LINE(line_log)
 
 		if (ses->logline_time == gtd->time && !strcmp(ses->logline_name, arg1))
 		{
-			logit(ses, arg2, ses->logline_file, FALSE);
+			logit(ses, arg2, ses->logline_file, LOG_FLAG_NONE);
 		}
 		else
 		{
@@ -105,17 +148,9 @@ DO_LINE(line_log)
 				ses->logline_file = logfile;
 				ses->logline_time = gtd->time;
 
-				if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
-				{
-					fseek(logfile, 0, SEEK_END);
+				loginit(ses, ses->logline_file, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
 
-					if (ftell(logfile) == 0)
-					{
-						write_html_header(ses, logfile);
-					}
-				}
-
-				logit(ses, arg2, ses->logline_file, FALSE);
+				logit(ses, arg2, ses->logline_file, LOG_FLAG_NONE);
 			}
 			else
 			{
@@ -127,7 +162,7 @@ DO_LINE(line_log)
 	{
 		if (ses->lognext_time == gtd->time && !strcmp(ses->lognext_name, arg1))
 		{
-			SET_BIT(ses->flags, SES_FLAG_LOGNEXT);
+			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
 		}
 		else if ((logfile = fopen(arg1, "a")))
 		{
@@ -141,7 +176,7 @@ DO_LINE(line_log)
 			ses->lognext_file = logfile;
 			ses->lognext_time = gtd->time;
 
-			SET_BIT(ses->flags, SES_FLAG_LOGNEXT);
+			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
 		}
 		else
 		{
@@ -149,6 +184,72 @@ DO_LINE(line_log)
 		}
 	}
 	return ses;
+}
+
+DO_LINE(line_logmode)
+{
+	struct session *active_ses;
+
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	DEL_BIT(ses->logmode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW);
+
+	switch (HAS_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW))
+	{
+		case LOG_FLAG_HTML:
+			SET_BIT(ses->logmode, LOG_FLAG_OLD_HTML);
+			break;
+		case LOG_FLAG_PLAIN:
+			SET_BIT(ses->logmode, LOG_FLAG_OLD_PLAIN);
+			break;
+		case LOG_FLAG_RAW:
+			SET_BIT(ses->logmode, LOG_FLAG_OLD_RAW);
+			break;
+	}
+
+	DEL_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
+
+	if (is_abbrev(arg1, "HTML"))
+	{
+		SET_BIT(ses->logmode, LOG_FLAG_HTML);
+	}
+	else if (is_abbrev(arg1, "PLAIN"))
+	{
+		SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
+	}
+	else if (is_abbrev(arg1, "RAW"))
+	{
+		SET_BIT(ses->logmode, LOG_FLAG_RAW);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGMODE} {HTML|PLAIN|RAW} {command}.");
+
+		return ses;
+	}
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	active_ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	DEL_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
+
+	switch (HAS_BIT(ses->logmode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW))
+	{
+		case LOG_FLAG_OLD_HTML:
+			SET_BIT(ses->logmode, LOG_FLAG_HTML);
+			break;
+		case LOG_FLAG_OLD_PLAIN:
+			SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
+			break;
+		case LOG_FLAG_OLD_RAW:
+			SET_BIT(ses->logmode, LOG_FLAG_RAW);
+			break;
+	}
+
+	return ses = active_ses;
 }
 
 DO_LINE(line_logverbatim)
@@ -163,7 +264,7 @@ DO_LINE(line_logverbatim)
 	{
 		if (!strcmp(ses->logline_name, arg1))
 		{
-			logit(ses, arg2, ses->logline_file, TRUE);
+			logit(ses, arg2, ses->logline_file, LOG_FLAG_LINEFEED);
 		}
 		else
 		{
@@ -177,17 +278,9 @@ DO_LINE(line_logverbatim)
 				ses->logline_name = strdup(arg1);
 				ses->logline_file = logfile;
 
-				if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
-				{
-					fseek(logfile, 0, SEEK_END);
+				loginit(ses, ses->logline_file, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
 
-					if (ftell(logfile) == 0)
-					{
-						write_html_header(ses, logfile);
-					}
-				}
-
-				logit(ses, arg2, ses->logline_file, TRUE);
+				logit(ses, arg2, ses->logline_file, LOG_FLAG_LINEFEED);
 			}
 			else
 			{
@@ -199,7 +292,7 @@ DO_LINE(line_logverbatim)
 	{
 		if (!strcmp(ses->lognext_name, arg1))
 		{
-			SET_BIT(ses->flags, SES_FLAG_LOGNEXT);
+			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
 		}
 		else if ((logfile = fopen(arg1, "a")))
 		{
@@ -211,13 +304,36 @@ DO_LINE(line_logverbatim)
 			ses->lognext_name = strdup(arg1);
 			ses->lognext_file = logfile;
 
-			SET_BIT(ses->flags, SES_FLAG_LOGNEXT);
+			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
 		}
 		else
 		{
 			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
 		}
 	}
+	return ses;
+}
+
+
+DO_LINE(line_quiet)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {QUIET} {command}.");
+		
+		return ses;
+	}
+
+	gtd->quiet_level++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->quiet_level--;
+
 	return ses;
 }
 
@@ -327,47 +443,4 @@ DO_LINE(line_verbose)
 	return ses;
 }
 
-DO_LINE(line_ignore)
-{
-	char arg1[BUFFER_SIZE];
-
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
-
-	if (*arg1 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {IGNORE} {command}.");
-		
-		return ses;
-	}
-
-	gtd->ignore_level++;
-
-	ses = script_driver(ses, LIST_COMMAND, arg1);
-
-	gtd->ignore_level--;
-
-	return ses;
-}
-
-DO_LINE(line_quiet)
-{
-	char arg1[BUFFER_SIZE];
-
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
-
-	if (*arg1 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {QUIET} {command}.");
-		
-		return ses;
-	}
-
-	gtd->quiet++;
-
-	ses = script_driver(ses, LIST_COMMAND, arg1);
-
-	gtd->quiet--;
-
-	return ses;
-}
 	

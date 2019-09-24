@@ -69,7 +69,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 
 		if (error)
 		{
-			tintin_printf(ses, "#SESSION '%s' COULD NOT CONNECT - UNKNOWN HOST.", ses->name);
+			tintin_printf2(ses, "#SESSION '%s' COULD NOT CONNECT - UNKNOWN HOST.", ses->name);
 
 			return -1;
 		}
@@ -96,7 +96,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 
 		freeaddrinfo(address);
 
-		return 0;
+		return -1;
 	}
 
 	if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
@@ -107,12 +107,19 @@ int connect_mud(struct session *ses, char *host, char *port)
 
 		freeaddrinfo(address);
 
-		return 0;
+		return -1;
 	}
 
-	getnameinfo(address->ai_addr, address->ai_addrlen, ip, 100, NULL, 0, NI_NUMERICHOST);
+	error = getnameinfo(address->ai_addr, address->ai_addrlen, ip, 100, NULL, 0, NI_NUMERICHOST);
 
-	RESTRING(ses->session_ip, ip);
+	if (error)
+	{
+		syserr_printf(ses, "connect_mud: getnameinfo:");
+	}
+	else
+	{
+		RESTRING(ses->session_ip, ip);
+	}
 
 	freeaddrinfo(address);
 
@@ -125,6 +132,8 @@ int connect_mud(struct session *ses, char *host, char *port)
 {
 	int sock, d;
 	struct sockaddr_in sockaddr;
+
+	printf("debug: NO ADDRESS INFO?\n");
 
 	if (sscanf(host, "%d.%d.%d.%d", &d, &d, &d, &d) == 4)
 	{

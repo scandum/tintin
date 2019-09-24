@@ -27,17 +27,17 @@
 #include "tintin.h"
 
 
-void logit(struct session *ses, char *txt, FILE *file, int newline)
+void logit(struct session *ses, char *txt, FILE *file, int flags)
 {
 	char out[BUFFER_SIZE];
 
-	push_call("logit(%p,%p,%p,%d)",ses,txt,file,newline);
+	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_LOGPLAIN))
+	if (HAS_BIT(ses->logmode, LOG_FLAG_PLAIN))
 	{
 		strip_vt102_codes(txt, out);
 	}
-	else if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
+	else if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
 	{
 		vt102_to_html(ses, txt, out);
 	}
@@ -46,7 +46,7 @@ void logit(struct session *ses, char *txt, FILE *file, int newline)
 		strcpy(out, txt);
 	}
 
-	if (newline)
+	if (HAS_BIT(flags, LOG_FLAG_LINEFEED))
 	{
 		strcat(out, "\n");
 	}
@@ -58,6 +58,32 @@ void logit(struct session *ses, char *txt, FILE *file, int newline)
 	return;
 }
 
+void loginit(struct session *ses, FILE *file, int flags)
+{
+	push_call("loginit(%p,%p,%d)",ses,file,flags);
+
+	if (HAS_BIT(flags, LOG_FLAG_APPEND))
+	{
+		if (HAS_BIT(flags, LOG_FLAG_HTML))
+		{
+			fseek(file, 0, SEEK_END);
+
+			if (ftell(file) == 0)
+			{
+				write_html_header(ses, file);
+			}
+		}
+	}
+	else if (HAS_BIT(flags, LOG_FLAG_OVERWRITE) && HAS_BIT(flags, LOG_FLAG_HTML))
+	{
+		if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
+		{
+			write_html_header(ses, ses->logfile);
+		}
+	}
+	pop_call();
+	return;
+}
 
 DO_COMMAND(do_log)
 {
@@ -80,12 +106,10 @@ DO_COMMAND(do_log)
 
 		if ((ses->logfile = fopen(arg2, "a")))
 		{
-			fseek(ses->logfile, 0, SEEK_END);
+			SET_BIT(ses->logmode, LOG_FLAG_APPEND);
 
-			if (ftell(ses->logfile) == 0 && HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
-			{
-				write_html_header(ses, ses->logfile);
-			}
+			loginit(ses, ses->logfile, ses->logmode);
+
 			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
 		}
 		else
@@ -102,10 +126,10 @@ DO_COMMAND(do_log)
 
 		if ((ses->logfile = fopen(arg2, "w")))
 		{
-			if (HAS_BIT(ses->flags, SES_FLAG_LOGHTML))
-			{
-				write_html_header(ses, ses->logfile);
-			}
+			SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
+
+			loginit(ses, ses->logfile, ses->logmode);
+
 			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", arg2);
 		}
 		else
@@ -117,6 +141,8 @@ DO_COMMAND(do_log)
 	{
 		if (ses->logfile)
 		{
+			DEL_BIT(ses->logmode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+
 			fclose(ses->logfile);
 			ses->logfile = NULL;
 			show_message(ses, LIST_COMMAND, "#LOG: LOGGING TURNED OFF.");

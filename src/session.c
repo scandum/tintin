@@ -380,8 +380,13 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		}
 	}
 
+	newses->top_split = gts->top_split;
+	newses->bot_split = gts->bot_split;
+
 	newses->top_row = gts->top_row;
 	newses->bot_row = gts->bot_row;
+
+	newses->wrap    = gts->wrap;
 
 	init_buffer(newses, -1);
 
@@ -400,9 +405,12 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		tintin_printf(ses, "#TRYING TO LAUNCH '%s' RUNNING '%s'.", newses->name, newses->session_host);
 	}
 
-	gtd->ses = newses;
-
 	dirty_screen(newses);
+
+	if (gtd->background_level == 0)
+	{
+		gtd->ses = newses;
+	}
 
 	if (desc == 0)
 	{
@@ -425,7 +433,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	if (newses == NULL)
 	{
 		pop_call();
-		return gtd->ses;
+		return ses;
 	}
 
 #ifdef HAVE_GNUTLS_H
@@ -443,16 +451,23 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	}
 #endif
 
-	gtd->ses = newses;
 
 	if (*file)
 	{
-		gtd->ses = do_read(newses, file);
+		newses = do_read(newses, file);
 	}
 	check_all_events(newses, SUB_ARG, 0, 4, "SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port);
 
-	pop_call();
-	return gtd->ses;
+	if (gtd->background_level == 0)
+	{
+		pop_call();
+		return newses;
+	}
+	else
+	{
+		pop_call();
+		return ses;
+	}
 }
 
 struct session *connect_session(struct session *ses)
@@ -470,7 +485,7 @@ struct session *connect_session(struct session *ses)
 
 	if (sock == -1)
 	{
-		syserr_printf(ses, "connect_session: connect");
+//		syserr_printf(ses, "connect_session: connect");
 
 		cleanup_session(ses);
 

@@ -239,9 +239,9 @@ int main(int argc, char **argv)
 					break;
 
 				case 'e':
-					gtd->quiet++;
+					gtd->quiet_level++;
 					gtd->ses = script_driver(gtd->ses, LIST_COMMAND, optarg);
-					gtd->quiet--;
+					gtd->quiet_level--;
 					break;
 
 				case 'G':
@@ -351,7 +351,8 @@ void init_tintin(int greeting)
 
 	gtd->input_off      = 1;
 
-	gtd->home           = strdup(getenv("HOME") ? getenv("HOME") : ".");
+	gtd->os             = strdup(getenv("OS") ? getenv("OS") : "UNKNOWN");
+	gtd->home           = strdup(getenv("HOME") ? getenv("HOME") : "~/");
 	gtd->lang           = strdup(getenv("LANG") ? getenv("LANG") : "UNKNOWN");
 	gtd->term           = strdup(getenv("TERM") ? getenv("TERM") : "UNKNOWN");
 
@@ -414,7 +415,7 @@ void init_tintin(int greeting)
 	do_configure(gts, "{CONNECT RETRY}       {0}");
 	do_configure(gts, "{CHARSET}          {AUTO}");
 	do_configure(gts, "{HISTORY SIZE}     {1000}");
-	do_configure(gts, "{LOG}               {RAW}");
+	do_configure(gts, "{LOG MODE}          {RAW}");
 	do_configure(gts, "{MOUSE TRACKING}    {OFF}");
 	do_configure(gts, "{PACKET PATCH}     {AUTO}");
 	do_configure(gts, "{RANDOM SEED}      {AUTO}");
@@ -431,6 +432,7 @@ void init_tintin(int greeting)
 	}
 	do_configure(gts, "{SCROLL LOCK}        {ON}");
 	do_configure(gts, "{SPEEDWALK}         {OFF}");
+	do_configure(gts, "{TELNET}             {ON}");
 	do_configure(gts, "{TINTIN CHAR}         {#}");
 	do_configure(gts, "{VERBATIM}          {OFF}");
 	do_configure(gts, "{VERBATIM CHAR}      {\\}");
@@ -601,11 +603,11 @@ void syserr_signal(int signal, char *msg)
 		exit(-1);
 	}
 
-	dump_stack();
-
 	reset_terminal(gts);
 
 	reset_screen(gts);
+
+	dump_stack_fatal();
 
 	sprintf(buf, "\e[1;31mFATAL SIGNAL FROM (%s): %s\e[0m\n", msg, strsignal(signal));
 
@@ -639,18 +641,16 @@ void syserr_fatal(int signal, char *msg)
 		sprintf(errstr, "(signal %d: %s)", signal, strsignal(signal));
 	}
 
-	if (gtd->quiet)
+	if (gtd->quiet_level)
 	{
-		gtd->quiet = 0;
+		gtd->quiet_level = 0;
 	}
 
-	reset_terminal(gtd->ses);
+	reset_terminal(gts);
 
-	reset_screen(gtd->ses);
+	reset_screen(gts);
 
-	DEL_BIT(gtd->ses->flags, SES_FLAG_SPLIT);
-
-	dump_stack();
+	dump_stack_fatal();
 
 	sprintf(buf, "\n\e[1;31mFATAL ERROR \e[1;32m%s %s\e[0m\n", msg, errstr);
 

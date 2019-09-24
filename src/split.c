@@ -143,14 +143,14 @@ void init_split(struct session *ses, int top, int bot)
 
 	for (bot = 1 ; gtd->screen->rows - bot > ses->bot_row ; bot++)
 	{
-		do_one_prompt(ses, "", gtd->screen->rows - bot, 0);
+		split_show(ses, "", gtd->screen->rows - bot, 0);
 	}
 
 	set_line_screen("", ses->bot_row - 1, 0);
 
 	for (top = 1 ; top < ses->top_row ; top++)
 	{
-		do_one_prompt(ses, "", top, 0);
+		split_show(ses, "", top, 0);
 	}
 
 	goto_rowcol(ses, gtd->screen->rows, 1);
@@ -221,4 +221,102 @@ void dirty_screen(struct session *ses)
 
 	pop_call();
 	return;
+}
+
+
+void split_show(struct session *ses, char *prompt, int row, int col)
+{
+	char temp[BUFFER_SIZE];
+	int original_row, original_col, len, clear;
+
+	original_row = row;
+	original_col = col;
+
+	if (row < 0)
+	{
+		row = 1 + gtd->screen->rows + row;
+	}
+	else if (row == 0)
+	{
+		row = gtd->screen->rows - 2;
+	}
+
+	clear = 0;
+
+	if (col < 0)
+	{
+		col = 1 + gtd->screen->cols + col;
+	}
+	else if (col == 0)
+	{
+		col = 1;
+		clear = 1;
+	}
+
+	if (row < 1 || row > gtd->screen->rows)
+	{
+		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS OUTSIDE THE SCREEN: {%s} {%d} {%d}.", prompt, original_row, original_col);
+
+		return;
+	}
+
+	if (col < 0 || col > gtd->screen->cols)
+	{
+		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT COLUMN IS OUTSIDE THE SCREEN: {%s} {%d} {%d}.", prompt, original_row, original_col);
+
+		return;
+	}
+
+	if (row > ses->top_row && row < ses->bot_row)
+	{
+		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%d}.", prompt, original_row);
+
+		return;
+	}
+
+	if (ses != gtd->ses)
+	{
+		return;
+	}
+
+	len = strip_vt102_strlen(ses, prompt);
+
+	if (len == 0)
+	{
+		sprintf(temp, "%.*s", gtd->screen->cols + 4, "\e[0m--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+	}
+	else if (col - 1 + len <= gtd->screen->cols)
+	{
+		sprintf(temp, "%s", prompt);
+	}
+	else
+	{
+		show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", prompt);
+
+		sprintf(temp, "#PROMPT SIZE (%d) LONGER THAN ROW SIZE (%d)", len, gtd->screen->cols);
+	}
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
+	{
+		save_pos(ses);
+	}
+
+	if (row == gtd->screen->rows)
+	{
+		gtd->input_off = len + 1;
+
+		printf("\e[%d;1H\e[%d;1H\e[K%s%s\e[%d;%dH\e7\e[%d;1H", row, row, temp, gtd->input_buf, row, gtd->input_off + gtd->input_cur, ses->bot_row);
+	}
+	else
+	{
+		printf("\e[%d;%dH\e[%d;%dH%s%s\e[%d;1H", row, col, row, col, clear ? "\e[2K" : "", temp, ses->bot_row);
+	}
+
+	set_line_screen(temp, row - 1, col - 1);
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
+	{
+		restore_pos(ses);
+	}
+
 }

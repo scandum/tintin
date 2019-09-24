@@ -1,4 +1,55 @@
-Jul 2019        2.02.0
+Sep 2019        2.01.92
+------------------------------------------------------------------------------
+
+Aug 2019        2.01.91
+------------------------------------------------------------------------------
+vt100.c         Added %2 rows %3 cols arguments to the VT100 SCROLL REGION
+                event to increase ease of use.
+
+mapper.c        Changed #map at to also take an exit for the location.
+
+data.c          No longer saving or displaying the priority of triggers which
+                are set to the default priority.
+
+mapper.c        Added #map map <rows> <cols> draw <square> to draw the map at
+                the given location. This is no real alternative for using #map
+                offset as #map offset allows mouse map events.
+
+draw.c          Added unicode drawing options.
+
+line.c          Added #line logmode {html|plain|raw} {argument} Allows you
+                to execute a command with a temporary logging mode.
+
+mapper.c        Now drawing + and - for muds using nu dn eu ed exits.
+
+macro.c         Added ^ support to macros to make a macro only trigger at the
+                start of input. If you want to macro a literal ^ use \^ at
+                the start of the line. It behaves very similar to the ~ for
+                color triggers.
+
+mapper.c        Improved exit drawing in unicode mode.
+
+draw.c          Added #draw command and #help file.
+
+mapper.c        Added #map update option to force an update of the vtmap. Keep
+                in mind the vtmap will only update once every 0.1 seconds.
+
+screen.c        Added #screen clear {split|top|bottom} to clear split lines.
+
+config.c        Added #config {wordwrap {on|off|number} when a number is given
+                tintin will wrap at the given width, and will also report the
+                given width to MUDs over TELNET.
+
+config.c        Added #config {telnet} {on|off|debug} which allows enabling or
+                disabling telnet support. The debug option is the same as
+                #config {debug telnet} on and will eventually replace it. To
+                disable debug mode use #config telnet on.
+
+help.c          Added #help button
+
+button.c        Added #button.
+
+Jul 2019        2.01.90
 ------------------------------------------------------------------------------
 mapper.c        Added MAP FOLLOWED MAP event which triggers on map movement.
                 %0 = new vnum %1 = old vnum %2 = exit name. Keep in mind
@@ -118,8 +169,6 @@ mapper.c        Further improved unicodegraphics mode.
 
 mapper.c        Further improved blockgraphics mode.
 
-mapper.c        Hidden rooms are now shown to avoid confusion.
-
 mapper.c        Added #map color avoid
 
 mapper.c        Added #map color hide
@@ -175,10 +224,6 @@ event.c         Changed all MOUSE events to %0=row %1=col %2=-row %3=-row
                 to {row} {col}. The main reason for this change is consistency,
                 and because I've repeatedly swapped row and col in VT100 which
                 can be a tricky bug to track down.
-
-Jul 2019        2.01.9 (beta)
-------------------------------------------------------------------------------
-
 
 session.c       Added the 'ats' keyword to the session find routine to return
                 the active tintin session.

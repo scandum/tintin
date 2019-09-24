@@ -287,7 +287,7 @@ DO_COMMAND(do_read)
 
 	sprintf(temp, "{TINTIN CHAR} {%c}", bufo[0]);
 
-	gtd->quiet++;
+	gtd->quiet_level++;
 
 	do_configure(ses, temp);
 
@@ -306,7 +306,7 @@ DO_COMMAND(do_read)
 
 		if (strlen(bufi) >= BUFFER_SIZE)
 		{
-/*			gtd->quiet--;
+/*			gtd->quiet_level--;
 
 			bufi[20] = 0;
 */
@@ -329,7 +329,7 @@ DO_COMMAND(do_read)
 		pti++;
 	}
 
-	gtd->quiet--;
+	gtd->quiet_level--;
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_VERBOSE))
 	{
@@ -367,7 +367,7 @@ DO_COMMAND(do_write)
 	FILE *file;
 	char filename[BUFFER_SIZE], forceful[BUFFER_SIZE];
 	struct listroot *root;
-	int i, j, cnt = 0;
+	int i, j, fix, cnt = 0;
 
 	arg = get_arg_in_braces(ses, arg, filename, GET_ONE);
 	arg = get_arg_in_braces(ses, arg, forceful, GET_ONE);
@@ -402,6 +402,8 @@ DO_COMMAND(do_write)
 			continue;
 		}
 
+		fix = 0;
+
 		for (j = 0 ; j < root->used ; j++)
 		{
 			if (*root->list[j]->group == 0)
@@ -409,7 +411,13 @@ DO_COMMAND(do_write)
 				write_node(ses, i, root->list[j], file);
 
 				cnt++;
+				fix++;
 			}
+		}
+
+		if (fix)
+		{
+			fputs("\n", file);
 		}
 	}
 
@@ -440,7 +448,15 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 
 		case LIST_ACTION:
 		case LIST_ALIAS:
-			asprintf(&result, "%c%s {%s}\n{\n%s\n}\n{%s}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2), node->arg3);
+		case LIST_BUTTON:
+			if (!strcmp(node->arg3, "5"))
+			{
+				asprintf(&result, "%c%s {%s}\n{\n%s\n}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2));
+			}
+			else
+			{
+				asprintf(&result, "%c%s {%s}\n{\n%s\n}\n{%s}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2), node->arg3);
+			}
 			break;
 
 		case LIST_VARIABLE:

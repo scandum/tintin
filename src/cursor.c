@@ -694,7 +694,7 @@ DO_CURSOR(cursor_history_next)
 
 		for (root->update++ ; root->update < root->used ; root->update++)
 		{
-			if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE))
+			if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE, SUB_NONE))
 			{
 				break;
 			}
@@ -758,7 +758,7 @@ DO_CURSOR(cursor_history_prev)
 
 		for (root->update-- ; root->update >= 0 ; root->update--)
 		{
-			if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE))
+			if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE, SUB_NONE))
 			{
 				break;
 			}
@@ -877,13 +877,17 @@ DO_CURSOR(cursor_history_find)
 		}
 	}
 
+	gtd->quiet_level++;
+
 	for (root->update = root->used - 1 ; root->update >= 0 ; root->update--)
 	{
-		if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE))
+		if (*gtd->input_buf && find(ses, root->list[root->update]->arg1, gtd->input_buf, SUB_NONE, SUB_NONE))
 		{
 			break;
 		}
 	}
+
+	gtd->quiet_level--;
 
 	if (root->update >= 0)
 	{
@@ -1066,11 +1070,14 @@ DO_CURSOR(cursor_redraw_input)
 	}
 	else
 	{
+//		cursor_redraw_line(ses, "");
+
 		input_printf("\e[1G\e[0K%s%s\e[0K", ses->more_output, gtd->input_buf);
 
 		gtd->input_cur = gtd->input_len;
 
 		gtd->input_pos = gtd->input_len % gtd->screen->cols;
+
 	}
 }
 

@@ -1,29 +1,42 @@
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - add #line background option that prevents automatic session
-    activation.
+  - #loop {1} {1000} {cnt} {#var test[$cnt] 123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-}
 
-  - add syntax highlighting to map data.
+  - add #map destroy area <area>
+
+  - make format %X take unicode
+
+  - more potent long-click handling including held down ticks.
+
+  - look into discord api / arachnos
+
+  - finish mth true color conversion code
+
+  - #bell off option.
+
+  - draw example in #help
+
+  - make *draw_room more comprehensible
+
+  - give SUB_FIX its own flag to avoid confusion.
+
+  - #detach command.
+
+  - Improve #draw including 0000 mode.
+
+  - Add gtd->cursor_level to avoid saving an already saved cursor position
 
   - add maze flag for maze handling.
 
-  - asciivnum void room display.
+  - #buffer copy {lines} with strip option. #line strip?
 
-  - look into empty symbol setting.
 
-  - easier bit checks for map data
-
-  - #buffer copy {lines} with strip option.
-
-  - add #line logmode {raw|html|plain} option
 
   - add class specific debug
 
   - add screen draw options to draw lines and boxes.
 
   - Work on VT2020
-
-  - massive map / html map drawing.
 
   - add tunnel void utility to #map interface. (covered by #map move tho)
 
@@ -50,8 +63,6 @@
   - disable packet patch in echo off mode / PACKET PATCH AUTO mode.
 
   - set packet patch on EOR and GA detection. #config packet patch auto ?
-
-  - See if cpu usage of time events can be lowered.
 
   - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
 
@@ -169,6 +180,8 @@
   - See about adding ~/ handling for file names.
 
   - http://tintin.sourceforge.net/board/viewtopic.php?p=9934 Strange #map pathdir bug
+
+  - Add seconds till execution message to delays and tickers.
 
 --------------------------------------------------------------------------------
 

@@ -71,7 +71,7 @@ void add_line_history(struct session *ses, char *line)
 
 	root = ses->list[LIST_HISTORY];
 
-	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE) || gtd->ignore_level)
 	{
 		return;
 	}

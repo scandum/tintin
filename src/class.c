@@ -75,6 +75,8 @@ DO_COMMAND(do_class)
 		{
 			if (!search_node_list(ses->list[LIST_CLASS], arg1))
 			{
+				check_all_events(ses, SUB_ARG, 0, 1, "CLASS CREATED", arg1);
+
 				update_node_list(ses->list[LIST_CLASS], arg1, arg2, arg3, "");
 			}
 			class_table[i].group(ses, arg1, arg3);
@@ -285,8 +287,11 @@ DO_CLASS(class_kill)
 
 	if (!search_node_list(ses->list[LIST_CLASS], arg1))
 	{
-		update_node_list(ses->list[LIST_CLASS], arg1, "", "0", "");
+		show_error(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
 	}
+
 	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
 
 	for (type = 0 ; type < LIST_MAX ; type++)
@@ -304,6 +309,8 @@ DO_CLASS(class_kill)
 			}
 		}
 	}
+
+	check_all_events(ses, SUB_ARG, 0, 1, "CLASS DESTROYED", arg1);
 
 	delete_index_list(ses->list[LIST_CLASS], group);
 

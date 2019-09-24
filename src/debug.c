@@ -90,6 +90,16 @@ void dump_stack(void)
 	}
 }
 
+void dump_stack_fatal(void)
+{
+	unsigned char i;
+
+	for (i = 0 ; i < debug_index && i < MAX_STACK_SIZE ; i++)
+	{
+		printf("\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m\n", i, debug_stack[i]);
+	}
+}
+
 void dump_full_stack(void)
 {
 	unsigned char i;

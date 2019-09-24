@@ -28,12 +28,22 @@
 
 void save_pos(struct session *ses)
 {
-	printf("\e7"); 
+	if (ses->cur_row == gtd->screen->rows)
+	{
+		printf("\e7"); 
 
-	ses->sav_row = ses->cur_row;
-	ses->sav_col = ses->cur_col;
+		ses->sav_row = ses->cur_row;
+		ses->sav_col = ses->cur_col;
+	}
 }
 
+void load_pos(struct session *ses)
+{
+	printf("\e8\e8"); 
+
+	ses->cur_row = ses->sav_row;
+	ses->cur_col = ses->sav_col;
+}
 
 void restore_pos(struct session *ses)
 {
@@ -43,13 +53,26 @@ void restore_pos(struct session *ses)
 	ses->cur_col = ses->sav_col;
 }
 
+void goto_pos(struct session *ses, int row, int col)
+{
+	printf("\e[%d;%dH", row, col);
+
+	ses->cur_row = row;
+	ses->cur_col = col;
+}
+
 void goto_rowcol(struct session *ses, int row, int col)
 {
 	printf("\e[%d;%dH", row, col);
 
 	ses->cur_row = row;
+	ses->cur_col = col;
 }
 
+void erase_lines(struct session *ses, int rows)
+{
+	printf("\e[%dM", rows);
+}
 
 void erase_toeol(void)
 {
@@ -60,9 +83,12 @@ void erase_toeol(void)
 	doesn't do much
 */
 
-void reset(void)
+void reset(struct session *ses)
 {
-	printf("%cc", ESCAPE);
+	ses->cur_row = 1;
+	ses->cur_col = 1;
+
+	printf("\ec");
 }
 
 
@@ -70,12 +96,12 @@ void scroll_region(struct session *ses, int top, int bot)
 {
 	push_call("scroll_region(%p,%d,%d)",ses,top,bot);
 
-	printf("%c[%d;%dr", ESCAPE, top, bot);
+	printf("\e[%d;%dr", top, bot);
 
 	ses->top_row = top;
 	ses->bot_row = bot;
 
-	check_all_events(ses, SUB_ARG, 0, 2, "VT100 SCROLL REGION", ntos(top), ntos(bot));
+	check_all_events(ses, SUB_ARG, 0, 4, "VT100 SCROLL REGION", ntos(top), ntos(bot), ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(ses->wrap > 0 ? ses->wrap : gtd->screen->cols));
 
 	pop_call();
 	return;
@@ -86,7 +112,7 @@ void reset_scroll_region(struct session *ses)
 {
 	if (ses == gtd->ses)
 	{
-		printf("%c[r", ESCAPE);
+		printf("\e[r");
 	}
 	ses->top_row = 1;
 	ses->bot_row = gtd->screen->rows;

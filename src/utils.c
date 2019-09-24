@@ -400,9 +400,9 @@ char *indent(int len)
 
 	cnt = (cnt + 1) % 10;
 
-	memset(outbuf[cnt], '\t', len);
+	memset(outbuf[cnt], ' ', len * 5);
 
-	outbuf[cnt][len] = 0;
+	outbuf[cnt][len * 5] = 0;
 
 	return outbuf[cnt];
 }

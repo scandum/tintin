@@ -924,7 +924,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 			case TOKEN_TYPE_REGEX:
 				split = NULL;
 
-				token->regex->val = find(root->ses, token->str, token->regex->str, SUB_CMD);
+				token->regex->val = find(root->ses, token->str, token->regex->str, SUB_VAR|SUB_FUN, SUB_CMD);
 
 				if (token->regex->val)
 				{

@@ -107,9 +107,13 @@ void read_line()
 
 	buffer[len] = 0;
 
-	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA) || HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
 	{
 		convert_meta(buffer, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
+	}
+	else if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	{
+		convert_meta(buffer, &gtd->macro_buf[strlen(gtd->macro_buf)], TRUE);
 	}
 	else
 	{
@@ -127,7 +131,11 @@ void read_line()
 			{
 				node = root->list[root->update];
 
-				if (!strcmp(gtd->macro_buf, node->arg3))
+				if (*node->arg1 == '^' && gtd->input_len)
+				{
+					continue;
+				}
+				else if (!strcmp(gtd->macro_buf, node->arg3))
 				{
 					script_driver(gtd->ses, LIST_MACRO, node->arg2);
 
@@ -165,7 +173,7 @@ void read_line()
 			return;
 		}
 
-		if (gtd->macro_buf[0] == ESCAPE)
+		if (gtd->macro_buf[0] == ASCII_ESC)
 		{
 			if (gtd->macro_buf[1] == '[')
 			{
@@ -291,7 +299,7 @@ void read_line()
 		}
 	}
 
-	if (gtd->macro_buf[0] == ESCAPE)
+	if (gtd->macro_buf[0] == ASCII_ESC)
 	{
 		strcpy(buffer, gtd->macro_buf);
 
@@ -312,8 +320,8 @@ void read_line()
 	{
 		switch (gtd->macro_buf[0])
 		{
-			case '\r':
-			case '\n':
+			case ASCII_CR:
+			case ASCII_LF:
 				cursor_enter(gtd->ses, "");
 
 				memmove(gtd->macro_buf, &gtd->macro_buf[1], 1 + strlen(&gtd->macro_buf[1]));
@@ -430,7 +438,11 @@ void read_key(void)
 			{
 				node = root->list[root->update];
 
-				if (!strcmp(gtd->macro_buf, node->arg3))
+				if (*node->arg1 == '^' && gtd->input_buf[0])
+				{
+					continue;
+				}
+				else if (!strcmp(gtd->macro_buf, node->arg3))
 				{
 					script_driver(gtd->ses, LIST_MACRO, node->arg2);
 
@@ -454,7 +466,8 @@ void read_key(void)
 	{
 		switch (gtd->macro_buf[cnt])
 		{
-			case '\n':
+			case ASCII_CR:
+			case ASCII_LF:
 				gtd->input_buf[0] = 0;
 				gtd->macro_buf[0] = 0;
 				gtd->input_len = 0;
@@ -514,13 +527,13 @@ void convert_meta(char *input, char *output, int eol)
 	{
 		switch (*pti)
 		{
-			case ESCAPE:
+			case ASCII_ESC:
 				*pto++ = '\\';
 				*pto++ = 'e';
 				pti++;
 				break;
 
-			case 127:
+			case ASCII_DEL:
 				*pto++ = '\\';
 				*pto++ = 'x';
 				*pto++ = '7';
@@ -528,31 +541,31 @@ void convert_meta(char *input, char *output, int eol)
 				pti++;
 				break;
 
-			case '\a':
+			case ASCII_BEL:
 				*pto++ = '\\';
 				*pto++ = 'a';
 				pti++;
 				break;
 
-			case '\b':
+			case ASCII_BS:
 				*pto++ = '\\';
 				*pto++ = 'b';
 				pti++;
 				break;
 
-			case '\f':
+			case ASCII_FF:
 				*pto++ = '\\';
 				*pto++ = 'f';
 				pti++;
 				break;
 
-			case '\t':
+			case ASCII_HTAB:
 				*pto++ = '\\';
 				*pto++ = 't';
 				pti++;
 				break;
 
-			case '\r':
+			case ASCII_CR:
 				if (eol)
 				{
 					*pto++ = '\\';
@@ -561,13 +574,13 @@ void convert_meta(char *input, char *output, int eol)
 				*pto++ = *pti++;
 				break;
 
-			case '\v':
+			case ASCII_VTAB:
 				*pto++ = '\\';
 				*pto++ = 'v';
 				pti++;
 				break;
 
-			case '\n':
+			case ASCII_LF:
 				if (eol)
 				{
 					*pto++ = '\\';
@@ -614,81 +627,6 @@ char *str_convert_meta(char *input, int eol)
 	return buf;
 }
 
-void unconvert_meta(char *input, char *output)
-{
-	char *pti, *pto;
-
-	pti = input;
-	pto = output;
-
-	while (*pti)
-	{
-		switch (pti[0])
-		{
-			case '\\':
-				switch (pti[1])
-				{
-					case 'C':
-						if (pti[2] == '-' && pti[3])
-						{
-							*pto++  = pti[3] - 'a' + 1;
-							pti    += 4;
-						}
-						else
-						{
-							*pto++ = *pti++;
-						}
-						break;
-
-					case 'c':
-						*pto++ = pti[2] % 32;
-						pti += 3;
-						break;
-
-					case 'a':
-						*pto++  = '\a';
-						pti += 2;
-						break;
-
-					case 'b':
-						*pto++  = 127;
-						pti    += 2;
-						break;
-
-					case 'e':
-						*pto++  = ESCAPE;
-						pti    += 2;
-						break;
-
-					case 't':
-						*pto++  = '\t';
-						pti    += 2;
-						break;
-
-					case 'x':
-						if (pti[2] && pti[3])
-						{
-							*pto++ = hex_number_8bit(&pti[2]);
-							pti += 4;
-						}
-						else
-						{
-							*pto++ = *pti++;
-						}
-						break;
-					default:
-						*pto++ = *pti++;
-						break;
-				}
-				break;
-
-			default:
-				*pto++ = *pti++;
-				break;
-		}
-	}
-	*pto = 0;
-}
 
 /*
 	Currenly only used in split mode.

@@ -81,6 +81,8 @@ DO_COMMAND(do_chat)
 		arg = sub_arg_in_braces(ses, arg, arg1,  chat_table[cnt].lval, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg2, chat_table[cnt].rval, SUB_VAR|SUB_FUN);
 
+		chat_table[cnt].fun(arg1, arg2);
+
 		return ses;
 	}
 
@@ -2197,7 +2199,7 @@ DO_CHAT(chat_cancelfile)
 
 DO_CHAT(chat_color)
 {
-	if (*arg1 == 0 || get_highlight_codes(gtd->ses, arg1, arg2) == FALSE)
+	if (*arg1 == 0 || get_color_names(gtd->ses, arg1, arg2) == FALSE)
 	{
 		chat_printf("Valid colors are:\n\nreset, bold, dim, light, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white");
 

@@ -282,6 +282,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		}
 	}
 
+	check_all_buttons(ses, row, col, arg1, arg2, word, line);
+
 	check_all_events(ses, SUB_ARG, 2, 6, "%s %s", arg1, arg2, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
 	check_all_events(ses, SUB_ARG, 3, 6, "%s %s %d", arg1, arg2, row, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
@@ -304,6 +306,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 			{
 				if (click[0] - click[2] < 500000)
 				{
+					check_all_buttons(ses, row, col, "TRIPLE-CLICKED", arg2, word, line);
+
 					check_all_events(ses, SUB_ARG, 1, 6, "TRIPLE-CLICKED %s", arg2, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
 					check_all_events(ses, SUB_ARG, 2, 6, "TRIPLE-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
@@ -316,6 +320,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 				}
 				else
 				{
+					check_all_buttons(ses, row, col, "DOUBLE-CLICKED", arg2, word, line);
+
 					check_all_events(ses, SUB_ARG, 1, 6, "DOUBLE-CLICKED %s", arg2, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
 					check_all_events(ses, SUB_ARG, 2, 6, "DOUBLE-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
@@ -339,6 +345,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 	{
 		if (utime() - click[0] >= 500000)
 		{
+			check_all_buttons(ses, row, col, "LONG-CLICKED", arg2, word, line);
+
 			check_all_events(ses, SUB_ARG, 1, 6, "LONG-CLICKED %s", arg2, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
 			check_all_events(ses, SUB_ARG, 2, 6, "LONG-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
@@ -349,6 +357,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		}
 		else if (click[0] - click[1] >= 500000)
 		{
+			check_all_buttons(ses, row, col, "SHORT-CLICKED", arg2, word, line);
+
 			check_all_events(ses, SUB_ARG, 1, 6, "SHORT-CLICKED %s", arg2, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
 			check_all_events(ses, SUB_ARG, 2, 6, "SHORT-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(-1 - (gtd->screen->rows - row)), ntos(-1 - (gtd->screen->cols - col)), word, line);

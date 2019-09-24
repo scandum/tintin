@@ -56,23 +56,29 @@ DO_COMMAND(do_screen)
 		{
 			if (is_abbrev(arg1, screen_table[cnt].name))
 			{
-				if (HAS_BIT(screen_table[cnt].get1, SCREEN_FLAG_GET_ONE))
+				if (!HAS_BIT(screen_table[cnt].get1, SCREEN_FLAG_GET_NONE))
 				{
-					arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-				}
-				else
-				{
-					arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
-				}
-				if (HAS_BIT(screen_table[cnt].get2, SCREEN_FLAG_GET_ONE))
-				{
-					arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-				}
-				else
-				{
-					arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+					if (HAS_BIT(screen_table[cnt].get1, SCREEN_FLAG_GET_ONE))
+					{
+						arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+					}
+					else
+					{
+						arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+					}
 				}
 
+				if (!HAS_BIT(screen_table[cnt].get2, SCREEN_FLAG_GET_NONE))
+				{
+					if (HAS_BIT(screen_table[cnt].get2, SCREEN_FLAG_GET_ONE))
+					{
+						arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+					}
+					else
+					{
+						arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+					}
+				}
 				screen_table[cnt].fun(ses, cnt, arg, arg1, arg2);
 
 				return ses;
@@ -135,21 +141,31 @@ DO_SCREEN(screen_clear)
 	{
 		printf("\e[2J");
 	}
+	else if (is_abbrev(arg1, "BOTTOM SPLIT"))
+	{
+		erase_bot_region(ses);
+	}
+	else if (is_abbrev(arg1, "TOP SPLIT"))
+	{
+		erase_top_region(ses);
+	}
 	else if (is_abbrev(arg1, "SCROLL REGION"))
 	{
-//		erase_scroll_region(ses);
-
-		printf("\e[%d;%d;%d;%d${", ses->top_row, 1, ses->bot_row, gtd->screen->cols);
+		erase_scroll_region(ses);
+	}
+	else if (is_abbrev(arg1, "SPLIT REGION"))
+	{
+		erase_split_region(ses);
 	}
 	else if (is_abbrev(arg1, "SQUARE"))
 	{
-		strcpy(arg1, arg2);
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 		top_row = get_row_index(ses, arg1);
 		top_col = get_col_index(ses, arg2);
 
-		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, top_row, top_col);
+//		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, top_row, top_col);
 
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
@@ -157,7 +173,7 @@ DO_SCREEN(screen_clear)
 		bot_row = get_row_index(ses, arg1);
 		bot_col = get_col_index(ses, arg2);
 
-		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, bot_row, bot_col);
+//		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, bot_row, bot_col);
 
 		if (bot_col == 0)
 		{
@@ -165,12 +181,14 @@ DO_SCREEN(screen_clear)
 		}
 		else
 		{
-			printf("\e[%d;%d;%d;%d${", top_row, top_col, bot_row, bot_col);
+			erase_square(ses, top_row, top_col, bot_row, bot_col);
+
+//			printf("\e[%d;%d;%d;%d${", top_row, top_col, bot_row, bot_col); VT400 not widely supported
 		}
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN CLEAR {ALL|SCROLL REGION|SQUARE}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN CLEAR {ALL|SCROLL|SPLIT|SQUARE}");
 	}
 }
 
@@ -927,18 +945,95 @@ void set_line_screen(char *str, int row, int col)
 
 void erase_scroll_region(struct session *ses)
 {
-	push_call("erase_scroll_region(%p) (%d,%d)",ses,ses->top_row,ses->bot_row);
+	int row;
 
-//	printf("\e[%d;%d;%d;%d${", ses->top_row, 1, ses->bot_row, gtd->screen->cols); VT400
+	push_call("erase_scroll_region(%p) [%d,%d]",ses,ses->top_row,ses->bot_row);
 
-	printf("\e7\e[%d;1H\e[%dM\e8", ses->top_row, ses->bot_row - ses->top_row);
+	if (ses->wrap <= 0)
+	{
+		save_pos(ses);
+		goto_pos(ses, ses->top_row, 1);
+		erase_lines(ses, ses->bot_row - ses->top_row);
+		load_pos(ses);
+	}
+	else
+	{
+		save_pos(ses);
+		goto_pos(ses, ses->top_row, 1);
 
-	ses->sav_row = ses->cur_row;
-	ses->sav_col = ses->cur_col;
+		for (row = ses->top_row ; row < ses->bot_row ; row++)
+		{
+			printf("\e[%dX\n", ses->wrap);
+		}
+		load_pos(ses);
+	}
+
+//	printf("\e[%d;%d;%d;%d${", ses->top_row, 1, ses->bot_row, gtd->screen->cols); VT400 not widely supported
 
 	pop_call();
 	return;
 }
+
+void erase_split_region(struct session *ses)
+{
+	erase_top_region(ses);
+
+	erase_bot_region(ses);
+}
+
+void erase_top_region(struct session *ses)
+{
+	int row;
+
+	if (ses->top_row > 1)
+	{
+		save_pos(ses);
+		goto_pos(ses, 1, 1);
+
+		for (row = 1 ; row < ses->top_row ; row++)
+		{
+			printf("\e[K\n");
+		}
+		load_pos(ses);
+	}
+}
+
+void erase_bot_region(struct session *ses)
+{
+	int row;
+
+	if (ses->bot_row < gtd->screen->rows)
+	{
+		save_pos(ses);
+		goto_pos(ses, ses->bot_row + 1, 1);
+
+		for (row = ses->bot_row + 1 ; row < gtd->screen->rows ; row++)
+		{
+			printf("\e[K\n");
+		}
+		load_pos(ses);
+	}
+}
+
+void erase_square(struct session *ses, int top_row, int top_col, int bot_row, int bot_col)
+{
+	int row;
+
+	push_call("erase_square(%p,%d,%d,%d,%d)",ses,top_row,top_col,bot_row,bot_col);
+
+	save_pos(ses);
+
+	for (row = top_row ; row <= bot_row ; row++)
+	{
+		goto_pos(ses, row, top_col);
+		printf("\e[%dX", bot_col - top_col + 1);
+	}
+	load_pos(ses);
+
+	pop_call();
+	return;
+}
+
 
 void get_line_screen(char *result, int row)
 {

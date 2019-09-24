@@ -121,6 +121,11 @@ struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2,
 
 	node = (struct listnode *) calloc(1, sizeof(struct listnode));
 
+	if (HAS_BIT(root->flags, LIST_FLAG_PRIORITY) && *arg3 == 0)
+	{
+		strcpy(arg3, "5");
+	}
+
 	node->arg1 = strdup(arg1);
 	node->arg2 = strdup(arg2);
 	node->arg3 = strdup(arg3);
@@ -177,6 +182,11 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 			case LIST_TICKER:
 				node->data = 0;
 				break;
+		}
+
+		if (HAS_BIT(root->flags, LIST_FLAG_PRIORITY) && *arg3 == 0)
+		{
+			strcpy(arg3, "5");
 		}
 
 		switch (list_table[root->type].mode)
@@ -495,26 +505,33 @@ int nsearch_list(struct listroot *root, char *text)
 
 void show_node(struct listroot *root, struct listnode *node, int level)
 {
-	char *str = str_dup("");
+	char *str_arg2 = str_dup("");
 
-	show_nest_node(node, &str, TRUE);
+	show_nest_node(node, &str_arg2, TRUE);
 
 	switch (list_table[root->type].args)
 	{
 		case 4:
-			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str, node->arg3, node->arg4);
+			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2, node->arg3, node->arg4);
 			break;
 		case 3:
-			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str, node->arg3);
+			if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_PRIORITY) && !strcmp(node->arg3, "5"))
+			{
+				tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2);
+			}
+			else
+			{
+				tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2, node->arg3);
+			}
 			break;
 		case 2:
-			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str);
+			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2);
 			break;
 		case 1:
 			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1);
 			break;
 	}
-	str_free(str);
+	str_free(str_arg2);
 }
 
 /*
@@ -554,16 +571,24 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 			case LIST_FUNCTION:
 			case LIST_MACRO:
 				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
-//				show_lines(ses, SUB_COL, "<138>%c<168>%s <258>{<278>%s<258>}\n<158>{\n<278>%s\n<258>}<088>\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
 				break;
 
 			case LIST_ACTION:
 			case LIST_ALIAS:
+			case LIST_BUTTON:
+				if (!strcmp(node->arg3, "5"))
+				{
+					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+				}
+				else
+				{
+					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
+				}
+				break;
+
 			case LIST_DELAY:
 			case LIST_TICKER:
-			case LIST_SUBSTITUTE:
 				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
-//				show_lines(ses, SUB_COL, "<138>%c<168>%s <258>{<278>%s<258>}\n<258>{\n<278>%s\n<258>}\n<258>{<278>%s<258>}<088>\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
 				break;
 
 			default:
@@ -998,7 +1023,7 @@ DO_COMMAND(do_info)
 
 					add_nest_node(ses->list[LIST_VARIABLE], name, "{CLIENT}{{NAME}{%s}{VERSION}{%-3s}}", CLIENT_NAME, CLIENT_VERSION);
 
-					add_nest_node(ses->list[LIST_VARIABLE], name, "{SCROLL}{{BASE}{%d}{LINE}{%d}{MAX}{%d}{ROW}{%d}}", ses->scroll->base, ses->scroll->line, ses->scroll->max, ses->scroll->row);
+					add_nest_node(ses->list[LIST_VARIABLE], name, "{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->home, gtd->lang, gtd->os, gtd->term);
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
 				}
@@ -1006,10 +1031,10 @@ DO_COMMAND(do_info)
 				{
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME = %s", CLIENT_NAME);
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
-					tintin_printf2(ses, "#INFO SYSTEM: SCROLL_BASE = %d", ses->scroll->base);
-					tintin_printf2(ses, "#INFO SYSTEM: SCROLL_LINE = %d", ses->scroll->line);
-					tintin_printf2(ses, "#INFO SYSTEM: SCROLL_MAX = %d", ses->scroll->max);
-					tintin_printf2(ses, "#INFO SYSTEM: SCROLL_ROW = %d", ses->scroll->row);
+					tintin_printf2(ses, "#INFO SYSTEM: HOME = %s", gtd->home);
+					tintin_printf2(ses, "#INFO SYSTEM: LANG = %s", gtd->lang);
+					tintin_printf2(ses, "#INFO SYSTEM: OS = %s", gtd->os);
+					tintin_printf2(ses, "#INFO SYSTEM: TERM = %s", gtd->term);
 				}
 			}
 			else

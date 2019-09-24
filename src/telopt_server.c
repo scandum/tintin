@@ -792,7 +792,7 @@ int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char 
 
 	for (index = 0 ; index < gtd->msdp_table_size ; index++)
 	{
-		buddy->msdp_data[index] = (struct msdp_data *) calloc(1, sizeof(struct msdp_data *));
+		buddy->msdp_data[index] = (struct msdp_data *) calloc(1, sizeof(struct msdp_data));
 
 		buddy->msdp_data[index]->flags = msdp_table[index].flags;
 		buddy->msdp_data[index]->value = strdup("");

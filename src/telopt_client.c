@@ -216,7 +216,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 		cpsrc = src;
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_LOGLEVEL) && ses->logfile)
+	if (HAS_BIT(ses->logmode, LOG_FLAG_LOW) && ses->logfile)
 	{
 		fwrite(cpsrc, 1, cplen, ses->logfile);
 
@@ -244,7 +244,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 	while (cplen > 0)
 	{
-		if (!HAS_BIT(ses->flags, SES_FLAG_RUN) && *cpsrc == IAC)
+		if (*cpsrc == IAC && HAS_BIT(ses->flags, SES_FLAG_TELNET) && !HAS_BIT(ses->flags, SES_FLAG_RUN))
 		{
 			skip = 2;
 
@@ -435,7 +435,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 			switch (*cpsrc)
 			{
-				case '\0':
+				case ASCII_NUL:
 					cpsrc++;
 					cplen--;
 					continue;
@@ -446,8 +446,8 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					cplen--;
 					continue;
 
-				case '\r':
-					if (cplen > 1 && cpsrc[1] == '\n')
+				case ASCII_CR:
+					if (cplen > 1 && cpsrc[1] == ASCII_LF)
 					{
 						cpsrc++;
 						cplen--;
@@ -455,7 +455,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					}
 					break;
 
-				case '\n':
+				case ASCII_LF:
 					if (HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 					{
 						DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
@@ -465,7 +465,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					gtd->mud_output_len++;
 					cplen--;
 
-					while (*cpsrc == '\r')
+					while (*cpsrc == ASCII_CR)
 					{
 						cpsrc++;
 						cplen--;
@@ -474,7 +474,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					continue;
 
 				default:
-					if (cpsrc[0] == ESCAPE)
+					if (cpsrc[0] == ASCII_ESC)
 					{
 						if (cplen >= 2 && cpsrc[1] == 'Z')
 						{
@@ -753,29 +753,32 @@ int client_recv_do_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 {
 	int rows;
+	int cols;
 
 	rows = HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? ses->bot_row - ses->top_row + 1 : gtd->screen->rows;
 
+	cols = ses->wrap > 0 ? ses->wrap : gtd->screen->cols;
+
 	// Properly handle row and colum size of 255
 
-	if (gtd->screen->cols % 256 == IAC && gtd->screen->rows % 256 == IAC)
+	if (cols % 256 == IAC && gtd->screen->rows % 256 == IAC)
 	{
-		telnet_printf(ses, 11, "%c%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, gtd->screen->cols / 256, IAC, gtd->screen->cols % 256, rows / 256, IAC, rows % 256, IAC, SE);
+		telnet_printf(ses, 11, "%c%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, cols / 256, IAC, cols % 256, rows / 256, IAC, rows % 256, IAC, SE);
 	}
-	else if (gtd->screen->cols % 256 == IAC)
+	else if (cols % 256 == IAC)
 	{
-		telnet_printf(ses, 10, "%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, gtd->screen->cols / 256, IAC, gtd->screen->cols % 256, rows / 256, rows % 256, IAC, SE);
+		telnet_printf(ses, 10, "%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, cols / 256, IAC, cols % 256, rows / 256, rows % 256, IAC, SE);
 	}
 	else if (gtd->screen->rows % 256 == IAC)
 	{
-		telnet_printf(ses, 10, "%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, gtd->screen->cols / 256, gtd->screen->cols % 256, rows / 256, IAC, rows % 256, IAC, SE);
+		telnet_printf(ses, 10, "%c%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, cols / 256, cols % 256, rows / 256, IAC, rows % 256, IAC, SE);
 	}
 	else
 	{
-		telnet_printf(ses, 9, "%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, gtd->screen->cols / 256, gtd->screen->cols % 256, rows / 256, rows % 256, IAC, SE);
+		telnet_printf(ses, 9, "%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, cols / 256, cols % 256, rows / 256, rows % 256, IAC, SE);
 	}
 
-	client_telopt_debug(ses, "SENT IAC SB NAWS %d %d %d %d", gtd->screen->cols / 256, gtd->screen->cols % 256, gtd->screen->rows / 256, gtd->screen->rows % 256);
+	client_telopt_debug(ses, "SENT IAC SB NAWS %d %d %d %d", cols / 256, cols % 256, gtd->screen->rows / 256, gtd->screen->rows % 256);
 
 	return 3;
 }

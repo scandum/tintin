@@ -57,15 +57,14 @@ DEFAULT_FILE_DIR = $(HOME)
 FFLAGS= $(F1) $(F6)
 
 
-OFILES = action.o alias.o files.o help.o highlight.o strhash.o input.o log.o \
-         main.o misc.o net.o parse.o path.o update.o history.o tab.o vt102.o \
-         terminal.o session.o function.o text.o substitute.o tick.o memory.o \
-         math.o split.o debug.o tinexp.o mapper.o tables.o buffer.o prompt.o \
-         class.o event.o tokenize.o chat.o utf8.o config.o gag.o advertise.o \
-         list.o forkpty.o cursor.o system.o line.o data.o variable.o macro.o \
-         msdp.o ssl.o port.o scan.o telopt_client.o screen.o telopt_server.o \
-         utils.o nest.o show.o mccp.o
-
+OFILES = \
+files.o help.o strhash.o input.o main.o misc.o net.o parse.o debug.o \
+update.o history.o vt102.o terminal.o text.o memory.o math.o split.o \
+system.o mapper.o tables.o buffer.o event.o tokenize.o chat.o utf8.o \
+advertise.o list.o forkpty.o utils.o line.o data.o variable.o msdp.o \
+port.o scan.o telopt_client.o screen.o cursor.o nest.o show.o mccp.o \
+telopt_server.o draw.o log.o path.o session.o class.o config.o ssl.o \
+regex.o trigger.o substitute.o
 
 default: all
 

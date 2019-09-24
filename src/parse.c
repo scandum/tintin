@@ -849,11 +849,11 @@ void do_one_line(char *line, struct session *ses)
 		check_all_highlights(ses, line, strip);
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_LOGNEXT))
+	if (HAS_BIT(ses->logmode, LOG_FLAG_NEXT))
 	{
-		logit(ses, line, ses->lognext_file, TRUE);
+		logit(ses, line, ses->lognext_file, LOG_FLAG_LINEFEED);
 
-		DEL_BIT(ses->flags, SES_FLAG_LOGNEXT);
+		DEL_BIT(ses->logmode, LOG_FLAG_NEXT);
 	}
 	pop_call();
 	return;

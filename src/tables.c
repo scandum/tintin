@@ -37,6 +37,7 @@ struct command_type command_table[] =
 	{    "bell",              do_bell,              TOKEN_TYPE_COMMAND },
 	{    "break",             do_nop,               TOKEN_TYPE_BREAK   },
 	{    "buffer",            do_buffer,            TOKEN_TYPE_COMMAND },
+	{    "button",            do_button,            TOKEN_TYPE_COMMAND },
 	{    "case",              do_nop,               TOKEN_TYPE_CASE    },
 	{    "chat",              do_chat,              TOKEN_TYPE_COMMAND },
 	{    "class",             do_class,             TOKEN_TYPE_COMMAND },
@@ -48,6 +49,7 @@ struct command_type command_table[] =
 	{    "debug",             do_debug,             TOKEN_TYPE_COMMAND },
 	{    "default",           do_nop,               TOKEN_TYPE_DEFAULT },
 	{    "delay",             do_delay,             TOKEN_TYPE_COMMAND },
+	{    "draw",              do_draw,              TOKEN_TYPE_COMMAND },
 	{    "echo",              do_echo,              TOKEN_TYPE_COMMAND },
 	{    "else",              do_nop,               TOKEN_TYPE_ELSE    },
 	{    "elseif",            do_nop,               TOKEN_TYPE_ELSEIF  },
@@ -104,6 +106,7 @@ struct command_type command_table[] =
 	{    "ticker",            do_tick,              TOKEN_TYPE_COMMAND },
 	{    "unaction",          do_unaction,          TOKEN_TYPE_COMMAND },
 	{    "unalias",           do_unalias,           TOKEN_TYPE_COMMAND },
+	{    "unbutton",          do_unbutton,          TOKEN_TYPE_COMMAND },
 	{    "undelay",           do_undelay,           TOKEN_TYPE_COMMAND },
 	{    "unevent",           do_unevent,           TOKEN_TYPE_COMMAND },
 	{    "unfunction",        do_unfunction,        TOKEN_TYPE_COMMAND },
@@ -127,8 +130,9 @@ struct command_type command_table[] =
 
 struct list_type list_table[LIST_MAX] =
 {
-	{    "ACTION",            "ACTIONS",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
-	{    "ALIAS",             "ALIASES",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
+	{    "ACTION",            "ACTIONS",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "ALIAS",             "ALIASES",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "BUTTON",            "BUTTONS",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_PRIORITY },
 	{    "CLASS",             "CLASSES",            SORT_PRIORITY,    2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_INHERIT                                 },
 	{    "COMMAND",           "COMMANDS",           SORT_APPEND,      1,  LIST_FLAG_MESSAGE                                                                  },
 	{    "CONFIG",            "CONFIGURATIONS",     SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_INHERIT                 },
@@ -136,13 +140,13 @@ struct list_type list_table[LIST_MAX] =
 	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "GAG",               "GAGS",               SORT_ALPHA,       1,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "HIGHLIGHT",         "HIGHLIGHTS",         SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
+	{    "HIGHLIGHT",         "HIGHLIGHTS",         SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
 	{    "HISTORY",           "HISTORIES",          SORT_APPEND,      1,  LIST_FLAG_MESSAGE                                                                  },
 	{    "MACRO",             "MACROS",             SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "PATH",              "PATHS",              SORT_APPEND,      2,  LIST_FLAG_MESSAGE                                                                  },
 	{    "PATHDIR",           "PATHDIRS",           SORT_ALPHA,       3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "PROMPT",            "PROMPTS",            SORT_PRIORITY,    4,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
-	{    "SUBSTITUTE",        "SUBSTITUTES",        SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
+	{    "PROMPT",            "PROMPTS",            SORT_PRIORITY,    4,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "SUBSTITUTE",        "SUBSTITUTES",        SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
 	{    "TAB",               "TABS",               SORT_ALPHA,       1,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "TICKER",            "TICKERS",            SORT_ALPHA,       3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "VARIABLE",          "VARIABLES",          SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_NEST }
@@ -258,10 +262,10 @@ struct config_type config_table[] =
 	},
 
 	{
-		"LOG",
+		"LOG MODE",
 		"",
-		"The data format of the log files",
-		config_log
+		"The data type mode of log files",
+		config_logmode
 	},
 
 	{
@@ -332,6 +336,13 @@ struct config_type config_table[] =
 		"Your input is scanned for speedwalk directions",
 		"Your input is not scanned for speedwalk directions",
 		config_speedwalk
+	},
+
+	{
+		"TELNET",
+		"TELNET support is enabled.",
+		"TELNET support is disabled.",
+		config_telnet
 	},
 
 	{
@@ -558,7 +569,7 @@ struct array_type array_table[] =
 
 struct map_type map_table[] =
 {
-	{     "AT",               map_at,              0,              1    },
+	{     "AT",               map_at,              0,              2    },
 	{     "COLOR",            map_color,           MAP_FLAG_VTMAP, 1    },
 	{     "CREATE",           map_create,          MAP_FLAG_VTMAP, 0    },
 	{     "DEBUG",            map_debug,           0,              2    },
@@ -594,7 +605,7 @@ struct map_type map_table[] =
 	{     "UNDO",             map_undo,            MAP_FLAG_VTMAP, 2    },
 	{     "UNINSERT",         map_uninsert,        MAP_FLAG_VTMAP, 2    },
 	{     "UNLINK",           map_unlink,          MAP_FLAG_VTMAP, 2    },
-	{     "UPDATE",           map_update,          MAP_FLAG_VTMAP, 2    },
+	{     "UPDATE",           map_update,          0,              0    },
 	{     "VNUM",             map_vnum,            MAP_FLAG_VTMAP, 2    },
 	{     "WRITE",            map_write,           0,              1    },
 	{     "",                 NULL,                0    }
@@ -954,6 +965,113 @@ struct cursor_type cursor_table[] =
 	}
 };
 
+struct draw_type draw_table[] =
+{
+	{
+		"BLANK SQUARE",
+		"Draw a blank square.",
+		draw_blank
+	},
+
+	{
+		"BOTTOM SIDE",
+		"Draw the bottom side of a box.",
+		draw_bot_line
+	},
+
+	{
+		"BOX",
+		"Draw a box.",
+		draw_box
+	},
+
+	{
+		"BOX TEXT",
+		"Draw a box with given text.",
+		draw_box_text
+	},
+
+	{
+		"CENTER LEFT LINE",
+		"Draw the center left line of two boxes.",
+		draw_center_left_line
+	},
+
+	{
+		"CENTER RIGHT LINE",
+		"Draw the center right line of two boxes.",
+		draw_center_right_line
+	},
+
+	{
+		"HORIZONTAL LINE",
+		"Draw a horizontal line.",
+		draw_horizontal_line
+	},
+
+	{
+		"LEFT SIDE",
+		"Draw the left side of a box.",
+		draw_left_line
+	},
+
+
+	{
+		"MIDDLE TOP LINE",
+		"Draw the middle top line of two boxes.",
+		draw_middle_top_line
+	},
+
+	{
+		"MIDDLE BOTTOM LINE",
+		"Draw the middle bottom line of two boxes.",
+		draw_middle_bot_line
+	},
+
+	{
+		"RIGHT SIDE",
+		"Draw the right side of a box.",
+		draw_right_line
+	},
+	
+	{
+		"SIDE LINES",
+		"Draw the left and right sides of a box.",
+		draw_side_lines
+	},
+
+	{
+		"SIDE LINES TEXT",
+		"Draw the side lines of a box with given text.",
+		draw_side_lines_text
+	},
+
+
+	{
+		"TOP LINE",
+		"Draw the bottom lines of a box.",
+		draw_top_line
+	},
+
+	{
+		"TEXT",
+		"Draw given text without a frame.",
+		draw_text
+	},
+
+	{
+		"VERTICAL LINE",
+		"Draw a vertical line.",
+		draw_vertical_line
+	},
+
+	{
+		"",
+		"",
+		NULL
+	}
+};
+
 struct screen_type screen_table[] =
 {
 	{
@@ -968,7 +1086,7 @@ struct screen_type screen_table[] =
 		"CLEAR",
 		"Clear the screen.",
 		SCREEN_FLAG_GET_ONE,
-		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_NONE,
 		SCREEN_FLAG_CSIP,
 		screen_clear
 	},
@@ -1086,7 +1204,7 @@ struct screen_type screen_table[] =
 		screen_save
 	},
 	{
-		"Scrollbar",
+		"SCROLLBAR",
 		"Scrollbar settings.",
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_GET_ONE,
@@ -1128,7 +1246,9 @@ struct event_type event_table[] =
 	{    "CATCH ",                                 "Triggers on catch events."               },
 	{    "CHAT MESSAGE",                           "Triggers on any chat related message."   },
 	{    "CLASS ACTIVATED",                        "Triggers on class activations."          },
+	{    "CLASS CREATED",                          "Triggers on class creation."             },
 	{    "CLASS DEACTIVATED",                      "Triggers on class deactivations."        },
+	{    "CLASS DESTROYED",                        "Triggers on class destruction."          },
 	{    "DATE",                                   "Triggers on the given date."             },
 	{    "DAY",                                    "Triggers each day or given day."         },
 	{    "DOUBLE-CLICKED ",                        "Triggers when mouse is double-clicked"   },
@@ -1232,9 +1352,11 @@ struct path_type path_table[] =
 
 struct line_type line_table[] =
 {
+	{    "BACKGROUND",        line_background        },
 	{    "GAG",               line_gag               },
 	{    "IGNORE",            line_ignore            },
 	{    "LOG",               line_log               },
+	{    "LOGMODE",           line_logmode           },
 	{    "LOGVERBATIM",       line_logverbatim       },
 	{    "QUIET",             line_quiet             },
 	{    "STRIP",             line_strip             },
@@ -1770,6 +1892,7 @@ struct map_group_type map_group_table[] =
 	{ "NESW MISC",			"NESW MISC",		1, 1,	1, 1,	0, 0,	"{\\u2B51} {\\u2012} {\\u2507} {\\u254D}" },
 	{ "NESW CURVED",		"NESW CURVED",		1, 1,	1, 1,	0, 0,	"{\\u2570} {\\u256D} {\\u256E} {\\u256F}" },
 	{ "NESW DIRS",			"NESW DIRS",		1, 1,	1, 1,	0, 0,	"{\\u2191} {\\u2B08} {\\u2B95} {\\u2b0A} {\\u2193} {\\u2B0B} {\\u2B05} {\\u2B09}" },
+//	{ "NESW DIRS",			"NESW DIRS",		1, 1,	1, 1,	0, 0,	"{\\U01F805}{\\u2B08}{\\U01F806}{\\u2b0A}{\\U01F807}{\\u2B0B}{\\U01F804}{\\u2B09}" }, poor cross-platform support.
 
 	{ "MUDFONT",			"MUDFONT",		1, 2,	1, 2,	0, 0,	"" },
 	{ "MUDFONT PRIVATE",		"MUDFONT",		1, 2,	1, 2,	0, 0,	"{\\uE000} {\\uE001} {\\uE002} {\\uE003} {\\uE004} {\\uE005} {\\uE006} {\\uE007} {\\uE008} {\\uE009} {\\uE00A} {\\uE00B} {\\uE00C} {\\uE00D} {\\uE00E} {\\uE00F} {\\uE010} {\\uE011} {\\uE012} {\\uE013} {\\uE014} {\\uE015} {\\uE016} {\\uE017} {\\uE018} {\\uE019} {\\uE01A} {\\uE01B} {\\uE01C} {\\uE01D} {\\uE01E} {\\uE01F} {\\uE020} {\\uE021} {\\uE022} {\\uE023} {\\uE024} {\\uE025} {\\uE026} {\\uE027} {\\uE028} {\\uE029} {\\uE02A} {\\uE02B} {\\uE02C} {\\uE02D} {\\uE02E} {\\uE02F} {\\uE030} {\\uE031} {\\uE032} {\\uE033} {\\uE034} {\\uE035} {\\uE036} {\\uE037} {\\uE038} {\\uE039} {\\uE03A} {\\uE03B} {\\uE03C} {\\uE03D} {\\uE03E} {\\uE03F} {\\uE040} {\\uE041} {\\uE042} {\\uE043} {\\uE044} {\\uE045} {\\uE046} {\\uE047} {\\uE048} {\\uE049} {\\uE04A} {\\uE04B} {\\uE04C} {\\uE04D} {\\uE04E} {\\uE04F} {\\uE050} {\\uE051} {\\uE052} {\\uE053} {\\uE054} {\\uE055} {\\uE056} {\\uE057} {\\uE058} {\\uE059} {\\uE05A} {\\uE05B} {\\uE05C} {\\uE05D} {\\uE05E} {\\uE05F} {\\uE060} {\\uE061} {\\uE062} {\\uE063} {\\uE064} {\\uE065} {\\uE066} {\\uE067} {\\uE068} {\\uE069} {\\uE06A} {\\uE06B} {\\uE06C} {\\uE06D} {\\uE06E} {\\uE06F} {\\uE070} {\\uE071} {\\uE072} {\\uE073} {\\uE074} {\\uE075} {\\uE076} {\\uE077} {\\uE078} {\\uE079} {\\uE07A} {\\uE07B} {\\uE07C} {\\uE07D} {\\uE07E} {\\uE07F} {\\uE080} {\\uE081} {\\uE082} {\\uE083} {\\uE084} {\\uE085} {\\uE086} {\\uE087}" },
