@@ -1,0 +1,970 @@
+/******************************************************************************
+*   This file is part of TinTin++                                             *
+*                                                                             *
+*   Copyright 2004-2019 Igor van den Hoven                                    *
+*                                                                             *
+*   TinTin++ is free software; you can redistribute it and/or modify          *
+*   it under the terms of the GNU General Public License as published by      *
+*   the Free Software Foundation; either version 3 of the License, or         *
+*   (at your option) any later version.                                       *
+*                                                                             *
+*   This program is distributed in the hope that it will be useful,           *
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
+*   GNU General Public License for more details.                              *
+*                                                                             *
+*                                                                             *
+*   You should have received a copy of the GNU General Public License         *
+*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+******************************************************************************/
+
+#include "tintin.h"
+
+/******************************************************************************
+*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                                                                             *
+*                        coded by Peter Unold 1992                            *
+*                   recoded by Igor van den Hoven 2009                        *
+******************************************************************************/
+
+DO_COMMAND(do_action)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+
+	if (*arg3 == 0)
+	{
+//		strcpy(arg3, "5");
+	}
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_ACTION], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_ACTION]) == FALSE)
+		{
+			show_message(ses, LIST_ACTION, "#ACTION: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_ACTION], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_ACTION, "#OK. #ACTION {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unaction)
+{
+	delete_node_with_wild(ses, LIST_ACTION, arg);
+
+	return ses;
+}
+
+
+void check_all_actions(struct session *ses, char *original, char *line)
+{
+	struct listroot *root = ses->list[LIST_ACTION];
+	char buf[BUFFER_SIZE];
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, original, 0))
+		{
+			show_debug(ses, LIST_ACTION, "#DEBUG ACTION {%s}", root->list[root->update]->arg1);
+
+			substitute(ses, root->list[root->update]->arg2, buf, SUB_ARG|SUB_SEC);
+
+			script_driver(ses, LIST_ACTION, buf);
+
+			return;
+		}
+	}
+}
+
+/******************************************************************************
+*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                                                                             *
+*                        coded by Peter Unold 1992                            *
+*                   recoded by Igor van den Hoven 2009                        *
+******************************************************************************/
+
+DO_COMMAND(do_alias)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+
+	if (*arg3 == 0)
+	{
+//		strcpy(arg3, "5");
+	}
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_ALIAS], 0);
+	}
+	else if (*arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_ALIAS]) == FALSE)
+		{
+			show_message(ses, LIST_ALIAS, "#ALIAS: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_ALIAS], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_ALIAS, "#ALIAS {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unalias)
+{
+	delete_node_with_wild(ses, LIST_ALIAS, arg);
+
+	return ses;
+}
+
+int check_all_aliases(struct session *ses, char *input)
+{
+	struct listnode *node;
+	struct listroot *root;
+	char tmp[BUFFER_SIZE], line[BUFFER_SIZE], *arg;
+	int i;
+
+	root = ses->list[LIST_ALIAS];
+
+	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+	{
+		return FALSE;
+	}
+
+	substitute(ses, input, line, SUB_VAR|SUB_FUN);
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, line, PCRE_ANCHORED))
+		{
+			node = root->list[root->update];
+
+			i = strlen(node->arg1);
+
+			if (!strncmp(node->arg1, line, i))
+			{
+				if (line[i])
+				{
+					if (line[i] != ' ')
+					{
+						continue;
+					}
+					arg = &line[i + 1];
+				}
+				else
+				{
+					arg = &line[i];
+				}
+
+				RESTRING(gtd->vars[0], arg)
+
+				for (i = 1 ; i < 100 ; i++)
+				{
+					arg = get_arg_in_braces(ses, arg, tmp, GET_ONE);
+
+					RESTRING(gtd->vars[i], tmp);
+
+					if (*arg == 0)
+					{
+						while (++i < 100)
+						{
+							if (*gtd->vars[i])
+							{
+								RESTRING(gtd->vars[i], "");
+							}
+						}
+						break;
+					}
+
+				}
+			}
+
+			substitute(ses, node->arg2, tmp, SUB_ARG);
+
+			if (!strncmp(node->arg1, line, strlen(node->arg1)) && !strcmp(node->arg2, tmp) && *gtd->vars[0])
+			{
+				sprintf(input, "%s %s", tmp, gtd->vars[0]);
+			}
+			else
+			{
+				sprintf(input, "%s", tmp);
+			}
+
+			show_debug(ses, LIST_ALIAS, "#DEBUG ALIAS {%s} {%s}", node->arg1, gtd->vars[0]);
+
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                      coded by Igor van den Hoven 2019                       *
+******************************************************************************/
+
+
+DO_COMMAND(do_button)
+{
+	struct listnode *node;
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
+	int index;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_BUTTON], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_BUTTON]) == FALSE)
+		{
+			show_message(ses, LIST_BUTTON, "#BUTTON: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		if (*arg3 == 0)
+		{
+//			strcpy(arg3, "5");
+		}
+		node = update_node_list(ses->list[LIST_BUTTON], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_BUTTON, "#OK. BUTTON {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
+
+		arg = arg1;
+
+		for (index = 0 ; index < 4 ; index++)
+		{
+			arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+
+			node->val16[index] = (short) get_number(ses, arg2);
+
+			if (*arg == COMMAND_SEPARATOR)
+			{
+				arg++;
+			}
+		}
+
+		if (*arg)
+		{
+			arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+			RESTRING(node->arg4, arg2);
+		}
+		else
+		{
+			RESTRING(node->arg4, "PRESSED MOUSE BUTTON ONE");
+		}
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unbutton)
+{
+	delete_node_with_wild(ses, LIST_BUTTON, arg);
+
+	return ses;
+}
+
+void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line)
+{
+	char buf[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	struct listnode *node;
+	struct listroot *root;
+	short val[4];
+
+	root = ses->list[LIST_BUTTON];
+
+	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+	{
+		return;
+	}
+
+	sprintf(arg4, "%s %s", arg1, arg2);
+
+	show_info(ses, LIST_BUTTON, "#INFO BUTTON {%d;%d;%d;%d;%s}", row, col, -1 - (gtd->screen->rows - row), -1 - (gtd->screen->cols - col), arg4);
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		node = root->list[root->update];
+
+		val[0] = node->val16[0] < 0 ? 1 + gtd->screen->rows + node->val16[0] : node->val16[0];
+		val[1] = node->val16[1] < 0 ? 1 + gtd->screen->cols + node->val16[1] : node->val16[1];
+
+		if (row < val[0] || col < val[1])
+		{
+			continue;
+		}
+
+		val[2] = node->val16[2] < 0 ? 1 + gtd->screen->rows + node->val16[2] : node->val16[2];
+		val[3] = node->val16[3] < 0 ? 1 + gtd->screen->cols + node->val16[3] : node->val16[3];
+
+		if (row > val[2] || col > val[3])
+		{
+			continue;
+		}
+
+		if (!strcmp(arg4, node->arg4))
+		{
+			show_debug(ses, LIST_BUTTON, "#DEBUG BUTTON {%s}", node->arg1);
+
+			RESTRING(gtd->vars[0], ntos(row));
+			RESTRING(gtd->vars[1], ntos(col));
+			RESTRING(gtd->vars[2], ntos(-1 - (gtd->screen->rows - row)));
+			RESTRING(gtd->vars[3], ntos(-1 - (gtd->screen->cols - col)));
+			RESTRING(gtd->vars[4], word);
+			RESTRING(gtd->vars[5], line);
+
+			substitute(ses, node->arg2, buf, SUB_ARG|SUB_SEC);
+			
+			script_driver(ses, LIST_BUTTON, buf);
+
+			return;
+		}
+	}
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                      coded by Igor van den Hoven 2004                       *
+******************************************************************************/
+
+DO_COMMAND(do_delay)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], temp[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_DELAY], 0);
+	}
+	else if (*arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_DELAY]) == FALSE)
+		{
+			show_message(ses, LIST_DELAY, "#DELAY: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		if (*arg3 == 0)
+		{
+			sprintf(arg3, "%lld", utime() + (long long) (1000000 * get_number(ses, arg1)));
+
+			get_number_string(ses, arg1, temp);
+
+			update_node_list(ses->list[LIST_DELAY], arg3, arg2, temp, "");
+
+			show_message(ses, LIST_TICKER, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", temp, arg2);
+		}
+		else
+		{
+			get_number_string(ses, arg3, temp);
+
+			update_node_list(ses->list[LIST_DELAY], arg1, arg2, temp, "");
+
+			show_message(ses, LIST_TICKER, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", temp, arg2);
+		}
+	}
+	return ses;
+}
+
+DO_COMMAND(do_undelay)
+{
+	delete_node_with_wild(ses, LIST_DELAY, arg);
+
+	return ses;
+}
+
+// checked in update.c
+
+
+/******************************************************************************
+*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                                                                             *
+*                       coded by Sverre Normann 1999                          *
+*                    recoded by Igor van den Hoven 2004                       *
+******************************************************************************/
+
+DO_COMMAND(do_function)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_FUNCTION], 0);
+	}
+
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_FUNCTION]) == FALSE)
+		{
+			show_message(ses, LIST_FUNCTION, "#FUNCTION: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_FUNCTION], arg1, arg2, "", "");
+
+		show_message(ses, LIST_FUNCTION, "#OK. FUNCTION {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unfunction)
+{
+	delete_node_with_wild(ses, LIST_FUNCTION, arg);
+
+	return ses;
+}
+
+// checked in tinexp.c
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                       coded by Igor van den Hoven 2007                      *
+******************************************************************************/
+
+DO_COMMAND(do_gag)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_GAG], 0);
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_GAG], arg1, "", "", "");
+
+		show_message(ses, LIST_GAG, "#OK. {%s} IS NOW GAGGED.", arg1);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_ungag)
+{
+	delete_node_with_wild(ses, LIST_GAG, arg);
+
+	return ses;
+}
+
+void check_all_gags(struct session *ses, char *original, char *line)
+{
+	struct listroot *root = ses->list[LIST_GAG];
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, original, 0))
+		{
+			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", root->list[root->update]->arg1);
+
+			SET_BIT(ses->flags, SES_FLAG_GAG);
+
+			return;
+		}
+	}
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                          coded by Bill Reiss 1993                           *
+*                     recoded by Igor van den Hoven 2004                      *
+******************************************************************************/
+
+
+DO_COMMAND(do_highlight)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], temp[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+
+	if (*arg3 == 0)
+	{
+//		strcpy(arg3, "5");
+	}
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_HIGHLIGHT], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_HIGHLIGHT]) == FALSE)
+		{
+			show_message(ses, LIST_HIGHLIGHT, "#HIGHLIGHT: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		if (get_color_names(ses, arg2, temp) == FALSE)
+		{
+			tintin_printf2(ses, "#HIGHLIGHT: VALID COLORS ARE:\n");
+			tintin_printf2(ses, "reset, bold, light, faint, dim, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white, azure, ebony, jade, lime, orange, pink, silver, tan, violet.");
+		}
+		else
+		{
+			update_node_list(ses->list[LIST_HIGHLIGHT], arg1, arg2, arg3, "");
+
+			show_message(ses, LIST_HIGHLIGHT, "#OK. {%s} NOW HIGHLIGHTS {%s} @ {%s}.", arg1, arg2, arg3);
+		}
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unhighlight)
+{
+	delete_node_with_wild(ses, LIST_HIGHLIGHT, arg);
+
+	return ses;
+}
+
+void check_all_highlights(struct session *ses, char *original, char *line)
+{
+	struct listroot *root = ses->list[LIST_HIGHLIGHT];
+	struct listnode *node;
+	char *pto, *ptl, *ptm;
+	char match[BUFFER_SIZE], color[BUFFER_SIZE], reset[BUFFER_SIZE], output[BUFFER_SIZE], plain[BUFFER_SIZE];
+	int len;
+
+	push_call("check_all_highlights(%p,%p,%p)",ses,original,line);
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, original, 0))
+		{
+			node = root->list[root->update];
+
+			get_color_names(ses, node->arg2, color);
+
+			*output = *reset = 0;
+
+			pto = original;
+			ptl = line;
+
+			do
+			{
+				if (*gtd->vars[0] == 0)
+				{
+					break;
+				}
+
+				strcpy(match, gtd->vars[0]);
+
+				strip_vt102_codes(match, plain);
+
+				if (*node->arg1 == '~')
+				{
+					ptm = strstr(pto, match);
+
+					len = strlen(match);
+				}
+				else
+				{
+					ptm = strip_vt102_strstr(pto, match, &len);
+
+					ptl = strstr(ptl, match) + strlen(match);
+				}
+
+				*ptm = 0;
+
+				get_color_codes(reset, pto, reset);
+
+				cat_sprintf(output, "%s%s%s\e[0m%s", pto, color, plain, reset);
+
+				pto = ptm + len;
+
+				show_debug(ses, LIST_HIGHLIGHT, "#DEBUG HIGHLIGHT {%s}", node->arg1);
+			}
+			while (check_one_regexp(ses, node, ptl, pto, 0));
+
+			strcat(output, pto);
+
+			strcpy(original, output);
+		}
+	}
+	pop_call();
+	return;
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                      coded by Igor van den Hoven 2006                       *
+******************************************************************************/
+
+
+DO_COMMAND(do_macro)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_MACRO], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_MACRO]) == FALSE)
+		{
+			show_message(ses, LIST_MACRO, "#MACRO: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		tintin_macro_compile(arg1, arg3);
+
+		update_node_list(ses->list[LIST_MACRO], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_MACRO, "#OK. MACRO {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unmacro)
+{
+	delete_node_with_wild(ses, LIST_MACRO, arg);
+
+	return ses;
+}
+
+// checked in input.c
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                      coded by Igor van den Hoven 2004                       *
+******************************************************************************/
+
+
+DO_COMMAND(do_prompt)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_PROMPT], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_PROMPT]) == FALSE)
+		{
+			show_message(ses, LIST_PROMPT, "#PROMPT: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
+		arg = sub_arg_in_braces(ses, arg, arg4, GET_ONE, SUB_VAR|SUB_FUN);
+
+		update_node_list(ses->list[LIST_PROMPT], arg1, arg2, arg3, arg4);
+
+		show_message(ses, LIST_PROMPT, "#OK. {%s} NOW PROMPTS {%s} @ {%s} {%s}.", arg1, arg2, arg3, arg4);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unprompt)
+{
+	delete_node_with_wild(ses, LIST_PROMPT, arg);
+
+	return ses;
+}
+
+
+void check_all_prompts(struct session *ses, char *original, char *line)
+{
+	struct listroot *root = ses->list[LIST_PROMPT];
+	struct listnode *node;
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	{
+		return;
+	}
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, original, 0))
+		{
+			node = root->list[root->update];
+
+			if (*node->arg2)
+			{
+				substitute(ses, node->arg2, original, SUB_ARG);
+				substitute(ses, original, original, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+			}
+
+			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
+			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
+
+			split_show(ses, original, atoi(node->arg3), atoi(node->arg4));
+
+			SET_BIT(ses->flags, SES_FLAG_GAG);
+		}
+	}
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                         coded by Peter Unold 1992                           *
+*                    recoded by Igor van den Hoven 2004                       *
+******************************************************************************/
+
+
+DO_COMMAND(do_substitute)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], *str;
+
+	str = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, str, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+
+	if (*arg3 == 0)
+	{
+//		strcpy(arg3, "5");
+	}
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_SUBSTITUTE], 0);
+	}
+	else if (*str == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_SUBSTITUTE]) == FALSE)
+		{
+			show_message(ses, LIST_SUBSTITUTE, "#SUBSTITUTE: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_SUBSTITUTE], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_SUBSTITUTE, "#OK. {%s} IS NOW SUBSTITUTED AS {%s} @ {%s}.", arg1, arg2, arg3);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_unsubstitute)
+{
+	delete_node_with_wild(ses, LIST_SUBSTITUTE, arg);
+
+	return ses;
+}
+
+void check_all_substitutions(struct session *ses, char *original, char *line)
+{
+	char match[BUFFER_SIZE], subst[BUFFER_SIZE], output[BUFFER_SIZE], temp[BUFFER_SIZE], *ptl, *ptm, *pto;
+	struct listroot *root = ses->list[LIST_SUBSTITUTE];
+	struct listnode *node;
+	int len;
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		if (check_one_regexp(ses, root->list[root->update], line, original, 0))
+		{
+			node = root->list[root->update];
+
+			pto = original;
+			ptl = line;
+
+			*output = 0;
+
+			do
+			{
+				if (*gtd->vars[0] == 0)
+				{
+					break;
+				}
+
+				strcpy(match, gtd->vars[0]);
+
+				substitute(ses, node->arg2, temp, SUB_ARG);
+				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+
+				if (*node->arg1 == '~')
+				{
+					ptm = strstr(pto, match);
+
+					len = strlen(match);
+				}
+				else
+				{
+					ptm = strip_vt102_strstr(pto, match, &len);
+
+					ptl = strstr(ptl, match) + strlen(match);
+				}
+
+				*ptm = 0;
+
+				cat_sprintf(output, "%s%s", pto, subst);
+
+				pto = ptm + len;
+
+				show_debug(ses, LIST_SUBSTITUTE, "#DEBUG SUBSTITUTE {%s} {%s}", node->arg1, match);
+			}
+			while (check_one_regexp(ses, node, ptl, pto, 0));
+
+			strcat(output, pto);
+
+//			substitute(ses, output, original, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+
+			strcpy(original, output);
+
+			strip_vt102_codes(original, line);
+		}
+	}
+}
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                      coded by Igor van den Hoven 2006                       *
+******************************************************************************/
+
+
+DO_COMMAND(do_tab)
+{
+	char arg1[BUFFER_SIZE];
+
+	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_TAB], 0);
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_TAB], arg1, "", "", "");
+
+		show_message(ses, LIST_TAB, "#OK. {%s} IS NOW A TAB.", arg1);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_untab)
+{
+	delete_node_with_wild(ses, LIST_TAB, arg);
+
+	return ses;
+}
+
+// checked in cursor.c
+
+
+/******************************************************************************
+*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                                                                             *
+*                         coded by Peter Unold 1992                           *
+*                     recoded by Igor van den Hoven 2004                      *
+******************************************************************************/
+
+
+DO_COMMAND(do_tick)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg4, GET_ALL);
+
+	if (*arg4 == 0)
+	{
+		strcpy(arg3, "60");
+	}
+	else
+	{
+		get_number_string(ses, arg4, arg3);
+	}
+
+	if (*arg1 == 0)
+	{
+		show_list(ses->list[LIST_TICKER], 0);
+	}
+	else if (*arg1 && *arg2 == 0)
+	{
+		if (show_node_with_wild(ses, arg1, ses->list[LIST_TICKER]) == FALSE) 
+		{
+			show_message(ses, LIST_TICKER, "#TICK, NO MATCH(ES) FOUND FOR {%s}.", arg1);
+		}
+	}
+	else
+	{
+		update_node_list(ses->list[LIST_TICKER], arg1, arg2, arg3, "");
+
+		show_message(ses, LIST_TICKER, "#OK. #TICK {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, arg3);
+	}
+	return ses;
+}
+
+
+DO_COMMAND(do_untick)
+{
+	delete_node_with_wild(ses, LIST_TICKER, arg);
+
+	return ses;
+}
+
+
+// checked in update.c
+
