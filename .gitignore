@@ -1,0 +1,7 @@
+src/Makefile
+src/config.h
+src/config.log
+src/config.status
+src/*.o
+src/tt++
+
