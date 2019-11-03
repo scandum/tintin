@@ -33,16 +33,29 @@ DO_COMMAND(do_list)
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	struct listroot *root;
 	struct listnode *node;
-	int cnt;
+	int index, cnt;
 
 	root = ses->list[LIST_VARIABLE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if (*arg1 == 0 || *arg2 == 0)
+	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} {ADD|CLE|CRE|DEL|FIN|GET|INS|SET|SIM|SIZ|SOR} {argument}");
+		tintin_header(ses, " LIST OPTIONS ");
+
+		for (index = 0 ; *array_table[index].fun ; index++)
+		{
+			if (array_table[index].desc && *array_table[index].name)
+			{
+				tintin_printf2(ses, "  [%-24s] %s", array_table[index].name, array_table[index].desc);
+			}
+		}
+		tintin_header(ses, "");
+	}
+	else if (*arg2 == 0)
+	{
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} {option} {argument}");
 	}
 	else
 	{
@@ -64,7 +77,7 @@ DO_COMMAND(do_list)
 			{
 				node = set_nest_node(root, arg1, "");
 			}
-			array_table[cnt].array(ses, node, arg, arg1);
+			array_table[cnt].fun(ses, node, arg, arg1);
 		}
 	}
 	return ses;
@@ -479,11 +492,11 @@ DO_ARRAY(array_tokenize)
 
 	while (buf[i] != 0)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && buf[i] & 128 && buf[i+1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && buf[i] & 128 && buf[i+1] != 0)
 		{
 			i += sprintf(tmp, "%c%c", buf[i], buf[i+1]);
 		}
-		else if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(&buf[i]))
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&buf[i]))
 		{
 			i += sprintf(tmp, "%.*s", get_utf8_size(&buf[i]), &buf[i]);
 		}
@@ -496,3 +509,4 @@ DO_ARRAY(array_tokenize)
 	}
 	return ses;
 }
+

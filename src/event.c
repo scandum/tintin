@@ -30,6 +30,7 @@
 DO_COMMAND(do_event)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	struct listnode *node;
 	int cnt;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -60,7 +61,11 @@ DO_COMMAND(do_event)
 			{
 				show_message(ses, LIST_EVENT, "#EVENT {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
 
-				update_node_list(ses->list[LIST_EVENT], arg1, arg2, "", "");
+				SET_BIT(ses->event_flags, event_table[cnt].flags);
+
+				node = update_node_list(ses->list[LIST_EVENT], arg1, arg2, "", "");
+
+				node->data = event_table[cnt].flags;
 
 				return ses;
 			}
@@ -85,7 +90,7 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 	va_list list;
 	int cnt;
 
-	if (gtd->ignore_level)
+	if (gtd->level->ignore)
 	{
 		return 0;
 	}
@@ -135,7 +140,12 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 
 				if (HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_DEBUG))
 				{
-					show_debug(ses_ptr, LIST_ACTION, "#DEBUG EVENT {%s} (%s}", node->arg1, node->arg2);
+					show_debug(ses_ptr, LIST_EVENT, "#DEBUG EVENT {%s} (%s}", node->arg1, node->arg2);
+				}
+
+				if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+				{
+					delete_node_list(ses, LIST_EVENT, node);
 				}
 
 				script_driver(ses_ptr, LIST_EVENT, buf);
@@ -163,6 +173,9 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], line[BUFFER_SIZE], word[BUFFER_SIZE];
 	static char last[100];
 	static long long click[3];
+	int debug, info;
+
+	push_call("mouse_handler(%p,%d,%d,%d,%c)",ses,flags,row,col,type);
 
 	if (HAS_BIT(flags, MOUSE_FLAG_MOTION))
 	{
@@ -225,14 +238,16 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		strcat(arg2, "MOUSE BUTTON ");
 	}
 
-	if (row-1 < 0)
+	if (row - 1 < 0)
 	{
-		tintin_printf2(ses, "weird error (row,col) (%d,%d)", row, col);
+		tintin_printf2(ses, "mouse_handler: bad row: (row,col)=(%d,%d)", row, col);
+		pop_call();
 		return;
 	}
 	else if (row - 1 > gtd->screen->rows)
 	{
-		tintin_printf2(ses, "weird error (row,col) (%d,%d)", row, col);
+		tintin_printf2(ses, "mouse_handler: bad col: (row,col)=(%d,%d)", row, col);
+		pop_call();
 		return;
 	}
 	else
@@ -247,11 +262,11 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 	{
 		if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A) && HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
 		{
-			strcat(arg2, "FOUR");
+			strcat(arg2, "RIGHT");
 		}
 		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
 		{
-			strcat(arg2, "THREE");
+			strcat(arg2, "LEFT");
 		}
 		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A))
 		{
@@ -281,6 +296,13 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 			strcat(arg2, "ONE");
 		}
 	}
+
+
+	debug = HAS_BIT(ses->flags, SES_FLAG_MOUSEDEBUG) ? 1 : 0;
+	info  = HAS_BIT(ses->flags, SES_FLAG_MOUSEINFO) ? 1 : 0;
+
+	gtd->level->debug += debug;
+	gtd->level->info  += info;
 
 	check_all_buttons(ses, row, col, arg1, arg2, word, line);
 
@@ -368,5 +390,10 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 			map_mouse_handler(ses, "SHORT-CLICKED", arg2, col, row);
 		}
 	}
+
+	gtd->level->debug -= debug;
+	gtd->level->info  -= info;
+
+	pop_call();
 	return;
 }

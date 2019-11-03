@@ -187,7 +187,6 @@ int get_nest_size(struct listroot *root, char *variable)
 {
 	char name[BUFFER_SIZE], *arg;
 	int index, count;
-
 	arg = get_arg_to_brackets(root->ses, variable, name);
 
 	if (!strcmp(arg, "[]"))
@@ -224,6 +223,102 @@ int get_nest_size(struct listroot *root, char *variable)
 						}
 					}
 					return count + 1;
+				}
+				else if (strstr(name, "..") && is_math(root->ses, name))
+				{
+					int min, max, range;
+
+					if (root->used)
+					{
+						range = get_ellipsis(root, name, &min, &max);
+
+						return range + 1;
+					}
+					else
+					{
+						return 1;
+					}
+				}
+				else
+				{
+					return 0;
+				}
+			}
+		}
+
+		root = search_nest_root(root, name);
+
+		if (root)
+		{
+			if (!strcmp(arg, "[]"))
+			{
+				return root->used + 1;
+			}
+			arg = get_arg_in_brackets(root->ses, arg, name);
+		}
+	}
+
+	return 0;
+}
+
+int get_nest_size_index(struct listroot *root, char *variable, char **result)
+{
+	char name[BUFFER_SIZE], *arg;
+	int index, count;
+
+	arg = get_arg_to_brackets(root->ses, variable, name);
+
+	str_cpy(result, "");
+
+	if (!strcmp(arg, "[]"))
+	{
+		if (*name == 0)
+		{
+			return root->used + 1;
+		}
+
+		if (search_nest_root(root, name) == NULL)
+		{
+			if (search_node_list(root, name))
+			{
+				return 1;
+			}
+		}
+	}
+
+	while (root && *name)
+	{
+		// Handle regex queries
+
+		if (search_nest_root(root, name) == NULL)
+		{
+			if (search_node_list(root, name) == NULL)
+			{
+				if (tintin_regexp_check(root->ses, name))
+				{
+					for (index = count = 0 ; index < root->used ; index++)
+					{
+						if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
+						{
+							count++;
+						}
+					}
+					return count + 1;
+				}
+				else if (strstr(name, "..") && is_math(root->ses, name))
+				{
+					int min, max, range;
+
+					if (root->used)
+					{
+						range = get_ellipsis(root, name, &min, &max);
+
+						return range + 1;
+					}
+					else
+					{
+						return 1;
+					}
 				}
 				else
 				{
@@ -296,6 +391,35 @@ int get_nest_size_key(struct listroot *root, char *variable, char **result)
 					}
 					return count + 1;
 				}
+				else if (strstr(name, "..") && is_math(root->ses, name))
+				{
+					int min, max, range;
+
+					if (root->used)
+					{
+						range = get_ellipsis(root, name, &min, &max);
+
+						if (min < max)
+						{
+							while (min <= max)
+							{
+								str_cat_printf(result, "{%s}", root->list[min++]->arg1);
+							}
+						}
+						else
+						{
+							while (min >= max)
+							{
+								str_cat_printf(result, "{%s}", root->list[min--]->arg1);
+							}
+						}
+						return range + 1;
+					}
+					else
+					{
+						return 1;
+					}
+				}
 				else
 				{
 					return 0;
@@ -326,6 +450,7 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 {
 	char name[BUFFER_SIZE], *arg;
 	int index, count;
+	static int warning;
 
 	arg = get_arg_to_brackets(root->ses, variable, name);
 
@@ -371,6 +496,35 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 					}
 					return count + 1;
 				}
+				else if (strstr(name, "..") && is_math(root->ses, name))
+				{
+					int min, max, range;
+
+					if (root->used)
+					{
+						range = get_ellipsis(root, name, &min, &max);
+
+						if (min < max)
+						{
+							while (min <= max)
+							{
+								show_nest_node(root->list[min++], result, FALSE);
+							}
+						}
+						else
+						{
+							while (min >= max)
+							{
+								show_nest_node(root->list[min--], result, FALSE);
+							}
+						}
+						return range + 1;
+					}
+					else
+					{
+						return 1;
+					}
+				}
 				else
 				{
 					return 0;
@@ -384,6 +538,11 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 		{
 			if (!strcmp(arg, "[]"))
 			{
+				if (++warning < 100)
+				{
+					tintin_printf2(root->ses, "\n\e[1;5;31mdebug: please use *%s instead of $%s.\n", variable, variable);
+				}
+
 				for (index = 0 ; index < root->used ; index++)
 				{
 					str_cat_printf(result, "{%s}", root->list[index]->arg1);
@@ -416,6 +575,10 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 	{
 		str_cpy_printf(result, "%s", node->arg1);
 
+		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		{
+			delete_nest_node(root, variable);
+		}
 		return node;
 	}
 
@@ -431,6 +594,8 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 	}
 	return NULL;
 }
+
+// Has ONESHOT check
 
 struct listnode *get_nest_node_val(struct listroot *root, char *variable, char **result, int def)
 {
@@ -450,6 +615,10 @@ struct listnode *get_nest_node_val(struct listroot *root, char *variable, char *
 	{
 		show_nest_node(node, result, TRUE);
 
+		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		{
+			delete_nest_node(root, variable);
+		}
 		return node;
 	}
 
@@ -472,7 +641,7 @@ int get_nest_index(struct listroot *root, char *variable, char **result, int def
 	struct listnode *node;
 	int index, size;
 
-	size = get_nest_size_val(root, variable, result);
+	size = get_nest_size_index(root, variable, result);
 
 	if (size)
 	{
@@ -481,12 +650,17 @@ int get_nest_index(struct listroot *root, char *variable, char **result, int def
 		return -1;
 	}
 
+	node = search_nest_node(root, variable);
 	index = search_nest_index(root, variable);
 
-	if (index >= 0)
+	if (node && index >= 0)
 	{
 		str_cpy_printf(result, "%d", index + 1);
 
+		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		{
+			delete_index_list(root, index);
+		}
 		return index;
 	}
 
@@ -643,6 +817,14 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 	{
 		node = update_node_list(root, name, arg2, "", "");
 	}
+
+	if (gtd->level->oneshot)
+	{
+		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+	}
+
+	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+
 	free(arg2);
 
 	pop_call();

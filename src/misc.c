@@ -29,8 +29,82 @@
 
 DO_COMMAND(do_bell)
 {
-	printf("\007");
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		print_stdout("\007");
+
+		return ses;
+	}
+
+	if (is_abbrev(arg1, "FLASH"))
+	{
+		if (is_abbrev(arg2, "ON"))
+		{
+			print_stdout("\e[?1042h");
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			print_stdout("\e[?1042l");
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL FLASH {ON|OFF}");
+		}
+	}
+	else if (is_abbrev(arg1, "FOCUS"))
+	{
+		if (is_abbrev(arg2, "ON"))
+		{
+			print_stdout("\e[?1043h");
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			print_stdout("\e[?1043l");
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL POP {ON|OFF}");
+		}
+	}
+	else if (is_abbrev(arg1, "MARGIN"))
+	{
+		if (is_abbrev(arg2, "ON"))
+		{
+			print_stdout("\e[?44h");
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			print_stdout("\e[?44l");
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL MARGIN {ON|OFF}");
+		}
+	}
+	else if (is_abbrev(arg1, "RING"))
+	{
+		print_stdout("\007");
+	}
+	else if (is_abbrev(arg1, "VOLUME"))
+	{
+		if (is_math(ses, arg2))
+		{
+			print_stdout("\e[ %dt", (int) get_number(ses, arg2));
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL VOLUME {1-8}");
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL {FLASH|FOCUS|MARGIN|RING|VOLUME} {ARGUMENT}");
+	}
 	return ses;
 }
 
@@ -122,14 +196,16 @@ DO_COMMAND(do_echo)
 		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 		{
 			save_pos(ses);
-			goto_rowcol(ses, ses->bot_row, 1);
-		}
 
-		print_line(ses, &output, lnf);
+			goto_pos(ses, ses->split->bot_row, 1);
 
-		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-		{
+			print_line(ses, &output, lnf);
+			
 			restore_pos(ses);
+		}
+		else
+		{
+			print_line(ses, &output, lnf);
 		}
 	}
 	str_free(output);
@@ -153,14 +229,6 @@ DO_COMMAND(do_end)
 		quitmsg(NULL);
 	}
 	return NULL;
-}
-
-
-DO_COMMAND(do_forall)
-{
-	tintin_printf2(ses, "\e[1;31m#NOTICE: The #forall command no longer exists, please switch to the #foreach command.\n");
-
-	return ses;
 }
 
 
@@ -189,23 +257,5 @@ DO_COMMAND(do_send)
 
 DO_COMMAND(do_test)
 {
-/*
-	char pts;
-	unsigned char ptu;
-	int bla = 0;
-
-	if (*arg == 'c')
-	{
-		strcpy((char *) bla, "crash baby crash");
-	}
-
-	pts = 140;
-	ptu = 140;
-
-	printf("pts: %d %d\n", pts, (unsigned char) pts);
-	printf("ptu: %d %d\n", (signed char) ptu, ptu);
-	printf("pts: %d %d\n", pts, (unsigned int) pts);
-	printf("ptu: %d %d\n", (signed int) ptu, ptu);
-*/
 	return ses;
 }

@@ -33,13 +33,16 @@
 #include <util.h>
 #endif
 #endif
+#include <fcntl.h>  
+#include <dirent.h>
+#include <termios.h>
+#include <sys/un.h>
 
 DO_COMMAND(do_run)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], temp[BUFFER_SIZE], file[BUFFER_SIZE];
 	int desc, pid;
 	struct winsize size;
-	struct termios run_terminal;
 
 	char *argv[4] = {"sh", "-c", "", NULL};
 
@@ -54,8 +57,10 @@ DO_COMMAND(do_run)
 		return ses;
 	}
 
-	size.ws_row = get_scroll_size(ses);
-	size.ws_col = gtd->screen->cols;
+	size.ws_row = get_scroll_rows(ses);
+	size.ws_col = get_scroll_cols(ses);
+	size.ws_ypixel = size.ws_row * gtd->screen->char_height;
+	size.ws_xpixel = size.ws_col * gtd->screen->char_width;
 
 	pid = forkpty(&desc, temp, &gtd->old_terminal, &size);
 
@@ -69,21 +74,16 @@ DO_COMMAND(do_run)
 			sprintf(temp, "exec %s", arg2);
 			argv[2] = temp;
 			execv("/bin/sh", argv);
-			tcgetattr(0, &run_terminal);
 			break;
 
 		default:
 			sprintf(temp, "{%s} {%d} {%s}", arg2, pid, file);
-
 			ses = new_session(ses, arg1, temp, desc, 0);
-
-//			memcpy(&ses->cur_terminal, &run_terminal, sizeof(run_terminal));
-
-//			refresh_session_terminal(ses);
 			break;
 	}
 	return ses;
 }
+
 
 DO_COMMAND(do_script)
 {
@@ -164,10 +164,23 @@ DO_COMMAND(do_script)
 
 DO_COMMAND(do_suspend)
 {
-	suspend_handler(0);
+	print_stdout("\e[r\e[%d;%dH", gtd->screen->rows, 1);
+
+	fflush(NULL);
+
+	reset_terminal(gtd->ses);
+
+	kill(0, SIGSTOP);
+
+	init_terminal(gtd->ses);
+
+	dirty_screen(gtd->ses);
+
+	tintin_puts(NULL, "#RETURNING BACK TO TINTIN++.");
 
 	return ses;
 }
+
 
 
 DO_COMMAND(do_system)
@@ -188,9 +201,9 @@ DO_COMMAND(do_system)
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_READMUD) && IS_SPLIT(gtd->ses))
 	{
 		save_pos(gtd->ses);
-		goto_rowcol(gtd->ses, gtd->ses->bot_row, 1);
+
+		goto_pos(gtd->ses, gtd->ses->split->bot_row, 1);
 	}
-	fflush(stdout);
 
 	system(arg1);
 
@@ -198,7 +211,6 @@ DO_COMMAND(do_system)
 	{
 		restore_pos(gtd->ses);
 	}
-	fflush(stdout);
 
 	refresh_session_terminal(gtd->ses);
 

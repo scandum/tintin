@@ -27,16 +27,15 @@
 
 #include "tintin.h"
 
-#include <sys/types.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <signal.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <fcntl.h>
+#include <sys/types.h>
 
 /*
-	IPv6 compatible connect code, doesn't work on several platforms.
+	IPv6 compatible connect code.
 */
 
 #ifdef HAVE_GETADDRINFO
@@ -86,18 +85,20 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
-	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
+//	fcntl(sock, F_SETFL, O_NDELAY);
 
-	if (ses->connect_error)
-	{
-		syserr_printf(ses, "connect_mud: connect");
+        ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
 
-		close(sock);
+        if (ses->connect_error)
+        {
+                syserr_printf(ses, "connect_mud: connect");
 
-		freeaddrinfo(address);
+                close(sock);
 
-		return -1;
-	}
+                freeaddrinfo(address);
+
+                return -1;
+        }
 
 	if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
 	{
@@ -133,7 +134,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 	int sock, d;
 	struct sockaddr_in sockaddr;
 
-	printf("debug: NO ADDRESS INFO?\n");
+	print_stdout("debug: NO ADDRESS INFO?\n");
 
 	if (sscanf(host, "%d.%d.%d.%d", &d, &d, &d, &d) == 4)
 	{
@@ -224,7 +225,7 @@ void write_line_mud(struct session *ses, char *line, int size)
 
 	if (!HAS_BIT(ses->telopts, TELOPT_FLAG_TELNET))
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
 		{
 			char buf[BUFFER_SIZE];
 
@@ -232,7 +233,7 @@ void write_line_mud(struct session *ses, char *line, int size)
 
 			strcpy(line, buf);
 		}
-		else if (HAS_BIT(ses->flags, SES_FLAG_KOI8TOUTF8))
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_KOI8TOUTF8))
 		{
 			char buf[BUFFER_SIZE];
 
@@ -350,7 +351,8 @@ void readmud(struct session *ses)
 	if (HAS_BIT(gtd->ses->flags, SES_FLAG_SPLIT))
 	{
 		save_pos(gtd->ses);
-		goto_rowcol(gtd->ses, gtd->ses->bot_row, 1);
+
+		goto_pos(gtd->ses, gtd->ses->split->bot_row, 1);
 	}
 
 	SET_BIT(cts->flags, SES_FLAG_READMUD);
@@ -387,10 +389,10 @@ void readmud(struct session *ses)
 			{
 				if (!HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 				{
-					if (gts->check_output)
+					if (ses->packet_patch)
 					{
 						strcat(ses->more_output, line);
-						ses->check_output = utime() + gts->check_output;
+						ses->check_output = utime() + ses->packet_patch;
 
 						break;
 					}
@@ -424,15 +426,15 @@ void readmud(struct session *ses)
 			strcpy(linebuf, line);
 		}
 
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8) || HAS_BIT(ses->flags, SES_FLAG_FANSITOUTF8) || HAS_BIT(ses->flags, SES_FLAG_KOI8TOUTF8))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) || HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8) || HAS_BIT(ses->charset, CHARSET_FLAG_KOI8TOUTF8))
 		{
 			char tempbuf[BUFFER_SIZE];
 
-			if (HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8))
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
 			{
 				big5_to_utf8(linebuf, tempbuf);
 			}
-			else if (HAS_BIT(ses->flags, SES_FLAG_FANSITOUTF8))
+			else if (HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
 			{
 				fansi_to_utf8(linebuf, tempbuf);
 			}
@@ -490,9 +492,9 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (HAS_BIT(ses->flags, SES_FLAG_COLORPATCH))
 	{
-		sprintf(line, "%s%s%s", ses->color, linebuf, "\e[0m");
+		sprintf(line, "%s%s%s", ses->color_patch, linebuf, "\e[0m");
 
-		get_color_codes(ses->color, linebuf, ses->color);
+		get_color_codes(ses->color_patch, linebuf, ses->color_patch, GET_ALL);
 
 		linebuf = line;
 	}
@@ -509,7 +511,7 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 		strip_non_vt102_codes(linebuf, line);
 
-		printf("%s", line);
+		print_stdout("%s", line);
 
 		strip_vt102_codes(linebuf, line);
 

@@ -71,7 +71,7 @@ void add_line_history(struct session *ses, char *line)
 
 	root = ses->list[LIST_HISTORY];
 
-	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE) || gtd->ignore_level)
+	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE) || gtd->level->ignore)
 	{
 		return;
 	}
@@ -204,7 +204,7 @@ DO_HISTORY(history_size)
 {
 	if (atoi(arg) < 1 || atoi(arg) > 100000)
 	{
-		tintin_printf(ses, "#HISTORY SIZE: PROVIDE A NUMBER BETWEEN 1 and 100,000");
+		show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY SIZE: PROVIDE A NUMBER BETWEEN 1 and 100,000");
 	}
 	else
 	{

@@ -26,6 +26,215 @@
 
 #include "tintin.h"
 
+// color subs
+
+char *c256to16_fg[256] =
+{
+	"\e[22;30m", "\e[22;31m", "\e[22;32m", "\e[22;33m", "\e[22;34m", "\e[22;35m", "\e[22;36m", "\e[22;37m",
+	 "\e[1;30m",  "\e[1;31m",  "\e[1;32m",  "\e[1;33m",  "\e[1;34m",  "\e[1;35m",  "\e[1;36m",  "\e[1;37m",
+
+	"\e[22;30m", "\e[22;34m", "\e[22;34m", "\e[22;34m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;32m", "\e[22;36m", "\e[22;36m", "\e[22;34m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;32m", "\e[22;36m", "\e[22;36m", "\e[22;36m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;32m", "\e[22;32m", "\e[22;36m", "\e[22;36m", "\e[22;36m",  "\e[1;36m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m", "\e[22;36m",  "\e[1;36m",  "\e[1;36m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m",  "\e[1;36m",  "\e[1;36m",  "\e[1;36m",
+
+	"\e[22;31m", "\e[22;35m", "\e[22;35m", "\e[22;34m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m",  "\e[1;30m", "\e[22;34m", "\e[22;34m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;32m", "\e[22;36m", "\e[22;36m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;32m", "\e[22;32m", "\e[22;36m", "\e[22;36m", "\e[22;36m",  "\e[1;36m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m", "\e[22;36m",  "\e[1;36m",  "\e[1;36m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m",  "\e[1;36m",  "\e[1;36m",  "\e[1;36m",
+
+	"\e[22;31m", "\e[22;35m", "\e[22;35m", "\e[22;35m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;31m", "\e[22;35m", "\e[22;35m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;33m", "\e[22;37m", "\e[22;34m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;33m", "\e[22;32m", "\e[22;36m", "\e[22;36m",  "\e[1;34m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m", "\e[22;36m",  "\e[1;36m",  "\e[1;36m",
+	 "\e[1;32m",  "\e[1;32m",  "\e[1;32m",  "\e[1;32m",  "\e[1;36m",  "\e[1;36m",
+
+	"\e[22;31m", "\e[22;31m", "\e[22;35m", "\e[22;35m", "\e[22;35m",  "\e[1;35m",
+	"\e[22;31m", "\e[22;31m", "\e[22;35m", "\e[22;35m", "\e[22;35m",  "\e[1;35m",
+	"\e[22;33m", "\e[22;33m", "\e[22;31m", "\e[22;35m", "\e[22;35m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;33m", "\e[22;33m", "\e[22;37m",  "\e[1;34m",  "\e[1;34m",
+	"\e[22;33m", "\e[22;33m", "\e[22;33m",  "\e[1;32m",  "\e[1;36m",  "\e[1;36m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;32m",  "\e[1;32m",  "\e[1;36m",  "\e[1;36m",
+
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m", "\e[22;35m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m", "\e[22;35m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m", "\e[22;35m",  "\e[1;35m",  "\e[1;35m",
+	"\e[22;33m", "\e[22;33m", "\e[22;33m",  "\e[1;31m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;37m",  "\e[1;37m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;37m",  "\e[1;37m",
+
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m",  "\e[1;35m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m",  "\e[1;35m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;31m",  "\e[1;31m",  "\e[1;31m",  "\e[1;31m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;31m",  "\e[1;31m",  "\e[1;35m",  "\e[1;35m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;37m",  "\e[1;37m",
+	 "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;33m",  "\e[1;37m",  "\e[1;37m",
+
+	 "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",
+	 "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",  "\e[1;30m",
+	"\e[22;37m", "\e[22;37m", "\e[22;37m", "\e[22;37m", "\e[22;37m", "\e[22;37m",
+	 "\e[1;37m",  "\e[1;37m",  "\e[1;37m",  "\e[1;37m",  "\e[1;37m",  "\e[1;37m"
+};
+
+char *c256to16_bg[256] =
+{
+	"\e[22;40m", "\e[22;41m", "\e[22;42m", "\e[22;43m", "\e[22;44m", "\e[22;45m", "\e[22;46m", "\e[22;47m",
+	 "\e[1;40m",  "\e[1;41m",  "\e[1;42m",  "\e[1;43m",  "\e[1;44m",  "\e[1;45m",  "\e[1;46m",  "\e[1;47m",
+
+	"\e[22;40m", "\e[22;44m", "\e[22;44m", "\e[22;44m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;42m", "\e[22;46m", "\e[22;46m", "\e[22;44m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;42m", "\e[22;46m", "\e[22;46m", "\e[22;46m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;42m", "\e[22;42m", "\e[22;46m", "\e[22;46m", "\e[22;46m",  "\e[1;46m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m", "\e[22;46m",  "\e[1;46m",  "\e[1;46m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m",  "\e[1;46m",  "\e[1;46m",  "\e[1;46m",
+
+	"\e[22;41m", "\e[22;45m", "\e[22;45m", "\e[22;44m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m",  "\e[1;40m", "\e[22;44m", "\e[22;44m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;42m", "\e[22;46m", "\e[22;46m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;42m", "\e[22;42m", "\e[22;46m", "\e[22;46m", "\e[22;46m",  "\e[1;46m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m", "\e[22;46m",  "\e[1;46m",  "\e[1;46m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m",  "\e[1;46m",  "\e[1;46m",  "\e[1;46m",
+
+	"\e[22;41m", "\e[22;45m", "\e[22;45m", "\e[22;45m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;41m", "\e[22;45m", "\e[22;45m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;43m", "\e[22;47m", "\e[22;44m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;43m", "\e[22;42m", "\e[22;46m", "\e[22;46m",  "\e[1;44m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m", "\e[22;46m",  "\e[1;46m",  "\e[1;46m",
+	 "\e[1;42m",  "\e[1;42m",  "\e[1;42m",  "\e[1;42m",  "\e[1;46m",  "\e[1;46m",
+
+	"\e[22;41m", "\e[22;41m", "\e[22;45m", "\e[22;45m", "\e[22;45m",  "\e[1;45m",
+	"\e[22;41m", "\e[22;41m", "\e[22;45m", "\e[22;45m", "\e[22;45m",  "\e[1;45m",
+	"\e[22;43m", "\e[22;43m", "\e[22;41m", "\e[22;45m", "\e[22;45m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;43m", "\e[22;43m", "\e[22;47m",  "\e[1;44m",  "\e[1;44m",
+	"\e[22;43m", "\e[22;43m", "\e[22;43m",  "\e[1;42m",  "\e[1;46m",  "\e[1;46m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;42m",  "\e[1;42m",  "\e[1;46m",  "\e[1;46m",
+
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m", "\e[22;45m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m", "\e[22;45m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m", "\e[22;45m",  "\e[1;45m",  "\e[1;45m",
+	"\e[22;43m", "\e[22;43m", "\e[22;43m",  "\e[1;41m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;47m",  "\e[1;47m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;47m",  "\e[1;47m",
+
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m",  "\e[1;45m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m",  "\e[1;45m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;41m",  "\e[1;41m",  "\e[1;41m",  "\e[1;41m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;41m",  "\e[1;41m",  "\e[1;45m",  "\e[1;45m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;47m",  "\e[1;47m",
+	 "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;43m",  "\e[1;47m",  "\e[1;47m",
+
+	 "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",
+	 "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",  "\e[1;40m",
+	"\e[22;47m", "\e[22;47m", "\e[22;47m", "\e[22;47m", "\e[22;47m", "\e[22;47m",
+	 "\e[1;47m",  "\e[1;47m",  "\e[1;47m",  "\e[1;47m",  "\e[1;47m",  "\e[1;47m"
+};
+
+// input 00 to FF
+
+int c4096_val(char chr1, char chr2)
+{
+	static unsigned char c4096_val[256] =
+	{
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   1,   2,   3,    4,   5,   6,   7,   8,   9,    0,   0,   0,   0,   0,   0,
+		  0,  10,  11,  12,   13,  14,  15,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,  10,  11,  12,   13,  14,  15,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,    0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0
+	};
+
+	return (int) c4096_val[(unsigned char) chr1] * 16 + c4096_val[(unsigned char) chr2];
+}
+
+// input 00 to FF
+
+int c4096_to_256_val(char chr1, char chr2)
+{
+	static unsigned char c4096_to_256[256] =
+	{
+		  0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+		  2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+		  3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,
+		  3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,
+		  3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,   3,
+		  4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,
+		  4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,
+		  4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,
+		  5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,   5,
+	};
+
+	return (int) c4096_to_256[c4096_val(chr1, chr2)];
+}
+
+
+void c4096_rnd(struct session *ses, char *str)
+{
+	static char dec_to_hex[16] =
+	{
+		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+	};
+	sprintf(str, "%c%c%c", dec_to_hex[generate_rand(ses) % 16], dec_to_hex[generate_rand(ses) % 16], dec_to_hex[generate_rand(ses) % 16]);
+}
+
+int is_c32(char chr)
+{
+	static unsigned char c32_lookup[256] =
+	{
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  '?',
+		  0,  'A',  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,  'Z',  0,   0,   0,   0,   0,
+		  0,  'a',  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+		  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,  'z',  0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0
+	};
+
+	return (int) c32_lookup[(unsigned char) chr];
+}
+
+char *c32_fg_dark[26] =
+{
+	"<f06b>", "<f00b>", "<f0bb>", "", "<f000>", "", "<f0b0>", "", "", "<f0b6>", "", "<f6b0>", "<fb0b>",
+	"", "<fb60>", "<fb06>", "", "<fb00>", "<f888>", "<f860>", "", "<f60b>", "<fbbb>", "", "<fbb0>", ""
+};
+
+char *c32_fg_bold[26] =
+{
+	"<f08f>", "<f00f>", "<f0ff>", "", "<f666>", "", "<f0f0>", "", "", "<f0f8>", "", "<f8f0>", "<ff0f>",
+	"", "<ff80>", "<ff08>", "", "<ff00>", "<fddd>", "<fdb0>", "", "<f80f>", "<ffff>", "", "<fff0>", ""
+};
+
+
 int is_variable(struct session *ses, char *str)
 {
 	struct listroot *root;
@@ -113,6 +322,85 @@ int is_function(struct session *ses, char *str)
 	return TRUE;
 }
 
+int is_color_code(char *pti)
+{
+	if (pti[0] == '<')
+	{
+		if (pti[1] == 0 || pti[2] == 0 || pti[3] == 0 || pti[4] == 0)
+		{
+			return 0;
+		}
+
+		if (pti[4] == '>')
+		{
+
+			if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
+			{
+				return 5;
+			}
+			if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f')
+			{
+				return 5;
+			}
+			if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F')
+			{
+				return 5;
+			}
+
+			if (pti[1] == 'g' || pti[1] == 'G')
+			{
+				if (isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				{
+					return 5;
+				}
+				return 0;
+			}
+
+			return 0;
+		}
+
+		if (pti[5] == 0)
+		{
+			return 0;
+		}
+
+		if (toupper((int) pti[1]) == 'F')
+		{
+			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+			{
+				return 6;
+			}
+			else if (pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+			{
+				return 6;
+			}
+			else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+			{
+				return 9;
+			}
+			return 0;
+		}
+
+		if (toupper(pti[1]) == 'B')
+		{
+			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+			{
+				return 6;
+			}
+			if (toupper(pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+			{
+				return 6;
+			}
+			if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+			{
+				return 9;
+			}
+			return 0;
+		}
+	}
+	return 0;
+}
+
 int substitute(struct session *ses, char *string, char *result, int flags)
 {
 	struct listnode *node;
@@ -131,7 +419,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 	while (TRUE)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -278,6 +566,11 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 
 					substitute(ses, node->arg2, buf, SUB_ARG);
+
+					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					{
+						delete_node_list(ses, LIST_FUNCTION, node);
+					}
 
 					script_driver(ses, LIST_FUNCTION, buf);
 
@@ -635,7 +928,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 						while (*ptt)
 						{
-							if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *ptt & 128 && ptt[1] != 0)
+							if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *ptt & 128 && ptt[1] != 0)
 							{
 								*pto++ = *ptt++;
 								*pto++ = *ptt++;
@@ -717,13 +1010,13 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '<':
-				if (HAS_BIT(flags, SUB_COL) && isalnum((int) pti[1]))
+				if (HAS_BIT(flags, SUB_COL))
 				{
 					if (HAS_BIT(flags, SUB_CMP) && old[0] && !strncmp(old, pti, strlen(old)))
 					{
 						pti += strlen(old);
 					}
-					else if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
+					else if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]) && pti[4] == '>')
 					{
 						if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
 						{
@@ -770,182 +1063,158 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f' && pti[4] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '3';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '5';
-						*pto++ = ';';
 						cnt = 16 + (pti[1] - 'a') * 36 + (pti[2] - 'a') * 6 + (pti[3] - 'a');
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+
+						if (ses->color >= 256)
+						{
+							pto += sprintf(pto, "\e[38;5;%dm", cnt);
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_fg[cnt]);
+						}
 						pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
 					}
 					else if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F' && pti[4] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '4';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '5';
-						*pto++ = ';';
 						cnt = 16 + (pti[1] - 'A') * 36 + (pti[2] - 'A') * 6 + (pti[3] - 'A');
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+
+						if (ses->color >= 256)
+						{
+							pto += sprintf(pto, "\e[48;5;%dm", cnt);
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_bg[cnt]);
+						}
 						pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
 					}
 					else if (pti[1] == 'g' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '3';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '5';
-						*pto++ = ';';
 						cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+
+						if (ses->color >= 256)
+						{
+							pto += sprintf(pto, "\e[38;5;%dm", cnt);
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_fg[cnt]);
+						}
 						pti += sprintf(old, "<g%c%c>", pti[2], pti[3]);
 					}
 					else if (pti[1] == 'G' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '4';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '5';
-						*pto++ = ';';
 						cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+
+						if (ses->color >= 256)
+						{
+							pto += sprintf(pto, "\e[48;5;%dm", cnt);
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_bg[cnt]);
+						}
 						pti += sprintf(old, "<G%c%c>", pti[2], pti[3]);
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'F' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '3';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '2';
-						*pto++ = ';';
-						cnt  = isdigit(pti[2]) ? (pti[2] - '0') : (pti[2] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[3]) ? (pti[3] - '0') : (pti[3] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[4]) ? (pti[4] - '0') : (pti[4] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[38;2;%d;%d;%dm", c4096_val(pti[2], pti[2]), c4096_val(pti[3], pti[3]), c4096_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[38;5;%dm",  16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_fg[16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4])]);
+						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+					else if (toupper(pti[1]) == 'F' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '3';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '2';
-						*pto++ = ';';
-						cnt  = isdigit(pti[2]) ? 16 * (pti[2] - '0') : 16 * (pti[2] - 'A' + 10);
-						cnt += isdigit(pti[3]) ?  1 * (pti[3] - '0') :  1 * (pti[3] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[4]) ? 16 * (pti[4] - '0') : 16 * (pti[4] - 'A' + 10);
-						cnt += isdigit(pti[5]) ?  1 * (pti[5] - '0') :  1 * (pti[5] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[6]) ? 16 * (pti[6] - '0') : 16 * (pti[6] - 'A' + 10);
-						cnt += isdigit(pti[7]) ?  1 * (pti[7] - '0') :  1 * (pti[7] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+						c4096_rnd(ses, &pti[2]);
+
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[38;2;%d;%d;%dm", c4096_val(pti[2], pti[2]), c4096_val(pti[3], pti[3]), c4096_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[38;5;%dm",  16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_fg[16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4])]);
+						}
+						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
+					}
+					else if (toupper((int) pti[1]) == 'F' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+					{
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[38;2;%d;%d;%dm", c4096_val(pti[2], pti[3]), c4096_val(pti[4], pti[5]), c4096_val(pti[6], pti[7]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[38;5;%dm",  16 + c4096_to_256_val(pti[2], pti[3]) * 36 + c4096_to_256_val(pti[4], pti[5]) * 6 + c4096_to_256_val(pti[6], pti[7]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_fg[16 + c4096_to_256_val(pti[2], pti[3]) * 36 + c4096_to_256_val(pti[4], pti[5]) * 6 + c4096_to_256_val(pti[6], pti[7])]);
+						}
 						pti += sprintf(old, "<F%c%c%c%c%c%c>", pti[2], pti[3], pti[4], pti[5], pti[6], pti[7]);
 					}
-					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+					else if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '4';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '2';
-						*pto++ = ';';
-						cnt  = isdigit(pti[2]) ? (pti[2] - '0') : (pti[2] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[3]) ? (pti[3] - '0') : (pti[3] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[4]) ? (pti[4] - '0') : (pti[4] - 'A' + 10);
-						cnt += cnt * 16;
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[48;2;%d;%d;%dm", c4096_val(pti[2], pti[2]), c4096_val(pti[3], pti[3]), c4096_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[48;5;%dm",  16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_bg[16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4])]);
+						}
 						pti += sprintf(old, "<B%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+					else if (toupper(pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 					{
-						*pto++ = ASCII_ESC;
-						*pto++ = '[';
-						*pto++ = '4';
-						*pto++ = '8';
-						*pto++ = ';';
-						*pto++ = '2';
-						*pto++ = ';';
-						cnt  = isdigit(pti[2]) ? 16 * (pti[2] - '0') : 16 * (pti[2] - 'A' + 10);
-						cnt += isdigit(pti[3]) ?  1 * (pti[3] - '0') :  1 * (pti[3] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[4]) ? 16 * (pti[4] - '0') : 16 * (pti[4] - 'A' + 10);
-						cnt += isdigit(pti[5]) ?  1 * (pti[5] - '0') :  1 * (pti[5] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = ';';
-						cnt  = isdigit(pti[6]) ? 16 * (pti[6] - '0') : 16 * (pti[6] - 'A' + 10);
-						cnt += isdigit(pti[7]) ?  1 * (pti[7] - '0') :  1 * (pti[7] - 'A' + 10);
-						*pto++ = '0' + cnt / 100;
-						*pto++ = '0' + cnt % 100 / 10;
-						*pto++ = '0' + cnt % 10;
-						*pto++ = 'm';
+						c4096_rnd(ses, &pti[2]);
+
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[48;2;%d;%d;%dm", c4096_val(pti[2], pti[2]), c4096_val(pti[3], pti[3]), c4096_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[48;5;%dm",  16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_bg[16 + c4096_to_256_val(pti[2], pti[2]) * 36 + c4096_to_256_val(pti[3], pti[3]) * 6 + c4096_to_256_val(pti[4], pti[4])]);
+						}
+						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
+					}
+					else if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+					{
+						if (ses->color == 4096)
+						{
+							pto += sprintf(pto, "\e[48;2;%d;%d;%dm", c4096_val(pti[2], pti[3]), c4096_val(pti[4], pti[5]), c4096_val(pti[6], pti[7]));
+						}
+						else if (ses->color == 256)
+						{
+							pto += sprintf(pto, "\033[48;5;%dm",  16 + c4096_to_256_val(pti[2], pti[3]) * 36 + c4096_to_256_val(pti[4], pti[5]) * 6 + c4096_to_256_val(pti[6], pti[7]));
+						}
+						else if (ses->color == 16)
+						{
+							pto += sprintf(pto, "%s", c256to16_bg[16 + c4096_to_256_val(pti[2], pti[3]) * 36 + c4096_to_256_val(pti[4], pti[5]) * 6 + c4096_to_256_val(pti[6], pti[7])]);
+						}
 						pti += sprintf(old, "<B%c%c%c%c%c%c>", pti[2], pti[3], pti[4], pti[5], pti[6], pti[7]);
 					}
 					else

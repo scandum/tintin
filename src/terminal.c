@@ -79,16 +79,27 @@ void init_terminal(struct session *ses)
 	{
 		syserr_fatal(-1, "init_terminal: tcgetattr 2");
 	}
+
+	print_stdout("\e=");
+	print_stdout("\e[>4;1m");
 }
 
 void reset_terminal(struct session *ses)
 {
-	if (tcsetattr(0, TCSANOW, &gtd->old_terminal))
+	if (gtd->detach_port == 0)
 	{
-		syserr_printf(ses, "reset_terminal: tcsetattr");
+		if (tcsetattr(0, TCSANOW, &gtd->old_terminal))
+		{
+			syserr_printf(ses, "reset_terminal: tcsetattr");
+		}
 	}
 
-	printf("\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
+	{
+		print_stdout("\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
+	}
+	print_stdout("\e[23t");
+	print_stdout("\e[>4n");
 }
 
 
@@ -127,33 +138,50 @@ void echo_on(struct session *ses)
 void init_terminal_size(struct session *ses)
 {
 	struct winsize screen;
+	static int old_rows, old_cols;
 
 	push_call("init_terminal_size(%p)",ses);
 
 	if (ses == gts)
 	{
-		if (ioctl(0, TIOCGWINSZ, &screen) == -1)
-		{
-			init_screen(SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT * 16, SCREEN_WIDTH * 10);
-		}
-		else
+		old_rows = gtd->screen->rows;
+		old_cols = gtd->screen->cols;
+
+		if (ioctl(1, TIOCGWINSZ, &screen) >= 0)
 		{
 			init_screen(screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
+
+			if (gtd->attach_sock)
+			{
+				char buf[100];
+				sprintf(buf, "\e[8;%d;%dt\e[4;%d;%dt\e[7t", screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
+				write(gtd->attach_sock, buf, strlen(buf));
+			}
 		}
-		SET_BIT(gtd->flags, TINTIN_FLAG_RESETBUFFER);
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	if (ses->scroll)
 	{
-		init_split(ses, 1 + ses->top_split, gtd->screen->rows - 1 - ses->bot_split);
+		SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 	}
-	else
+
+	if (ses->map)
 	{
-		ses->top_row = 1;
-		ses->bot_row = gtd->screen->rows;
+		SET_BIT(ses->map->flags, MAP_FLAG_RESIZE);
 	}
+
+	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
 
 	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN RESIZE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+
+	if (old_rows <= old_cols / 2 && gtd->screen->rows > gtd->screen->cols / 2)
+	{
+		check_all_events(ses, SUB_ARG, 0, 4, "SCREEN ROTATE PORTRAIT", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+	}
+	else if (old_rows >= old_cols / 2 && gtd->screen->rows < gtd->screen->cols / 2)
+	{
+		check_all_events(ses, SUB_ARG, 0, 4, "SCREEN ROTATE LANDSCAPE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+	}
 
 	msdp_update_all("SCREEN_ROWS",   "%d", gtd->screen->rows);
 	msdp_update_all("SCREEN_COLS",   "%d", gtd->screen->cols);
@@ -164,7 +192,12 @@ void init_terminal_size(struct session *ses)
 	return;
 }
 
-int get_scroll_size(struct session *ses)
+int get_scroll_rows(struct session *ses)
 {
-	return (ses->bot_row - ses->top_row);
+	return (ses->split->bot_row - ses->split->top_row);
+}
+
+int get_scroll_cols(struct session *ses)
+{
+	return ses->wrap;
 }

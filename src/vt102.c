@@ -26,61 +26,117 @@
 
 #include "tintin.h"
 
-void save_pos(struct session *ses)
+void init_pos(struct session *ses, int row, int col)
 {
-	if (ses->cur_row == gtd->screen->rows)
-	{
-		printf("\e7"); 
+	push_call("init_pos(%p)",ses);
 
-		ses->sav_row = ses->cur_row;
-		ses->sav_col = ses->cur_col;
-	}
+	goto_pos(ses, row, col);
+
+	gtd->screen->sav_row[0] = ses->cur_row;
+	gtd->screen->sav_col[0] = ses->cur_col;
+
+	gtd->screen->sav_lev = 1;
+
+	pop_call();
+	return;
 }
 
-void load_pos(struct session *ses)
+void save_pos(struct session *ses)
 {
-	printf("\e8\e8"); 
+	push_call("save_pos(%p)",ses);
 
-	ses->cur_row = ses->sav_row;
-	ses->cur_col = ses->sav_col;
+	gtd->screen->sav_row[gtd->screen->sav_lev] = ses->cur_row;
+	gtd->screen->sav_col[gtd->screen->sav_lev] = ses->cur_col;
+
+	if (gtd->screen->sav_lev < STACK_SIZE)
+	{
+		gtd->screen->sav_lev++;
+	}
+	else
+	{
+		syserr_printf(ses, "sav_lev++ above 1000.");
+	}
+	print_stdout("\e[?25l");
+
+	pop_call();
+	return;
 }
 
 void restore_pos(struct session *ses)
 {
-	printf("\e8\e8"); 
+	if (gtd->screen->sav_lev > 0)
+	{
+		gtd->screen->sav_lev--;
+	}
+	else
+	{
+		gtd->screen->sav_lev = 0;
+		syserr_printf(ses, "sav_lev-- below 0.");
+	}
 
-	ses->cur_row = ses->sav_row;
-	ses->cur_col = ses->sav_col;
+	if (gtd->screen->sav_row[gtd->screen->sav_lev] == gtd->screen->rows)
+	{
+		goto_pos(ses, gtd->screen->rows, inputline_cur_pos());
+	}
+	else
+	{
+		goto_pos(ses, gtd->screen->sav_row[gtd->screen->sav_lev], gtd->screen->sav_col[gtd->screen->sav_lev]);
+	}
+	print_stdout("\e[?25h");
+
+	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 void goto_pos(struct session *ses, int row, int col)
 {
-	printf("\e[%d;%dH", row, col);
+	print_stdout("\e[%d;%dH", row, col);
 
+	if (col < 1)
+	{
+		print_stdout("debug: goto_pos(%d,%d)\n",row,col);
+	}
 	ses->cur_row = row;
 	ses->cur_col = col;
 }
 
-void goto_rowcol(struct session *ses, int row, int col)
+void erase_cols(int cnt)
 {
-	printf("\e[%d;%dH", row, col);
+	if (cnt)
+	{
+		print_stdout("\e[%dX", cnt);
+	}
+}
 
-	ses->cur_row = row;
-	ses->cur_col = col;
+void erase_row(struct session *ses)
+{
+	if (ses->wrap == gtd->screen->cols || ses->cur_row == gtd->screen->rows)
+	{
+		print_stdout("\e[2K");
+	}
+	else
+	{
+		save_pos(ses);
+
+		goto_pos(ses, ses->cur_row, ses->split->top_col);
+
+		erase_cols(ses->wrap);
+
+		restore_pos(ses);
+	}
 }
 
 void erase_lines(struct session *ses, int rows)
 {
-	printf("\e[%dM", rows);
+	print_stdout("\e[%dM", rows);
 }
 
 void erase_toeol(void)
 {
-	printf("\e[K");
+	print_stdout("\e[K");
 }
 
 /*
-	doesn't do much
+	unused
 */
 
 void reset(struct session *ses)
@@ -88,7 +144,7 @@ void reset(struct session *ses)
 	ses->cur_row = 1;
 	ses->cur_col = 1;
 
-	printf("\ec");
+	print_stdout("\ec");
 }
 
 
@@ -96,26 +152,27 @@ void scroll_region(struct session *ses, int top, int bot)
 {
 	push_call("scroll_region(%p,%d,%d)",ses,top,bot);
 
-	printf("\e[%d;%dr", top, bot);
+	print_stdout("\e[%d;%dr", top, bot);
 
-	ses->top_row = top;
-	ses->bot_row = bot;
+	ses->split->top_row = top;
+	ses->split->bot_row = bot;
 
-	check_all_events(ses, SUB_ARG, 0, 4, "VT100 SCROLL REGION", ntos(top), ntos(bot), ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(ses->wrap > 0 ? ses->wrap : gtd->screen->cols));
+	check_all_events(ses, SUB_ARG, 0, 4, "VT100 SCROLL REGION", ntos(top), ntos(bot), ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(get_scroll_cols(ses)));
 
 	pop_call();
 	return;
 }
 
-
 void reset_scroll_region(struct session *ses)
 {
 	if (ses == gtd->ses)
 	{
-		printf("\e[r");
+		print_stdout("\e[r");
 	}
-	ses->top_row = 1;
-	ses->bot_row = gtd->screen->rows;
+	ses->split->top_row = 1;
+	ses->split->top_col = 1;
+	ses->split->bot_row = gtd->screen->rows;
+	ses->split->bot_col = gtd->screen->cols;
 }
 
 
@@ -169,6 +226,10 @@ int skip_vt102_codes(char *str)
 		case ']':
 			switch (str[2])
 			{
+				case 0:
+					pop_call();
+					return 2;
+
 				case 'P':
 					for (skip = 3 ; skip < 10 ; skip++)
 					{
@@ -182,7 +243,7 @@ int skip_vt102_codes(char *str)
 
 				case 'R':
 					pop_call();
-					return 3;
+					return str[3] ? 3 : 2;
 			}
 			pop_call();
 			return 2;
@@ -216,7 +277,7 @@ int skip_vt102_codes(char *str)
 	return skip;
 }
 
-int find_non_color_codes(char *str)
+int find_color_code(char *str)
 {
 	int skip;
 
@@ -356,8 +417,6 @@ int skip_vt102_codes_non_graph(char *str)
 	return 0;
 }
 
-
-
 void strip_vt102_codes(char *str, char *buf)
 {
 	char *pti, *pto;
@@ -471,11 +530,13 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 
 // mix old and str, then copy compressed color string to buf which can point to old.
 
-void get_color_codes(char *old, char *str, char *buf)
+void get_color_codes(char *old, char *str, char *buf, int flags)
 {
 	char *pti, *pto, col[100], tmp[BUFFER_SIZE];
 	int len, vtc, fgc, bgc, cnt;
 	int rgb[6] = { 0, 0, 0, 0, 0, 0 };
+
+	push_call("get_color_codes(%p,%p,%p,%d)",old,str,buf,flags);
 
 	pto = tmp;
 
@@ -483,7 +544,7 @@ void get_color_codes(char *old, char *str, char *buf)
 
 	while (*pti)
 	{
-		while ((len = find_non_color_codes(pti)) != 0)
+		while ((len = find_color_code(pti)) != 0)
 		{
 			memcpy(pto, pti, len);
 			pti += len;
@@ -500,11 +561,21 @@ void get_color_codes(char *old, char *str, char *buf)
 
 	while (*pti)
 	{
-		while ((len = find_non_color_codes(pti)) != 0)
+		while ((len = find_color_code(pti)) != 0)
 		{
 			memcpy(pto, pti, len);
 			pti += len;
 			pto += len;
+		}
+
+		if (!HAS_BIT(flags, GET_ALL))
+		{
+			break;
+		}
+
+		if (*pti == '\n')
+		{
+			break;
 		}
 
 		if (*pti)
@@ -518,6 +589,7 @@ void get_color_codes(char *old, char *str, char *buf)
 	if (strlen(tmp) == 0)
 	{
 		buf[0] = 0;
+		pop_call();
 		return;
 	}
 
@@ -753,6 +825,9 @@ void get_color_codes(char *old, char *str, char *buf)
 	}
 
 	strcat(buf, "m");
+
+	pop_call();
+	return;
 }
 
 int strip_vt102_strlen(struct session *ses, char *str)
@@ -771,7 +846,12 @@ int strip_vt102_strlen(struct session *ses, char *str)
 			continue;
 		}
 
-		if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(pti))
+		if (*pti == '\t')
+		{
+			i += ses->tab_width - i % ses->tab_width;
+			pti++;
+		}
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 		{
 			pti += get_utf8_width(pti, &w);
 
@@ -784,6 +864,61 @@ int strip_vt102_strlen(struct session *ses, char *str)
 		}
 	}
 	return i;
+}
+
+
+int strip_vt102_width(struct session *ses, char *str, int *lines)
+{
+	char *pti;
+	int w, i = 0, max = 0;
+
+	*lines = 1;
+
+	pti = str;
+
+	while (*pti)
+	{
+		if (*pti == '\n')
+		{
+			*lines += 1;
+
+			if (i > max)
+			{
+				max = i;
+				i = 0;
+			}
+		}
+
+		if (skip_vt102_codes(pti))
+		{
+			pti += skip_vt102_codes(pti);
+
+			continue;
+		}
+
+		if (*pti == '\t')
+		{
+			i += ses->tab_width - i % ses->tab_width;
+			pti++;
+		}
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
+		{
+			pti += get_utf8_width(pti, &w);
+
+			i += w;
+		}
+		else
+		{
+			pti++;
+			i++;
+		}
+	}
+
+	if (i > max)
+	{
+		return i;
+	}
+	return max;
 }
 
 int strip_color_strlen(struct session *ses, char *str)
@@ -929,16 +1064,16 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 				break;
 
 			case 'r':
-				if (sscanf(data, "%d;%d", &ses->top_row, &ses->bot_row) != 2)
+				if (sscanf(data, "%d;%d", &ses->split->top_row, &ses->split->bot_row) != 2)
 				{
-					if (sscanf(data, "%d", &ses->top_row) != 1)
+					if (sscanf(data, "%d", &ses->split->top_row) != 1)
 					{
-						ses->top_row = 1;
-						ses->bot_row = gtd->screen->rows;
+						ses->split->top_row = 1;
+						ses->split->bot_row = gtd->screen->rows;
 					}
 					else
 					{
-						ses->bot_row = gtd->screen->rows;
+						ses->split->bot_row = gtd->screen->rows;
 					}
 				}
 				ses->cur_row = 1;
@@ -971,9 +1106,9 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 			ses->cur_col = URANGE(1, ses->cur_col, gtd->screen->cols + 1);
 
 
-			ses->top_row = URANGE(1, ses->top_row, gtd->screen->rows);
+			ses->split->top_row = URANGE(1, ses->split->top_row, gtd->screen->rows);
 
-			ses->bot_row = ses->bot_row ? URANGE(1, ses->bot_row, gtd->screen->rows) : gtd->screen->rows;
+			ses->split->bot_row = ses->split->bot_row ? URANGE(1, ses->split->bot_row, gtd->screen->rows) : gtd->screen->rows;
 			
 			return TRUE;
 		}

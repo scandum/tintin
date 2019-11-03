@@ -41,14 +41,19 @@ DO_COMMAND(do_read)
 
 	if ((fp = fopen(filename, "r")) == NULL)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "FILE NOT FOUND.");
+
 		tintin_printf(ses, "#READ {%s} - FILE NOT FOUND.", filename);
+
 		return ses;
 	}
 
 	temp[0] = getc(fp);
 
-	if (!isgraph((int) temp[0]) || isalpha((int) temp[0]))
+	if (!ispunct((int) temp[0]))
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "INVALID START OF FILE");
+
 		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE.", filename);
 
 		fclose(fp);
@@ -70,6 +75,8 @@ DO_COMMAND(do_read)
 
 	if ((bufi = (char *) calloc(1, filedata.st_size + 2)) == NULL || (bufo = (char *) calloc(1, filedata.st_size + 2)) == NULL)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
+
 		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE MEMORY.", filename);
 
 		fclose(fp);
@@ -88,7 +95,7 @@ DO_COMMAND(do_read)
 	{
 		if (com == 0)
 		{
-			if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 			{
 				*pto++ = *pti++;
 				*pto++ = *pti++;
@@ -263,6 +270,8 @@ DO_COMMAND(do_read)
 
 	if (lvl)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
+
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
 
 		fclose(fp);
@@ -275,6 +284,8 @@ DO_COMMAND(do_read)
 
 	if (com)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING COMMENT OPEN OR CLOSE");
+
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
 
 		fclose(fp);
@@ -287,11 +298,23 @@ DO_COMMAND(do_read)
 
 	sprintf(temp, "{TINTIN CHAR} {%c}", bufo[0]);
 
-	gtd->quiet_level++;
+	if (bufo[0] != '#')
+	{
+		gtd->level->verbose++;
+		gtd->level->debug++;
+
+		show_error(ses, LIST_COMMAND, "\e[1;5;31mWARNING: SETTING THE COMMAND CHARACTER TO '%c' BECAUSE IT'S THE FIRST CHARACTER IN THE FILE.", bufo[0]);
+
+		gtd->level->debug--;
+		gtd->level->verbose--;
+	}
+
+	gtd->level->quiet++;
 
 	do_configure(ses, temp);
 
 	lvl = 0;
+	lnc = 0;
 	pti = bufo;
 	pto = bufi;
 
@@ -302,24 +325,13 @@ DO_COMMAND(do_read)
 			*pto++ = *pti++;
 			continue;
 		}
+		lnc++;
 		*pto = 0;
 
 		if (strlen(bufi) >= BUFFER_SIZE)
 		{
-/*			gtd->quiet_level--;
-
-			bufi[20] = 0;
-*/
-//			tintin_printf(ses, "#ERROR: #READ {%s} - BUFFER OVERFLOW AT COMMAND: %.20s.", filename, bufi);
-			tintin_printf(ses, "#ERROR: #READ {%s} - BUFFER OVERFLOW AT COMMAND:", filename);
-/*
-			fclose(fp);
-
-			free(bufi);
-			free(bufo);
-
-			return ses;
-*/		}
+			tintin_printf(ses, "#ERROR: #READ {%s} - BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
+		}
 
 		if (bufi[0])
 		{
@@ -329,7 +341,7 @@ DO_COMMAND(do_read)
 		pti++;
 	}
 
-	gtd->quiet_level--;
+	gtd->level->quiet--;
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_VERBOSE))
 	{
@@ -367,6 +379,8 @@ DO_COMMAND(do_write)
 	FILE *file;
 	char filename[BUFFER_SIZE], forceful[BUFFER_SIZE];
 	struct listroot *root;
+	struct listnode *node;
+
 	int i, j, fix, cnt = 0;
 
 	arg = get_arg_in_braces(ses, arg, filename, GET_ONE);
@@ -374,6 +388,8 @@ DO_COMMAND(do_write)
 
 	if (*filename == 0)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "INVALID FILE NAME");
+
 		tintin_printf2(ses, "#SYNTAX: #WRITE {<filename>} {[FORCE]}");
 
 		return ses;
@@ -381,6 +397,7 @@ DO_COMMAND(do_write)
 	
 	if (!str_suffix(filename, ".map") && !is_abbrev(forceful, "FORCE"))
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "INVALID FILE EXTENSION");
 		tintin_printf2(ses, "#WRITE {%s}: USE {FORCE} TO OVERWRITE .map FILES.", filename);
 
 		return ses;
@@ -388,6 +405,8 @@ DO_COMMAND(do_write)
 
 	if ((file = fopen(filename, "w")) == NULL)
 	{
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "FAILED TO OPEN");
+
 		tintin_printf(ses, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", filename);
 
 		return ses;
@@ -406,9 +425,16 @@ DO_COMMAND(do_write)
 
 		for (j = 0 ; j < root->used ; j++)
 		{
-			if (*root->list[j]->group == 0)
+			node = root->list[j];
+
+			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
 			{
-				write_node(ses, i, root->list[j], file);
+				continue;
+			}
+
+			if (*node->group == 0)
+			{
+				write_node(ses, i, node, file);
 
 				cnt++;
 				fix++;

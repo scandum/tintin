@@ -27,12 +27,12 @@
 
 #include "tintin.h"
 
-#define MAX_STACK_SIZE     51
+#define MAX_STACK_SIZE     100
 #define MAX_DEBUG_SIZE     400
 
 char debug_stack[MAX_STACK_SIZE][MAX_DEBUG_SIZE];
 
-short debug_index;
+int debug_index = 0;
 
 int push_call(char *f, ...)
 {
@@ -96,7 +96,7 @@ void dump_stack_fatal(void)
 
 	for (i = 0 ; i < debug_index && i < MAX_STACK_SIZE ; i++)
 	{
-		printf("\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m\n", i, debug_stack[i]);
+		print_stdout("\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m\n", i, debug_stack[i]);
 	}
 }
 

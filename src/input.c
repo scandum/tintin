@@ -28,17 +28,56 @@
 
 void process_input(void)
 {
-	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) && !HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
+	char input[STRING_SIZE];
+	int len, out;
+
+	push_call("process_input(void)");
+
+	if (gtd->detach_port)
 	{
-		read_key();
+		if (gtd->detach_sock)
+		{
+			len = read(gtd->detach_sock, input, 1);
+		}
+		else
+		{
+			printf("process_input: error?\n");
+		}
 	}
 	else
 	{
-		read_line();
+		len = read(0, input, 1);
+	}
+
+	input[len] = 0;
+
+	if (gtd->attach_sock)
+	{
+		out = write(gtd->attach_sock, input, 1);
+
+		if (out >= 0)
+		{
+			pop_call();
+			return;
+		}
+
+		gtd->attach_sock = close(gtd->attach_sock);
+
+		show_message(gtd->ses, LIST_COMMAND, "#ATTACH: WRITE ERROR: UNATTACHING.");
+	}
+
+	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) && !HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
+	{
+		read_key(input, len);
+	}
+	else
+	{
+		read_line(input, len);
 	}
 
 	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_PROCESSINPUT))
 	{
+		pop_call();
 		return;
 	}
 
@@ -74,6 +113,7 @@ void process_input(void)
 
 	if (check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH RECEIVED INPUT", gtd->input_buf) == 1)
 	{
+		pop_call();
 		return;
 	}
 
@@ -92,206 +132,38 @@ void process_input(void)
 	}
 
 	gtd->input_buf[0] = 0;
+
+	fflush(NULL);
+
+	pop_call();
+	return;
 }
 
-void read_line()
+void read_line(char *input, int len)
 {
-	char buffer[STRING_SIZE];
-	struct listnode *node;
-	struct listroot *root;
-	int len, cnt, size, match, val[3], width, index;
+	int size, width, index;
 
-	gtd->input_buf[gtd->input_len] = 0;
-
-	len = read(0, buffer, 1);
-
-	buffer[len] = 0;
+//	gtd->input_buf[gtd->input_len] = 0;
 
 	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
 	{
-		convert_meta(buffer, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
+		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
 	}
 	else if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
 	{
-		convert_meta(buffer, &gtd->macro_buf[strlen(gtd->macro_buf)], TRUE);
+		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], TRUE);
 	}
 	else
 	{
-		strcat(gtd->macro_buf, buffer);
+		strcat(gtd->macro_buf, input);
 	}
 
-	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
+	if (check_key(input, len))
 	{
-		match = 0;
-		root  = gtd->ses->list[LIST_MACRO];
-
-		if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
-		{
-			for (root->update = 0 ; root->update < root->used ; root->update++)
-			{
-				node = root->list[root->update];
-
-				if (*node->arg1 == '^' && gtd->input_len)
-				{
-					continue;
-				}
-				else if (!strcmp(gtd->macro_buf, node->arg3))
-				{
-					script_driver(gtd->ses, LIST_MACRO, node->arg2);
-
-					gtd->macro_buf[0] = 0;
-
-					return;
-				}
-				else if (!strncmp(gtd->macro_buf, node->arg3, strlen(gtd->macro_buf)))
-				{
-					match = 1;
-				}
-			}
-		}
-
-		for (cnt = 0 ; *cursor_table[cnt].fun != NULL ; cnt++)
-		{
-			if (*cursor_table[cnt].code)
-			{
-				if (!strcmp(gtd->macro_buf, cursor_table[cnt].code))
-				{
-					cursor_table[cnt].fun(gtd->ses, "");
-					gtd->macro_buf[0] = 0;
-
-					return;
-				}
-				else if (!strncmp(gtd->macro_buf, cursor_table[cnt].code, strlen(gtd->macro_buf)))
-				{
-					match = 1;
-				}
-			}
-		}
-
-		if (match)
-		{
-			return;
-		}
-
-		if (gtd->macro_buf[0] == ASCII_ESC)
-		{
-			if (gtd->macro_buf[1] == '[')
-			{
-				if (gtd->macro_buf[2] == '<')
-				{
-					val[0] = val[1] = val[2] = cnt = buffer[0] = 0;
-
-					for (len = 3 ; gtd->macro_buf[len] ; len++)
-					{
-						if (isdigit(gtd->macro_buf[len]))
-						{
-							cat_sprintf(buffer, "%c", gtd->macro_buf[len]);
-						}
-						else
-						{
-							switch (gtd->macro_buf[len])
-							{
-								case ';':
-									val[cnt++] = get_number(gtd->ses, buffer);
-									buffer[0] = 0;
-									break;
-
-								case 'm':
-								case 'M':
-									val[cnt++] = get_number(gtd->ses, buffer);
-									mouse_handler(gtd->ses, val[0], val[2], val[1], gtd->macro_buf[len]); // swap x y to row col
-									gtd->macro_buf[0] = 0;
-									return;
-
-								default:
-									printf("unknownmouse input error (%s)\n", gtd->macro_buf);
-									gtd->macro_buf[0] = 0;
-									return;
-							}
-						}
-					}
-					return;
-				}
-
-				if (gtd->macro_buf[2] >= '0' && gtd->macro_buf[2] <= '9')
-				{
-					val[0] = val[1] = val[2] = cnt = buffer[0] = 0;
-
-					for (len = 2 ; gtd->macro_buf[len] ; len++)
-					{
-						if (isdigit(gtd->macro_buf[len]))
-						{
-							cat_sprintf(buffer, "%c", gtd->macro_buf[len]);
-						}
-						else
-						{
-							switch (gtd->macro_buf[len])
-							{
-								case '-':
-									if (buffer[0] == 0)
-									{
-										strcat(buffer, "-");
-									}
-									else
-									{
-										tintin_printf2(NULL, "\e[1;31merror: bad csi input (%s)\n", &gtd->macro_buf[1]);
-										gtd->macro_buf[0] = 0;
-										continue;
-									}
-									break;
-								case ';':
-									val[cnt++] = get_number(gtd->ses, buffer);
-									buffer[0] = 0;
-									break;
-
-								case 't':
-									val[cnt++] = get_number(gtd->ses, buffer);
-									csit_handler(val[0], val[1], val[2]);
-									gtd->macro_buf[0] = 0;
-									return;
-
-								default:
-									goto end_of_loop;
-							}
-						}
-					}
-					return;
-				}
-			}
-			else if (gtd->macro_buf[1] == ']')
-			{
-				switch (gtd->macro_buf[2])
-				{
-					case 'L':
-					case 'l':
-						for (len = 3 ; gtd->macro_buf[len] ; len++)
-						{
-							if (gtd->macro_buf[len] < 32)
-							{
-								buffer[len - 3] = 0;
-								osc_handler(gtd->macro_buf[2], buffer);
-								gtd->macro_buf[0] = 0;
-								return;
-							}
-							else
-							{
-								buffer[len - 3 ] = gtd->macro_buf[len];
-							}
-						}
-						break;
-
-					default:
-						printf("\e[1;31merror: unknown osc input (%s)\n", gtd->macro_buf);
-						gtd->macro_buf[0] = 0;
-						return;
-				}
-			}
-		}
+		return;
 	}
 
-	end_of_loop:
-
-	if (HAS_BIT(gtd->ses->flags, SES_FLAG_UTF8) && is_utf8_head(gtd->macro_buf))
+	if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(gtd->macro_buf))
 	{
 		if (get_utf8_size(gtd->macro_buf) == 1)
 		{
@@ -301,9 +173,9 @@ void read_line()
 
 	if (gtd->macro_buf[0] == ASCII_ESC)
 	{
-		strcpy(buffer, gtd->macro_buf);
+		strcpy(input, gtd->macro_buf);
 
-		convert_meta(buffer, gtd->macro_buf, FALSE);
+		convert_meta(input, gtd->macro_buf, FALSE);
 	}
 
 	get_utf8_index(gtd->macro_buf, &index);
@@ -328,7 +200,7 @@ void read_line()
 				break;
 
 			default:
-				if (HAS_BIT(gtd->ses->flags, SES_FLAG_UTF8) && gtd->macro_buf[0] & 128 && gtd->macro_buf[1])
+				if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && gtd->macro_buf[0] & 128 && gtd->macro_buf[1])
 				{
 					size = get_utf8_width(gtd->macro_buf, &width);
 
@@ -399,67 +271,33 @@ void read_line()
 	}
 }
 
-void read_key(void)
+void read_key(char *input, int len)
 {
-	char buffer[BUFFER_SIZE];
-	struct listnode *node;
-	struct listroot *root;
-	int len, cnt, match;
+	int cnt;
 
 	if (gtd->input_buf[0] == gtd->tintin_char)
 	{
-		read_line();
+		read_line(input, len);
 
 		return;
 	}
 
-	len = read(0, buffer, 1);
-
-	buffer[len] = 0;
-
-	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA) || HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
 	{
-		convert_meta(buffer, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
+		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
+	}
+	else if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	{
+		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], TRUE);
 	}
 	else
 	{
-		strcat(gtd->macro_buf, buffer);
+		strcat(gtd->macro_buf, input);
 	}
 
-	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
+	if (check_key(input, len))
 	{
-		match = 0;
-
-		root  = gtd->ses->list[LIST_MACRO];
-
-		if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
-		{
-			for (root->update = 0 ; root->update < root->used ; root->update++)
-			{
-				node = root->list[root->update];
-
-				if (*node->arg1 == '^' && gtd->input_buf[0])
-				{
-					continue;
-				}
-				else if (!strcmp(gtd->macro_buf, node->arg3))
-				{
-					script_driver(gtd->ses, LIST_MACRO, node->arg2);
-
-					gtd->macro_buf[0] = 0;
-					return;
-				}
-				else if (!strncmp(gtd->macro_buf, node->arg3, strlen(gtd->macro_buf)))
-				{
-					match = 1;
-				}
-			}
-		}
-
-		if (match)
-		{
-			return;
-		}
+		return;
 	}
 
 	for (cnt = 0 ; gtd->macro_buf[cnt] ; cnt++)
@@ -487,11 +325,11 @@ void read_key(void)
 				{
 					if (gtd->input_len != gtd->input_cur)
 					{
-						printf("\e[1@%c", gtd->macro_buf[cnt]);
+						print_stdout("\e[1@%c", gtd->macro_buf[cnt]);
 					}
 					else
 					{
-						printf("%c", gtd->macro_buf[cnt]);
+						print_stdout("%c", gtd->macro_buf[cnt]);
 					}
 					gtd->input_buf[0] = gtd->tintin_char;
 					gtd->input_buf[1] = 0;
@@ -512,18 +350,221 @@ void read_key(void)
 	}
 }
 
+int check_key(char *input, int len)
+{
+	char buf[BUFFER_SIZE];
+	struct listroot *root;
+	struct listnode *node;
+	int cnt, val[3];
+
+	push_call("check_key(%p,%d)",input,len);
+
+	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
+	{
+		root  = gtd->ses->list[LIST_MACRO];
+
+		if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+		{
+			for (root->update = 0 ; root->update < root->used ; root->update++)
+			{
+				node = root->list[root->update];
+
+				if (*node->arg1 == '^' && gtd->input_len)
+				{
+					continue;
+				}
+				else if (!strcmp(gtd->macro_buf, node->arg3))
+				{
+					strcpy(buf, node->arg2);
+
+					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					{
+						delete_node_list(gtd->ses, LIST_MACRO, node);
+					}
+
+					script_driver(gtd->ses, LIST_MACRO, buf);
+
+					gtd->macro_buf[0] = 0;
+					pop_call();
+					return TRUE;
+				}
+				else if (!strncmp(gtd->macro_buf, node->arg3, strlen(gtd->macro_buf)))
+				{
+					pop_call();
+					return TRUE;
+				}
+			}
+		}
+
+		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) || HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) || gtd->input_buf[0] == gtd->tintin_char)
+		{
+			for (cnt = 0 ; *cursor_table[cnt].fun != NULL ; cnt++)
+			{
+				if (*cursor_table[cnt].code)
+				{
+					if (!strcmp(gtd->macro_buf, cursor_table[cnt].code))
+					{
+						cursor_table[cnt].fun(gtd->ses, "");
+						gtd->macro_buf[0] = 0;
+
+						pop_call();
+						return TRUE;
+					}
+					else if (!strncmp(gtd->macro_buf, cursor_table[cnt].code, strlen(gtd->macro_buf)))
+					{
+						pop_call();
+						return TRUE;
+					}
+				}
+			}
+		}
+
+		if (gtd->macro_buf[0] == ASCII_ESC)
+		{
+			if (gtd->macro_buf[1] == '[')
+			{
+				if (gtd->macro_buf[2] == '<' && !HAS_BIT(gtd->ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+				{
+					val[0] = val[1] = val[2] = cnt = input[0] = 0;
+
+					for (len = 3 ; gtd->macro_buf[len] ; len++)
+					{
+						if (isdigit(gtd->macro_buf[len]))
+						{
+							cat_sprintf(input, "%c", gtd->macro_buf[len]);
+						}
+						else
+						{
+							switch (gtd->macro_buf[len])
+							{
+								case ';':
+									val[cnt++] = get_number(gtd->ses, input);
+									input[0] = 0;
+									break;
+
+								case 'm':
+								case 'M':
+									val[cnt++] = get_number(gtd->ses, input);
+									mouse_handler(gtd->ses, val[0], val[2], val[1], gtd->macro_buf[len]); // swap x y to row col
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
+								default:
+									print_stdout("unknownmouse input error (%s)\n", gtd->macro_buf);
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+							}
+						}
+					}
+					pop_call();
+					return TRUE;
+				}
+				else if (gtd->macro_buf[2] >= '0' && gtd->macro_buf[2] <= '9')
+				{
+					val[0] = val[1] = val[2] = cnt = input[0] = 0;
+
+					for (len = 2 ; gtd->macro_buf[len] ; len++)
+					{
+						if (isdigit(gtd->macro_buf[len]))
+						{
+							cat_sprintf(input, "%c", gtd->macro_buf[len]);
+						}
+						else
+						{
+							switch (gtd->macro_buf[len])
+							{
+								case '-':
+									if (input[0] == 0)
+									{
+										strcat(input, "-");
+									}
+									else
+									{
+										tintin_printf2(NULL, "\e[1;31merror: bad csi input (%s)\n", &gtd->macro_buf[1]);
+										gtd->macro_buf[0] = 0;
+										continue;
+									}
+									break;
+								case ';':
+									val[cnt++] = get_number(gtd->ses, input);
+									input[0] = 0;
+									break;
+
+								case 't':
+									val[cnt++] = get_number(gtd->ses, input);
+									csit_handler(val[0], val[1], val[2]);
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
+								default:
+									pop_call();
+									return FALSE;
+							}
+						}
+					}
+					pop_call();
+					return TRUE;
+				}
+				else if (gtd->macro_buf[2] == 0)
+				{
+					pop_call();
+					return TRUE;
+				}
+			}
+			else if (gtd->macro_buf[1] == ']')
+			{
+				switch (gtd->macro_buf[2])
+				{
+					case 'L':
+					case 'l':
+						for (len = 3 ; gtd->macro_buf[len] ; len++)
+						{
+							if (gtd->macro_buf[len] < 32)
+							{
+								input[len - 3] = 0;
+								osc_handler(gtd->macro_buf[2], input);
+								gtd->macro_buf[0] = 0;
+								pop_call();
+								return TRUE;
+							}
+							else
+							{
+								input[len - 3 ] = gtd->macro_buf[len];
+							}
+						}
+						break;
+
+					default:
+						print_stdout("\e[1;31merror: unknown osc input (%s)\n", gtd->macro_buf);
+						gtd->macro_buf[0] = 0;
+						pop_call();
+						return TRUE;
+				}
+			}
+			else if (gtd->macro_buf[1] == 0)
+			{
+				pop_call();
+				return TRUE;
+			}
+		}
+	}
+	pop_call();
+	return FALSE;
+}
+
 void convert_meta(char *input, char *output, int eol)
 {
 	char *pti, *pto;
 
 	push_call("convert_meta(%p,%p,%d)",input,output,eol);
 
-	DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
-
 	pti = input;
 	pto = output;
 
-	while (*pti)
+	while (*pti && pti - input < BUFFER_SIZE / 2)
 	{
 		switch (*pti)
 		{
@@ -566,6 +607,15 @@ void convert_meta(char *input, char *output, int eol)
 				break;
 
 			case ASCII_CR:
+				if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+				{
+					*pto++ = '\\';
+					*pto++ = 'r';
+					*pto = 0;
+					DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
+					pop_call();
+					return;
+				}
 				if (eol)
 				{
 					*pto++ = '\\';
@@ -581,12 +631,23 @@ void convert_meta(char *input, char *output, int eol)
 				break;
 
 			case ASCII_LF:
+				if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+				{
+					*pto++ = '\\';
+					*pto++ = 'n';
+					*pto = 0;
+					DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
+					pop_call();
+					return;
+				}
+
 				if (eol)
 				{
 					*pto++ = '\\';
 					*pto++ = 'n';
 				}
 				*pto++ = *pti++;
+
 				break;
 
 			default:
@@ -614,6 +675,8 @@ void convert_meta(char *input, char *output, int eol)
 	}
 	*pto = 0;
 
+	DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
+
 	pop_call();
 	return;
 }
@@ -634,69 +697,50 @@ char *str_convert_meta(char *input, int eol)
 
 void echo_command(struct session *ses, char *line)
 {
-	char buffer[STRING_SIZE], result[STRING_SIZE];
-
-	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
-	{
-		if (HAS_BIT(ses->flags, SES_FLAG_ECHOCOMMAND))
-		{
-			sprintf(buffer, "%s%s\e[0m", ses->cmd_color, line);
-		}
-		else
-		{
-			sprintf(buffer, "\e[0m");
-		}
-	}
-	else
-	{
-		sprintf(buffer, "%s", line);
-	}
-
-	/*
-		Deal with pending output
-	*/
-
-	if (ses->more_output[0])
-	{
-		if (ses->check_output)
-		{
-			strcpy(result, ses->more_output);
-			ses->more_output[0] = 0;
-
-			process_mud_output(ses, result, FALSE);
-		}
-	}
+	char buffer[BUFFER_SIZE], output[BUFFER_SIZE];
 
 	DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	if (ses->check_output)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_ECHOCOMMAND))
-		{
-			sprintf(result, "%s%s", ses->more_output, buffer);
-		}
-		else
-		{
-			if (strip_vt102_strlen(ses, ses->more_output) == 0)
-			{
-				return;
-			}
-			sprintf(result, "%s", ses->more_output);
-		}
+		strcpy(output, ses->more_output);
 
-		add_line_buffer(ses, buffer, -1);
-
-		gtd->scroll_level++;
-
-		tintin_printf2(ses, "%s", result);
-
-		gtd->scroll_level--;
+		process_mud_output(ses, buffer, FALSE);
 	}
 	else
 	{
-		add_line_buffer(ses, buffer, -1);
-		add_line_screen(buffer);
+		strcpy(output, "");
 	}
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	{
+		add_line_buffer(ses, line, -1);
+
+		return;
+	}
+
+	if (HAS_BIT(ses->flags, SES_FLAG_ECHOCOMMAND))
+	{
+		sprintf(buffer, "%s%s\e[0m", ses->cmd_color, line);
+	}
+	else
+	{
+		if (strip_vt102_strlen(ses, output) == 0)
+		{
+			return;
+		}
+		sprintf(buffer, "\e[0m");
+	}
+
+	if (ses->wrap == gtd->screen->cols)
+	{
+		gtd->level->scroll++;
+
+		tintin_printf2(ses, "%s%s", ses->scroll->input, buffer);
+
+		gtd->level->scroll--;
+	}
+	add_line_buffer(ses, buffer, -1);
 }
 
 void input_printf(char *format, ...)
@@ -716,7 +760,7 @@ void input_printf(char *format, ...)
 	vsprintf(buf, format, args);
 	va_end(args);
 
-	printf("%s", buf);
+	print_stdout("%s", buf);
 }
 
 void modified_input(void)

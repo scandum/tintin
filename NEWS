@@ -1,14 +1,39 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
-TinTin++ 2.02.0
+TinTin++ 2.01.92
+----------------
+
+01) The #buffer get command has been changed to use the new row notation
+    standard.
+
+02) The #split command has been changed to where it sets the number of
+    top split lines if only one argument is given.
+
+    The 2nd argument sets the number of bottom split lines which defaults
+    to 1. The 3rd and 4th argument set the left and right split lines.
+    
+03) #killall gives a warning that it should be changed to #kill all
+
+04) #forall has been removed.
+
+05) %. and %+ should no longer be used in regular expressions. This will
+    allow expansion of tintin's make-shift regex syntax in the future.
+
+    Use {.} and {.+} and {.?+} instead.
+
+06) Added a notice for people still using $variable[] instead of
+    *variable[]. I'll change $variable[] eventually to be identical to
+    $variable[%*].
+
+TinTin++ 2.01.90
 ---------------
 
-02) You'll have to issue #map color reset and #map legend reset to get
+01) You'll have to issue #map color reset and #map legend reset to get
     your old map files straightened out. Once the map is saved again
     it should work without issues.
 
-03) There were two big problems that needed to be addressed to continue
+02) There were two big problems that needed to be addressed to continue
     smooth development.
 
     1. In VT100 row 1 is the top line, while in tintin row 1 is the split

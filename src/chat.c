@@ -1,12 +1,11 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
+*   it under the terms of the GNU General Public License version 3 as         *
+*   published by the Free Software Foundation.                                *
 *                                                                             *
 *   This program is distributed in the hope that it will be useful,           *
 *   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
@@ -14,8 +13,8 @@
 *   GNU General Public License for more details.                              *
 *                                                                             *
 *                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   You should have received a copy of the GNU General Public License along   *
+*   with TinTin++.  If not see https://www.gnu.org/licenses/gpl-3.0.txt       *
 ******************************************************************************/
 
 /******************************************************************************
@@ -29,7 +28,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -39,10 +37,36 @@
 	#include <pthread.h>
 #endif
 
-
-#define CALL_TIMEOUT 5
-#define BLOCK_SIZE 500
+#define CALL_TIMEOUT    5
+#define BLOCK_SIZE    500
 #define DEFAULT_PORT 4050
+
+extern  int chat_new(int s);
+extern void chat_printf(char *format, ...);
+extern  int process_chat_input(struct chat_data *buddy);
+extern void get_chat_commands(struct chat_data *buddy, char *buf, int len);
+extern void chat_name_change(struct chat_data *buddy, char *txt);
+extern void chat_receive_text_everybody(struct chat_data *buddy, char *txt);
+extern void chat_receive_text_personal(struct chat_data *buddy, char *txt);
+extern void chat_receive_text_group(struct chat_data *buddy, char *txt);
+extern void chat_receive_message(struct chat_data *buddy, char *txt);
+extern void chat_receive_snoop_data(struct chat_data *buddy, char *txt);
+extern void ping_response(struct chat_data *ch, char *time);
+extern void request_response(struct chat_data *requester);
+extern void parse_requested_connections(struct chat_data *buddy, char *txt);
+extern void peek_response(struct chat_data *peeker);
+extern void parse_peeked_connections(struct chat_data *buddy, char *txt);
+extern void chat_receive_file(char *arg, struct chat_data *ch);
+extern void send_block(struct chat_data *ch);
+extern  int receive_block(unsigned char *s, struct chat_data *ch, int size);
+extern void deny_file(struct chat_data *ch, char *arg);
+extern void file_denied(struct chat_data *ch, char *txt);
+extern void file_cleanup(struct chat_data *buddy);
+extern  int get_file_size(char *fpath);
+extern void chat_puts(char *arg);
+extern char *fix_file_name(char *name);
+extern struct chat_data *find_buddy(char *arg);
+extern struct chat_data *find_group(char *arg);
 
 DO_COMMAND(do_chat)
 {
@@ -53,7 +77,7 @@ DO_COMMAND(do_chat)
 
 	if (*cmd == 0)
 	{
-		tintin_header(ses, " CHAT COMMANDS ");
+		tintin_header(ses, " CHAT OPTIONS ");
 
 		for (cnt = 0 ; *chat_table[cnt].name != 0 ; cnt++)
 		{
@@ -144,7 +168,7 @@ DO_CHAT(chat_initialize)
 		return;
 	}
 
-	if (listen(sock, 50) == -1)
+	if (listen(sock, 32) == -1)
 	{
 		syserr_printf(gtd->ses, "chat_initialize: listen");
 

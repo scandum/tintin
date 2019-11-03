@@ -53,6 +53,8 @@ int case_table[256] =
 
 int is_abbrev(char *str1, char *str2)
 {
+	char *str3 = gtd->is_result;
+
 	if (*str1 == 0)
 	{
 		return false;
@@ -61,6 +63,7 @@ int is_abbrev(char *str1, char *str2)
 	if (*str2 == 0)
 	{
 		tintin_printf2(gtd->ses, "\e[1;31mis_abbrev(%s,%s)", str1, str2);
+
 		dump_stack();
 
 		return false;
@@ -70,6 +73,8 @@ int is_abbrev(char *str1, char *str2)
 	{
 		if (*str1 == 0)
 		{
+			strcpy(str3, str2);
+
 			return true;
 		}
 
@@ -78,7 +83,7 @@ int is_abbrev(char *str1, char *str2)
 			return false;
 		}
 		str1++;
-		str2++;
+		*str3++ = *str2++;
 	}
 }
 
@@ -367,7 +372,7 @@ char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -437,7 +442,7 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 	while (*pti)
 	{
 		
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -500,7 +505,7 @@ char *get_arg_with_spaces(struct session *ses, char *string, char *result, int f
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -544,7 +549,7 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -615,7 +620,7 @@ char *get_arg_to_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -682,7 +687,7 @@ char *get_arg_at_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -739,7 +744,7 @@ char *get_arg_in_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -816,7 +821,7 @@ void do_one_line(char *line, struct session *ses)
 
 	push_call("[%s] do_one_line(%s)",ses->name,line);
 
-	if (gtd->ignore_level)
+	if (gtd->level->ignore)
 	{
 		pop_call();
 		return;

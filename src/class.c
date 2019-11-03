@@ -311,6 +311,7 @@ DO_CLASS(class_kill)
 	}
 
 	check_all_events(ses, SUB_ARG, 0, 1, "CLASS DESTROYED", arg1);
+	check_all_events(ses, SUB_ARG, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
 
 	delete_index_list(ses->list[LIST_CLASS], group);
 

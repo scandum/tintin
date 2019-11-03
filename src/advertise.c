@@ -52,6 +52,7 @@ struct advertisement_type advertisement_table[] =
 		"<078>\"Have you ever come upon a place on the Net that's so incredible that you\n"
 		"<078>can't believe such entertainment is free? This MUD will blow your mind with\n"
 		"<078>its marvelous attention to detail and incredible role-playing atmosphere!\"\n"
+		"\n"
 		"<078>  -- Yahoo! Wild Web Rides\n"
 		"\n"
                 "<178>To connect to Lost Souls enter: #session ls lostsouls.org 23\n"
@@ -84,6 +85,7 @@ struct advertisement_type advertisement_table[] =
 		"<078>optional PK and arena PvP, extensive character customization options, player\n"
 		"<078>lineages, clans, customizable player houses, item crafting, extensively\n"
 		"<078>customizable UI, Mud Sound Protocol (MSP), MSDP, and so much more.\n"
+		"\n"
 		"<078>This is an a amazing game that you could literally play for a decade and still\n"
 		"<078>discover more - you won't be disappointed!\n"
 		"\n"
@@ -107,7 +109,7 @@ struct advertisement_type advertisement_table[] =
 		100,
 
 		"\n"
-                "<138>                             Lowlands\n"
+                "<138>                    Lowlands  -  http://lolamud.net\n"
 		"\n"
 		"<078>Lowlands is based on the Storms of Time codebase which in turn is based on the\n"
 		"<078>Mortal Realms codebase which was established in 1993. Lowlands has many unique\n"
@@ -123,6 +125,7 @@ struct advertisement_type advertisement_table[] =
 
 		"\n"
 		"<138>Lowlands\n"
+		"<168>http://lolamud.net\n"
 		"\n"
 		"<078>Lowlands is based on the Storms of Time codebase which in turn is based on the Mortal Realms codebase. It's a very polished MUD with many unique systems and features. Its main strength is the inclusion of over 100 detailed area quests which have been custom coded using a powerful mob prog engine.\n"
 		"<078>\n"
@@ -132,35 +135,36 @@ struct advertisement_type advertisement_table[] =
 		"\n"
 	},
 
-/*	{
+	{
 		1400000000,
- 		1800000000,
+		1800000000,
 		100,
-
 		"\n"
-		"<138>                The Last Outpost  -  https://www.last-outpost.com\n"
-		"\n"
-		"<078>The Last Outpost has been serving up adventure since 1992.  Along with\n"
-		"<078>exploring and advancing through the game world, the game offers players the\n"
-		"<078>ability to lay claim to the zones that make up the land.  Once claimed, a zone\n"
-		"<078>can be taxed, and the player making the claim gets to decide policy within the\n"
-		"<078>zone.  Whoever claims the whole world is declared the Leader of the Last\n"
-		"<078>Outpost!  Whether you enjoy hack 'n slash, following quests, PvP, NPK, playing\n"
-		"<078>in clans, or soloing, the Last Outpost has it.\n"
-		"\n"
-		"<178>To connect to The Last Outpost enter: #session lo last-outpost.com 4000\n"
-		"\n",
-
-		"\n"
-		"<138>The Last Outpost\n"
-		"<168>https://www.last-outpost.com\n"
-		"\n"
-		"<078>The Last Outpost has been serving up adventure since 1992.  Along with exploring and advancing through the game world, the game offers players the ability to lay claim to the zones that make up the land.  Once claimed, a zone can be taxed, and the player making the claim gets to decide policy within the zone.  Whoever claims the whole world is declared the Leader of the Last Outpost!  Whether you enjoy hack 'n slash, following quests, PvP, NPK, playing in clans, or soloing, the Last Outpost has it.\n"
-		"\n"
-		"<178>To connect to The Last Outpost enter: #session lo last-outpost.com 4000\n"
-		"\n"
+                "<138>                    3Kingdoms  -  http://3k.org\n"
+                "\n"
+                "<078>Based around the mighty town of Pinnacle, three main realms beckon the player\n"
+                "<078>to explore.  These kingdoms are: Fantasy, a vast medieval realm of orcs, elves,\n"
+                "<078>dragons, and a myriad of other creatures; Science, a post-apocalyptic, war-torn\n"
+                "<078>world set in the not-so-distant future; and Chaos, a transient realm where the\n"
+                "<078>realities of Fantasy and Science collide to produce unimaginable results.\n"
+                "\n"
+                "<078>3Kingdoms combines all these features, and so much more, to give the player an\n"
+                "<078>experience that will stay with them for the rest of their lives.  Come live the\n"
+                "<078>adventure and find out for yourself why 3K is the best there is!\n"
+                "\n"
+                "<178>To connect to 3Kingdoms enter:  #session 3K 3k.org 3000\n"
+                "\n",
+ 
+                "\n"
+                "<138>3Kingdoms\n"
+                "<168>http://3k.org\n"
+                "\n"
+                "<078>Based around the mighty town of Pinnacle, three main realms beckon the player to explore.  These kingdoms are: Fantasy, a vast medieval realm of orcs, elves, dragons, and a myriad of other creatures; Science, a post-apocalyptic, war-torn world set in the not-so-distant future; and Chaos, a transient realm where the realities of Fantasy and Science collide to produce unimaginable results.  3Kingdoms combines all these features, and so much more, to give the player an experience that will stay with them for the rest of their lives.  Come live the adventure and find out for yourself why 3K is the best there is!\n"
+                "\n"
+                "<178>To connect to 3Kingdoms enter:  #session 3K 3k.org 3000\n"
+                "\n",
 	},
-*/
+
 	{
 		1400000000,  /* 2014 */ 
 		1800000000,  /* 2027 */ 
@@ -189,7 +193,6 @@ struct advertisement_type advertisement_table[] =
                 "\n"
                 "<178>To connect to New Worlds Ateraan enter: #session nwa ateraan.com 4002\n"
                 "\n"
-
 	},
 
 	{
@@ -221,6 +224,36 @@ struct advertisement_type advertisement_table[] =
 		"<178>To connect to Primal Darkness enter: #session pd mud.primaldarkness.com 5000\n"
 		"\n"
 	},
+/*	{
+		1400000000,
+ 		1800000000,
+		100,
+
+		"\n"
+		"<138>                The Last Outpost  -  https://www.last-outpost.com\n"
+		"\n"
+		"<078>The Last Outpost has been serving up adventure since 1992.  Along with\n"
+		"<078>exploring and advancing through the game world, the game offers players the\n"
+		"<078>ability to lay claim to the zones that make up the land.  Once claimed, a zone\n"
+		"<078>can be taxed, and the player making the claim gets to decide policy within the\n"
+		"<078>zone.  Whoever claims the whole world is declared the Leader of the Last\n"
+		"<078>Outpost!  Whether you enjoy hack 'n slash, following quests, PvP, NPK, playing\n"
+		"<078>in clans, or soloing, the Last Outpost has it.\n"
+		"\n"
+		"<178>To connect to The Last Outpost enter: #session lo last-outpost.com 4000\n"
+		"\n",
+
+		"\n"
+		"<138>The Last Outpost\n"
+		"<168>https://www.last-outpost.com\n"
+		"\n"
+		"<078>The Last Outpost has been serving up adventure since 1992.  Along with exploring and advancing through the game world, the game offers players the ability to lay claim to the zones that make up the land.  Once claimed, a zone can be taxed, and the player making the claim gets to decide policy within the zone.  Whoever claims the whole world is declared the Leader of the Last Outpost!  Whether you enjoy hack 'n slash, following quests, PvP, NPK, playing in clans, or soloing, the Last Outpost has it.\n"
+		"\n"
+		"<178>To connect to The Last Outpost enter: #session lo last-outpost.com 4000\n"
+		"\n"
+	},
+*/
+
 /*
 	{
 		1400000000,

@@ -35,7 +35,18 @@ DO_COMMAND(do_line)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {<OPTION>} {argument}.");
+		tintin_header(ses, " LINE OPTIONS ");
+
+		for (cnt = 0 ; *line_table[cnt].fun != NULL ; cnt++)
+		{
+			if (*line_table[cnt].desc)
+			{
+				tintin_printf2(ses, "  [%-13s] %s", line_table[cnt].name, line_table[cnt].desc);
+			}
+		}
+		tintin_header(ses, "");
+
+		return ses;
 	}
 	else
 	{
@@ -72,11 +83,33 @@ DO_LINE(line_background)
 		return ses;
 	}
 
-	gtd->background_level++;
+	gtd->level->background++;
 
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	gtd->background_level--;
+	gtd->level->background--;
+
+	return ses;
+}
+
+DO_LINE(line_debug)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {DEBUG} {command}.");
+
+		return ses;
+	}
+
+	gtd->level->debug++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->level->debug--;
 
 	return ses;
 }
@@ -107,11 +140,11 @@ DO_LINE(line_ignore)
 		return ses;
 	}
 
-	gtd->ignore_level++;
+	gtd->level->ignore++;
 
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	gtd->ignore_level--;
+	gtd->level->ignore--;
 
 	return ses;
 }
@@ -314,6 +347,27 @@ DO_LINE(line_logverbatim)
 	return ses;
 }
 
+DO_LINE(line_oneshot)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {ONESHOT} {command}.");
+		
+		return ses;
+	}
+
+	gtd->level->oneshot++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->level->oneshot--;
+
+	return ses;
+}
 
 DO_LINE(line_quiet)
 {
@@ -328,11 +382,11 @@ DO_LINE(line_quiet)
 		return ses;
 	}
 
-	gtd->quiet_level++;
+	gtd->level->quiet++;
 
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	gtd->quiet_level--;
+	gtd->level->quiet--;
 
 	return ses;
 }
@@ -412,11 +466,11 @@ DO_LINE(line_verbatim)
 		return ses;
 	}
 
-	gtd->verbatim_level++;
+	gtd->level->verbatim++;
 
 	ses = parse_input(ses, arg1);
 
-	gtd->verbatim_level--;
+	gtd->level->verbatim--;
 
 	return ses;
 }
@@ -434,11 +488,11 @@ DO_LINE(line_verbose)
 		return ses;
 	}
 
-	gtd->verbose_level++;
+	gtd->level->verbose++;
 
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	gtd->verbose_level--;
+	gtd->level->verbose--;
 
 	return ses;
 }

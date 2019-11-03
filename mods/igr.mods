@@ -1,6 +1,164 @@
 Sep 2019        2.01.92
 ------------------------------------------------------------------------------
 
+mapper.c        Added #map dig <exit> {{roomid}{<key>}} {NEW} support.
+                Added #map goto {{roomid}{<key>}} {DIG} support.
+
+mapper.c        Added the roomid field to map rooms. When using #map goto or
+                #map run on a roomid regular expressions cannot be used.
+                Roomid's are case sensitive, must be matched exactly, and
+                are expected to be unique.
+
+daemon.c        Added #daemon {kill|list}. See #help daemon.
+
+daemon.c        Added #daemon {attach|detach}. See #help daemon.
+
+main.c          Can launch tt++ with the -R argument to reattach.
+
+data.c          Added #info MCCP option.
+
+draw.c          Added TUBED drawing option.
+
+scan.c          Added #scan FILE {commands} option. See #help scan.
+
+map.c           Can provide multiple ; separated commands to #map move at
+                once. For example: #map move {n;e;s;w}
+
+main.c          Added support for starting tintin with telnet://host:port
+
+draw.c          Added ANSI, UNICODE, JEWELED and FILLED prefixes.
+
+tables.c        Removed #forall command.
+
+mapper.c        Added #map center <x> <y> <z> to set the center of the map
+                viewer, default is 0 0 0.
+
+split.c         Added SCREEN SPLIT and SCREEN UNSPLIT events.
+
+nest.c          Added VARIABLE UPDATED event.
+
+draw.c          Added the BUMPED prefix to prefix a scroll region box with an
+                enter. You create a scroll region box by using 0 as the top
+                row argument. Treat the other arguments as if the top row
+                is set to 1.
+
+draw.c          Finished rounded box drawing, to get the old behavior use
+                the CIRCLED prefix.
+
+config.c        Added #config {mouse tracking} {on|off|debug|info|debug info}
+                to enable/disable info/debugging for all mouse clicks.
+                Use #config {mouse tracking} {on} to reset to normal.
+
+help.c          Updated #help regex to state that %. and %+ should no longer
+                be used. This will allow future expansion of tintin's regex
+                syntax. Use {.} and {.+} and {.?+} instead.
+
+variable.c      Added support for %+10w and %-10w to #format. Negative numbers
+                subtract the given value from the screen width when wrapping.
+
+text.c          Added initial tab displaying support.
+
+config.c        Added TAB WIDTH config option.
+
+nest.c          Added a notice for people still using $variable[] instead of
+                *variable[]. I'll change $variable[] eventually to be
+                identical to $variable[%*].
+
+math.c          Added .. ellipsis support to define ranges in tables. It can
+                also be used in #math to join two 32 bit integers into a 64
+                bit integer. 
+
+terminal.c      Now initializing a more advanced keyboard mode upon startup,
+                if a macro stops working check if you have to redefine it to
+                a new sequence.
+
+math.c          By default tintin does a string vs regex comparison when
+                using == and !=. Added === and !== to do string vs string
+                comparisons.
+
+config.c        Made configurations less lazy, making it easier to detect
+                when settings aren't properly inherited or changed globally.
+
+screen.c        Added #screen scroll option, similar to #split but uses square
+                notation to define the scroll region.
+
+screen.c        Added #screen fill option.
+
+terminal.c      Added SCREEN ROTATE PORTRAIT and SCREEN ROTATE LANDSCAPE
+                events.
+
+mapper.c        #map offset will now rescale along with the window.
+
+split.c         The #split command has been changed to where it sets the
+                number of top split lines if only one argument is given.
+
+                The 2nd argument sets the number of bottom split lines which
+                defaults to 1. The 3rd and 4th argument set the left and right
+                split lines and when used will automatically enable vertical
+                split mode.
+
+                Split initalization will use unicode if #config charset is
+                set to utf-8
+
+buffer.c        The #buffer get syntax has been changed to treat 1 as the
+                oldest line in the buffer, and -1 as the most recent.
+                Unfortunately that's not backward compatible, but it's in
+                line with the other row behavior changes, so at least it
+                will be consistent.
+
+text.c          With #split enabled and #config wordwrap set to a positive
+                value tintin++ will attempt a vertical split.
+
+draw.c          More feature complete, see #help draw.
+
+vt100.c         Added better cursor save/restore handling.
+
+update.c        Added support for centisecond delays (0.01) and moved ticks to
+                deciseconds (0.1). 
+
+                Reduced input and session polling lag from 25 ms to 5 ms,
+                which comes at a slight increase in cpu usage.
+
+draw.c          Added TEED prefix for #draw, subsequently #draw middle and
+                #draw center have been removed as they did the same and
+                were somewhat confusing terms.
+
+misc.c          Added some #bell options, see #help bell.
+                #bell {flash|focus|margin|ring|volume} {argument}
+
+variable.c      #format %X now will also take unicode characters as input.
+                #echo %X ┓ displays 2513 and #showme \u2513 displays ┓
+
+path.c          #path run no longer uses delays but uses its own timer system,
+                you can use #path stop to stop running, and if you enter
+                #path run again you'll continue where you stopped.
+
+trigger.c       Named delays are now automatically converted to one shot
+                triggers. #undelay will use #untick if the argument begins
+                with a letter.
+
+mapper.c        Changed #map destroy to #map destroy {area|world} {arg}
+
+files.c         Added {READ ERROR} and {WRITE ERROR} events.
+
+trigger.c       Added #line oneshot support to all triggers and variables.
+
+line.c          Added #line oneshot to create oneshot triggers. Right now
+                only works for #ticker.
+
+line.c          Added #line debug to execute given line in debug mode.
+
+substitute.c    #config color is now taken into account when displaying
+                color codes, downgrading colors as needed.
+
+tables.c        When using color names in highlights all lowercase color names
+                will be dark by default, while capitalized color names
+                will be light. So 'blue' is dark while 'Blue' is light. This
+                allows using 'b Blue' for a light blue background.
+
+draw.c          Added the ability to prefix a draw option with a color name
+                or color code to draw colored lines and boxes.
+
 Aug 2019        2.01.91
 ------------------------------------------------------------------------------
 vt100.c         Added %2 rows %3 cols arguments to the VT100 SCROLL REGION

@@ -39,7 +39,7 @@ void init_msdp_table(void)
 		{
 			if (*msdp_table[index+1].name)
 			{
-				tintin_printf2(NULL, "\e[31minit_msdp_table: Improperly sorted variable: %s.\e0m", msdp_table[index]);
+				print_stdout("\e[31minit_msdp_table: Improperly sorted variable: %s.\e0m", msdp_table[index+1].name);
 			}
 		}
 	}

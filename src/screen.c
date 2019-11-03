@@ -139,7 +139,7 @@ DO_SCREEN(screen_clear)
 
 	if (is_abbrev(arg1, "ALL"))
 	{
-		printf("\e[2J");
+		print_stdout("\e[2J");
 	}
 	else if (is_abbrev(arg1, "BOTTOM SPLIT"))
 	{
@@ -148,6 +148,14 @@ DO_SCREEN(screen_clear)
 	else if (is_abbrev(arg1, "TOP SPLIT"))
 	{
 		erase_top_region(ses);
+	}
+	else if (is_abbrev(arg1, "LEFT SPLIT"))
+	{
+		erase_left_region(ses);
+	}
+	else if (is_abbrev(arg1, "RIGHT SPLIT"))
+	{
+		erase_right_region(ses);
 	}
 	else if (is_abbrev(arg1, "SCROLL REGION"))
 	{
@@ -183,7 +191,7 @@ DO_SCREEN(screen_clear)
 		{
 			erase_square(ses, top_row, top_col, bot_row, bot_col);
 
-//			printf("\e[%d;%d;%d;%d${", top_row, top_col, bot_row, bot_col); VT400 not widely supported
+//			print_stdout("\e[%d;%d;%d;%d${", top_row, top_col, bot_row, bot_col); VT400 not widely supported
 		}
 	}
 	else
@@ -192,52 +200,215 @@ DO_SCREEN(screen_clear)
 	}
 }
 
+DO_SCREEN(screen_fill)
+{
+	if (is_abbrev(arg1, "DEFAULT"))
+	{
+		char buf[BUFFER_SIZE];
+
+		sprintf(buf, "CLEAR ALL");
+
+		do_screen(ses, buf);
+
+		if (ses->split->sav_top_row > 0)
+		{
+			if (ses->split->sav_top_row == 1)
+			{
+				sprintf(buf, "LINE %d %d %d %d", 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+			}
+			else
+			{
+				sprintf(buf, "BOX %d %d %d %d {}", 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+			}
+			do_draw(ses, buf);
+		}
+
+		if (ses->split->sav_bot_row)
+		{
+			if (ses->split->sav_bot_row == 1)
+			{
+				sprintf(buf, "LINE %d %d %d %d", ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
+			}
+			else
+			{
+				sprintf(buf, "BOX %d %d %d %d {}", ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
+			}
+			do_draw(ses, buf);
+		}
+
+		if (ses->split->sav_top_row > 0)
+		{
+			if (ses->split->sav_top_col)
+			{
+				sprintf(buf, "TEED VERTICAL LINE %d %d %d %d", ses->split->top_row - 1, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
+				do_draw(ses, buf);
+			}
+
+			if (ses->split->sav_bot_col)
+			{
+				sprintf(buf, "TEED VERTICAL LINE %d %d %d %d", ses->split->top_row - 1, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
+				do_draw(ses, buf);
+			}
+		}
+		else
+		{
+			if (ses->split->sav_top_col)
+			{
+				sprintf(buf, "VERTICAL LINE %d %d %d %d", ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
+				do_draw(ses, buf);
+			}
+
+			if (ses->split->sav_bot_col)
+			{
+				sprintf(buf, "VERTICAL LINE %d %d %d %d", ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
+				do_draw(ses, buf);
+			}
+		}
+	}
+	else if (is_abbrev(arg1, "SPLIT"))
+	{
+		fill_split_region(ses, arg2);
+	}
+	else if (is_abbrev(arg1, "BOTTOM SPLIT"))
+	{
+		fill_bot_region(ses, arg2);
+	}
+	else if (is_abbrev(arg1, "TOP SPLIT"))
+	{
+		fill_top_region(ses, arg2);
+	}
+	else if (is_abbrev(arg1, "LEFT SPLIT"))
+	{
+		fill_left_region(ses, arg2);
+	}
+	else if (is_abbrev(arg1, "RIGHT SPLIT"))
+	{
+		fill_right_region(ses, arg2);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN FILL {TOP|BOT|LEFT|RIGHT|SCROLL|SPLIT|DEFAULT} {arg}");
+	}
+}
+
 DO_SCREEN(screen_focus)
 {
 	screen_csit(ses, "5", "", "");
 }
 
-
-DO_SCREEN(screen_rescale)
+DO_SCREEN(screen_fullscreen)
 {
-	if (is_abbrev(arg1, "HORIZONTALLY"))
+	if (*arg1 == 0)
 	{
-		if (*arg2 == 0)
-		{
-			screen_csit(ses, "4", "", arg2);
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {[WIDTH]}");
-		}
+		screen_csit(ses, "10", "2", "");
 	}
-	else if (is_abbrev(arg1, "VERTICALLY"))
+	else if (is_abbrev(arg1, "ON"))
 	{
-		if (*arg2 == 0)
-		{
-			screen_csit(ses, "4", arg2, "");
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {[HEIGHT]}");
-		}
+		screen_csit(ses, "10", "1", "");
 	}
-	else if (*arg1 == 0 || is_math(ses, arg1))
+	else if (is_abbrev(arg1, "OFF"))
 	{
-		if (*arg2 == 0 || is_math(ses, arg2))
-		{
-			screen_csit(ses, "4", arg1, arg2);
-		}
-		else
-		{
-			screen_rescale(ses, 0, arg, "SYNTAX", "");
-		}
+		screen_csit(ses, "10", "0", "");
+	}
+}
+
+DO_SCREEN(screen_get)
+{
+	if (*arg1 == 0 || *arg2 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {FOCUS} {<VAR>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {ROWS|COLS|HEIGHT|WIDTH} {<VAR>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {CHAR_HEIGHT|CHAR_WIDTH}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {SPLIT_TOP_BAR|SPLIT_BOT_BAR|SPLIT_LEFT_BAR|SPLIT_RIGHT_BAR} {<VAR>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {SCROLL_TOP_ROW|SCROLL_TOP_COL|SCROLL_BOT_ROW|SCROLL_BOT_COL} {<VAR>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {CUR_ROW|CUR_COL} {<VAR>}");
+
+		return;
+	}
+
+	if (is_abbrev(arg1, "FOCUS"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->focus);
+	}
+	else if (is_abbrev(arg1, "CHAR_HEIGHT"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->char_height);
+	}
+	else if (is_abbrev(arg1, "CHAR_WIDTH"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->char_width);
+	}
+	else if (is_abbrev(arg1, "COLS"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->cols);
+	}
+	else if (is_abbrev(arg1, "CUR_COL"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->cur_col);
+	}
+	else if (is_abbrev(arg1, "CUR_ROW"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->cur_row);
+	}
+	else if (is_abbrev(arg1, "HEIGHT"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->height);
+	}
+	else if (is_abbrev(arg1, "WIDTH"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->width);
+	}
+
+	else if (is_abbrev(arg1, "ROWS"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->rows);
+	}
+
+	else if (is_abbrev(arg1, "SPLIT_TOP_BAR"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_top_row);
+	}
+	else if (is_abbrev(arg1, "SPLIT_LEFT_BAR"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_top_col);
+	}
+	else if (is_abbrev(arg1, "SPLIT_BOT_BAR"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_bot_row);
+	}
+	else if (is_abbrev(arg1, "SPLIT_RIGHT_BAR"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_bot_col);
+	}
+
+	else if (is_abbrev(arg1, "SCROLL_ROWS"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_row - ses->split->top_row);
+	}
+	else if (is_abbrev(arg1, "SCROLL_COLS"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->wrap);
+	}
+
+	else if (is_abbrev(arg1, "SCROLL_TOP_ROW"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->top_row);
+	}
+	else if (is_abbrev(arg1, "SCROLL_TOP_COL"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->top_col);
+	}
+	else if (is_abbrev(arg1, "SCROLL_BOT_ROW"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_row);
+	}
+	else if (is_abbrev(arg1, "SCROLL_BOT_COL"))
+	{
+		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_col);
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {[HEIGHT]} {[WIDTH]}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {<HEIGHT>}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {<WIDTH>}");
+		screen_get(ses, 0, "", "", "");
 	}
 }
 
@@ -308,6 +479,49 @@ DO_SCREEN(screen_move)
 	screen_csit(ses, "3", arg2, arg1); // reverse x,y to row,col
 }
 
+DO_SCREEN(screen_rescale)
+{
+	if (is_abbrev(arg1, "HORIZONTALLY"))
+	{
+		if (*arg2 == 0)
+		{
+			screen_csit(ses, "4", "", arg2);
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {[WIDTH]}");
+		}
+	}
+	else if (is_abbrev(arg1, "VERTICALLY"))
+	{
+		if (*arg2 == 0)
+		{
+			screen_csit(ses, "4", arg2, "");
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {[HEIGHT]}");
+		}
+	}
+	else if (*arg1 == 0 || is_math(ses, arg1))
+	{
+		if (*arg2 == 0 || is_math(ses, arg2))
+		{
+			screen_csit(ses, "4", arg1, arg2);
+		}
+		else
+		{
+			screen_rescale(ses, 0, arg, "SYNTAX", "");
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {[HEIGHT]} {[WIDTH]}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {<HEIGHT>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {<WIDTH>}");
+	}
+}
+
 DO_SCREEN(screen_pixel_resize)
 {
 	screen_csit(ses, "4", arg1, arg2);
@@ -334,6 +548,52 @@ DO_SCREEN(screen_scrollbar)
 	}
 }
 
+DO_SCREEN(screen_scrollregion)
+{
+	int top_row, top_col, bot_row, bot_col;
+
+	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLLREGION {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+
+		return;
+	}
+
+	top_row = get_number(ses, arg1);
+	top_col = get_number(ses, arg2);
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLL {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+
+		return;
+	}
+
+	bot_row = get_number(ses, arg1);
+	bot_col = get_number(ses, arg2);
+
+	if ((top_row|top_col|bot_row|bot_col) == 0)
+	{
+		do_unsplit(ses, "");
+
+		return;
+	}
+
+	ses->split->sav_top_row = top_row;
+	ses->split->sav_top_col = top_col;
+	ses->split->sav_bot_row = bot_row;
+	ses->split->sav_bot_col = bot_col;
+
+	SET_BIT(ses->flags, SES_FLAG_SPLIT);
+	SET_BIT(ses->flags, SES_FLAG_SCROLLSPLIT);
+
+	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
+
+	return;
+}
 
 DO_SCREEN(screen_load)
 {
@@ -341,7 +601,7 @@ DO_SCREEN(screen_load)
 	{
 		screen_csit(ses, "23", "1", "");
 	}
-	else if (is_abbrev(arg1, "BOTH"))
+	else if (is_abbrev(arg1, "BOTH") || is_abbrev(arg1, "NAME"))
 	{
 		screen_csit(ses, "23", "0", "");
 	}
@@ -351,13 +611,17 @@ DO_SCREEN(screen_load)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {LOAD} {BOTH|LABEL|TITLE}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {LOAD} {LABEL|NAME|TITLE}");
 	}
 }
 
 DO_SCREEN(screen_refresh)
 {
-	screen_csit(ses, "7", "", "");
+	SET_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
+
+	buffer_end(ses, "");
+
+	DEL_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
 }
 
 DO_SCREEN(screen_resize)
@@ -425,13 +689,21 @@ DO_SCREEN(screen_save)
 
 DO_SCREEN(screen_set)
 {
-	if (is_abbrev(arg1, "LABEL"))
+	if (is_abbrev(arg1, "BOTH") || is_abbrev(arg1, "NAME"))
+	{
+		screen_osc("0", arg2);
+	}
+	else if (is_abbrev(arg1, "COLS"))
+	{
+		gtd->screen->cols = get_number(ses, arg2);
+	}
+	else if (is_abbrev(arg1, "LABEL"))
 	{
 		screen_osc("1", arg2);
 	}
-	else if (is_abbrev(arg1, "BOTH"))
+	else if (is_abbrev(arg1, "ROWS"))
 	{
-		screen_osc("0", arg2);
+		gtd->screen->rows = get_number(ses, arg2);
 	}
 	else if (is_abbrev(arg1, "TITLE"))
 	{
@@ -439,75 +711,7 @@ DO_SCREEN(screen_set)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SET} {BOTH|LABEL|TITLE}");
-	}
-}
-
-DO_SCREEN(screen_fullscreen)
-{
-	if (*arg1 == 0)
-	{
-		screen_csit(ses, "10", "2", "");
-	}
-	else if (is_abbrev(arg1, "ON"))
-	{
-		screen_csit(ses, "10", "1", "");
-	}
-	else if (is_abbrev(arg1, "OFF"))
-	{
-		screen_csit(ses, "10", "0", "");
-	}
-}
-
-DO_SCREEN(screen_get)
-{
-	if (*arg1 == 0 || *arg2 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {FOCUS|ROWS|COLS|HEIGHT|WIDTH} {<VAR>}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {GET} {TOP_ROW|BOT_ROW|TOP_SPLIT|BOT_SPLIT} {<VAR>}");
-
-		return;
-	}
-
-	if (is_abbrev(arg1, "FOCUS"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->focus);
-	}
-	else if (is_abbrev(arg1, "ROWS"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->rows);
-	}
-	else if (is_abbrev(arg1, "COLS"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->cols);
-	}
-	else if (is_abbrev(arg1, "HEIGHT"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->height);
-	}
-	else if (is_abbrev(arg1, "WIDTH"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->width);
-	}
-	else if (is_abbrev(arg1, "TOP_ROW"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->top_row);
-	}
-	else if (is_abbrev(arg1, "TOP_SPLIT"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->top_split);
-	}
-	else if (is_abbrev(arg1, "BOT_ROW"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->bot_row);
-	}
-	else if (is_abbrev(arg1, "BOT_SPLIT"))
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->bot_split);
-	}
-	else
-	{
-		screen_get(ses, 0, "", "", "");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SET} {COLS|ROWS|LABEL|NAME|TITLE}");
 	}
 }
 
@@ -516,11 +720,12 @@ DO_SCREEN(screen_raise)
 	if (*arg1 == 0)
 	{
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN CHARACTER DIMENSIONS}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN POSITION}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN MINIMIZED}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN RESIZE}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN DIMENSIONS}");
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN DESKTOP DIMENSIONS}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN DIMENSIONS}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN MINIMIZED}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN POSITION}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN RESIZE}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN SIZE}");
 
 		return;
 	}
@@ -549,6 +754,10 @@ DO_SCREEN(screen_raise)
 	else if (is_abbrev(arg1, "RESIZE"))
 	{
 		check_all_events(NULL, SUB_ARG, 0, 4, "SCREEN RESIZE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+	}
+	else if (is_abbrev(arg1, "SIZE"))
+	{
+		screen_csit(ses, "18", "", "");
 	}
 	else if (is_abbrev(arg1, "DIMENSIONS"))
 	{
@@ -658,12 +867,35 @@ void csit_handler(int ind, int var1, int var2)
 			msdp_update_all("SCREEN_CHARACTER_HEIGHT", "%d", gtd->screen->char_height);
 			msdp_update_all("SCREEN_CHARACTER_WIDTH", "%d", gtd->screen->char_width);
 			break;
+
+		case 7:
+			init_screen(gtd->screen->rows, gtd->screen->cols, gtd->screen->height, gtd->screen->width);
+			check_all_events(NULL, SUB_ARG, 0, 4, "SCREEN REFRESH", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+			break;
+
+		case 8:
+			gtd->screen->rows = var1;
+			gtd->screen->cols = var2;
+
+			check_all_events(NULL, SUB_ARG, 0, 2, "SCREEN SIZE", ntos(var1), ntos(var2));
+			msdp_update_all("SCREEN_ROWS", "%d", gtd->screen->rows);
+			msdp_update_all("SCREEN_COLS", "%d", gtd->screen->cols);
+			break;
+
+		case 9:
+			gtd->screen->desk_rows = var1;
+			gtd->screen->desk_cols = var2;
+
+			check_all_events(NULL, SUB_ARG, 0, 2, "SCREEN DESKTOP SIZE", ntos(var1), ntos(var2));
+			msdp_update_all("SCREEN_DESKTOP_ROWS", "%d", gtd->screen->desk_rows);
+			msdp_update_all("SCREEN_DESKTOP_COLS", "%d", gtd->screen->desk_cols);
+			break;
 	}
 }
 
 void screen_osc(char *arg1, char *arg2)
 {
-	printf("\e]%s;%s\a", arg1, arg2);
+	print_stdout("\e]%s;%s\a", arg1, arg2);
 }
 
 void osc_handler(char ind, char *arg)
@@ -674,14 +906,14 @@ void osc_handler(char ind, char *arg)
 void screen_csi(char *cmd, char *num1, char *num2, char *num3, char *tc)
 {
 
-	printf("\e[%s%s%s%s%s%s%s",
+	print_stdout("\e[%s%s%s%s%s%s%s",
 		cmd,
 		*num1 ? XT_S : XT_V, *num1 && *num1 != ' ' ? num1 : "",
 		*num2 ? XT_S : XT_V, *num2 && *num2 != ' ' ? num2 : "",
 		num3,
 		tc);
 
-	fflush(NULL);
+	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
@@ -706,40 +938,67 @@ void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
 		strcpy(num2, arg3);
 	}
 
-	printf("\e[%s%s%s%s%st", arg1, *num1 ? XT_S : XT_V, *num1 && *num1 != ' ' ? num1 : "", *num2 ? XT_S : XT_V, *num2 && *num2 != ' ' ? num2 : "");
+	print_stdout("\e[%s%s%s%s%st", arg1, *num1 ? XT_S : XT_V, *num1 && *num1 != ' ' ? num1 : "", *num2 ? XT_S : XT_V, *num2 && *num2 != ' ' ? num2 : "");
 
 //	convert_meta(buf, debug, FALSE);
 
 //	tintin_printf2(gtd->ses, "\e[1;32m[%s] num1 (%s) num2 (%s) %s %s", num1, num2, debug, buf);
 
 
-	fflush(NULL);
+	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 
 DO_SCREEN(screen_info)
 {
-	tintin_printf2(ses, "gtd->ses->top_row:     %4d", gtd->ses->top_row);
-	tintin_printf2(ses, "gtd->ses->bot_row:     %4d", gtd->ses->bot_row);
-	tintin_printf2(ses, "gtd->ses->cur_row:     %4d", gtd->ses->cur_row);
-	tintin_printf2(ses, "gtd->ses->cur_col:     %4d", gtd->ses->cur_col);
+	int lvl;
+
+	tintin_printf2(ses, "gtd->ses->split->sav_top_row: %4d", gtd->ses->split->sav_top_row);
+	tintin_printf2(ses, "gtd->ses->split->sav_top_col: %4d", gtd->ses->split->sav_top_col);
+	tintin_printf2(ses, "gtd->ses->split->sav_bot_row: %4d", gtd->ses->split->sav_bot_row);
+	tintin_printf2(ses, "gtd->ses->split->sav_bot_col: %4d", gtd->ses->split->sav_bot_col);
+
+	tintin_printf2(ses, "gtd->ses->split->top_row:     %4d", gtd->ses->split->top_row);
+	tintin_printf2(ses, "gtd->ses->split->top_col:     %4d", gtd->ses->split->top_col);
+	tintin_printf2(ses, "gtd->ses->split->bot_row:     %4d", gtd->ses->split->bot_row);
+	tintin_printf2(ses, "gtd->ses->split->bot_col:     %4d", gtd->ses->split->bot_col);
 
 	tintin_printf2(ses, "");
 
-	tintin_printf2(ses, "gtd->screen->rows:     %4d", gtd->screen->rows);
-	tintin_printf2(ses, "gtd->screen->cols:     %4d", gtd->screen->cols);
-	tintin_printf2(ses, "gtd->screen->height: %4d", gtd->screen->height);
-	tintin_printf2(ses, "gtd->screen->pix_cows: %4d", gtd->screen->width);
+	tintin_printf2(ses, "gtd->ses->wrap:           %4d", gtd->ses->wrap);
+	tintin_printf2(ses, "gtd->ses->cur_row:        %4d", gtd->ses->cur_row);
+	tintin_printf2(ses, "gtd->ses->cur_col:        %4d", gtd->ses->cur_col);
+
+	for (lvl = 0 ; lvl < gtd->screen->sav_lev ; lvl++)
+	{
+	tintin_printf2(ses, "gtd->screen->sav_row[%2d]: %4d", lvl, gtd->screen->sav_row[lvl]);
+	tintin_printf2(ses, "gtd->screen->sav_col[%2d]: %4d", lvl, gtd->screen->sav_col[lvl]);
+	}
 
 	tintin_printf2(ses, "");
 
-	tintin_printf2(ses, "gtd->screen->top_row:  %4d", gtd->screen->top_row);
-	tintin_printf2(ses, "gtd->screen->bot_row:  %4d", gtd->screen->bot_row);
-	tintin_printf2(ses, "gtd->screen->sav_row:  %4d", gtd->screen->sav_row);
-	tintin_printf2(ses, "gtd->screen->sav_col:  %4d", gtd->screen->sav_col);
-	tintin_printf2(ses, "gtd->screen->cur_row:  %4d", gtd->screen->cur_row);
-	tintin_printf2(ses, "gtd->screen->cur_col:  %4d", gtd->screen->cur_col);
-	tintin_printf2(ses, "gtd->screen->max_row:  %4d", gtd->screen->max_row);
+	tintin_printf2(ses, "gtd->screen->rows:        %4d", gtd->screen->rows);
+	tintin_printf2(ses, "gtd->screen->cols:        %4d", gtd->screen->cols);
+	tintin_printf2(ses, "gtd->screen->height:      %4d", gtd->screen->height);
+	tintin_printf2(ses, "gtd->screen->pix_cows:    %4d", gtd->screen->width);
+
+	return;
+
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->screen->top_row:     %4d", gtd->screen->top_row);
+	tintin_printf2(ses, "gtd->screen->bot_row:     %4d", gtd->screen->bot_row);
+	tintin_printf2(ses, "gtd->screen->cur_row:     %4d", gtd->screen->cur_row);
+	tintin_printf2(ses, "gtd->screen->cur_col:     %4d", gtd->screen->cur_col);
+	tintin_printf2(ses, "gtd->screen->max_row:     %4d", gtd->screen->max_row);
+
+	tintin_printf2(ses, "");
+
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
+	{
+		tintin_printf2(ses, "SPLIT mode detected.");
+	}
 }
 
 /*
@@ -776,15 +1035,13 @@ void init_screen(int rows, int cols, int height, int width)
 {
 	int cnt;
 
-	if (gtd->screen == NULL)
-	{
-		gtd->screen = calloc(1, sizeof(struct screen_data));
-	}
+	gtd->screen->rows        = rows;
+	gtd->screen->cols        = cols;
+	gtd->screen->height      = height;
+	gtd->screen->width       = width;
+	gtd->screen->char_height = gtd->screen->height / gtd->screen->rows;
+	gtd->screen->char_width  = gtd->screen->width / gtd->screen->cols;
 
-	gtd->screen->rows   = rows;
-	gtd->screen->cols   = cols;
-	gtd->screen->height = height;
-	gtd->screen->width  = width;
 	gtd->screen->focus  = 1;
 
 	return;
@@ -816,10 +1073,11 @@ void init_screen(int rows, int cols, int height, int width)
 	}
 
 	gtd->screen->rows = rows;
-	gtd->screen->sav_row = gtd->screen->cur_row = rows;
-
 	gtd->screen->cols = cols;
-	gtd->screen->sav_col = gtd->screen->cur_col = 0;
+
+	gtd->screen->sav_lev = 0;
+	gtd->screen->sav_row[0] = gtd->screen->cur_row = rows;
+	gtd->screen->sav_col[0] = gtd->screen->cur_col = 0;
 
 	for (cnt = 0 ; cnt < gtd->screen->max_row ; cnt++)
 	{
@@ -856,7 +1114,7 @@ void print_screen()
 
 	for (cnt = 0 ; cnt < gtd->screen->rows ; cnt++)
 	{
-		printf("%2d %s\n", cnt, gtd->screen->lines[cnt]->str);
+		print_stdout("%2d %s\n", cnt, gtd->screen->lines[cnt]->str);
 	}
 }
 
@@ -874,7 +1132,7 @@ void add_line_screen(char *str)
 
 	if (gtd->screen == NULL)
 	{
-		printf("screen == NULL!\n");
+		print_stdout("screen == NULL!\n");
 
 		pop_call();
 		return;
@@ -882,11 +1140,11 @@ void add_line_screen(char *str)
 
 	while (str)
 	{
-		cnt = gtd->ses->top_row - 1;
+		cnt = gtd->ses->split->top_row - 1;
 
 		free(gtd->screen->lines[cnt]->str);
 
-		while (cnt < gtd->ses->bot_row - 2)
+		while (cnt < gtd->ses->split->bot_row - 2)
 		{
 			gtd->screen->lines[cnt]->str = gtd->screen->lines[cnt + 1]->str;
 
@@ -947,28 +1205,15 @@ void erase_scroll_region(struct session *ses)
 {
 	int row;
 
-	push_call("erase_scroll_region(%p) [%d,%d]",ses,ses->top_row,ses->bot_row);
+	push_call("erase_scroll_region(%p) [%d,%d]",ses,ses->split->top_row,ses->split->bot_row);
 
-	if (ses->wrap <= 0)
+	save_pos(ses);
+
+	for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 	{
-		save_pos(ses);
-		goto_pos(ses, ses->top_row, 1);
-		erase_lines(ses, ses->bot_row - ses->top_row);
-		load_pos(ses);
+		print_stdout("\e[%d;%dH\e[%dX", row, ses->split->top_col, ses->wrap);
 	}
-	else
-	{
-		save_pos(ses);
-		goto_pos(ses, ses->top_row, 1);
-
-		for (row = ses->top_row ; row < ses->bot_row ; row++)
-		{
-			printf("\e[%dX\n", ses->wrap);
-		}
-		load_pos(ses);
-	}
-
-//	printf("\e[%d;%d;%d;%d${", ses->top_row, 1, ses->bot_row, gtd->screen->cols); VT400 not widely supported
+	restore_pos(ses);
 
 	pop_call();
 	return;
@@ -979,22 +1224,26 @@ void erase_split_region(struct session *ses)
 	erase_top_region(ses);
 
 	erase_bot_region(ses);
+
+	erase_left_region(ses);
+
+	erase_right_region(ses);
 }
 
 void erase_top_region(struct session *ses)
 {
 	int row;
 
-	if (ses->top_row > 1)
+	if (ses->split->top_row > 1)
 	{
 		save_pos(ses);
 		goto_pos(ses, 1, 1);
 
-		for (row = 1 ; row < ses->top_row ; row++)
+		for (row = 1 ; row < ses->split->top_row ; row++)
 		{
-			printf("\e[K\n");
+			print_stdout("\e[K\n");
 		}
-		load_pos(ses);
+		restore_pos(ses);
 	}
 }
 
@@ -1002,18 +1251,51 @@ void erase_bot_region(struct session *ses)
 {
 	int row;
 
-	if (ses->bot_row < gtd->screen->rows)
+	if (ses->split->bot_row < gtd->screen->rows)
 	{
 		save_pos(ses);
-		goto_pos(ses, ses->bot_row + 1, 1);
+		goto_pos(ses, ses->split->bot_row + 1, 1);
 
-		for (row = ses->bot_row + 1 ; row < gtd->screen->rows ; row++)
+		for (row = ses->split->bot_row + 1 ; row < gtd->screen->rows ; row++)
 		{
-			printf("\e[K\n");
+			print_stdout("\e[K\n");
 		}
-		load_pos(ses);
+		restore_pos(ses);
 	}
 }
+
+void erase_left_region(struct session *ses)
+{
+	int row;
+
+	if (ses->split->top_col > 1)
+	{
+		save_pos(ses);
+
+		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
+		{
+			print_stdout("\e[%d;1H\e[%dX", row, ses->split->top_col - 1);
+		}
+		restore_pos(ses);
+	}
+}
+
+void erase_right_region(struct session *ses)
+{
+	int row;
+
+	if (ses->split->bot_col < gtd->screen->cols)
+	{
+		save_pos(ses);
+
+		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
+		{
+			print_stdout("\e[%d;%dH\e[K", row, ses->split->bot_col + 1);
+		}
+		restore_pos(ses);
+	}
+}
+
 
 void erase_square(struct session *ses, int top_row, int top_col, int bot_row, int bot_col)
 {
@@ -1026,14 +1308,130 @@ void erase_square(struct session *ses, int top_row, int top_col, int bot_row, in
 	for (row = top_row ; row <= bot_row ; row++)
 	{
 		goto_pos(ses, row, top_col);
-		printf("\e[%dX", bot_col - top_col + 1);
+		print_stdout("\e[%dX", bot_col - top_col + 1);
 	}
-	load_pos(ses);
+	restore_pos(ses);
 
 	pop_call();
 	return;
 }
 
+void fill_scroll_region(struct session *ses, char *arg)
+{
+	int row, col;
+
+	save_pos(ses);
+
+	for (row = ses->split->top_row ; row < ses->split->bot_row ; row++)
+	{
+		goto_pos(ses, row, ses->split->top_col);
+
+		for (col = ses->split->top_col ; col < ses->split->bot_col ; col++)
+		{
+			print_stdout("%s", arg);
+		}
+		print_stdout("\n");
+	}
+	restore_pos(ses);
+}
+
+void fill_top_region(struct session *ses, char *arg)
+{
+	int row, col;
+
+	if (ses->split->top_row > 1)
+	{
+		save_pos(ses);
+		goto_pos(ses, 1, 1);
+
+		for (row = 1 ; row < ses->split->top_row ; row++)
+		{
+			print_stdout("\e[0m");
+
+			for (col = 0 ; col < gtd->screen->cols ; col++)
+			{
+				print_stdout("%s", arg);
+			}
+			print_stdout("\n");
+		}
+		restore_pos(ses);
+	}
+}
+
+void fill_bot_region(struct session *ses, char *arg)
+{
+	int row, col;
+
+	if (ses->split->bot_row < gtd->screen->rows)
+	{
+		save_pos(ses);
+		goto_pos(ses, ses->split->bot_row + 1, 1);
+
+		for (row = ses->split->bot_row + 1 ; row < gtd->screen->rows ; row++)
+		{
+			print_stdout("\e[0m");
+			for (col = 0 ; col < gtd->screen->cols ; col++)
+			{
+				print_stdout("%s", arg);
+			}
+			print_stdout("\n");
+		}
+		restore_pos(ses);
+	}
+}
+
+void fill_left_region(struct session *ses, char *arg)
+{
+	int row, col;
+
+	if (ses->split->top_col > 1)
+	{
+		save_pos(ses);
+
+		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
+		{
+			print_stdout("\e[%d;1H\e[0m", row);
+
+			for (col = 0 ; col < ses->split->top_col - 1 ; col++)
+			{
+				print_stdout("%s", arg);
+			}
+		}
+		restore_pos(ses);
+	}
+}
+
+void fill_right_region(struct session *ses, char *arg)
+{
+	int row, col;
+
+	if (ses->split->bot_col < gtd->screen->cols)
+	{
+		save_pos(ses);
+
+		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
+		{
+			print_stdout("\e[%d;%dH\e[0m", row, ses->split->bot_col + 1);
+
+			for (col = ses->split->bot_col + 1 ; col <= gtd->screen->cols ; col++)
+			{
+				print_stdout("%s", arg);
+			}
+		}
+		restore_pos(ses);
+	}
+}
+
+void fill_split_region(struct session *ses, char *arg)
+{
+	fill_top_region(ses, arg);
+
+	fill_bot_region(ses, arg);
+
+	fill_left_region(ses, arg);
+
+	fill_right_region(ses, arg);
+}
 
 void get_line_screen(char *result, int row)
 {

@@ -52,7 +52,7 @@ char *get_arg_in_quotes(struct session *ses, char *string, char *result, int fla
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -98,6 +98,42 @@ char *get_arg_in_quotes(struct session *ses, char *string, char *result, int fla
 	*pto = 0;
 
 	return pti;
+}
+
+struct session *scan_bulk_file(struct session *ses, FILE *fp, char *filename, char *arg)
+{
+	char line[STRING_SIZE], *str_out, *str_rip, *str_sub;
+	int cnt = 0;
+
+	str_out = str_dup("");
+
+	while (fgets(line, BUFFER_SIZE - 1, fp))
+	{
+		cnt++;
+		str_cat(&str_out, line);
+	}
+
+	str_rip = str_alloc(str_len(str_out));
+
+	strip_vt102_codes(str_out, str_rip);
+
+	RESTRING(gtd->cmds[0], str_out);
+	RESTRING(gtd->cmds[1], str_rip);
+	RESTRING(gtd->cmds[2], ntos(str_len(str_out)));
+	RESTRING(gtd->cmds[3], ntos(strlen(str_rip)));
+	RESTRING(gtd->cmds[4], ntos(cnt));
+
+	str_sub = str_alloc(strlen(arg) + STRING_SIZE);
+
+	substitute(ses, arg, str_sub, SUB_CMD);
+
+	show_message(ses, LIST_COMMAND, "#SCAN BULK: FILE {%s} SCANNED.", filename);
+
+	DEL_BIT(ses->flags, SES_FLAG_SCAN);
+
+	ses = script_driver(ses, LIST_COMMAND, str_sub);
+
+	return ses;
 }
 
 struct session *scan_csv_file(struct session *ses, FILE *fp, char *filename)
@@ -194,7 +230,7 @@ char *get_arg_stop_tabs(struct session *ses, char *string, char *result, int fla
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -388,8 +424,11 @@ DO_COMMAND(do_scan)
 
 	SET_BIT(ses->flags, SES_FLAG_SCAN);
 
-
-	if (is_abbrev(arg1, "CSV"))
+	if (is_abbrev(arg1, "FILE"))
+	{
+		ses = scan_bulk_file(ses, fp, arg2, arg);
+	}
+	else if (is_abbrev(arg1, "CSV"))
 	{
 		ses = scan_csv_file(ses, fp, arg2);
 	}
@@ -405,7 +444,7 @@ DO_COMMAND(do_scan)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_SCAN);
 
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {ABORT|CSV|TXT} {<FILENAME>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {ABORT|CSV|FILE|TSV|TXT} {<FILENAME>}");
 	}
 
 	DEL_BIT(ses->flags, SES_FLAG_SCAN);

@@ -24,16 +24,24 @@
 *                     coded by Igor van den Hoven 2019                        *
 ******************************************************************************/
 
+static char draw_buf[100][10];
+static int  draw_cnt;
+
 #include "tintin.h"
 
 DO_COMMAND(do_draw)
 {
-	char *nst_arg;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char *sub_arg, arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], color[BUFFER_SIZE], arg3[BUFFER_SIZE], input[BUFFER_SIZE];
 	int index, flags;
 	int top_row, top_col, bot_row, bot_col, rows, cols;
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	substitute(ses, arg, input, SUB_VAR|SUB_FUN);
+
+	arg = input;
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+
+	draw_cnt = 0;
 
 	if (*arg1 == 0)
 	{
@@ -50,75 +58,197 @@ DO_COMMAND(do_draw)
 	}
 	else
 	{
-		flags = HAS_BIT(ses->flags, SES_FLAG_UTF8) ? DRAW_FLAG_UTF8 : 0;
+		flags = HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) ? DRAW_FLAG_UTF8 : 0;
 
-		nst_arg = get_arg_in_braces(ses, arg1, arg2, GET_ONE);
-
-/*		if (is_abbrev(arg2, "ESCAPED"))
+		while (*arg)
 		{
-			SET_BIT(flags, DRAW_FLAG_ESCAPED);
-		}
-		else */if (is_abbrev(arg2, "PRUNED"))
-		{
-			SET_BIT(flags, DRAW_FLAG_PRUNED);
-		}
-		else if (is_abbrev(arg2, "ROUNDED"))
-		{
-			SET_BIT(flags, DRAW_FLAG_ROUNDED);
-		}
-		else if (is_abbrev(arg2, "CROSSED"))
-		{
-			SET_BIT(flags, DRAW_FLAG_CROSSED);
-		}
-
-		if (HAS_BIT(flags, DRAW_FLAG_PRUNED|DRAW_FLAG_ROUNDED|DRAW_FLAG_CROSSED))
-		{
-			if (*nst_arg)
+			if (!HAS_BIT(flags, DRAW_FLAG_COLOR) && get_color_names(ses, arg1, color))
 			{
-				get_arg_in_braces(ses, nst_arg, arg1, GET_ALL);
+				SET_BIT(flags, DRAW_FLAG_COLOR);
+			}
+			else if (!HAS_BIT(flags, DRAW_FLAG_COLOR) && strip_vt102_strlen(ses, arg1) == 0)
+			{
+				strcpy(color, arg1);
+				SET_BIT(flags, DRAW_FLAG_COLOR);
+			}
+			else if (is_abbrev(arg1, "ASCII"))
+			{
+				DEL_BIT(flags, DRAW_FLAG_UTF8);
+			}
+			else if (is_abbrev(arg1, "BLANKED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_BLANKED|DRAW_FLAG_BOXED);
+			}
+			else if (is_abbrev(arg1, "BOTTOM"))
+			{
+				SET_BIT(flags, DRAW_FLAG_BOT);
+			}
+			else if (is_abbrev(arg1, "BUMPED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_BUMP);
+			}
+			else if (is_abbrev(arg1, "CIRCLED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_CIRCLED);
+			}
+			else if (is_abbrev(arg1, "CONVERT"))
+			{
+				SET_BIT(flags, DRAW_FLAG_CONVERT);
+			}
+			else if (is_abbrev(arg1, "CORNERED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_CORNERED);
+			}
+			else if (is_abbrev(arg1, "CROSSED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_CROSSED|DRAW_FLAG_BOXED);
+			}
+			else if (is_abbrev(arg1, "FILLED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_FILLED);
+			}
+			else if (is_abbrev(arg1, "HORIZONTAL"))
+			{
+				SET_BIT(flags, DRAW_FLAG_HOR);
+			}
+			else if (is_abbrev(arg1, "JEWELED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_JEWELED);
+			}
+			else if (is_abbrev(arg1, "LEFT"))
+			{
+				SET_BIT(flags, DRAW_FLAG_LEFT);
+			}
+			else if (is_abbrev(arg1, "NUMBERED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_NUMBERED);
+			}
+			else if (is_abbrev(arg1, "PRUNED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_PRUNED|DRAW_FLAG_BOXED);
+			}
+			else if (is_abbrev(arg1, "RIGHT"))
+			{
+				SET_BIT(flags, DRAW_FLAG_RIGHT);
+			}
+			else if (is_abbrev(arg1, "ROUNDED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_ROUNDED|DRAW_FLAG_BOXED);
+			}
+			else if (is_abbrev(arg1, "TEED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_TEED|DRAW_FLAG_BOXED);
+			}
+			else if (is_abbrev(arg1, "TOP"))
+			{
+				SET_BIT(flags, DRAW_FLAG_TOP);
+			}
+			else if (is_abbrev(arg1, "TUBED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_TUBED);
+			}
+			else if (is_abbrev(arg1, "UNICODE"))
+			{
+				SET_BIT(flags, DRAW_FLAG_UTF8);
+			}
+			else if (is_abbrev(arg1, "VERTICAL"))
+			{
+				SET_BIT(flags, DRAW_FLAG_VER);
 			}
 			else
 			{
-				arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+				break;
 			}
+			arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 		}
 
 		for (index = 0 ; *draw_table[index].name ; index++)
 		{
 			if (is_abbrev(arg1, draw_table[index].name))
 			{
-				arg = sub_arg_in_braces(ses, arg, arg4, GET_ALL, SUB_VAR|SUB_FUN);
+				arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-				nst_arg = arg4;
+				sub_arg = get_arg_in_braces(ses, arg1, arg3, GET_ONE);
 
-				nst_arg = get_arg_in_braces(ses, nst_arg, arg2, GET_ONE);
-				nst_arg = get_arg_in_braces(ses, nst_arg, arg3, GET_ONE);
+				if (*sub_arg)
+				{
+					strcpy(arg1, arg3);
+					sub_arg = get_arg_in_braces(ses, sub_arg, arg2, GET_ONE);
+				}
+				else
+				{
+					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+				}
 
-				top_row = get_row_index(ses, arg2);
-				top_col = get_col_index(ses, arg3);
+				top_row = get_row_index(ses, arg1);
+				top_col = get_col_index(ses, arg2);
 
-				nst_arg = get_arg_in_braces(ses, nst_arg, arg2, GET_ONE);
-				nst_arg = get_arg_in_braces(ses, nst_arg, arg3, GET_ONE);
+				if (*sub_arg)
+				{
+					sub_arg = get_arg_in_braces(ses, sub_arg, arg1, GET_ONE);
+					sub_arg = get_arg_in_braces(ses, sub_arg, arg2, GET_ONE);
+				}
+				else
+				{
+					arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+				}
+				bot_row = get_row_index(ses, arg1);
+				bot_col = get_col_index(ses, arg2);
 
-				bot_row = get_row_index(ses, arg2);
-				bot_col = get_col_index(ses, arg3);
+				if (top_row == 0 && top_col == 0)
+				{
+					show_error(ses, LIST_COMMAND, "#SYNTAX: #DRAW [COLOR] [OPTIONS] {%s} <TOP_ROW> <TOP_COL> <BOT_ROW> <BOT_COL> [TEXT]", draw_table[index].name);
+
+					return ses;
+				}
+
+				if (top_row == 0)
+				{
+					top_row = 1;
+
+					SET_BIT(flags, DRAW_FLAG_SCROLL);
+				}
+
+				if (top_col == 0)
+				{
+					top_col = 1;
+				}
+
+				if (bot_row == 0)
+				{
+					bot_row = 1;
+				}
+
+				if (bot_col == 0)
+				{
+					bot_col = 1;
+				}
 
 				rows = URANGE(1, 1 + bot_row - top_row, gtd->screen->rows);
 				cols = URANGE(1, 1 + bot_col - top_col, gtd->screen->cols);
 
-				if (*arg == 0)
-				{
-					arg = nst_arg;
-				}
-
 				*arg1 = 0;
 				*arg2 = 0;
+				*arg3 = 0;
+
+				if (*arg == 0)
+				{
+					arg = arg3;
+				}
 
 				save_pos(ses);
 
-				draw_table[index].fun(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
+				if (HAS_BIT(flags, DRAW_FLAG_BUMP))
+				{
+					tintin_printf2(ses, "");
+				}
 
-				load_pos(ses);
+				draw_table[index].fun(ses, top_row, top_col, bot_row, bot_col, rows, cols, draw_table[index].flags | flags, color, arg, arg1, arg2);
+
+				print_stdout("\e[0m");
+
+				restore_pos(ses);
 
 				return ses;
 			}
@@ -133,211 +263,469 @@ DO_COMMAND(do_draw)
 
 char *draw_corner(int flags, char *str)
 {
-	static char result[10][10];
-	static int cnt;
+	draw_cnt = (draw_cnt + 1) % 100;
 
-	cnt = (cnt + 1) % 10;
-
-	if (HAS_BIT(flags, DRAW_FLAG_UTF8))
+	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
+	{
+		strcpy(draw_buf[draw_cnt], " ");
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
+	{
+		sprintf(draw_buf[draw_cnt], "%d", draw_cnt % 10);
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_UTF8))
 	{
 		if (HAS_BIT(flags, DRAW_FLAG_PRUNED))
 		{
-			strcpy(result[cnt], "\e[C");
+			if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+			{
+				strcpy(draw_buf[draw_cnt], " ");
+			}
+			else
+			{
+				strcpy(draw_buf[draw_cnt], "\e[C");
+			}
 		}
-		else if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+		else if (HAS_BIT(flags, DRAW_FLAG_CIRCLED))
 		{
-			strcpy(result[cnt], "○");
+			if (HAS_BIT(flags, DRAW_FLAG_CROSSED))
+			{
+				strcpy(draw_buf[draw_cnt], "ϴ");
+			}
+			else if (HAS_BIT(flags, DRAW_FLAG_FILLED))
+			{
+				strcpy(draw_buf[draw_cnt], "⬤");
+			}
+			else if (HAS_BIT(flags, DRAW_FLAG_VER))
+			{
+				strcpy(draw_buf[draw_cnt], "O");
+			}
+			else
+			{
+				strcpy(draw_buf[draw_cnt], "○");
+			}
 		}
 		else if (HAS_BIT(flags, DRAW_FLAG_CROSSED))
 		{
-			strcpy(result[cnt], "┼");
+			strcpy(draw_buf[draw_cnt], "┼");
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_JEWELED))
+		{
+			if (HAS_BIT(flags, DRAW_FLAG_FILLED))
+			{
+				strcpy(draw_buf[draw_cnt], "⧫");
+			}
+			else
+			{
+				strcpy(draw_buf[draw_cnt], "◊");
+			}
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_TEED))
+		{
+			if (HAS_BIT(flags, DRAW_FLAG_HOR))
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "╠");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "├");
+					}
+				}
+				else
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "╣");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "┤");
+					}
+				}
+			}
+			else
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_TOP))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "╦");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "┬");
+					}
+				}
+				else
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "╧");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "┴");
+					}
+				}
+			}
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_CORNERED))
+		{
+			if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_TOP))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+					{
+						strcpy(draw_buf[draw_cnt], "╭");
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "╔");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "┌");
+						}
+					}
+				}
+				else if (HAS_BIT(flags, DRAW_FLAG_BOT))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+					{
+						strcpy(draw_buf[draw_cnt], "╰");
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "╚");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "└");
+						}
+					}
+				}
+				else
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_HOR))
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "═");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "─");
+						}
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "║");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "│");
+						}
+					}
+				}
+			}
+			else if (HAS_BIT(flags, DRAW_FLAG_RIGHT))
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_TOP))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+					{
+						strcpy(draw_buf[draw_cnt], "╮");
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "╗");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "┐");
+						}
+					}
+				}
+				else if (HAS_BIT(flags, DRAW_FLAG_BOT))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+					{
+						strcpy(draw_buf[draw_cnt], "╯");
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "╝");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "┘");
+						}
+					}
+				}
+				else
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_HOR))
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "═");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "─");
+						}
+					}
+					else
+					{
+						if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+						{
+							strcpy(draw_buf[draw_cnt], "║");
+						}
+						else
+						{
+							strcpy(draw_buf[draw_cnt], "│");
+						}
+					}
+				}
+			}
+			else
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_HOR))
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "═");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "─");
+					}
+				}
+				else
+				{
+					if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+					{
+						strcpy(draw_buf[draw_cnt], "║");
+					}
+					else
+					{
+						strcpy(draw_buf[draw_cnt], "│");
+					}
+				}
+			}
 		}
 		else
 		{
-			strcpy(result[cnt], str);
+			if (HAS_BIT(flags, DRAW_FLAG_HOR))
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+				{
+					strcpy(draw_buf[draw_cnt], "═");
+				}
+				else
+				{
+					strcpy(draw_buf[draw_cnt], "─");
+				}
+			}
+			else if (HAS_BIT(flags, DRAW_FLAG_VER))
+			{
+				if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+				{
+					strcpy(draw_buf[draw_cnt], "║");
+				}
+				else
+				{
+					strcpy(draw_buf[draw_cnt], "│");
+				}
+			}
+			else
+			{
+				strcpy(draw_buf[draw_cnt], "?");
+			}
 		}
 	}
 	else
 	{
 		if (HAS_BIT(flags, DRAW_FLAG_PRUNED))
 		{
-			strcpy(result[cnt], "\e[C");
+			strcpy(draw_buf[draw_cnt], "\e[C");
 		}
-		else if (HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+		else if (HAS_BIT(flags, DRAW_FLAG_CIRCLED) || HAS_BIT(flags, DRAW_FLAG_ROUNDED))
 		{
-			strcpy(result[cnt], "o");
+			strcpy(draw_buf[draw_cnt], "o");
 		}
 		else if (HAS_BIT(flags, DRAW_FLAG_CROSSED))
 		{
-			strcpy(result[cnt], "+");
+			strcpy(draw_buf[draw_cnt], "+");
 		}
 		else
 		{
-			strcpy(result[cnt], "+");
+			strcpy(draw_buf[draw_cnt], "+");
 		}
 	}
-	return result[cnt];
+	return draw_buf[draw_cnt];
 }
 
 char *draw_horizontal(int flags, char *str)
 {
-	static char result[10][10];
-	static int cnt;
+	draw_cnt = (draw_cnt + 1) % 100;
 
-	cnt = (cnt + 1) % 10;
-
-	if (HAS_BIT(flags, DRAW_FLAG_UTF8))
+	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
 	{
-		strcpy(result[cnt], "─");
+		strcpy(draw_buf[draw_cnt], " ");
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
+	{
+		sprintf(draw_buf[draw_cnt], "%d", draw_cnt % 10);
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_UTF8))
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+		{
+			strcpy(draw_buf[draw_cnt], "═");
+		}
+		else
+		{
+			strcpy(draw_buf[draw_cnt], "─");
+		}
 	}
 	else
 	{
-		strcpy(result[cnt], "-");
+		strcpy(draw_buf[draw_cnt], "-");
 	}
-	return result[cnt];
+	return draw_buf[draw_cnt];
 }
 
 char *draw_vertical(int flags, char *str)
 {
-	static char result[10][10];
-	static int cnt;
+	draw_cnt = (draw_cnt + 1) % 100;
 
-	cnt = (cnt + 1) % 10;
-
-	if (HAS_BIT(flags, DRAW_FLAG_UTF8))
+	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
 	{
-		strcpy(result[cnt], "│");
+		strcpy(draw_buf[draw_cnt], " ");
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
+	{
+		sprintf(draw_buf[draw_cnt], "%d", draw_cnt % 10);
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_UTF8))
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_TUBED))
+		{
+			strcpy(draw_buf[draw_cnt], "║");
+		}
+		else
+		{
+			strcpy(draw_buf[draw_cnt], "│");
+		}
 	}
 	else
 	{
-		strcpy(result[cnt], "|");
+		strcpy(draw_buf[draw_cnt], "|");
 	}
-	return result[cnt];
+	return draw_buf[draw_cnt];
 }
 
-// subcommands
+// options
 
-DO_DRAW(draw_blank)
+DO_DRAW(draw_bot_side)
 {
-	int row;
+	int col, corner;
+
+	SET_BIT(flags, HAS_BIT(flags, DRAW_FLAG_VER) ? DRAW_FLAG_VER : DRAW_FLAG_HOR);
+
+	corner = flags;
+
+	DEL_BIT(corner, DRAW_FLAG_RIGHT|DRAW_FLAG_TOP);
 
 	arg = arg1;
 
-	arg1 += sprintf(arg1, "\e[%d;%dH", top_row, top_col);
-
-	for (row = 0 ; row < rows ; row++)
+	if (HAS_BIT(flags, DRAW_FLAG_LEFT) || HAS_BIT(flags, DRAW_FLAG_BOT))
 	{
-		arg1 += sprintf(arg1, "\e[%dX\v", bot_col - top_col + 1);
+		arg1 += sprintf(arg1, "%s%s", color, draw_corner(corner, "└"));
 	}
 
-	printf("%s", arg);
-}
-
-
-DO_DRAW(draw_bot_line)
-{
-	int col;
-
-	goto_pos(ses, bot_row, top_col);
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "└"));
-
-	for (col = top_col + 1 ; col < bot_col ; col++)
+	if (cols - 2 >= 0)
 	{
-		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
+		if (HAS_BIT(flags, DRAW_FLAG_BOT))
+		{
+			for (col = top_col + 1 ; col < bot_col ; col++)
+			{
+				arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
+			}
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_RIGHT) && cols - 2 > 0)
+		{
+			arg1 += sprintf(arg1, "\e[%dC", cols - 2);
+		}
+
+		corner = flags;
+
+		DEL_BIT(corner, DRAW_FLAG_LEFT|DRAW_FLAG_TOP);
+
+		if (HAS_BIT(flags, DRAW_FLAG_RIGHT) || HAS_BIT(flags, DRAW_FLAG_BOT))
+		{
+			arg1 += sprintf(arg1, "%s", draw_corner(corner, "┘"));
+		}
 	}
 
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "┘"));
+	if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+	{
+		tintin_printf2(ses, "%s%s", indent_one(top_col - 1), arg);
+	}
+	else
+	{
+		goto_pos(ses, bot_row, top_col);
 
-	printf("%s", arg);
+		print_stdout("%s", arg);
+	}
 }
 
 DO_DRAW(draw_box)
 {
-	draw_top_line(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
-	draw_bot_line(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
+	draw_top_side(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
 
-	draw_left_line (ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
-	draw_right_line(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
+	draw_vertical_lines(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
+
+	draw_bot_side(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
 }
 
-DO_DRAW(draw_box_text)
+DO_DRAW(draw_line)
 {
-	draw_box (ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
-
-	draw_text(ses, top_row + 1, top_col + 1, bot_row - 1, bot_col - 1, rows - 2, cols - 2, flags, arg, arg1, arg2);
-}
-
-DO_DRAW(draw_center_left_line)
-{
-	int row = top_row;
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, top_col, draw_corner(flags, "┬"));
-
-	while (++row < bot_row)
+	if (top_row == bot_row)
 	{
-		arg1 += sprintf(arg1, "\e[%d;%dH%s", row, top_col, draw_vertical(flags, "│"));
+		SET_BIT(flags, DRAW_FLAG_HOR|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT);
+
+		if (!HAS_BIT(flags, DRAW_FLAG_BOT))
+		{
+			SET_BIT(flags, DRAW_FLAG_TOP);
+		}
 	}
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", bot_row, top_col, draw_corner(flags, "┴"));
-
-	printf("%s", arg);
-}
-
-DO_DRAW(draw_center_right_line)
-{
-	int row = top_row;
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, bot_col, draw_corner(flags, "┬"));
-
-	while (++row < bot_row)
+	if (top_col == bot_col)
 	{
-		arg1 += sprintf(arg1, "\e[%d;%dH%s", row, bot_col, draw_vertical(flags, "│"));
+		SET_BIT(flags, DRAW_FLAG_VER|DRAW_FLAG_TOP|DRAW_FLAG_BOT);
+
+		if (!HAS_BIT(flags, DRAW_FLAG_RIGHT))
+		{
+			SET_BIT(flags, DRAW_FLAG_LEFT);
+		}
 	}
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", bot_row, bot_col, draw_corner(flags, "┴"));
-
-	printf("%s", arg);
-}
-
-DO_DRAW(draw_horizontal_line)
-{
-	int col;
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, top_col, draw_horizontal(flags, "─"));
-
-	for (col = top_col + 1 ; col <= bot_col ; col++)
-	{
-		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
-	}
-
-	printf("%s", arg);
-}
-
-DO_DRAW(draw_left_line)
-{
-	int row = top_row;
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, top_col, draw_corner(flags, "┌"));
-
-	while (++row < bot_row)
-	{
-		arg1 += sprintf(arg1, "\e[%d;%dH%s", row, top_col, draw_vertical(flags, "│"));
-	}
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", bot_row, top_col, draw_corner(flags, "└"));
-
-	printf("%s", arg);
+	draw_box(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
 }
 
 DO_DRAW(draw_map)
@@ -359,119 +747,46 @@ DO_DRAW(draw_map)
 
 	save_pos(ses);
 
-	draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg2, arg1, arg);
+	draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg2, arg1, arg);
 
-	load_pos(ses);
+	restore_pos(ses);
 }
 
-DO_DRAW(draw_middle_top_line)
+DO_DRAW(draw_side)
 {
-	int col;
+	push_call("draw_side()");
 
-	goto_pos(ses, top_row, top_col);
+	draw_box(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
 
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "├"));
-
-	for (col = top_col + 1 ; col < bot_col ; col++)
-	{
-		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
-	}
-	
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "┤"));
-
-	printf("%s", arg);
+	pop_call();
+	return;
 }
 
-DO_DRAW(draw_middle_bot_line)
+DO_DRAW(draw_square)
 {
-	int col;
-
-	goto_pos(ses, bot_row, top_col);
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "├"));
-
-	for (col = top_col + 1 ; col < bot_col ; col++)
-	{
-		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
-	}
-
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "┤"));
-
-	printf("%s", arg);
+	draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg, arg1, arg2);
 }
-
-DO_DRAW(draw_right_line)
-{
-	int row = top_row;
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, bot_col, draw_corner(flags, "┐"));
-
-	while (++row < bot_row)
-	{
-		arg1 += sprintf(arg1, "\e[%d;%dH%s", row, bot_col, draw_vertical(flags, "│"));
-	}
-
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", bot_row, bot_col, draw_corner(flags, "┘"));
-
-	printf("%s", arg);
-}
-
-DO_DRAW(draw_side_lines)
-{
-	draw_vertical_line(ses, top_row, top_col, bot_row, top_col, rows, cols, flags, arg, arg1, arg2);
-	draw_vertical_line(ses, top_row, bot_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
-}
-
-DO_DRAW(draw_side_lines_text)
-{
-	draw_side_lines(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
-
-	draw_text(ses, top_row, top_col + 1, bot_row, bot_col - 1, rows, cols - 2, flags, arg, arg1, arg2);
-}
-
-DO_DRAW(draw_top_line)
-{
-	int col;
-
-	goto_pos(ses, top_row, top_col);
-
-	arg = arg1;
-
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "┌"));
-
-	for (col = top_col + 1 ; col < bot_col ; col++)
-	{
-		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
-	}
-	
-	arg1 += sprintf(arg1, "%s", draw_corner(flags, "┐"));
-
-	printf("%s", arg);
-}
-
 
 DO_DRAW(draw_text)
 {
-	char *txt;
-	int row, col, lines;
+	char *txt, buf1[BUFFER_SIZE], buf2[BUFFER_SIZE], buf3[BUFFER_SIZE];
+	int row, col, height, width;
 
 	push_call("draw_text(%p,%d,%p,%p,%p)",ses,flags,arg,arg1,arg2);
 
-	draw_blank(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, arg, arg1, arg2);
+	buf1[0] = buf2[0] = arg1[0] = arg2[0] = 0;
 
-	txt = arg2;
+	txt = buf2;
+
+	substitute(ses, arg, buf3, SUB_VAR|SUB_FUN);
+
+	arg = buf3;
 
 	while (*arg)
 	{
-		arg = sub_arg_in_braces(ses, arg, arg1, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC, GET_ALL);
+		arg = sub_arg_in_braces(ses, arg, buf1, GET_ALL, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
 
-		txt += sprintf(txt, "%s\n", arg1);
+		txt += sprintf(txt, "%s\n", buf1);
 
 		if (*arg == COMMAND_SEPARATOR)
 		{
@@ -479,15 +794,41 @@ DO_DRAW(draw_text)
 		}
 	}
 
-	lines = -1 + word_wrap_split(ses, arg2, arg1, cols, 0, BUFFER_SIZE / cols);
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_TOP) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	{
+		top_row++;
+		rows--;
+	}
 
-	txt = arg1;
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_BOT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	{
+		bot_row--;
+		rows--;
+	}
 
-	while (*txt && lines > rows)
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_LEFT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	{
+		strcpy(arg1, " ");
+		cols--;
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_RIGHT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	{
+		strcpy(arg2, " ");
+		cols--;
+	}
+
+	word_wrap_split(ses, buf2, buf1, cols, 0, 0, FLAG_NONE, &height, &width);
+
+	height--;
+
+	txt = buf1;
+
+	while (*txt && height > rows)
 	{
 		txt = strchr(txt, '\n');
 		txt++;
-		lines--;
+		height--;
 	}
 
 	arg = txt;
@@ -500,28 +841,182 @@ DO_DRAW(draw_text)
 
 		*arg++ = 0;
 
-		goto_pos(ses, row++, col);
+		justify_string(ses, txt, buf2, 0 - cols, cols);
 
-		printf("%s", txt);
+		if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+		{
+			strcpy(arg1, draw_vertical(flags, "│"));
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_RIGHT))
+		{
+			strcpy(arg2, draw_vertical(flags, "│"));
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_CONVERT))
+		{
+			convert_meta(buf2, buf3, FALSE);
+			strcpy(buf2, buf3);
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+		{
+			tintin_printf2(ses, "%s%s%s%s%s%s", indent_one(top_col - 1), color, arg1, buf2, color, arg2);
+		}
+		else
+		{
+			goto_pos(ses, row++, col);
+
+			print_stdout("%s%s%s%s%s", color, arg1, buf2, color, arg2);
+		}
 
 		txt = arg;
+	}
+
+	while (height < rows)
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+		{
+			strcpy(arg1, draw_vertical(flags, "│"));
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_RIGHT))
+		{
+			strcpy(arg2, draw_vertical(flags, "│"));
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+		{
+			
+			tintin_printf2(ses, "%s%s%s%-*s%s%s", indent_one(top_col - 1), color, arg1, cols, "", color, arg2);
+		}
+		else
+		{
+			goto_pos(ses, row++, col);
+
+			print_stdout("%s%s%*s%s%s", color, arg1, cols, "", color, arg2);
+		}
+		height++;
 	}
 	pop_call();
 	return;
 }
 
-DO_DRAW(draw_vertical_line)
+DO_DRAW(draw_top_side)
 {
-	int row = top_row;
+	int col, corner;
+
+	SET_BIT(flags, HAS_BIT(flags, DRAW_FLAG_VER) ? DRAW_FLAG_VER : DRAW_FLAG_HOR);
+
+	corner = flags;
+
+	DEL_BIT(corner, DRAW_FLAG_RIGHT|DRAW_FLAG_BOT);
 
 	arg = arg1;
 
-	arg1 += sprintf(arg1, "\e[%d;%dH%s", top_row, top_col, draw_vertical(flags, "│"));
-
-	for (row = top_row + 1 ; row <= bot_row ; row++)
+	if (HAS_BIT(flags, DRAW_FLAG_LEFT) || HAS_BIT(flags, DRAW_FLAG_TOP))
 	{
-		arg1 += sprintf(arg1, "\e[%d;%dH%s", row, top_col, draw_vertical(flags, "│"));
+		arg1 += sprintf(arg1, "%s%s", color, draw_corner(corner, "┌"));
 	}
 
-	printf("%s", arg);
+	if (cols - 2 >= 0)
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_TOP))
+		{
+			for (col = top_col + 1 ; col < bot_col ; col++)
+			{
+				arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
+			}
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_RIGHT) && cols - 2 > 0)
+		{
+			arg1 += sprintf(arg1, "\e[%dC", cols - 2);
+		}
+
+		corner = flags;
+
+		DEL_BIT(corner, DRAW_FLAG_LEFT|DRAW_FLAG_BOT);
+
+		if (HAS_BIT(flags, DRAW_FLAG_TOP) || HAS_BIT(flags, DRAW_FLAG_RIGHT))
+		{
+			arg1 += sprintf(arg1, "%s", draw_corner(corner, "┐"));
+		}
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+	{
+		tintin_printf2(ses, "%*s%s", top_col - 1, "", arg);
+	}
+	else
+	{
+		goto_pos(ses, top_row, top_col);
+
+		print_stdout("%s", arg);
+	}
+}
+
+DO_DRAW(draw_vertical_lines)
+{
+	int row, col, lines;
+
+	push_call("draw_vertical_lines(%p,%d,%p,%p,%p)",ses,flags,arg,arg1,arg2);
+
+	if (HAS_BIT(flags, DRAW_FLAG_SCROLL) || *arg)
+	{
+		draw_text(ses, top_row, top_col, bot_row, top_col, rows, cols, flags, color, arg, arg1, arg2);
+
+		pop_call();
+		return;
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_TOP))
+	{
+		top_row++;
+		rows--;
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_BOT))
+	{
+		bot_row--;
+		rows--;
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_LEFT))
+	{
+		cols--;
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_RIGHT))
+	{
+		cols--;
+	}
+
+	lines = 0;
+
+	row = top_row;
+	col = top_col;
+
+	strcpy(arg1, "");
+	strcpy(arg2, "");
+
+	while (lines < rows)
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+		{
+			strcpy(arg1, draw_vertical(flags, "│"));
+		}
+
+		if (HAS_BIT(flags, DRAW_FLAG_RIGHT))
+		{
+			strcpy(arg2, draw_vertical(flags, "│"));
+		}
+
+		goto_pos(ses, row++, col);
+
+		print_stdout("%s%s\e[%dC%s%s", color, arg1, cols, color, arg2);
+
+		lines++;
+	}
+	pop_call();
+	return;
 }

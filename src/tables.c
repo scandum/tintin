@@ -34,6 +34,7 @@ struct command_type command_table[] =
 	{    "advertise",         do_advertise,         TOKEN_TYPE_COMMAND },
 	{    "alias",             do_alias,             TOKEN_TYPE_COMMAND },
 	{    "all",               do_all,               TOKEN_TYPE_COMMAND },
+//	{    "attach",            do_attach,            TOKEN_TYPE_COMMAND },
 	{    "bell",              do_bell,              TOKEN_TYPE_COMMAND },
 	{    "break",             do_nop,               TOKEN_TYPE_BREAK   },
 	{    "buffer",            do_buffer,            TOKEN_TYPE_COMMAND },
@@ -46,16 +47,17 @@ struct command_type command_table[] =
 	{    "continue",          do_nop,               TOKEN_TYPE_CONTINUE},
 	{    "cr",                do_cr,                TOKEN_TYPE_COMMAND },
 	{    "cursor",            do_cursor,            TOKEN_TYPE_COMMAND },
+	{    "daemon",            do_daemon,            TOKEN_TYPE_COMMAND },
 	{    "debug",             do_debug,             TOKEN_TYPE_COMMAND },
 	{    "default",           do_nop,               TOKEN_TYPE_DEFAULT },
 	{    "delay",             do_delay,             TOKEN_TYPE_COMMAND },
+//	{    "detach",            do_detach,            TOKEN_TYPE_COMMAND },
 	{    "draw",              do_draw,              TOKEN_TYPE_COMMAND },
 	{    "echo",              do_echo,              TOKEN_TYPE_COMMAND },
 	{    "else",              do_nop,               TOKEN_TYPE_ELSE    },
 	{    "elseif",            do_nop,               TOKEN_TYPE_ELSEIF  },
 	{    "end",               do_end,               TOKEN_TYPE_COMMAND },
 	{    "event",             do_event,             TOKEN_TYPE_COMMAND },
-	{    "forall",            do_forall,            TOKEN_TYPE_COMMAND },
 	{    "foreach",           do_nop,               TOKEN_TYPE_FOREACH },
 	{    "format",            do_format,            TOKEN_TYPE_COMMAND },
 	{    "function",          do_function,          TOKEN_TYPE_COMMAND },
@@ -67,7 +69,8 @@ struct command_type command_table[] =
 	{    "if",                do_nop,               TOKEN_TYPE_IF      },
 	{    "ignore",            do_ignore,            TOKEN_TYPE_COMMAND },
 	{    "info",              do_info,              TOKEN_TYPE_COMMAND },
-	{    "killall",           do_kill,              TOKEN_TYPE_COMMAND },
+	{    "kill",              do_kill,              TOKEN_TYPE_COMMAND },
+	{    "killall",           do_killall,           TOKEN_TYPE_COMMAND },
 	{    "line",              do_line,              TOKEN_TYPE_COMMAND },
 	{    "list",              do_list,              TOKEN_TYPE_COMMAND },
 	{    "local",             do_local,             TOKEN_TYPE_COMMAND },
@@ -173,21 +176,21 @@ struct config_type config_table[] =
 	{
 		"AUTO TAB",
 		"",
-		"Scroll back buffer lines used for tab completion",
+		"Buffer lines used for tab completion",
 		config_autotab
 	},
 
 	{
 		"BUFFER SIZE",
 		"",
-		"The size of the scroll back buffer",
+		"The size of the scrollback buffer",
 		config_buffersize
 	},
 
 	{
 		"CHARSET",
 		"",
-		"The character set encoding used by TinTin++",
+		"The character set encoding used",
 		config_charset
 	},
 
@@ -201,14 +204,14 @@ struct config_type config_table[] =
 	{
 		"COLOR MODE",
 		"",
-		"The color code encoding used by TinTin++",
+		"The color code encoding used",
 		config_colormode
 	},
 
 	{
 		"COLOR PATCH",
-		"TinTin++ will properly color the start of each line",
-		"TinTin++ will leave color handling to the server",
+		"Color the start of each line",
+		"Leave color handling up to the server",
 		config_colorpatch
 	},
 
@@ -221,22 +224,22 @@ struct config_type config_table[] =
 
 	{
 		"COMMAND ECHO",
-		"Your commands are echoed in split mode",
-		"Your commands are not echoed in split mode",
+		"Commands are echoed in split mode",
+		"Commands are not echoed in split mode",
 		config_commandecho
 	},
 
 	{
 		"CONNECT RETRY",
 		"",
-		"Seconds TinTin++ sessions try to connect on failure",
+		"Seconds sessions try to connect on failure",
 		config_connectretry
 	},
 
 	{
 		"CONVERT META",
-		"TinTin++ converts meta prefixed characters",
-		"TinTin++ doesn't convert meta prefixed characters",
+		"TinTin++ converts meta characters",
+		"TinTin++ doesn't convert meta characters",
 		config_convertmeta
 	},
 
@@ -284,23 +287,37 @@ struct config_type config_table[] =
 
 	{
 		"MOUSE TRACKING",
-		"Your terminal generates mouse events.",
-		"Your terminal does not generate mouse events.",
+		"Generates mouse tracking events.",
+		"Do does not generate mouse events.",
 		config_mousetracking
 	},
 
 	{
 		"PACKET PATCH",
 		"",
-		"Seconds TinTin++ will try to patch broken packets",
+		"Seconds to try to patch broken packets",
 		config_packetpatch
+	},
+
+	{
+		"PID",
+		"",
+		"The PID of the master process.",
+		config_pid
 	},
 
 	{
 		"RANDOM SEED",
 		"",
-		"Seed value used for the random number engine",
+		"Seed value used for random numbers",
 		config_randomseed
+	},
+
+	{
+		"REPEAT CHAR",
+		"",
+		"Character used for repeating commands",
+		config_repeatchar
 	},
 
 	{
@@ -308,13 +325,6 @@ struct config_type config_table[] =
 		"You send the last command on an enter",
 		"You send a carriage return on an enter",
 		config_repeatenter
-	},
-
-	{
-		"REPEAT CHAR",
-		"",
-		"The character used for repeating commands",
-		config_repeatchar
 	},
 
 	{
@@ -333,9 +343,16 @@ struct config_type config_table[] =
 
 	{
 		"SPEEDWALK",
-		"Your input is scanned for speedwalk directions",
-		"Your input is not scanned for speedwalk directions",
+		"Your input is scanned for speedwalks",
+		"Your input is not scanned for speedwalks",
 		config_speedwalk
+	},
+
+	{
+		"TAB WIDTH",
+		"",
+		"Number of spaces used for a tab",
+		config_tabwidth
 	},
 
 	{
@@ -348,28 +365,28 @@ struct config_type config_table[] =
 	{
 		"TINTIN CHAR",
 		"",
-		"The character used for TinTin++ commands",
+		"Character used for TinTin++ commands",
 		config_tintinchar
 	},
 
 	{
 		"VERBATIM",
-		"Your keyboard input isn't modified by TinTin++",
-		"Your keyboard input is parsed by TinTin++",
+		"Keyboard input is send as is",
+		"Keyboard input is parsed by TinTin++",
 		config_verbatim
 	},
 
 	{
 		"VERBATIM CHAR",
 		"",
-		"The character used for unparsed text",
+		"Character used for verbatim lines",
 		config_verbatimchar
 	},
 
 	{
 		"VERBOSE",
-		"Messages while reading in a script file are echoed",
-		"Messages while reading in a script file are gagged",
+		"Read script files verbosely",
+		"Read script files quietly",
 		config_verbose
 	},
 
@@ -391,69 +408,123 @@ struct config_type config_table[] =
 
 struct color_type color_table[] =
 {
-	{    "azure",         "<abd>" },
-	{    "ebony",         "<g04>" },
-	{    "jade",          "<adb>" },
-	{    "lime",          "<bda>" },
-	{    "orange",        "<dba>" },
-	{    "pink",          "<dab>" },
-	{    "silver",        "<ccc>" },
-	{    "tan",           "<cba>" },
-	{    "violet",        "<bad>" },
+	{    "azure",         "<abd>",  5 },
+	{    "ebony",         "<aaa>",  5 },
+	{    "jade",          "<adb>",  4 },
+	{    "lime",          "<bda>",  4 },
+	{    "orange",        "<dba>",  6 },
+	{    "pink",          "<dab>",  4 },
+	{    "silver",        "<ccc>",  6 },
+	{    "tan",           "<cba>",  3 },
+	{    "violet",        "<bad>",  6 },
 
-	{    "light azure",   "<acf>" },
-	{    "light ebony",   "<bbb>" },
-	{    "light jade",    "<afc>" },
-	{    "light lime",    "<cfa>" },
-	{    "light orange",  "<fca>" },
-	{    "light pink",    "<fac>" },
-	{    "light silver",  "<eee>" },
-	{    "light tan",     "<eda>" },
-	{    "light violet",  "<caf>" },
+	{    "light azure",   "<acf>", 11 },
+	{    "light ebony",   "<bbb>", 11 },
+	{    "light jade",    "<afc>", 10 },
+	{    "light lime",    "<cfa>", 10 },
+	{    "light orange",  "<fca>", 12 },
+	{    "light pink",    "<fac>", 10 },
+	{    "light silver",  "<eee>", 12 },
+	{    "light tan",     "<eda>",  9 },
+	{    "light violet",  "<caf>", 12 },
 
-	{    "reset",         "<088>" },
-	{    "light",         "<188>" },
-	{    "bold",          "<188>" },
-	{    "faint",         "<288>" },
-	{    "dim",           "<288>" },
-	{    "dark",          "<288>" },
-	{    "underscore",    "<488>" },
-	{    "blink",         "<588>" },
-	{    "reverse",       "<788>" },
+	{    "light black",   "<108>", 11 },
+	{    "light red",     "<118>",  9 },
+	{    "light green",   "<128>", 11 },
+	{    "light yellow",  "<138>", 12 },
+	{    "light blue",    "<148>", 10 },
+	{    "light magenta", "<158>", 13 },
+	{    "light cyan",    "<168>", 10 },
+	{    "light white",   "<178>", 11 },
 
-	{    "no-underscore", "\e[24m"},
-	{    "no-blink",      "\e[25m"},
-	{    "no-reverse",    "\e[27m"},
-		
-	{    "black",         "<808>" },
-	{    "red",           "<818>" },
-	{    "green",         "<828>" },
-	{    "yellow",        "<838>" },
-	{    "blue",          "<848>" },
-	{    "magenta",       "<858>" },
-	{    "cyan",          "<868>" },
-	{    "white",         "<878>" },
+	{    "dark black",    "<208>",  5 },
+	{    "dark red",      "<218>",  4 },
+	{    "dark green",    "<228>",  5 },
+	{    "dark yellow",   "<238>",  6 },
+	{    "dark blue",     "<248>",  4 },
+	{    "dark magenta",  "<258>",  7 },
+	{    "dark cyan",     "<268>",  4 },
+	{    "dark white",    "<278>",  5 },
 
-	{    "b black",       "<880>" },
-	{    "b red",         "<881>" },
-	{    "b green",       "<882>" },
-	{    "b yellow",      "<883>" },
-	{    "b blue",        "<884>" },
-	{    "b magenta",     "<885>" },
-	{    "b cyan",        "<886>" },
-	{    "b white",       "<887>" },
+	{    "Azure",         "<acf>",  5 },
+	{    "Ebony",         "<bbb>",  5 },
+	{    "Jade",          "<afc>",  4 },
+	{    "Lime",          "<cfa>",  4 },
+	{    "Orange",        "<fca>",  6 },
+	{    "Pink",          "<fac>",  4 },
+	{    "Silver",        "<eee>",  6 },
+	{    "Tan",           "<eda>",  3 },
+	{    "Violet",        "<caf>",  6 },
 
-	{    "b azure",       "<ABD>" },
-	{    "b ebony",       "<G04>" },
-	{    "b jade",        "<ADB>" },
-	{    "b lime",        "<BDA>" },
-	{    "b orange",      "<DBA>" },
-	{    "b pink",        "<DAB>" },
-	{    "b silver",      "<CCC>" },
-	{    "b tan",         "<CBA>" },
-	{    "b violet",      "<BAD>" },
+	{    "reset",         "<088>",  5 },
+	{    "light",         "<188>",  5 },
+	{    "bold",          "<188>",  4 },
+	{    "faint",         "<288>",  5 },
+	{    "dim",           "<288>",  3 },
+	{    "dark",          "<288>",  4 },
+	{    "underscore",    "<488>", 10 },
+	{    "blink",         "<588>",  5 },
+	{    "reverse",       "<788>",  7 },
 
-	{    "",              "<888>" }
+	{    "ununderscore", "\e[24m",13 },
+	{    "unblink",      "\e[25m", 8 },
+	{    "unreverse",    "\e[27m",10 },
+
+	{    "black",         "<aaa>",  5 },
+	{    "red",           "<daa>",  4 },
+	{    "green",         "<ada>",  5 },
+	{    "yellow",        "<dda>",  6 },
+	{    "blue",          "<aad>",  4 },
+	{    "magenta",       "<dad>",  7 },
+	{    "cyan",          "<add>",  4 },
+	{    "white",         "<ddd>",  5 },
+
+	{    "Black",         "<bbb>",  5 },
+	{    "Red",           "<faa>",  3 },
+	{    "Green",         "<afa>",  5 },
+	{    "Yellow",        "<ffa>",  6 },
+	{    "Blue",          "<aaf>",  4 },
+	{    "Magenta",       "<faf>",  7 },
+	{    "Cyan",          "<aff>",  4 },
+	{    "White",         "<fff>",  5 },
+
+	{    "b black",       "<AAA>",  7 },
+	{    "b red",         "<DAA>",  5 },
+	{    "b green",       "<ADA>",  7 },
+	{    "b yellow",      "<DDA>",  8 },
+	{    "b blue",        "<AAD>",  6 },
+	{    "b magenta",     "<DAD>",  9 },
+	{    "b cyan",        "<ADD>",  6 },
+	{    "b white",       "<DDD>",  7 },
+
+	{    "b azure",       "<ABD>",  7 },
+	{    "b ebony",       "<AAA>",  7 },
+	{    "b jade",        "<ADB>",  6 },
+	{    "b lime",        "<BDA>",  6 },
+	{    "b orange",      "<DBA>",  8 },
+	{    "b pink",        "<DAB>",  6 },
+	{    "b silver",      "<CCC>",  8 },
+	{    "b tan",         "<CBA>",  5 },
+	{    "b violet",      "<BAD>",  8 },
+
+	{    "b Azure",       "<ACF>",  7 },
+	{    "b Black",       "<BBB>",  7 },
+	{    "b Blue",        "<AAF>",  6 },
+	{    "b Cyan",        "<AFF>",  6 },
+	{    "b Ebony",       "<BBB>",  7 },
+	{    "b Green",       "<AFA>",  7 },
+	{    "b Jade",        "<AFC>",  6 },
+	{    "b Lime",        "<CFA>",  6 },
+	{    "b Magenta",     "<FAF>",  9 },
+	{    "b Orange",      "<FCA>",  8 },
+	{    "b Pink",        "<FAC>",  6 },
+	{    "b Red",         "<FAA>",  5 },
+	{    "b Silver",      "<EEE>",  8 },
+	{    "b Tan",         "<EDA>",  5 },
+	{    "b Violet",      "<CAF>",  8 },
+	{    "b White",       "<FFF>",  7 },
+	{    "b Yellow",      "<FFA>",  8 },
+	{    "",              "<888>",  0 }
 };
 
 struct color_type map_color_table[] =
@@ -519,6 +590,16 @@ struct chat_type chat_table[] =
 	{     "",                 NULL,                0, 0, ""                                               }
 };
 
+struct daemon_type daemon_table[] =
+{
+	{    "ATTACH",            daemon_attach,             "Attach to a daemon"                             },
+	{    "DETACH",            daemon_detach,             "Turn into a daemon and detach"                  },
+	{    "INPUT",             daemon_input,              "Send input to an attached daemon"               },
+	{    "KILL",              daemon_kill,               "Kill a daemon"                                  },
+	{    "LIST",              daemon_list,               "List a daemon"                                  },
+	{    "",                  NULL,                      ""                                               }
+};
+
 struct port_type port_table[] =
 {
 	{     "CALL",             port_call,           0, 0, "Create outgoing socket connection"              },
@@ -546,23 +627,23 @@ struct rank_type rank_table[] =
 
 struct array_type array_table[] =
 {
-	{     "ADD",              array_add           },
-	{     "CLEAR",            array_clear         },
-	{     "CLR",              array_clear         },
-	{     "CREATE",           array_create        },
-	{     "DELETE",           array_delete        },
-	{     "FIND",             array_find          },
-	{     "FND",              array_find          },
-	{     "GET",              array_get           },
-	{     "INSERT",           array_insert        },
-	{     "LENGTH",           array_size          },
-	{     "SET",              array_set           },
-	{     "SIMPLIFY",         array_simplify      },
-	{     "SIZE",             array_size          },
-	{     "SORT",             array_sort          },
-	{     "SRT",              array_sort          },
-	{     "TOKENIZE",         array_tokenize      },
-	{     "",                 NULL                }
+	{     "ADD",              array_add,         "Add an item to a list table"             },
+	{     "CLEAR",            array_clear,       "Clear a list"                            },
+	{     "CLR",              array_clear,       NULL                                      },
+	{     "CREATE",           array_create,      "Create a list table with given items"    },
+	{     "DELETE",           array_delete,      "Delete a list item with given index"     },
+	{     "FIND",             array_find,        "Find a list item with given regex"       },
+	{     "FND",              array_find,        NULL                                      },
+	{     "GET",              array_get,         "Retrieve a list item with given index"   },
+	{     "INSERT",           array_insert,      "Insert a list item at given index"       },
+	{     "LENGTH",           array_size,        NULL                                      },
+	{     "SET",              array_set,         "Change a list item at given index"       },
+	{     "SIMPLIFY",         array_simplify,    "Turn a list table into a simple list"    },
+	{     "SIZE",             array_size,        NULL                                      },
+	{     "SORT",             array_sort,        "Sort a list table alphabetically"        },
+	{     "SRT",              array_sort,        NULL                                      },
+	{     "TOKENIZE",         array_tokenize,    "Create a list with given characters"     },
+	{     "",                 NULL,                                                        }
 };
 
 // 0 no map, 1 has map, 2 is inside map
@@ -570,6 +651,7 @@ struct array_type array_table[] =
 struct map_type map_table[] =
 {
 	{     "AT",               map_at,              0,              2    },
+	{     "CENTER",           map_center,          MAP_FLAG_VTMAP, 2    },
 	{     "COLOR",            map_color,           MAP_FLAG_VTMAP, 1    },
 	{     "CREATE",           map_create,          MAP_FLAG_VTMAP, 0    },
 	{     "DEBUG",            map_debug,           0,              2    },
@@ -892,182 +974,116 @@ struct cursor_type cursor_table[] =
 	},
 
 	{
-		"", "", "\e[5~",  0, cursor_buffer_up
+		"", "", "\e[5~",   0, cursor_buffer_up
 	},
 	{
-		"", "", "\e[6~",  0, cursor_buffer_down
+		"", "", "\e[6~",   0, cursor_buffer_down
 	},
 	{
-		"", "", "",      0, cursor_buffer_lock
+		"", "", "",       0, cursor_buffer_lock
 	},
 	{
-		"", "", "\eOM",   0, cursor_enter
+		"","", "\e[13;2u", 0, cursor_enter
 	},
 	{
-		"", "", "\e[7~",  0, cursor_home
+		"", "", "\eOM",    0, cursor_enter
 	},
 	{
-		"", "", "\e[1~",  0, cursor_home
+		"", "", "\e[7~",   0, cursor_home
 	},
 	{
-		"", "", "\eOH",   0, cursor_home
+		"", "", "\e[1~",   0, cursor_home
 	},
 	{
-		"", "", "\e[H",   0, cursor_home
+		"", "", "\eOH",    0, cursor_home
 	},
 	{
-		"", "", "\eOD",   0, cursor_left
+		"", "", "\e[H",    0, cursor_home
 	},
 	{
-		"", "", "\e[D",   0, cursor_left
+		"", "", "\eOD",    0, cursor_left
 	},
 	{
-		"", "", "\e[8~",  0, cursor_end
+		"", "", "\e[D",    0, cursor_left
 	},
 	{
-		"", "", "\e[4~",  0, cursor_end
+		"", "", "\e[8~",   0, cursor_end
 	},
 	{
-		"", "", "\eOF",   0, cursor_end
+		"", "", "\e[4~",   0, cursor_end
 	},
 	{
-		"", "", "\e[F",   0, cursor_end
+		"", "", "\eOF",    0, cursor_end
 	},
 	{
-		"", "", "\eOC",   0, cursor_right
+		"", "", "\e[F",    0, cursor_end
 	},
 	{
-		"", "", "\e[C",   0, cursor_right
+		"", "", "\eOC",    0, cursor_right
 	},
 	{
-		"", "", "\x7F",   0, cursor_backspace
+		"", "", "\e[C",    0, cursor_right
 	},
 	{
-		"", "", "\eOB",   0, cursor_history_next
+		"", "", "\x7F",    0, cursor_backspace
 	},
 	{
-		"", "", "\e[B",   0, cursor_history_next
+		"", "", "\eOB",    0, cursor_history_next
 	},
 	{
-		"", "", "\eOA",   0, cursor_history_prev
+		"", "", "\e[B",    0, cursor_history_next
 	},
 	{
-		"", "", "\e[A",   0, cursor_history_prev
+		"", "", "\eOA",    0, cursor_history_prev
 	},
 	{
-		"", "", "\e\x7F", 0, cursor_delete_word_left
+		"", "", "\e[A",    0, cursor_history_prev
 	},
 	{
-		"", "", "\ed",    0, cursor_delete_word_right
+		"", "", "\e\x7F",  0, cursor_delete_word_left
 	},
 	{
-		"", "", "",       0, NULL
+		"", "", "\ed",     0, cursor_delete_word_right
+	},
+	{
+		"", "", "",        0, NULL
 	}
 };
 
 struct draw_type draw_table[] =
 {
 	{
-		"BLANK SQUARE",
-		"Draw a blank square.",
-		draw_blank
-	},
-
-	{
-		"BOTTOM SIDE",
-		"Draw the bottom side of a box.",
-		draw_bot_line
-	},
-
-	{
 		"BOX",
 		"Draw a box.",
+		DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT,
 		draw_box
 	},
 
 	{
-		"BOX TEXT",
-		"Draw a box with given text.",
-		draw_box_text
+		"LINE",
+		"Draw a line.",
+		DRAW_FLAG_NONE,
+		draw_line
 	},
 
 	{
-		"CENTER LEFT LINE",
-		"Draw the center left line of two boxes.",
-		draw_center_left_line
+		"SIDE",
+		"Draw the side of a box.",
+		DRAW_FLAG_BOXED,
+		draw_side
 	},
 
 	{
-		"CENTER RIGHT LINE",
-		"Draw the center right line of two boxes.",
-		draw_center_right_line
-	},
-
-	{
-		"HORIZONTAL LINE",
-		"Draw a horizontal line.",
-		draw_horizontal_line
-	},
-
-	{
-		"LEFT SIDE",
-		"Draw the left side of a box.",
-		draw_left_line
-	},
-
-
-	{
-		"MIDDLE TOP LINE",
-		"Draw the middle top line of two boxes.",
-		draw_middle_top_line
-	},
-
-	{
-		"MIDDLE BOTTOM LINE",
-		"Draw the middle bottom line of two boxes.",
-		draw_middle_bot_line
-	},
-
-	{
-		"RIGHT SIDE",
-		"Draw the right side of a box.",
-		draw_right_line
-	},
-	
-	{
-		"SIDE LINES",
-		"Draw the left and right sides of a box.",
-		draw_side_lines
-	},
-
-	{
-		"SIDE LINES TEXT",
-		"Draw the side lines of a box with given text.",
-		draw_side_lines_text
-	},
-
-
-	{
-		"TOP LINE",
-		"Draw the bottom lines of a box.",
-		draw_top_line
-	},
-
-	{
-		"TEXT",
-		"Draw given text without a frame.",
-		draw_text
-	},
-
-	{
-		"VERTICAL LINE",
-		"Draw a vertical line.",
-		draw_vertical_line
+		"TILE",
+		"Draw a tile.",
+		0,
+		draw_square
 	},
 
 	{
 		"",
 		"",
+		0,
 		NULL
 	}
 };
@@ -1097,6 +1113,15 @@ struct screen_type screen_table[] =
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_CSIP,
 		screen_cursor
+	},
+
+	{
+		"FILL",
+		"Fill given region with given character.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_fill
 	},
 	{
 		"FOCUS",
@@ -1173,7 +1198,7 @@ struct screen_type screen_table[] =
 	},
 	{
 		"REFRESH",
-		"Refresh the screen. (may not do much)",
+		"Force a refresh of the screen.",
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_CSIP,
@@ -1203,6 +1228,16 @@ struct screen_type screen_table[] =
 		SCREEN_FLAG_CSIP,
 		screen_save
 	},
+
+	{
+		"SCROLL",
+		"Set the scroll region to {square}.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_scrollregion
+	},
+
 	{
 		"SCROLLBAR",
 		"Scrollbar settings.",
@@ -1211,6 +1246,8 @@ struct screen_type screen_table[] =
 		SCREEN_FLAG_CSIP,
 		screen_scrollbar
 	},
+
+
 	{
 		"SET",
 		"Set screen information.",
@@ -1227,14 +1264,14 @@ struct screen_type screen_table[] =
 
 struct timer_type timer_table[] =
 {
-	{    "Poll Stdin"                  },
-	{    "Poll Sessions"               },
-	{    "Poll Chat Server"            },
-	{    "Poll Port Sessions"          },
-	{    "Update Tickers"              },
+	{    "Update Input"                },
+	{    "Update Sessions"             },
 	{    "Update Delays"               },
+	{    "Update Chat"                 },
+	{    "Update Port"                 },
+	{    "Update Tickers"              },
+	{    "Update Paths"                },
 	{    "Update Packet Patcher"       },
-	{    "Update Chat Server"          },
 	{    "Update Terminal"             },
 	{    "Update Time Events"          },
 	{    "Update Memory"               },
@@ -1243,85 +1280,94 @@ struct timer_type timer_table[] =
 
 struct event_type event_table[] =
 {
-	{    "CATCH ",                                 "Triggers on catch events."               },
-	{    "CHAT MESSAGE",                           "Triggers on any chat related message."   },
-	{    "CLASS ACTIVATED",                        "Triggers on class activations."          },
-	{    "CLASS CREATED",                          "Triggers on class creation."             },
-	{    "CLASS DEACTIVATED",                      "Triggers on class deactivations."        },
-	{    "CLASS DESTROYED",                        "Triggers on class destruction."          },
-	{    "DATE",                                   "Triggers on the given date."             },
-	{    "DAY",                                    "Triggers each day or given day."         },
-	{    "DOUBLE-CLICKED ",                        "Triggers when mouse is double-clicked"   },
-	{    "END OF PATH",                            "Triggers when walking the last room."    },
-	{    "HOUR",                                   "Triggers each hour or given hour."       },
-	{    "IAC ",                                   "Triggers on telopt negotiation."         },
-	{    "LONG-CLICKED ",                          "Triggers when mouse is long-clicked."    },
-	{    "MAP DOUBLE-CLICKED ",                    "Triggers on vt map click."               },
-	{    "MAP ENTER MAP",                          "Triggers when entering the map."         },
-	{    "MAP ENTER ROOM",                         "Triggers when entering a map room."      },
-	{    "MAP EXIT MAP",                           "Triggers when exiting the map."          },
-	{    "MAP EXIT ROOM",                          "Triggers when exiting a map room."       },
-	{    "MAP FOLLOW MAP",                         "Triggers when moving to a map room."     },
-	{    "MAP LONG-CLICKED ",                      "Triggers on vt map click."               },
-	{    "MAP PRESSED ",                           "Triggers on vt map click."               },
-	{    "MAP RELEASED ",                          "Triggers on vt map click."               },
-	{    "MAP SHORT-CLICKED ",                     "Triggers on vt map click."               },
-	{    "MAP TRIPLE-CLICKED ",                    "Triggers on vt map click."               },
-	{    "MAP UPDATED VTMAP",                      "Triggers on vt map update."              },
-	{    "MINUTE",                                 "Triggers each minute or given minute."   },
-	{    "MONTH",                                  "Triggers each month or given month."     },
-	{    "MOVED ",                                 "Triggers when mouse is moved."           },
-	{    "PORT CONNECTION",                        "Triggers when socket connects."          },
-	{    "PORT DISCONNECTION",                     "Triggers when socket disconnects."       },
-	{    "PORT LOG MESSAGE",                       "Triggers on local port log messages."    },
-	{    "PORT MESSAGE",                           "Triggers on local port messages."        },
-	{    "PORT RECEIVED MESSAGE",                  "Triggers when socket data is received."  },
-	{    "PRESSED ",                               "Triggers when mouse button is pressed."  },
-	{    "PROGRAM START",                          "Triggers when main session starts."      },
-	{    "PROGRAM TERMINATION",                    "Triggers when main session exists."      },
-	{    "RECEIVED INPUT",                         "Triggers when new input is received."    },
-	{    "RECEIVED KEYPRESS",                      "Triggers when a keypress is received."   },
-	{    "RECEIVED LINE",                          "Triggers when a new line is received."   },
-	{    "RECEIVED OUTPUT",                        "Triggers when new output is received."   },
-	{    "RECEIVED PROMPT",                        "Triggers when a prompt is received."     },
-	{    "RELEASED ",                              "Triggers when mouse button is released." },
-	{    "SCAN CSV HEADER",                        "Triggers when scanning a csv file."      },
-	{    "SCAN CSV LINE",                          "Triggers when scanning a csv file."      },
-	{    "SCAN TSV HEADER",                        "Triggers when scanning a tsv file."      },
-	{    "SCAN TSV LINE",                          "Triggers when scanning a tsv file."      },
-	{    "SCREEN CHARACTER DIMENSIONS",            "Triggers when called by #screen raise."  },
-	{    "SCREEN DESKTOP DIMENSIONS",              "Triggers when called by #screen raise."  },
-	{    "SCREEN DIMENSIONS",                      "Triggers when called by #screen raise."  },
-	{    "SCREEN MINIMIZED",                       "Triggers when called by #screen raise."  },
-	{    "SCREEN POSITION",                        "Triggers when called by #screen raise."  },
-	{    "SCREEN RESIZE",                          "Triggers when the screen is resized."    },
-	{    "SCROLLED ",                              "Triggers when mouse wheel is scrolled."  },
-	{    "SECOND",                                 "Triggers each second or given second."   },
-	{    "SEND OUTPUT",                            "Triggers before sending output."         },
-	{    "SENT OUTPUT",                            "Triggers after sending output."          },
-	{    "SESSION ACTIVATED",                      "Triggers when a session is activated."   },
-	{    "SESSION CONNECTED",                      "Triggers when a new session connects."   },
-	{    "SESSION CREATED",                        "Triggers when a new session is created." },
-	{    "SESSION DEACTIVATED",                    "Triggers when a session is deactivated." },
-	{    "SESSION DISCONNECTED",                   "Triggers when a session disconnects."    },
-	{    "SESSION TIMED OUT",                      "Triggers when a session doesn't connect."},
-	{    "SHORT-CLICKED",                          "Triggers when mouse is short-clicked."   },
-	{    "SYSTEM ERROR",                           "Triggers on system errors."              },
-	{    "TIME",                                   "Triggers on the given time."             },
-	{    "TRIPLE-CLICKED",                         "Triggers when mouse is triple-clicked."  },
-	{    "UNKNOWN COMMAND",                        "Triggers on unknown tintin command."     },
-	{    "VARIABLE UPDATE ",                       "Triggers on a variable update."          },
-	{    "VT100 CPR",                              "Triggers on an ESC [ 6 n call."          },
-	{    "VT100 DA",                               "Triggers on an ESC [ c call."            },
-	{    "VT100 DECID",                            "Triggers on an ESC Z call."              },
-	{    "VT100 DSR",                              "Triggers on an ESC [ 5 n call."          },
-	{    "VT100 ENQ",                              "Triggers on an \\x05 call."              },
-	{    "VT100 SCROLL REGION",                    "Triggers on vt100 scroll region change." },
-	{    "WEEK",                                   "Triggers each week or given week."       },
-	{    "WINDOW FOCUS IN",                        "Triggers on window focussing in."        },
-	{    "WINDOW FOCUS OUT",                       "Triggers on window focussing out."       },
-	{    "YEAR",                                   "Triggers each year or given year."       },
-	{    "",                                       ""                                        }
+	{    "CATCH ",                                 EVENT_FLAG_CATCH,    "Triggers on catch events."               },
+	{    "CHAT MESSAGE",                           EVENT_FLAG_PORT,     "Triggers on any chat related message."   },
+	{    "CLASS ACTIVATED",                        EVENT_FLAG_CLASS,    "Triggers on class activations."          },
+	{    "CLASS CREATED",                          EVENT_FLAG_CLASS,    "Triggers on class creation."             },
+	{    "CLASS DEACTIVATED",                      EVENT_FLAG_CLASS,    "Triggers on class deactivations."        },
+	{    "CLASS DESTROYED",                        EVENT_FLAG_CLASS,    "Triggers on class destruction."          },
+	{    "DATE",                                   EVENT_FLAG_TIME,     "Triggers on the given date."             },
+	{    "DAY",                                    EVENT_FLAG_TIME,     "Triggers each day or given day."         },
+	{    "DOUBLE-CLICKED ",                        EVENT_FLAG_MOUSE,    "Triggers when mouse is double-clicked"   },
+	{    "END OF PATH",                            EVENT_FLAG_MAP,      "Triggers when walking the last room."    },
+	{    "HOUR",                                   EVENT_FLAG_TIME,     "Triggers each hour or given hour."       },
+	{    "IAC ",                                   EVENT_FLAG_TELNET,   "Triggers on telopt negotiation."         },
+	{    "LONG-CLICKED ",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is long-clicked."    },
+	{    "MAP DOUBLE-CLICKED ",                    EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP ENTER MAP",                          EVENT_FLAG_MAP,      "Triggers when entering the map."         },
+	{    "MAP ENTER ROOM",                         EVENT_FLAG_MAP,      "Triggers when entering a map room."      },
+	{    "MAP EXIT MAP",                           EVENT_FLAG_MAP,      "Triggers when exiting the map."          },
+	{    "MAP EXIT ROOM",                          EVENT_FLAG_MAP,      "Triggers when exiting a map room."       },
+	{    "MAP FOLLOW MAP",                         EVENT_FLAG_MAP,      "Triggers when moving to a map room."     },
+	{    "MAP LONG-CLICKED ",                      EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP PRESSED ",                           EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP RELEASED ",                          EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP SHORT-CLICKED ",                     EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP TRIPLE-CLICKED ",                    EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP UPDATED VTMAP",                      EVENT_FLAG_MAP,      "Triggers on vt map update."              },
+	{    "MINUTE",                                 EVENT_FLAG_TIME,     "Triggers each minute or given minute."   },
+	{    "MONTH",                                  EVENT_FLAG_TIME,     "Triggers each month or given month."     },
+	{    "MOVED ",                                 EVENT_FLAG_MOUSE,    "Triggers when mouse is moved."           },
+	{    "PORT CONNECTION",                        EVENT_FLAG_PORT,     "Triggers when socket connects."          },
+	{    "PORT DISCONNECTION",                     EVENT_FLAG_PORT,     "Triggers when socket disconnects."       },
+	{    "PORT LOG MESSAGE",                       EVENT_FLAG_PORT,     "Triggers on local port log messages."    },
+	{    "PORT MESSAGE",                           EVENT_FLAG_PORT,     "Triggers on local port messages."        },
+	{    "PORT RECEIVED MESSAGE",                  EVENT_FLAG_PORT,     "Triggers when socket data is received."  },
+	{    "PRESSED ",                               EVENT_FLAG_MOUSE,    "Triggers when mouse button is pressed."  },
+	{    "PROGRAM START",                          EVENT_FLAG_SYSTEM,   "Triggers when main session starts."      },
+	{    "PROGRAM TERMINATION",                    EVENT_FLAG_SYSTEM,   "Triggers when main session exists."      },
+	{    "READ ERROR",                             EVENT_FLAG_SYSTEM,   "Triggers when the read command fails."   },
+	{    "RECEIVED INPUT",                         EVENT_FLAG_INPUT,    "Triggers when new input is received."    },
+	{    "RECEIVED KEYPRESS",                      EVENT_FLAG_INPUT,    "Triggers when a keypress is received."   },
+	{    "RECEIVED LINE",                          EVENT_FLAG_OUTPUT,   "Triggers when a new line is received."   },
+	{    "RECEIVED OUTPUT",                        EVENT_FLAG_OUTPUT,   "Triggers when new output is received."   },
+	{    "RECEIVED PROMPT",                        EVENT_FLAG_OUTPUT,   "Triggers when a prompt is received."     },
+	{    "RELEASED ",                              EVENT_FLAG_MOUSE,    "Triggers when mouse button is released." },
+	{    "SCAN CSV HEADER",                        EVENT_FLAG_SCAN,     "Triggers when scanning a csv file."      },
+	{    "SCAN CSV LINE",                          EVENT_FLAG_SCAN,     "Triggers when scanning a csv file."      },
+	{    "SCAN TSV HEADER",                        EVENT_FLAG_SCAN,     "Triggers when scanning a tsv file."      },
+	{    "SCAN TSV LINE",                          EVENT_FLAG_SCAN,     "Triggers when scanning a tsv file."      },
+	{    "SCREEN DESKTOP DIMENSIONS",              EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN DESKTOP SIZE",                    EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN DIMENSIONS",                      EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN MINIMIZED",                       EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN POSITION",                        EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN REFRESH",                         EVENT_FLAG_SCREEN,   "Triggers when the screen is refreshed."  },
+	{    "SCREEN RESIZE",                          EVENT_FLAG_SCREEN,   "Triggers when the screen is resized."    },
+	{    "SCREEN ROTATE LANDSCAPE",                EVENT_FLAG_SCREEN,   "Triggers when the screen is rotated."    },
+	{    "SCREEN ROTATE PORTRAIT",                 EVENT_FLAG_SCREEN,   "Triggers when the screen is rotated."    },
+	{    "SCREEN SIZE",                            EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN SPLIT",                           EVENT_FLAG_SCREEN,   "Triggers when the screen is split."      },
+	{    "SCREEN UNSPLIT",                         EVENT_FLAG_SCREEN,   "Triggers when the screen is unsplit."    },
+	{    "SCROLLED ",                              EVENT_FLAG_MOUSE,    "Triggers when mouse wheel is scrolled."  },
+	{    "SECOND",                                 EVENT_FLAG_TIME,     "Triggers each second or given second."   },
+	{    "SEND OUTPUT",                            EVENT_FLAG_INPUT,    "Triggers before sending output."         },
+	{    "SENT OUTPUT",                            EVENT_FLAG_INPUT,    "Triggers after sending output."          },
+	{    "SESSION ACTIVATED",                      EVENT_FLAG_SESSION,  "Triggers when a session is activated."   },
+	{    "SESSION CONNECTED",                      EVENT_FLAG_SESSION,  "Triggers when a new session connects."   },
+	{    "SESSION CREATED",                        EVENT_FLAG_SESSION,  "Triggers when a new session is created." },
+	{    "SESSION DEACTIVATED",                    EVENT_FLAG_SESSION,  "Triggers when a session is deactivated." },
+	{    "SESSION DISCONNECTED",                   EVENT_FLAG_SESSION,  "Triggers when a session disconnects."    },
+	{    "SESSION TIMED OUT",                      EVENT_FLAG_SESSION,  "Triggers when a session doesn't connect."},
+	{    "SHORT-CLICKED",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is short-clicked."   },
+	{    "SYSTEM ERROR",                           EVENT_FLAG_SYSTEM,   "Triggers on system errors."              },
+	{    "TIME",                                   EVENT_FLAG_TIME,     "Triggers on the given time."             },
+	{    "TRIPLE-CLICKED",                         EVENT_FLAG_MOUSE,    "Triggers when mouse is triple-clicked."  },
+	{    "UNKNOWN COMMAND",                        EVENT_FLAG_SYSTEM,   "Triggers on unknown tintin command."     },
+	{    "VARIABLE UPDATE ",                       EVENT_FLAG_SYSTEM,   "Triggers before a variable updates."     },
+	{    "VARIABLE UPDATED ",                      EVENT_FLAG_SYSTEM,   "Triggers after a variable update."       },
+	{    "VT100 CPR",                              EVENT_FLAG_VT100,    "Triggers on an ESC [ 6 n call."          },
+	{    "VT100 DA",                               EVENT_FLAG_VT100,    "Triggers on an ESC [ c call."            },
+	{    "VT100 DECID",                            EVENT_FLAG_VT100,    "Triggers on an ESC Z call."              },
+	{    "VT100 DSR",                              EVENT_FLAG_VT100,    "Triggers on an ESC [ 5 n call."          },
+	{    "VT100 ENQ",                              EVENT_FLAG_VT100,    "Triggers on an \\x05 call."              },
+	{    "VT100 SCROLL REGION",                    EVENT_FLAG_VT100,    "Triggers on vt100 scroll region change." },
+	{    "WEEK",                                   EVENT_FLAG_TIME,     "Triggers each week or given week."       },
+	{    "WINDOW FOCUS IN",                        EVENT_FLAG_SCREEN,   "Triggers on window focussing in."        },
+	{    "WINDOW FOCUS OUT",                       EVENT_FLAG_SCREEN,   "Triggers on window focussing out."       },
+	{    "WRITE ERROR",                            EVENT_FLAG_SYSTEM,   "Triggers when the write command fails."  },
+	{    "YEAR",                                   EVENT_FLAG_TIME,     "Triggers each year or given year."       },
+	{    "",                                       0,                   ""                                        }
 };
 
 struct path_type path_table[] =
@@ -1352,18 +1398,20 @@ struct path_type path_table[] =
 
 struct line_type line_table[] =
 {
-	{    "BACKGROUND",        line_background        },
-	{    "GAG",               line_gag               },
-	{    "IGNORE",            line_ignore            },
-	{    "LOG",               line_log               },
-	{    "LOGMODE",           line_logmode           },
-	{    "LOGVERBATIM",       line_logverbatim       },
-	{    "QUIET",             line_quiet             },
-	{    "STRIP",             line_strip             },
-	{    "SUBSTITUTE",        line_substitute        },
-	{    "VERBATIM",          line_verbatim          },
-	{    "VERBOSE",           line_verbose           },
-	{    "",                  NULL                   }
+	{    "BACKGROUND",        line_background,     "Execute line without stealing session focus."   },
+	{    "DEBUG",             line_debug,          "Execute line in debug mode."                    },
+	{    "GAG",               line_gag,            "Gag the next line."                             },
+	{    "IGNORE",            line_ignore,         "Execute line with triggers ignored."            },
+	{    "LOG",               line_log,            "Log the next line or given line."               },
+	{    "LOGMODE",           line_logmode,        "Execute line with given log mode."              },
+	{    "LOGVERBATIM",       line_logverbatim,    "Log the line as plain text verbatim."           },
+	{    "ONESHOT",           line_oneshot,        "Execute line creating oneshot triggers."        },
+	{    "QUIET",             line_quiet,          "Execute line with all system messages off."     },
+	{    "STRIP",             line_strip,          "Execute line with escape codes stripped."       },
+	{    "SUBSTITUTE",        line_substitute,     "Execute line with given substitution."          },
+	{    "VERBATIM",          line_verbatim,       "Execute line as plain text."                    },
+	{    "VERBOSE",           line_verbose,        "Execute line with all system messages on."      },
+	{    "",                  NULL,                ""                                               }
 };
 
 struct history_type history_table[] =

@@ -37,7 +37,7 @@ DO_COMMAND(do_path)
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " PATH COMMANDS ");
+		tintin_header(ses, " PATH OPTIONS ");
 
 		for (cnt = 0 ; *path_table[cnt].fun != NULL ; cnt++)
 		{
@@ -117,6 +117,9 @@ DO_PATH(path_start)
 
 DO_PATH(path_stop)
 {
+	int index;
+	struct listroot *root = ses->list[LIST_PATH];
+
 	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
 		show_message(ses, LIST_PATH, "#PATH STOP: YOU STOP MAPPING A PATH.");
@@ -125,7 +128,18 @@ DO_PATH(path_stop)
 	}
 	else
 	{
-		show_message(ses, LIST_PATH, "#PATH STOP: ERROR: YOU ARE NOT MAPPING A PATH.");
+		if (root->list[root->update]->data)
+		{
+			for (index = 0 ; index < root->used ; index++)
+			{
+				root->list[index]->data = 0;
+			}
+			show_message(ses, LIST_PATH, "#PATH STOP: YOU STOP RUNNING A PATH.");
+		}
+		else
+		{
+			show_message(ses, LIST_PATH, "#PATH STOP: YOU ARE NOT MAPPING OR RUNNING A PATH.");
+		}
 	}
 }
 
@@ -216,12 +230,6 @@ DO_PATH(path_map)
 
 		for (i = 0 ; i < root->update ; i++)
 		{
-			if ((int) strlen(buf) + (int) strlen(root->list[i]->arg1) > gtd->screen->cols - 4)
-			{
-				tintin_puts2(ses, buf);
-
-				sprintf(buf, "%-7s", "");
-			}
 			cat_sprintf(buf, " %s", root->list[i]->arg1);
 		}
 
@@ -231,12 +239,6 @@ DO_PATH(path_map)
 
 			for (i = root->update + 1 ; i < root->used ; i++)
 			{
-				if ((int) strlen(buf) + (int) strlen(root->list[i]->arg1) > gtd->screen->cols - 4)
-				{
-					tintin_puts2(ses, buf);
-
-					sprintf(buf, "%-7s", "");
-				}
 				cat_sprintf(buf, " %s", root->list[i]->arg1);
 			}
 		}
@@ -246,10 +248,7 @@ DO_PATH(path_map)
 			cat_sprintf(buf, " [ ]");
 		}
 
-		if (strlen(buf) > 7)
-		{
-			tintin_puts2(ses, buf);
-		}
+		tintin_puts2(ses, buf);
 	}
 }
 
@@ -420,8 +419,10 @@ DO_PATH(path_insert)
 
 DO_PATH(path_run)
 {
+	int index;
 	struct listroot *root = ses->list[LIST_PATH];
-	char arg1[BUFFER_SIZE], time[BUFFER_SIZE], name[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE];
+	long long total, delay;
 
 	push_call("path_run(%p,%p)",ses,arg);
 
@@ -433,20 +434,19 @@ DO_PATH(path_run)
 	}
 	else
 	{
-		DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
-
 		if (*arg1)
 		{
-			double delay = 0;
+		
+			delay = (long long) get_number(ses, arg1) * 1000000LL;
+			total = 0;
 
-			while (root->update < root->used)
+			DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
+
+			for (index = root->update ; index < root->used ; index++)
 			{
-				sprintf(name, "PATH %lld", utime());
-				sprintf(time, "%f", delay);
+				root->list[index]->data = gtd->utime + total;
 
-				delay += get_number(ses, arg1);
-
-				update_node_list(ses->list[LIST_DELAY], name, root->list[root->update++]->arg1, time, "");
+				total += delay;
 			}
 		}
 		else
@@ -457,6 +457,7 @@ DO_PATH(path_run)
 			}
 		}
 	}
+
 	pop_call();
 	return;
 }

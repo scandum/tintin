@@ -73,7 +73,7 @@ DO_COMMAND(do_regexp)
 	}
 	else
 	{
-		if (tintin_regexp(ses, NULL, arg1, arg2, 0, SUB_CMD))
+		if (tintin_regexp(ses, NULL, arg1, arg2, 0, REGEX_FLAG_CMD))
 		{
 			substitute(ses, is_t, is_t, SUB_CMD);
 
@@ -118,18 +118,18 @@ int regexp_compare(pcre *nodepcre, char *str, char *exp, int option, int flag)
 		return FALSE;
 	}
 
-	// SUB_FIX handles %1 to %99 usage. Backward compatibility.
+	// REGEX_FLAG_FIX handles %1 to %99 usage. Backward compatibility.
 
 	switch (flag)
 	{
-		case SUB_CMD:
+		case REGEX_FLAG_CMD:
 			for (i = 0 ; i < matches ; i++)
 			{
 				gtd->cmds[i] = restringf(gtd->cmds[i], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
 			break;
 
-		case SUB_CMD + SUB_FIX:
+		case REGEX_FLAG_CMD + REGEX_FLAG_FIX:
 			for (i = 0 ; i < matches ; i++)
 			{
 				j = gtd->args[i];
@@ -138,14 +138,14 @@ int regexp_compare(pcre *nodepcre, char *str, char *exp, int option, int flag)
 			}
 			break;
 
-		case SUB_ARG:
+		case REGEX_FLAG_ARG:
 			for (i = 0 ; i < matches ; i++)
 			{
 				gtd->vars[i] = restringf(gtd->vars[i], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
 			break;
 
-		case SUB_ARG + SUB_FIX:
+		case REGEX_FLAG_ARG + REGEX_FLAG_FIX:
 			for (i = 0 ; i < matches ; i++)
 			{
 				j = gtd->args[i];
@@ -206,7 +206,7 @@ int check_one_regexp(struct session *ses, struct listnode *node, char *line, cha
 		str = line;
 	}	
 
-	return tintin_regexp(ses, node->regex, str, exp, option, SUB_ARG);
+	return tintin_regexp(ses, node->regex, str, exp, option, REGEX_FLAG_ARG);
 }
 
 /*
@@ -223,7 +223,7 @@ int tintin_regexp_check(struct session *ses, char *exp)
 	while (*exp)
 	{
 
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *exp & 128 && exp[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *exp & 128 && exp[1] != 0)
 		{
 			exp += 2;
 			continue;
@@ -310,7 +310,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 
@@ -395,7 +395,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 					case '7':
 					case '8':
 					case '9':
-						fix = SUB_FIX;
+						fix = REGEX_FLAG_FIX;
 						arg = isdigit((int) pti[2]) ? (pti[1] - '0') * 10 + (pti[2] - '0') : pti[1] - '0';
 						gtd->args[next_arg(var)] = next_arg(arg);
 						pti += isdigit((int) pti[2]) ? 3 : 2;
@@ -599,7 +599,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
 		{
 			*pto++ = *pti++;
 
@@ -890,8 +890,6 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 		}
 	}
 	*pto = 0;
-
-//	printf("debug regex compile (%s)\n", out);
 
 	return regexp_compile(out, option);
 }

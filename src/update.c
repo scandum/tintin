@@ -28,134 +28,157 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <fcntl.h>
 #include <termios.h>
+#include <sys/un.h>
 
+extern void update_input(void);
+extern void update_sessions(void);
+extern void update_daemon(void);
+extern void update_chat(void);
+extern void update_port(void);
+extern void tick_update(void);
+extern void delay_update(void);
+extern void path_update(void);
+extern void packet_update(void);
+extern void terminal_update(void);
+extern void memory_update(void);
+extern void time_update(void);
+
+extern long long display_timer(struct session *ses, int timer);
+extern void open_timer(int timer);
+extern void close_timer(int timer);
 
 void mainloop(void)
 {
-	static struct timeval curr_time, wait_time, last_time;
-	int usec_loop, usec_wait;
+	static struct timeval start_time, end_time, span_time, wait_time;
+	static struct pulse_type pulse;
 
-	short int pulse_poll_input      = 0 + PULSE_POLL_INPUT;
-	short int pulse_poll_sessions   = 0 + PULSE_POLL_SESSIONS;
-	short int pulse_poll_chat       = 0 + PULSE_POLL_CHAT;
-	short int pulse_poll_port       = 0 + PULSE_POLL_PORT;
-	short int pulse_update_ticks    = 0 + PULSE_UPDATE_TICKS;
-	short int pulse_update_delays   = 0 + PULSE_UPDATE_DELAYS;
-	short int pulse_update_packets  = 0 + PULSE_UPDATE_PACKETS;
-	short int pulse_update_chat     = 0 + PULSE_UPDATE_CHAT;
-	short int pulse_update_terminal = 0 + PULSE_UPDATE_TERMINAL;
-	short int pulse_update_memory   = 0 + PULSE_UPDATE_MEMORY;
-	short int pulse_update_time     = 1 + PULSE_UPDATE_TIME;
-
-	wait_time.tv_sec = 0;
+	pulse.update_input    =  0 + PULSE_UPDATE_INPUT;
+	pulse.update_sessions =  0 + PULSE_UPDATE_SESSIONS;
+	pulse.update_delays   =  0 + PULSE_UPDATE_DELAYS;
+	pulse.update_daemon   =  0 + PULSE_UPDATE_DAEMON;
+	pulse.update_chat     =  2 + PULSE_UPDATE_CHAT;
+	pulse.update_port     =  2 + PULSE_UPDATE_PORT;
+	pulse.update_ticks    =  3 + PULSE_UPDATE_TICKS;
+	pulse.update_paths    =  3 + PULSE_UPDATE_PATHS;
+	pulse.update_packets  =  4 + PULSE_UPDATE_PACKETS;
+	pulse.update_terminal =  6 + PULSE_UPDATE_TERMINAL;
+	pulse.update_memory   =  7 + PULSE_UPDATE_MEMORY;
+	pulse.update_time     =  8 + PULSE_UPDATE_TIME;
 
 	push_call("mainloop()");
 
 	while (TRUE)
 	{
-		gettimeofday(&last_time, NULL);
+		gettimeofday(&start_time, NULL);
 
-		if (--pulse_poll_input == 0)
+		gtd->total_io_exec  += span_time.tv_usec;
+		gtd->total_io_delay += wait_time.tv_usec;
+
+		if (--pulse.update_delays == 0)
 		{
-			open_timer(TIMER_POLL_INPUT);
-
-			pulse_poll_input = PULSE_POLL_INPUT;
-
-			poll_input();
-
-			close_timer(TIMER_POLL_INPUT);
-		}
-
-		if (--pulse_poll_sessions == 0)
-		{
-			pulse_poll_sessions = PULSE_POLL_SESSIONS;
-
-			poll_sessions();
-		}
-
-		if (--pulse_poll_chat == 0)
-		{
-			pulse_poll_chat = PULSE_POLL_CHAT;
-
-			poll_chat();
-		}	
-
-		if (--pulse_poll_port == 0)
-		{
-			pulse_poll_port = PULSE_POLL_PORT;
-
-			poll_port();
-		}	
-
-		if (--pulse_update_ticks == 0)
-		{
-			pulse_update_ticks = PULSE_UPDATE_TICKS;
-
-			tick_update();
-		}
-
-		if (--pulse_update_delays == 0)
-		{
-			pulse_update_delays = PULSE_UPDATE_DELAYS;
+			pulse.update_delays = PULSE_UPDATE_DELAYS;
 
 			delay_update();
 		}
 
-		if (--pulse_update_packets == 0)
+		if (--pulse.update_input == 0)
 		{
-			pulse_update_packets = PULSE_UPDATE_PACKETS;
+			open_timer(TIMER_UPDATE_INPUT);
+
+			pulse.update_input = PULSE_UPDATE_INPUT;
+
+			update_input();
+
+			close_timer(TIMER_UPDATE_INPUT);
+		}
+
+		if (--pulse.update_sessions == 0)
+		{
+			pulse.update_sessions = PULSE_UPDATE_SESSIONS;
+
+			update_sessions();
+		}
+
+		if (--pulse.update_daemon == 0)
+		{
+			pulse.update_daemon = PULSE_UPDATE_DAEMON;
+
+			update_daemon();
+		}
+
+		if (--pulse.update_chat == 0)
+		{
+			pulse.update_chat = PULSE_UPDATE_CHAT;
+
+			update_chat();
+		}	
+
+		if (--pulse.update_port == 0)
+		{
+			pulse.update_port = PULSE_UPDATE_PORT;
+
+			update_port();
+		}	
+
+		if (--pulse.update_ticks == 0)
+		{
+			pulse.update_ticks = PULSE_UPDATE_TICKS;
+
+			tick_update();
+		}
+
+		if (--pulse.update_paths == 0)
+		{
+			pulse.update_paths = PULSE_UPDATE_PATHS;
+
+			path_update();
+		}
+
+
+		if (--pulse.update_packets == 0)
+		{
+			pulse.update_packets = PULSE_UPDATE_PACKETS;
 
 			packet_update();
 		}
 
-		if (--pulse_update_chat == 0)
+		if (--pulse.update_terminal == 0)
 		{
-			pulse_update_chat = PULSE_UPDATE_CHAT;
-
-			chat_update();
-		}
-
-		if (--pulse_update_terminal == 0)
-		{
-			pulse_update_terminal = PULSE_UPDATE_TERMINAL;
+			pulse.update_terminal = PULSE_UPDATE_TERMINAL;
 
 			terminal_update();
 		}
 
-		if (--pulse_update_memory == 0)
+		if (--pulse.update_memory == 0)
 		{
-			pulse_update_memory = PULSE_UPDATE_MEMORY;
+			pulse.update_memory = PULSE_UPDATE_MEMORY;
 
 			memory_update();
 		}
 
-		if (--pulse_update_time == 0)
+		if (--pulse.update_time == 0)
 		{
-			pulse_update_time = PULSE_UPDATE_TIME;
+			pulse.update_time = PULSE_UPDATE_TIME;
 
 			time_update();
 		}
 
-		gettimeofday(&curr_time, NULL);
+		gettimeofday(&end_time, NULL);
 
-		if (curr_time.tv_sec == last_time.tv_sec)
+		if (start_time.tv_sec == end_time.tv_sec)
 		{
-			usec_loop = curr_time.tv_usec - last_time.tv_usec;
+			span_time.tv_usec = end_time.tv_usec - start_time.tv_usec;
 		}
 		else
 		{
-			usec_loop = 1000000 - last_time.tv_usec + curr_time.tv_usec;
+			span_time.tv_usec = (end_time.tv_sec * 1000000LL + end_time.tv_usec) - (start_time.tv_sec * 1000000LL + start_time.tv_usec);
 		}
 
-		usec_wait = 1000000 / PULSE_PER_SECOND - usec_loop;
+		wait_time.tv_usec = 1000000 / PULSE_PER_SECOND - span_time.tv_usec;
 
-		wait_time.tv_usec = usec_wait;
-
-		gtd->total_io_exec  += usec_loop;
-		gtd->total_io_delay += usec_wait;
-
-		if (usec_wait > 0)
+		if (wait_time.tv_usec > 0)
 		{
 			select(0, NULL, NULL, NULL, &wait_time);
 		}
@@ -164,48 +187,81 @@ void mainloop(void)
 	return;
 }
 
-void poll_input(void)
+void update_input(void)
 {
-	fd_set readfds;
-	static struct timeval to;
+	fd_set read_fd;
+	static struct timeval timeout;
+
+	if (gtd->detach_port)
+	{
+		return;
+
+		if (gtd->detach_sock)
+		{
+			while (TRUE)
+			{
+				FD_ZERO(&read_fd);
+
+				FD_SET(gtd->detach_sock, &read_fd);
+			
+				if (select(FD_SETSIZE, &read_fd, NULL, NULL, &timeout) <= 0)
+				{
+					break;
+				}
+
+				if (!FD_ISSET(gtd->detach_sock, &read_fd))
+				{
+					break;
+				}
+//				process_input();
+			}
+		}
+		return;
+	}
 
 	while (TRUE)
 	{
-		FD_ZERO(&readfds);
+		FD_ZERO(&read_fd);
 
-		FD_SET(0, &readfds);
+		FD_SET(STDIN_FILENO, &read_fd);
 
-		if (select(FD_SETSIZE, &readfds, NULL, NULL, &to) <= 0)
+		if (select(FD_SETSIZE, &read_fd, NULL, NULL, &timeout) <= 0)
 		{
-			return;
+			break;
 		}
 
-		if (FD_ISSET(0, &readfds))
+		if (!FD_ISSET(STDIN_FILENO, &read_fd))
 		{
-			process_input();
+			break;
 		}
-		else
+
+		process_input();
+
+		SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+
+		if (gtd->detach_port)
 		{
 			return;
 		}
 	}
+	return;
 }
 
-void poll_sessions(void)
+void update_sessions(void)
 {
-	fd_set readfds, excfds;
-	static struct timeval to;
+	fd_set read_fd, error_fd;
+	static struct timeval timeout;
 	struct session *ses;
 	int rv;
 
-	push_call("poll_sessions(void)");
+	push_call("update_sessions(void)");
 
-	open_timer(TIMER_POLL_SESSIONS);
+	open_timer(TIMER_UPDATE_SESSIONS);
 
 	if (gts->next)
 	{
-		FD_ZERO(&readfds);
-		FD_ZERO(&excfds);
+		FD_ZERO(&read_fd);
+		FD_ZERO(&error_fd);
 
 		for (ses = gts->next ; ses ; ses = gtd->update)
 		{
@@ -215,17 +271,16 @@ void poll_sessions(void)
 			{
 				while (TRUE)
 				{
-					FD_SET(ses->socket, &readfds);
-					FD_SET(ses->socket, &excfds);
+					FD_SET(ses->socket, &read_fd);
+					FD_SET(ses->socket, &error_fd);
 
-					rv = select(FD_SETSIZE, &readfds, NULL, &excfds, &to);
+					rv = select(FD_SETSIZE, &read_fd, NULL, &error_fd, &timeout);
 
 					if (rv < 0)
 					{
 						break;
 
-//						ses->
-						syserr_printf(ses, "poll_sessions: select = %d:", rv);
+						syserr_printf(ses, "update_sessions: %s:", ses->name);
 
 						cleanup_session(ses);
 
@@ -239,7 +294,7 @@ void poll_sessions(void)
 						break;
 					}
 
-					if (FD_ISSET(ses->socket, &readfds))
+					if (FD_ISSET(ses->socket, &read_fd))
 					{
 						if (read_buffer_mud(ses) == FALSE)
 						{
@@ -253,9 +308,9 @@ void poll_sessions(void)
 						}
 					}
 
-					if (FD_ISSET(ses->socket, &excfds))
+					if (FD_ISSET(ses->socket, &error_fd))
 					{
-						FD_CLR(ses->socket, &readfds);
+						FD_CLR(ses->socket, &read_fd);
 
 						cleanup_session(ses);
 
@@ -272,63 +327,317 @@ void poll_sessions(void)
 			}
 		}
 	}
-	close_timer(TIMER_POLL_SESSIONS);
+
+	for (ses = gts ; ses ; ses = gtd->update)
+	{
+		gtd->update = ses->next;
+
+		if (ses->check_output == 0 && HAS_BIT(ses->flags, SES_FLAG_PRINTLINE))
+		{
+			DEL_BIT(ses->flags, SES_FLAG_PRINTLINE);
+			SET_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
+
+			buffer_end(ses, "");
+
+			DEL_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
+		}
+	}
+
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FLUSH))
+	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+
+//		if (gtd->detach_port == 0)
+		{
+			fflush(stdout);
+		}
+	}
+
+	close_timer(TIMER_UPDATE_SESSIONS);
 
 	pop_call();
 	return;
 }
 
-void poll_chat(void)
+void update_daemon(void)
 {
-	fd_set readfds, writefds, excfds;
-	static struct timeval to;
-	struct chat_data *buddy;
+	fd_set read_fd, error_fd;
+	static struct timeval timeout;
+	socklen_t len;
 	int rv;
 
-	open_timer(TIMER_POLL_CHAT);
+	if (gtd->detach_port)
+	{
+		if (TRUE)
+		{
+			FD_ZERO(&read_fd);
+
+			FD_SET(gtd->detach_port, &read_fd);
+
+			rv = select(FD_SETSIZE, &read_fd, NULL, NULL, &timeout);
+
+			if (rv > 0)
+			{
+				if (FD_ISSET(gtd->detach_port, &read_fd))
+				{
+					if (gtd->detach_sock)
+					{
+						tintin_printf2(gtd->ses, "#DAEMON UPDATE: ANOTHER CONNECTION IS TAKING OVER {%s}.", gtd->detach_file);
+						kill((pid_t) gtd->detach_sock, SIGTSTP);
+						close(gtd->detach_sock);
+					}
+
+					gtd->detach_sock = accept(gtd->detach_port, 0, 0);
+
+					if (gtd->detach_sock < 0)
+					{
+						syserr_printf(gtd->ses, "update_daemon: detach_port: accept");
+						
+						gtd->detach_sock = close(gtd->detach_sock);
+						
+						goto attach;
+					}
+
+					if (fcntl(gtd->detach_sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
+					{
+						syserr_printf(gtd->ses, "update_daemon: detach_port: fcntl O_NDELAY|O_NONBLOCK");
+
+						gtd->detach_sock = close(gtd->detach_sock);
+						
+						goto attach;
+					}
+
+					len = sizeof(struct process_data);
+
+					if (getsockopt(gtd->detach_sock, SOL_SOCKET, SO_PEERCRED, &gtd->detach_info, &len) == -1)
+					{
+						syserr_printf(gtd->ses, "update_daemon: getsockopt:");
+
+						gtd->detach_sock = close(gtd->detach_sock);
+
+						goto attach;
+					}
+
+					if (geteuid() != gtd->detach_info.uid)
+					{
+						tintin_printf2(gtd->ses, "#DAEMON UPDATE: YOUR UID IS %d WHILE {%s} HAS UID {%d}.", geteuid(), gtd->detach_file, gtd->detach_info.uid);
+
+						gtd->detach_sock = close(gtd->detach_sock);
+
+						goto attach;
+					}
+
+//					tintin_printf2(gtd->ses, "sock=%d pid=%d, euid=%d, egid=%d", gtd->detach_port, getpid(), geteuid(), getegid());
+//					tintin_printf2(gtd->ses, "sock=%d pid=%d, euid=%d, egid=%d", gtd->detach_sock, gtd->detach_info.pid, gtd->detach_info.uid, gtd->detach_info.gid);
+
+					winch_handler(0);
+
+					dirty_screen(gtd->ses);
+
+					tintin_printf2(gtd->ses, "#DAEMON UPDATE: ATTACHED {%s} TO PID {%d}.", gtd->detach_file, gtd->detach_info.pid);
+				}
+			}
+			else if (rv < 0)
+			{
+				if (errno != EINTR)
+				{
+					syserr_printf(gtd->ses, "update_daemon: select:");
+				}
+			}
+		}
+
+		if (gtd->detach_sock > 0)
+		{
+			while (gtd->detach_sock)
+			{
+				FD_ZERO(&read_fd);
+				FD_ZERO(&error_fd);
+
+				FD_SET(gtd->detach_sock, &read_fd);
+				FD_SET(gtd->detach_sock, &error_fd);
+
+				rv = select(FD_SETSIZE, &read_fd, NULL, &error_fd, &timeout);
+
+				if (rv == 0)
+				{
+					break;
+				}
+				else if (rv < 0)
+				{
+					FD_CLR(gtd->detach_sock, &read_fd);
+
+					gtd->detach_sock = close(gtd->detach_sock);
+
+	                                syserr_printf(gtd->ses, "update_daemon: detach_sock: select:");
+
+	                                break;
+				}
+				else if (rv > 0)
+				{
+					if (FD_ISSET(gtd->detach_sock, &error_fd))
+					{
+						FD_CLR(gtd->detach_sock, &read_fd);
+
+						gtd->detach_sock = close(gtd->detach_sock);
+
+						show_error(gtd->ses, LIST_COMMAND, "update_daemon: detach_sock: error_fd");
+
+						goto attach;
+					}
+
+					if (!FD_ISSET(gtd->detach_sock, &read_fd))
+					{
+						break;
+					}
+					process_input();
+				}
+			}
+		}
+	}
+
+	attach:
+
+	if (gtd->attach_sock)
+	{
+		FD_ZERO(&read_fd);
+		FD_ZERO(&error_fd);
+
+		FD_SET(gtd->attach_sock, &read_fd);
+		FD_SET(gtd->attach_sock, &error_fd);
+
+		rv = select(FD_SETSIZE, &read_fd, NULL, &error_fd, &timeout);
+
+		if (rv < 0)
+		{
+			gtd->attach_sock = close(gtd->attach_sock);
+	
+			show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: UNATTACHING {%s} DUE TO SELECT ERROR.", gtd->attach_file);
+		}
+		else if (rv > 0)
+		{
+			if (FD_ISSET(gtd->attach_sock, &read_fd))
+			{
+				char buffer[BUFFER_SIZE];
+
+				rv = read(gtd->attach_sock, buffer, BUFFER_SIZE -1);
+
+				if (rv <= 0)
+				{
+					gtd->attach_sock = close(gtd->attach_sock);
+
+					winch_handler(0);
+
+					show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: UNATTACHING {%s} DUE TO READ ERROR.", gtd->attach_file);
+				}
+				else
+				{
+					buffer[rv] = 0;
+/*
+					if (buffer[rv - 1] == (char) 255)
+					{
+						gtd->attach_sock = close(gtd->attach_sock);
+
+						show_message(gtd->ses, LIST_COMMAND, "\n#DAEMON {%s} SIGTSTP: UNATTACHING.", gtd->attach_file);
+
+						dirty_screen(gtd->ses);
+
+						return;
+					}
+*/
+					if (gtd->level->quiet == 0)
+					{
+						printf("%s", buffer);
+					}
+
+					if (FD_ISSET(gtd->attach_sock, &error_fd))
+					{
+						FD_CLR(gtd->attach_sock, &read_fd);
+
+						gtd->attach_sock = close(gtd->attach_sock);
+
+						show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: UNATTACHING {%s} DUE TO EXCEPTION ERROR.", gtd->attach_file);
+					}
+				}
+			}
+			else
+			{
+				return;
+			}
+		}
+		fflush(stdout);
+	}
+
+}
+
+void update_chat(void)
+{
+	fd_set read_fd, write_fd, error_fd;
+	static struct timeval timeout;
+	struct chat_data *buddy, *buddy_next;
+	int rv;
+
+	open_timer(TIMER_UPDATE_CHAT);
 
 	if (gtd->chat)
 	{
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);
-		FD_ZERO(&excfds);
+		for (buddy = gtd->chat->next ; buddy ; buddy = buddy_next)
+		{
+			buddy_next = buddy->next;
 
-		FD_SET(gtd->chat->fd, &readfds);
+			if (buddy->timeout && buddy->timeout < gtd->time)
+			{
+				chat_socket_printf(buddy, "<CHAT> Connection timed out.");
+
+				close_chat(buddy, TRUE);
+			}
+		}
+
+		if (gtd->chat->paste_time && gtd->chat->paste_time < gtd->utime)
+		{
+			chat_paste(NULL, NULL);
+		}
+
+		FD_ZERO(&read_fd);
+		FD_ZERO(&write_fd);
+		FD_ZERO(&error_fd);
+
+		FD_SET(gtd->chat->fd, &read_fd);
 
 		for (buddy = gtd->chat->next ; buddy ; buddy = buddy->next)
 		{
-			FD_SET(buddy->fd, &readfds);
-			FD_SET(buddy->fd, &writefds);
-			FD_SET(buddy->fd, &excfds);
+			FD_SET(buddy->fd, &read_fd);
+			FD_SET(buddy->fd, &write_fd);
+			FD_SET(buddy->fd, &error_fd);
 		}
 
-		rv = select(FD_SETSIZE, &readfds, &writefds, &excfds, &to);
+		rv = select(FD_SETSIZE, &read_fd, &write_fd, &error_fd, &timeout);
 
 		if (rv <= 0)
 		{
 			if (rv == 0 || errno == EINTR)
 			{
-				goto poll_chat_end;
+				goto update_chat_end;
 			}
-			syserr_fatal(-1, "poll_chat: select");
+			syserr_fatal(-1, "update_chat: select");
 		}
-		process_chat_connections(&readfds, &writefds, &excfds);
+		process_chat_connections(&read_fd, &write_fd, &error_fd);
+
 	}
+	update_chat_end:
 
-	poll_chat_end:
-
-	close_timer(TIMER_POLL_CHAT);
+	close_timer(TIMER_UPDATE_CHAT);
 }
 
-void poll_port(void)
+void update_port(void)
 {
 	struct session *ses;
-	fd_set readfds, writefds, excfds;
-	static struct timeval to;
+	fd_set read_fd, write_fd, error_fd;
+	static struct timeval timeout;
 	struct port_data *buddy;
 	int rv;
 
-	open_timer(TIMER_POLL_PORT);
+	open_timer(TIMER_UPDATE_PORT);
 
 	for (ses = gts->next ; ses ; ses = gtd->update)
 	{
@@ -336,20 +645,20 @@ void poll_port(void)
 
 		if (ses->port)
 		{
-			FD_ZERO(&readfds);
-			FD_ZERO(&writefds);
-			FD_ZERO(&excfds);
+			FD_ZERO(&read_fd);
+			FD_ZERO(&write_fd);
+			FD_ZERO(&error_fd);
 
-			FD_SET(ses->port->fd, &readfds);
+			FD_SET(ses->port->fd, &read_fd);
 
 			for (buddy = ses->port->next ; buddy ; buddy = buddy->next)
 			{
-				FD_SET(buddy->fd, &readfds);
-				FD_SET(buddy->fd, &writefds);
-				FD_SET(buddy->fd, &excfds);
+				FD_SET(buddy->fd, &read_fd);
+				FD_SET(buddy->fd, &write_fd);
+				FD_SET(buddy->fd, &error_fd);
 			}
 
-			rv = select(FD_SETSIZE, &readfds, &writefds, &excfds, &to);
+			rv = select(FD_SETSIZE, &read_fd, &write_fd, &error_fd, &timeout);
 
 			if (rv <= 0)
 			{
@@ -357,14 +666,14 @@ void poll_port(void)
 				{
 					continue;
 				}
-				syserr_fatal(-1, "poll_port: select");
+				syserr_fatal(-1, "update_port: select");
 			}
 
-			process_port_connections(ses, &readfds, &writefds, &excfds);
+			process_port_connections(ses, &read_fd, &write_fd, &error_fd);
 		}
 	}
 
-	close_timer(TIMER_POLL_PORT);
+	close_timer(TIMER_UPDATE_PORT);
 }
 
 void tick_update(void)
@@ -372,6 +681,7 @@ void tick_update(void)
 	struct session *ses;
 	struct listnode *node;
 	struct listroot *root;
+	char buf[BUFFER_SIZE];
 
 	open_timer(TIMER_UPDATE_TICKS);
 
@@ -391,20 +701,31 @@ void tick_update(void)
 			{
 				node->data = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_DELAY, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
+				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
 			}
 
 			if (node->data <= gtd->utime)
 			{
 				node->data += (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_DELAY, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
+				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
 
 				if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 				{
 					show_debug(ses, LIST_TICKER, "#DEBUG TICKER {%s}", node->arg2);
 
-					script_driver(ses, LIST_TICKER, node->arg2);
+					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					{
+						strcpy(buf, node->arg2);
+
+						delete_node_list(ses, LIST_TICKER, node);
+
+						script_driver(ses, LIST_TICKER, buf);
+					}
+					else
+					{
+						script_driver(ses, LIST_TICKER, node->arg2);
+					}
 				}
 			}
 		}
@@ -425,7 +746,7 @@ void delay_update(void)
 	{
 		gtd->update = ses->next;
 
-		root = ses->list[LIST_DELAY];	
+		root = ses->list[LIST_DELAY];
 
 		for (root->update = 0 ; root->update < root->used ; root->update++)
 		{
@@ -453,6 +774,40 @@ void delay_update(void)
 	close_timer(TIMER_UPDATE_DELAYS);
 }
 
+void path_update(void)
+{
+	struct session *ses;
+	struct listnode *node;
+	struct listroot *root;
+
+	open_timer(TIMER_UPDATE_PATHS);
+
+	for (ses = gts ; ses ; ses = gtd->update)
+	{
+		gtd->update = ses->next;
+
+		root = ses->list[LIST_PATH];
+
+		while (root->update < root->used)
+		{
+			node = root->list[root->update];
+
+			if (node->data > 0 && node->data <= gtd->utime)
+			{
+				root->update++;
+
+				node->data = 0;
+
+				show_debug(ses, LIST_PATH, "#DEBUG PATH {%s}", node->arg1);
+
+				script_driver(ses, LIST_PATH, node->arg1);
+			}
+			break;
+		}
+	}
+	close_timer(TIMER_UPDATE_PATHS);
+}
+
 void packet_update(void)
 {
 	char result[STRING_SIZE];
@@ -469,7 +824,8 @@ void packet_update(void)
 			if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 			{
 				save_pos(ses);
-				goto_rowcol(ses, ses->bot_row, 1);
+
+				goto_pos(ses, ses->split->bot_row, 1);
 			}
 
 			SET_BIT(ses->flags, SES_FLAG_READMUD);
@@ -491,33 +847,6 @@ void packet_update(void)
 	close_timer(TIMER_UPDATE_PACKETS);
 }
 
-void chat_update(void)
-{
-	struct chat_data *buddy, *buddy_next;
-
-	open_timer(TIMER_UPDATE_CHAT);
-
-	if (gtd->chat)
-	{
-		for (buddy = gtd->chat->next ; buddy ; buddy = buddy_next)
-		{
-			buddy_next = buddy->next;
-
-			if (buddy->timeout && buddy->timeout < gtd->time)
-			{
-				chat_socket_printf(buddy, "<CHAT> Connection timed out.");
-
-				close_chat(buddy, TRUE);
-			}
-		}
-
-		if (gtd->chat->paste_time && gtd->chat->paste_time < gtd->utime)
-		{
-			chat_paste(NULL, NULL);
-		}
-	}
-	close_timer(TIMER_UPDATE_CHAT);
-}
 
 
 void terminal_update(void)
@@ -535,9 +864,10 @@ void terminal_update(void)
 			show_vtmap(ses);
 
 			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "MAP UPDATED VTMAP");
+
+			SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 		}
 	}
-	fflush(stdout);
 
 	close_timer(TIMER_UPDATE_TERMINAL);
 }
@@ -735,8 +1065,9 @@ long long display_timer(struct session *ses, int timer)
 		timer_table[timer].name,
 		gtd->timer[timer][0] / gtd->timer[timer][1],
 		gtd->timer[timer][3] / gtd->timer[timer][4] / 1000,
-		100.0 * (double) indicated_usage / (double) gtd->total_io_exec,
-		100.0 * (double) indicated_usage / (double) total_usage);
+		(double) (100000 * indicated_usage / gtd->total_io_exec) / 1000.0,
+		(double) (100000 * indicated_usage / total_usage) / 1000.0
+		);
 
 	return indicated_usage;
 }

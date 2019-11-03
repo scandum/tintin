@@ -83,6 +83,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 			node->arg2  = strdup(sourcelist->list[i]->arg2);
 			node->arg3  = strdup(sourcelist->list[i]->arg3);
 			node->arg4  = strdup(sourcelist->list[i]->arg4);
+			node->flags = sourcelist->list[i]->flags;
 			node->group = strdup(sourcelist->list[i]->group);
 
 			switch (type)
@@ -97,6 +98,13 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 				case LIST_PROMPT:
 				case LIST_SUBSTITUTE:
 					node->regex = tintin_regexp_compile(ses, node, node->arg1, 0);
+					break;
+
+				case LIST_BUTTON:
+					node->val16[0] = sourcelist->list[i]->val16[0];
+					node->val16[1] = sourcelist->list[i]->val16[1];
+					node->val16[2] = sourcelist->list[i]->val16[2];
+					node->val16[3] = sourcelist->list[i]->val16[3];
 					break;
 
 				case LIST_VARIABLE:
@@ -130,6 +138,11 @@ struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2,
 	node->arg2 = strdup(arg2);
 	node->arg3 = strdup(arg3);
 	node->arg4 = strdup(arg4);
+
+	if (gtd->level->oneshot)
+	{
+		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+	}
 
 	node->group = HAS_BIT(root->flags, LIST_FLAG_CLASS) ? strdup(root->ses->group) : strdup("");
 
@@ -169,6 +182,11 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 		}
 
 		node = root->list[index];
+
+		if (gtd->level->oneshot)
+		{
+			SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+		}
 
 		if (strcmp(node->arg2, arg2) != 0)
 		{
@@ -570,7 +588,7 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 			case LIST_EVENT:
 			case LIST_FUNCTION:
 			case LIST_MACRO:
-				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
 				break;
 
 			case LIST_ACTION:
@@ -650,6 +668,15 @@ void delete_node_with_wild(struct session *ses, int type, char *text)
 	}
 }
 
+
+DO_COMMAND(do_killall)
+{
+	tintin_printf2(ses, "\e[1;31m#NOTICE: PLEASE CHANGE #KILLALL TO #KILL ALL.");
+
+	do_kill(ses, arg);
+
+	return ses;
+}
 
 DO_COMMAND(do_kill)
 {
@@ -932,7 +959,6 @@ DO_COMMAND(do_info)
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_DEBUG)   ?  "ON" : "OFF",
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_LOG)     ? "LOG" : "   ");
 			}
-
 		}
 		tintin_header(ses, "");
 	}
@@ -970,7 +996,7 @@ DO_COMMAND(do_info)
 				{
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
-						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {class}{%s}", list_table[index].name, cnt, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->group);
+						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {arg4}{%s} {class}{%s} {flags}{%d}", list_table[index].name, cnt, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->flags);
 					}
 				}
 				else if (is_abbrev(arg2, "SAVE"))
@@ -982,20 +1008,14 @@ DO_COMMAND(do_info)
 					{
 						sprintf(name, "info[%s][%d]", list_table[index].name, cnt);
 
-						set_nest_node(ses->list[LIST_VARIABLE], name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{class}{%s}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->group);
+						set_nest_node(ses->list[LIST_VARIABLE], name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{flags}{%d}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->flags);
 					}
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[%s]}", list_table[index].name);
 				}
 				else
 				{
 					show_error(ses, LIST_COMMAND, "#SYNTAX: #INFO {%s} [ON|OFF|LIST|SAVE|SYSTEM]", arg1);
-					
-					return ses;
 				}
-				found = TRUE;
-
-				show_error(ses, LIST_COMMAND, "#SYNTAX: #INFO {%s} [ON|OFF]", arg1);
-				
 				return ses;
 			}
 			show_message(ses, LIST_COMMAND, "#OK: #%s INFO STATUS HAS BEEN SET TO: %s.", list_table[index].name, HAS_BIT(ses->list[index]->flags, LIST_FLAG_INFO) ? "ON" : "OFF");
@@ -1008,6 +1028,17 @@ DO_COMMAND(do_info)
 			if (is_abbrev(arg1, "CPU"))
 			{
 				show_cpu(ses);
+			}
+			else if (is_abbrev(arg1, "MCCP"))
+			{
+				if (ses->mccp2)
+				{
+					tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9ull TOTAL OUT: %9ull RATIO: %3d", ses->mccp2->total_in, ses->mccp2->total_out, 100 * ses->mccp2->total_out / ses->mccp2->total_in);
+				}
+				if (ses->mccp3)
+				{
+					tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9ull TOTAL OUT: %9ull RATIO: %3d", ses->mccp3->total_in, ses->mccp3->total_out, 100 * ses->mccp3->total_out / ses->mccp3->total_in);
+				}
 			}
 			else if (is_abbrev(arg1, "STACK"))
 			{
@@ -1023,18 +1054,23 @@ DO_COMMAND(do_info)
 
 					add_nest_node(ses->list[LIST_VARIABLE], name, "{CLIENT}{{NAME}{%s}{VERSION}{%-3s}}", CLIENT_NAME, CLIENT_VERSION);
 
-					add_nest_node(ses->list[LIST_VARIABLE], name, "{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->home, gtd->lang, gtd->os, gtd->term);
+					add_nest_node(ses->list[LIST_VARIABLE], name, "{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
+
+					set_nest_node(ses->list[LIST_VARIABLE], name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%-3s}", gtd->detach_port ? gtd->detach_file : "", gtd->attach_pid  ? gtd->attach_file : "");
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
 				}
 				else
 				{
-					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME = %s", CLIENT_NAME);
+					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
-					tintin_printf2(ses, "#INFO SYSTEM: HOME = %s", gtd->home);
-					tintin_printf2(ses, "#INFO SYSTEM: LANG = %s", gtd->lang);
-					tintin_printf2(ses, "#INFO SYSTEM: OS = %s", gtd->os);
-					tintin_printf2(ses, "#INFO SYSTEM: TERM = %s", gtd->term);
+					tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->exec);
+					tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->home);
+					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->lang);
+					tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->os);
+					tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->term);
+					tintin_printf2(ses, "#INFO SYSTEM: DETACH_FILE    = %s", gtd->detach_port ? gtd->detach_file : "");
+					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_pid  ? gtd->attach_file : "");
 				}
 			}
 			else

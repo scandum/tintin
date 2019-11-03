@@ -26,37 +26,6 @@
 
 #include "tintin.h"
 
-int is_color_code(char *str)
-{
-	if (str[0] == '<')
-	{
-		if (!isalnum((int) str[1]) || !isalnum((int) str[2]) || !isalnum((int) str[3]) || str[4] != '>')
-		{
-			return FALSE;
-		}
-		else if (str[1] >= '0' && str[1] <= '9' && str[2] >= '0' && str[2] <= '9' && str[3] >= '0' && str[3] <= '9')
-		{
-			return TRUE;
-		}
-		else if (str[1] >= 'a' && str[1] <= 'f' && str[2] >= 'a' && str[2] <= 'f' && str[3] >= 'a' && str[3] <= 'f')
-		{
-			return TRUE;
-		}
-		else if (str[1] >= 'A' && str[1] <= 'F' && str[2] >= 'A' && str[2] <= 'F' && str[3] >= 'A' && str[3] <= 'F')
-		{
-			return TRUE;
-		}
-		else if (str[1] == 'g' && str[2] >= '0' && str[2] <= '9' && str[3] >= '0' && str[3] <= '9')
-		{
-			return TRUE;
-		}
-		else if (str[1] == 'G' && str[2] >= '0' && str[2] <= '9' && str[3] >= '0' && str[3] <= '9')
-		{
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
 
 int hex_digit(char *str)
 {
@@ -357,16 +326,27 @@ unsigned long long utime()
 
 void seed_rand(struct session *ses, unsigned long long seed)
 {
-	ses->rand = seed;
+	ses->rand = seed % 4294967291ULL;
 }
 
 unsigned long long generate_rand(struct session *ses)
 {
+	ses->rand = ses->rand * 279470273ULL % 4294967291ULL;
+
+//	return ses->rand % 1000000000ULL;
+
+	return ses->rand;
+}
+/*
+uint32_t lcg_rand(uint32_t *state)
+{
+    return *state = (uint64_t)*state * 279470273u % 0xfffffffb;
+}
 	ses->rand = 6364136223846793005ULL * ses->rand + 1ULL;
 
 	return ses->rand;
 }
-
+*/
 char *capitalize(char *str)
 {
 	static char outbuf[BUFFER_SIZE];
@@ -393,6 +373,20 @@ char *ntos(long long number)
 	return outbuf[cnt];
 }
 
+char *indent_one(int len)
+{
+	static char outbuf[10][STACK_SIZE];
+	static int cnt;
+
+	cnt = (cnt + 1) % 10;
+
+	memset(outbuf[cnt], ' ', UMAX(1, len));
+
+	outbuf[cnt][len] = 0;
+
+	return outbuf[cnt];
+}
+
 char *indent(int len)
 {
 	static char outbuf[10][STACK_SIZE];
@@ -400,7 +394,7 @@ char *indent(int len)
 
 	cnt = (cnt + 1) % 10;
 
-	memset(outbuf[cnt], ' ', len * 5);
+	memset(outbuf[cnt], ' ', UMAX(1, len * 5));
 
 	outbuf[cnt][len * 5] = 0;
 

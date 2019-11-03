@@ -28,7 +28,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -45,7 +44,7 @@ DO_COMMAND(do_port)
 
 	if (*cmd == 0)
 	{
-		tintin_header(ses, " PORT COMMANDS ");
+		tintin_header(ses, " PORT OPTIONS ");
 
 		for (cnt = 0 ; *port_table[cnt].name != 0 ; cnt++)
 		{
@@ -162,7 +161,7 @@ DO_PORT(port_initialize)
 		return ses;
 	}
 
-	if (listen(sock, 50) == -1)
+	if (listen(sock, 32) == -1)
 	{
 		syserr_printf(ses, "port_initialize: listen");
 
@@ -214,16 +213,16 @@ int port_new(struct session *ses, int sock)
 {
 	struct port_data *new_buddy;
 	struct sockaddr_in sock_addr;
-	socklen_t i;
+	socklen_t len;
 	int fd;
 
 	push_call("port_new(%p,%d)",ses,sock);
 
-	i = sizeof(sock);
+	len = sizeof(sock);
 
-	getsockname(sock, (struct sockaddr *) &sock_addr, &i);
+	getsockname(sock, (struct sockaddr *) &sock_addr, &len);
 
-	if ((fd = accept(sock, (struct sockaddr *) &sock_addr, &i)) < 0)
+	if ((fd = accept(sock, (struct sockaddr *) &sock_addr, &len)) < 0)
 	{
 		syserr_printf(ses, "port_new: accept");
 

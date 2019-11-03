@@ -383,7 +383,6 @@ int server_translate_telopts(struct session *ses, struct port_data *buddy, unsig
 	return strlen((char *) out);
 }
 
-
 void telopt_debug(struct session *ses, char *format, ...)
 {
 	char buf[BUFFER_SIZE];
@@ -1070,7 +1069,6 @@ void write_mccp2(struct session *ses, struct port_data *buddy, char *txt, int le
 	return;
 }
 
-
 void process_mccp2(struct session *ses, struct port_data *buddy)
 {
 	if (HAS_BIT(buddy->flags, PORT_FLAG_LINKLOST))
@@ -1092,7 +1090,6 @@ int process_do_mccp2(struct session *ses, struct port_data *buddy, unsigned char
 
 	return 3;
 }
-
 
 int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
 {
@@ -1150,8 +1147,6 @@ void end_mccp3(struct session *ses, struct port_data *buddy)
 	}
 }
 
-
-
 int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
 {
 	int i;
@@ -1166,4 +1161,3 @@ int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, in
 
 	return srclen + 1;
 }
-

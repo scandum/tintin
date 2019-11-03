@@ -185,7 +185,7 @@ void write_html_header(struct session *ses, FILE *fp)
 		"</head>\n"
 		"<pre>\n"
 		"<span class='b49'><span class='d39'>\n",
-		HAS_BIT(gtd->ses->flags, SES_FLAG_UTF8) ? "utf-8" : HAS_BIT(ses->flags, SES_FLAG_BIG5) ? "big5" : "iso-8859-1");
+		HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) ? "utf-8" : HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) ? "big5" : "iso-8859-1");
 
 	fputs(header, fp);
 }

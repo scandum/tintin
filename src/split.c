@@ -27,72 +27,54 @@
 
 #include "tintin.h"
 
-
 DO_COMMAND(do_split)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-	int top, bot;
-
-	if (arg == NULL)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT {[TOP ROWS]} {[BOTTOM ROWS]}");
-
-		return ses;
-	}
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if (*arg1 == 0)
+	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
 	{
-		if (*arg2 == 0)
+		if (*arg == 0)
 		{
-			top = 0;
-			bot = 1;
-		}
-		else if (is_math(ses, arg2))
-		{
-			top = 0;
-			bot = get_number(ses, arg2);
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT {TOP BAR} {BOTTOM BAR}");
 		}
 		else
 		{
-			return do_split(ses, NULL);
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT {TOP BAR} {BOT BAR} {LEFT BAR} {RIGHT BAR}");
 		}
-	}
-	else if (*arg2 == 0)
-	{
-		if (is_math(ses, arg1))
-		{
-			top = 0;
-			bot = get_number(ses, arg1);
-		}
-		else
-		{
-			return do_split(ses, NULL);
-		}
-	}
-	else if (!is_math(ses, arg1) || !is_math(ses, arg2))
-	{
-		return do_split(ses, NULL);
-	}
-	else
-	{
-		top = get_number(ses, arg1);
-		bot = get_number(ses, arg2);
-	}
-
-	if (top < 0 || bot < 0)
-	{
-		show_error(ses, LIST_COMMAND, "#ERROR: NEGATIVE VALUE(S): #SPLIT {%d} {%d}", top, bot);
-
 		return ses;
 	}
 
-	ses->top_split = top;
-	ses->bot_split = bot;
+	ses->split->sav_top_row = *arg1 ? get_number(ses, arg1) : 0;
+	ses->split->sav_bot_row = *arg2 ? get_number(ses, arg2) : 1;
 
-	init_split(ses, 1 + ses->top_split, gtd->screen->rows - 1 - ses->bot_split);
+	if (*arg == 0)
+	{
+		ses->split->sav_top_col = 0;
+		ses->split->sav_bot_col = 0;
+	}
+	else
+	{
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+		if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT {TOP BAR} {BOT BAR} {LEFT BAR} {RIGHT BAR}");
+
+			return ses;
+		}
+
+		ses->split->sav_top_col = *arg1 ? get_number(ses, arg1) : 1;
+		ses->split->sav_bot_col = *arg2 ? get_number(ses, arg2) : 0;
+	}
+
+	DEL_BIT(ses->flags, SES_FLAG_SCROLLSPLIT);
+	SET_BIT(ses->flags, SES_FLAG_SPLIT);
+
+	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row,  ses->split->sav_bot_col);
 
 	return ses;
 }
@@ -100,7 +82,13 @@ DO_COMMAND(do_split)
 
 DO_COMMAND(do_unsplit)
 {
+	memset(ses->split, 0, sizeof(struct split_data));
+
+	ses->wrap = gtd->screen->cols;
+
 	reset_screen(ses);
+
+	SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 
 	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
@@ -109,51 +97,66 @@ DO_COMMAND(do_unsplit)
 			client_send_sb_naws(ses, 0, NULL);
 		}
 		DEL_BIT(ses->flags, SES_FLAG_SPLIT);
+		DEL_BIT(ses->flags, SES_FLAG_SCROLLSPLIT);
 	}
+	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN UNSPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
 	return ses;
 }
 
-void init_split(struct session *ses, int top, int bot)
+void init_split(struct session *ses, int top_row, int top_col, int bot_row, int bot_col)
 {
-	push_call("init_split(%p,%d,%d)",ses,top,bot);
+	push_call("init_split(%p,%d,%d,%d,%d)",ses,top_row,top_col,bot_row,bot_col);
 
-	if (bot > gtd->screen->rows)
+	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
-		bot = gtd->screen->rows;
+		ses->split->top_row = 1;
+		ses->split->top_col = 1;
+		ses->split->bot_row = gtd->screen->rows;
+		ses->split->bot_col = gtd->screen->cols;
+		ses->wrap = gtd->screen->cols;
+
+		init_pos(ses, gtd->screen->rows, 1);
+
+		SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
+
+		if (ses->map && HAS_BIT(ses->map->flags, MAP_FLAG_VTMAP))
+		{
+			SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
+		}
+
+		pop_call();
+		return;
 	}
 
-	if (bot < 2)
+	if (HAS_BIT(ses->flags, SES_FLAG_SCROLLSPLIT))
 	{
-		bot = 2;
+		ses->split->top_row = top_row > 0 ? top_row : top_row < 0 ? gtd->screen->rows + top_row + 1 : 1;
+		ses->split->top_col = top_col > 0 ? top_col : top_col < 0 ? gtd->screen->cols + top_col + 1 : 1;
+		ses->split->bot_row = bot_row > 0 ? bot_row : bot_row < 0 ? gtd->screen->rows + bot_row + 1 : gtd->screen->rows - 2;
+		ses->split->bot_col = bot_col > 0 ? bot_col : bot_col < 0 ? gtd->screen->cols + bot_col + 1 : gtd->screen->cols;
+	}
+	else
+	{
+		ses->split->top_row = top_row > 0 ? top_row + 1 : top_row < 0 ? gtd->screen->rows + top_row + 1 : 1;
+		ses->split->top_col = top_col > 0 ? top_col + 1 : top_col < 0 ? gtd->screen->cols + top_col + 1 : 1;
+
+		ses->split->bot_row = bot_row > 0 ? gtd->screen->rows - bot_row - 1 : bot_row < 0 ? bot_row * -1 : gtd->screen->rows - 1;
+		ses->split->bot_col = bot_col > 0 ? gtd->screen->cols - bot_col : bot_col < 0 ? bot_col * -1 : gtd->screen->cols;
 	}
 
-	if (top >= bot)
-	{
-		top = bot - 1;
-	}
+	ses->split->top_row = URANGE(1, ses->split->top_row, gtd->screen->rows -3);
+	ses->split->bot_row = URANGE(ses->split->top_row + 1,  ses->split->bot_row, gtd->screen->rows - 1);
 
-	if (top < 1)
-	{
-		top = 1;
-	}
+	ses->split->top_col = URANGE(1, ses->split->top_col, gtd->screen->cols - 2);
+	ses->split->bot_col = URANGE(ses->split->top_col + 1, ses->split->bot_col, gtd->screen->cols);
 
-	scroll_region(ses, top, bot);
+	ses->wrap = ses->split->bot_col - (ses->split->top_col - 1);
 
-	SET_BIT(ses->flags, SES_FLAG_SPLIT);
+	scroll_region(ses, ses->split->top_row, ses->split->bot_row);
 
-	for (bot = 1 ; gtd->screen->rows - bot > ses->bot_row ; bot++)
-	{
-		split_show(ses, "", gtd->screen->rows - bot, 0);
-	}
+	init_pos(ses, gtd->screen->rows, 1);
 
-	set_line_screen("", ses->bot_row - 1, 0);
-
-	for (top = 1 ; top < ses->top_row ; top++)
-	{
-		split_show(ses, "", top, 0);
-	}
-
-	goto_rowcol(ses, gtd->screen->rows, 1);
+	SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 
 	if (HAS_BIT(ses->telopts, TELOPT_FLAG_NAWS))
 	{
@@ -165,7 +168,23 @@ void init_split(struct session *ses, int top, int bot)
 		SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
 	}
 
-	buffer_end(ses, "");
+	if (!HAS_BIT(ses->flags, SES_FLAG_SCROLLSPLIT))
+	{
+		if (gtd->level->quiet == 0)
+		{
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
+			{
+				do_screen(ses, "FILL DEFAULT");
+			}
+			else
+			{
+				erase_scroll_region(ses);
+				buffer_end(ses, "");
+				fill_split_region(ses, "-");
+			}
+		}
+	}
+	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN SPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
 
 	pop_call();
 	return;
@@ -180,10 +199,7 @@ void reset_screen(struct session *ses)
 {
 	reset_scroll_region(ses);
 
-	if (ses == gtd->ses)
-	{
-		goto_rowcol(ses, gtd->screen->rows, 1);
-	}
+	init_pos(ses, gtd->screen->rows, 1);
 }
 
 
@@ -197,15 +213,15 @@ void dirty_screen(struct session *ses)
 
 	refresh_session_terminal(ses);
 
-	printf("\e=");
+	print_stdout("\e=");
 
 	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
-		init_split(ses, 1 + ses->top_split, gtd->screen->rows - 1 - ses->bot_split);
+		init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
 	}
 	else if (IS_SPLIT(ses))
 	{
-		scroll_region(ses, ses->top_row, ses->bot_row);
+		scroll_region(ses, ses->split->top_row, ses->split->bot_row);
 	}
 	else
 	{
@@ -214,10 +230,8 @@ void dirty_screen(struct session *ses)
 
 	if (IS_SPLIT(ses) && ses == gtd->ses)
 	{
-		goto_rowcol(ses, gtd->screen->rows, 1);
+		init_pos(ses, gtd->screen->rows, 1);
 	}
-
-//	buffer_end(ses, "");
 
 	pop_call();
 	return;
@@ -267,11 +281,13 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		return;
 	}
 
-	if (row > ses->top_row && row < ses->bot_row)
+	if (row >= ses->split->top_row && row <= ses->split->bot_row)
 	{
-		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%d}.", prompt, original_row);
-
-		return;
+		if (col >= ses->split->top_col && col <= ses->split->bot_col)
+		{
+			show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%d}.", prompt, original_row);
+			return;
+		}
 	}
 
 	if (ses != gtd->ses)
@@ -296,27 +312,30 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		sprintf(temp, "#PROMPT SIZE (%d) LONGER THAN ROW SIZE (%d)", len, gtd->screen->cols);
 	}
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-	{
-		save_pos(ses);
-	}
+	save_pos(ses);
 
 	if (row == gtd->screen->rows)
 	{
 		gtd->input_off = len + 1;
 
-		printf("\e[%d;1H\e[%d;1H\e[K%s%s\e[%d;%dH\e7\e[%d;1H", row, row, temp, gtd->input_buf, row, gtd->input_off + gtd->input_cur, ses->bot_row);
+		goto_pos(ses, row, col);
+
+		print_stdout("%s%s", temp, gtd->input_buf);
+
+		// bit of a hack
+
+		gtd->screen->sav_col[0] = inputline_cur_pos();
 	}
 	else
 	{
-		printf("\e[%d;%dH\e[%d;%dH%s%s\e[%d;1H", row, col, row, col, clear ? "\e[2K" : "", temp, ses->bot_row);
+		goto_pos(ses, row, col);
+
+		print_stdout("%s%s", clear ? "\e[2K" : "", temp);
 	}
 
-	set_line_screen(temp, row - 1, col - 1);
+//	set_line_screen(temp, row - 1, col - 1);
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-	{
-		restore_pos(ses);
-	}
-
+	restore_pos(ses);
 }
+
+

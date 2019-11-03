@@ -69,6 +69,11 @@ DO_COMMAND(do_variable)
 	}
 	else
 	{
+		if (is_math(ses, arg1))
+		{
+			show_message(ses, LIST_VARIABLE, "#VARIABLE: INVALID VARIALBE NAME {%s}.", arg1);
+			return ses;
+		}
 		str = str_alloc(UMAX(strlen(arg), BUFFER_SIZE));
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
@@ -203,7 +208,7 @@ DO_COMMAND(do_replace)
 		}
 	}
 
-	if (tintin_regexp(ses, NULL, node->arg2, arg2, 0, SUB_CMD) == FALSE)
+	if (tintin_regexp(ses, NULL, node->arg2, arg2, 0, REGEX_FLAG_CMD) == FALSE)
 	{
 		show_message(ses, LIST_VARIABLE, "#REPLACE: {%s} NOT FOUND IN {%s}.", arg2, node->arg2);
 	}
@@ -234,7 +239,7 @@ DO_COMMAND(do_replace)
 
 			pti = ptm + strlen(gtd->cmds[0]);
 		}
-		while (tintin_regexp(ses, NULL, pti, arg2, 0, SUB_CMD));
+		while (tintin_regexp(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
 
 		strcat(buf, pti);
 
@@ -247,17 +252,31 @@ DO_COMMAND(do_replace)
 	support routines for #format
 */
 
+unsigned long long generate_hash_key(char *str)
+{
+	unsigned long long len, h = 4321;
+
+	for (len = 0 ; *str != 0 ; str++, len++)
+	{
+		h = ((h << 5) + h) + *str;
+	}
+
+	h += len;
+
+	return h;
+}
+
 void numbertocharacter(struct session *ses, char *str)
 {
 	if (get_number(ses, str) < 256)
 	{
 		sprintf(str, "%c", (int) get_number(ses, str));
 	}
-	else if (HAS_BIT(ses->flags, SES_FLAG_BIG5))
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5))
 	{
 		sprintf(str, "%c%c", (unsigned int) get_number(ses, str) % 256, (unsigned int) get_number(ses, str) / 256);
 	}
-	else if (HAS_BIT(ses->flags, SES_FLAG_UTF8))
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 	{
 		unicode_to_utf8((int) get_number(ses, str), str);
 	}
@@ -271,11 +290,11 @@ void charactertonumber(struct session *ses, char *str)
 {
 	int result;
 
-	if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && is_big5(str))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(str))
 	{
 		result = (unsigned char) str[0] + (unsigned char) str[1] * 256;
 	}
-	else if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(str))
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
 	{
 		get_utf8_index(str, &result);
 	}
@@ -285,6 +304,27 @@ void charactertonumber(struct session *ses, char *str)
 	}
 	sprintf(str, "%d", result);
 }
+
+void charactertohex(struct session *ses, char *str)
+{
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(str))
+	{
+		sprintf(str, "%u", (unsigned char) str[0] + (unsigned char) str[1] * 256);
+	}
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
+	{
+		int result;
+
+		get_utf8_index(str, &result);
+
+		sprintf(str, "%u", result);
+	}
+	else if (!is_math(ses, str))
+	{
+		sprintf(str, "%u", (unsigned int) str[0]);
+	}
+}
+
 
 void colorstring(struct session *ses, char *str)
 {
@@ -321,7 +361,7 @@ int get_color_names(struct session *ses, char *string, char *result)
 		{
 			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
 			{
-				if (is_abbrev(color_table[cnt].name, string))
+				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
 				{
 					substitute(ses, color_table[cnt].code, result, SUB_COL);
 
@@ -333,9 +373,23 @@ int get_color_names(struct session *ses, char *string, char *result)
 
 			if (*color_table[cnt].name == 0)
 			{
-				return FALSE;
-			}
+				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+				{
+					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
+					{
+						substitute(ses, color_table[cnt].code, result, SUB_COL);
 
+						result += strlen(result);
+
+						break;
+					}
+				}
+
+				if (*color_table[cnt].name == 0)
+				{
+					return FALSE;
+				}
+			}
 			string += strlen(color_table[cnt].name);
 		}
 
@@ -492,126 +546,71 @@ void stripspaces(char *str)
 //	strcpy(str, &str[cnt]);
 }
 
-void wrapstring(struct session *ses, char *str)
+void wrapstring(struct session *ses, char *str, char *wrap)
 {
-	char *pti, *lis, *sos, *soc, buf[BUFFER_SIZE], color[BUFFER_SIZE], tmp[BUFFER_SIZE], sec[BUFFER_SIZE], arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], *arg;
-	int col = 1, cnt = 1, len, size, width;
+	char  arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	char *pts, *pte, *arg;
+	int cnt, width, height;
 
-	push_call("wrapstring(%p,%p)",ses,str);
+	push_call("wrapstring(%p,%p,%p)",ses,str,wrap);
 
-	arg = get_arg_in_braces(ses, str, buf, GET_ALL);
-
-	substitute(ses, buf, arg1, SUB_COL|SUB_ESC);
+	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL);
 
 	if (*arg == COMMAND_SEPARATOR)
 	{
 		arg++;
 	}
+
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
 	if (*arg2)
 	{
-		len = get_number(ses, arg2);
-
-		if (len <= 0)
-		{
-			show_error(ses, LIST_VARIABLE, "#FORMAT %w: INVALID LENTGH {%s}", arg2);
-			len = gtd->screen->cols;
-		}
+		cnt = get_number(ses, arg2);
+	}
+	else if (*wrap)
+	{
+		cnt = atoi(wrap);
 	}
 	else
 	{
-		len = gtd->screen->cols;
+		cnt = get_scroll_cols(ses);
 	}
 
-	pti = lis = sos = soc = arg1;
-
-	buf[0] = color[0] = 0;
-
-	while (*pti != 0)
+	if (cnt <= 0)
 	{
-		if (skip_vt102_codes(pti))
-		{
-			pti += skip_vt102_codes(pti);
+		cnt = get_scroll_cols(ses) + cnt;
 
-			continue;
+		if (cnt <= 0)
+		{
+			show_error(ses, LIST_VARIABLE, "#FORMAT %w: INVALID LENTGH {%s}", arg2);
+
+			pop_call();
+			return;
 		}
+	}
 
-		if (*pti == ' ' || *pti == '\n')
+	word_wrap_split(ses, arg1, arg2, cnt, 0, 0, 0, &height, &width);
+
+	pts = pte = arg2;
+
+	str[0] = cnt = 0;
+
+	while (*pte != 0)
+	{
+		if (*pte == '\n')
 		{
-			lis = pti;
-		}
+			*pte++ = 0;
 
-		if (col > len || *pti == '\n')
-		{
-			col = 1;
+			cat_sprintf(str, "{%d}{%s}", ++cnt, pts);
 
-			if (pti - lis >= len || pti - lis > 15)
-			{
-				sprintf(tmp, "%.*s", (int) (sos - soc), soc);
-
-				get_color_codes(color, tmp, color);
-
-				sprintf(tmp, "%.*s", (int) (pti - sos), sos);
-
-				substitute(ses, tmp, sec, SUB_SEC);
-
-				cat_sprintf(buf, "{%d}{%s%s}", cnt++, color, sec);
-
-				soc = sos;
-				lis = sos = pti;
-			}
-			else
-			{
-				sprintf(tmp, "%.*s", (int) (sos - soc), soc);
-
-				get_color_codes(color, tmp, color);
-
-				sprintf(tmp, "%.*s", (int) (lis - sos), sos);
-
-				substitute(ses, tmp, sec, SUB_SEC);
-
-				cat_sprintf(buf, "{%d}{%s%s}", cnt++, color, sec);
-
-				lis++;
-
-				soc = sos;
-				pti = sos = lis;
-			}
+			pts = pte;
 		}
 		else
 		{
-			if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
-			{
-				pti++;
-				pti++;
-				col++;
-			}
-			else if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(pti))
-			{
-				size = get_utf8_width(pti, &width);
-
-				pti += size;
-				col += width;
-			}
-			else
-			{
-				pti++;
-				col++;
-			}
+			pte++;
 		}
 	}
-	sprintf(tmp, "%.*s", (int) (sos - soc), soc);
-
-	get_color_codes(color, tmp, color);
-
-	sprintf(tmp, "%s", sos);
-
-	substitute(ses, tmp, sec, SUB_SEC);
-
-	cat_sprintf(buf, "{%d}{%s%s}", cnt, color, sec);
-
-	strcpy(str, buf);
+	cat_sprintf(str, "{%d}{%s}", ++cnt, pts);
 
 	pop_call();
 	return;
@@ -631,7 +630,7 @@ int stringlength(struct session *ses, char *str)
 
 int string_str_raw_len(struct session *ses, char *str, int start, int end)
 {
-	int raw_cnt, str_cnt, ret_cnt, tmp_cnt, tot_len, width;
+	int raw_cnt, str_cnt, ret_cnt, tmp_cnt, tot_len, width, col_len;
 
 	raw_cnt = str_cnt = ret_cnt = 0;
 
@@ -647,10 +646,12 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		if (is_color_code(&str[raw_cnt]))
+		col_len = is_color_code(&str[raw_cnt]);
+		
+		if (col_len)
 		{
-			ret_cnt += (str_cnt >= start) ? 5 : 0;
-			raw_cnt += 5;
+			ret_cnt += (str_cnt >= start) ? col_len : 0;
+			raw_cnt += col_len;
 
 			continue;
 		}
@@ -674,7 +675,7 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
 			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
 
@@ -697,17 +698,17 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 
 // raw range stripped return
 
-int string_raw_str_len(struct session *ses, char *str, int start, int end)
+int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_end)
 {
-	int raw_cnt, ret_cnt, tot_len, width;
+	int raw_cnt, ret_cnt, tot_len, width, col_len;
 
-	raw_cnt = start;
+	raw_cnt = raw_start;
 	ret_cnt = 0;
 	tot_len = strlen(str);
 
 	while (raw_cnt < tot_len)
 	{
-		if (raw_cnt >= end)
+		if (raw_cnt >= raw_end)
 		{
 			break;
 		}
@@ -719,9 +720,11 @@ int string_raw_str_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		if (is_color_code(&str[raw_cnt]))
+		col_len = is_color_code(&str[raw_cnt]);
+		
+		if (col_len)
 		{
-			raw_cnt += 5;
+			raw_cnt += col_len;
 
 			continue;
 		}
@@ -738,7 +741,7 @@ int string_raw_str_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		if (HAS_BIT(gtd->ses->flags, SES_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
+		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
 			raw_cnt += get_utf8_width(&str[raw_cnt], &width);
 
@@ -782,10 +785,25 @@ void timestring(struct session *ses, char *str)
 	strftime(str, BUFFER_SIZE, arg1, &timeval_tm);
 }
 
+void justify_string(struct session *ses, char *in, char *out, int align, int cut)
+{
+	char temp[BUFFER_SIZE];
+
+	if (align < 0)
+	{
+		sprintf(temp, "%%%d.%ds", align - ((int) strlen(in) - string_raw_str_len(ses, in, 0, BUFFER_SIZE)), string_str_raw_len(ses, in, 0, cut));
+	}
+	else
+	{
+		sprintf(temp, "%%%d.%ds", align + ((int) strlen(in) - string_raw_str_len(ses, in, 0, BUFFER_SIZE)), string_str_raw_len(ses, in, 0, cut));
+	}
+
+	sprintf(out, temp, in);
+}
 
 void format_string(struct session *ses, char *format, char *arg, char *out)
 {
-	char temp[BUFFER_SIZE], newformat[BUFFER_SIZE], arglist[30][20000], *ptf, *ptt, *pts, *ptn;
+	char argformat[BUFFER_SIZE], newformat[BUFFER_SIZE], arglist[30][20000], *ptf, *ptt, *pts, *ptn;
 	struct tm timeval_tm;
 	time_t    timeval_t;
 	int i;
@@ -847,8 +865,14 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 				if (*ptf == 'd' || *ptf == 'f' || *ptf == 'X')
 				{
-					strcpy(temp, pts);
+					strcpy(argformat, pts);
 
+					ptn = pts + 1;
+					*ptn = 0;
+				}
+				else if (*ptf == 'w')
+				{
+					strcpy(argformat, pts+1);
 					ptn = pts + 1;
 					*ptn = 0;
 				}
@@ -870,11 +894,11 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 					{
 						if (atoi(arg1) < 0)
 						{
-							sprintf(temp, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+							sprintf(argformat, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
 						}
 						else
 						{
-							sprintf(temp, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+							sprintf(argformat, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
 						}
 					}
 					else
@@ -891,19 +915,19 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 						if (atoi(arg1) < 0)
 						{
-							sprintf(temp, "%%%d.%d",
+							sprintf(argformat, "%%%d.%d",
 								atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
 								string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
 						}
 						else
 						{
-							sprintf(temp, "%%%d.%d",
+							sprintf(argformat, "%%%d.%d",
 								atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
 								string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
 						}
 					}
 
-					ptt = temp;
+					ptt = argformat;
 					ptn = pts;
 
 					while (*ptt)
@@ -926,13 +950,13 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'd':
-						strcat(temp, "lld");
-						sprintf(arglist[i], temp, (long long) get_number(ses, arglist[i]));
+						strcat(argformat, "lld");
+						sprintf(arglist[i], argformat, (long long) get_number(ses, arglist[i]));
 						break;
 
 					case 'f':
-						strcat(temp, "Lf");
-						sprintf(arglist[i], temp, get_double(ses, arglist[i]));
+						strcat(argformat, "Lf");
+						sprintf(arglist[i], argformat, get_double(ses, arglist[i]));
 						break;
 
 					case 'g':
@@ -976,7 +1000,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 					case 'w':
 						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
-						wrapstring(ses, arglist[i]);
+						wrapstring(ses, arglist[i], argformat);
 						break;
 
 					case 'x':
@@ -1038,8 +1062,9 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'X':
-						strcat(temp, "llX");
-						sprintf(arglist[i], temp, (unsigned long long) get_number(ses, arglist[i]));
+						strcat(argformat, "llX");
+						charactertohex(ses, arglist[i]);
+						sprintf(arglist[i], argformat, (unsigned long long) get_number(ses, arglist[i]));
 						break;
 
 					// undocumented

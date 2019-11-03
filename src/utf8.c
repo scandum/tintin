@@ -32,10 +32,10 @@ struct interval_type
 	int tail;
 };
 
-// Copyright 2014-2019 Igor van den Hoven
-
 static int boundless_binary_search(struct interval_type *table, int size, int key)
 {
+	// Copyright 2014-2019 Igor van den Hoven
+
 	int mid, i;
 
 	mid = i = size - 1;
@@ -67,13 +67,13 @@ int linear_search(struct interval_type *table, int size, int key)
 	{
 		if (table[i].head > table[i].tail)
 		{
-			printf("table[%d].head < table[%d].tail\n", i, i);
+			print_stdout("table[%d].head < table[%d].tail\n", i, i);
 		}
 		if (i < size - 1)
 		{
 			if (table[i].head >= table[i+1].head)
 			{
-				printf("table[%d].head >= table[%d].head\n", i, i+1);
+				print_stdout("table[%d].head >= table[%d].head\n", i, i+1);
 			}
 		}
 	}
@@ -222,7 +222,7 @@ int get_utf8_size(char *str)
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1
+		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 	};
 	unsigned char *ptu = (unsigned char *) str;
 
@@ -253,9 +253,8 @@ int get_utf8_size(char *str)
 				return 1;
 			}
 			return 4;
-
 		default:
-			return -1;
+			return 1;
 	}
 }
 
@@ -270,7 +269,7 @@ int get_utf8_width(char *str, int *width)
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1
+		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 	};
 	int size, index;
 	unsigned char *ptu = (unsigned char *) str;
@@ -305,6 +304,8 @@ int get_utf8_width(char *str, int *width)
 			}
 			index = (int) ptu[3] - 128 + 64 * (ptu[2] - 128) + 4096 * (ptu[1] - 128) + 262144 * (ptu[0] - 240);
 			break;
+		default:
+			return 1;
 	}
 
 	*width = unicode_width(index);

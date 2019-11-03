@@ -1,54 +1,78 @@
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - #loop {1} {1000} {cnt} {#var test[$cnt] 123456789-123456789-123456789-123456789-123456789-123456789-123456789-123456789-}
+    well if i map run somewhere with a door, i won't open it
+    it just plots the directions, and doesn't use the exit commands unless you have nofollow flipped the other way
 
-  - add #map destroy area <area>
+  - add color stripped MSDP option.
 
-  - make format %X take unicode
+  - resize update on attach and detach?
+
+  - dummy sessions
+
+  - highlight files being read with verbose
+
+  - #draw table {1;2;3;4} {a;b;c;d} 
+    #draw graph
+    #draw button
+
+  - %b %B mode. (compress + mode)
+
+  - proper vt100 skip detection for improper color codes.
+
+  - I'll look and see if I can make { match both a { and \x7B as it's an annoying issue to debug.
+
+  - Add vtcode detection to skip semicolons? May be a security risk.
+
+  - Add VT100 filter to make outside sources respect terminal size constraints, also needed to run bash in vsplit mode.
+
+  - list changes don't appear to fire variable update events:
+
+  - Add #draw error handling.
+
+  - Avoid/Hide flag exits coloring.
+
+  - #map merge / sync support.
+
+  - #map Landmark support.
+
+  - map sandbox mode support.
+
+  - map jump n e s w support.
+
+  - -⸜   diagonal void room handling
+      ＼
+
+  - custom exit colors.
+
+  - Would be awesome if #map move/at could take the speedwalking format
+
+  - Option to just save config.
+
+  - Remote script loading
+
+  - Work on VT2020 protocol (mouse click)
+
+  - #MAP exit commands do not work if nofollow flag is on. 
+
+  - make #path load bi-directional.
+
+  - class bla assign {stuff} feature?
 
   - more potent long-click handling including held down ticks.
 
   - look into discord api / arachnos
 
-  - finish mth true color conversion code
-
-  - #bell off option.
-
-  - draw example in #help
-
   - make *draw_room more comprehensible
-
-  - give SUB_FIX its own flag to avoid confusion.
 
   - #detach command.
 
-  - Improve #draw including 0000 mode.
-
-  - Add gtd->cursor_level to avoid saving an already saved cursor position
-
   - add maze flag for maze handling.
-
-  - #buffer copy {lines} with strip option. #line strip?
-
-
 
   - add class specific debug
 
-  - add screen draw options to draw lines and boxes.
-
-  - Work on VT2020
-
-  - add tunnel void utility to #map interface. (covered by #map move tho)
-
   - make #split static and fix wrapping of split line on horizontal shrink.
 
-  - add dont_echo check
-
-  - look into storing exit info in the grid map.
-
   - look into utf-8 text obfuscation.
-
-  - look into socket code (linger?) and socket error handling
 
   - better color syntax highlighting configuration.
 
@@ -100,6 +124,7 @@
   - Check socket code for odd behavior on mass connect
 
   - Fix arrow key up history recall overwriting the prompt (partial redesign)
+    Auto prompt fixing on overwrite.
 
   - https://tintin.sourceforge.io/forum/viewtopic.php?f=3&t=2614&p=10665 inherit local vars
 
@@ -108,8 +133,6 @@
   - reportable_sounds
 
   - more accurate map mouse reporting
-
-  - swap %D and %X
 
   - https://tintin.sourceforge.io/forum/viewtopic.php?f=5&t=2600 map viewing mode.
 
@@ -187,11 +210,11 @@
 
 * ROADMAP
 
+  - attach/detach support
+
   - #screen support
 
   - tintin commander
-
-  - syntax highlighter (more work to be done)
 
   - sixtel graphics
 
@@ -199,12 +222,12 @@
 
   - clickable link support
 
-  - buttons
-
 
 --------------------------------------------------------------------------------
 
 * STUFF THAT MIGHT BE IMPLEMENTED
+
+  - ability to #read entire directories.
 
   - fix ctrl-r ctrl-d / ctrl-c / enter
 
@@ -345,6 +368,8 @@
 
 - Keep last input visible with repeat enter enabled.
 
+- would be nice to have "#map list" show the variable being filtered on, instead of defaulting to roomname ie, I'm currently writing a script to save "#map list {roomnote} {{\w+}}" into a variable, then map get roomnote for each item in the list and display it...would be nice if when listing for a roomnote, it showed the roomnote
+
 -------------------------------------------------------------------------------
 
 * NEW STUFF
@@ -355,3 +380,4 @@
 - map sharing
 - cursor extension for vim
 - interactive script tutorial
+

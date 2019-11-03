@@ -79,7 +79,7 @@ void debugtoken(struct session *ses, struct scriptroot *root, struct scriptnode 
 {
 	push_call("debugtoken(%p,%d,%p,%d)",ses,root->list,token,token->type);
 
-	if (gtd->debug_level)
+	if (gtd->level->debug || HAS_BIT(root->ses->list[root->list]->flags, LIST_FLAG_DEBUG) || HAS_BIT(root->ses->list[root->list]->flags, LIST_FLAG_LOG))
 	{
 		switch (token->type)
 		{
@@ -349,11 +349,11 @@ char *get_arg_parse(struct session *ses, struct scriptnode *token)
 {
 	static char buf[5];
 
-	if (HAS_BIT(ses->flags, SES_FLAG_BIG5) && token->data->arg[0] & 128 && token->data->arg[1] != 0)
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && token->data->arg[0] & 128 && token->data->arg[1] != 0)
 	{
 		token->data->arg += sprintf(buf, "%c%c", token->data->arg[0], token->data->arg[1]);
 	}
-	else if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && is_utf8_head(token->data->arg))
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(token->data->arg))
 	{
 		token->data->arg += sprintf(buf, "%.*s", get_utf8_size(token->data->arg), token->data->arg);
 	}
@@ -924,7 +924,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 			case TOKEN_TYPE_REGEX:
 				split = NULL;
 
-				token->regex->val = find(root->ses, token->str, token->regex->str, SUB_VAR|SUB_FUN, SUB_CMD);
+				token->regex->val = find(root->ses, token->str, token->regex->str, SUB_VAR|SUB_FUN, REGEX_FLAG_CMD);
 
 				if (token->regex->val)
 				{
@@ -1172,7 +1172,6 @@ char *view_script(struct session *ses, struct scriptroot *root)
 struct session *script_driver(struct session *ses, int list, char *str)
 {
 	struct scriptroot *root;
-	int debug;
 
 	push_call("script_driver(%p,%d,%p)",ses,list,str);
 
@@ -1182,10 +1181,7 @@ struct session *script_driver(struct session *ses, int list, char *str)
 	root->list = list;
 	root->local = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 
-	debug = HAS_BIT(ses->list[list]->flags, LIST_FLAG_DEBUG);
-
-	gtd->debug_level += debug;
-	gtd->input_level += list != LIST_COMMAND;
+	gtd->level->input += list != LIST_COMMAND;
 
 	script_stack[++script_index] = root;
 
@@ -1195,8 +1191,7 @@ struct session *script_driver(struct session *ses, int list, char *str)
 
 	script_index--;
 
-	gtd->debug_level -= debug;
-	gtd->input_level -= list != LIST_COMMAND;
+	gtd->level->input -= list != LIST_COMMAND;
 
 	while (root->prev)
 	{

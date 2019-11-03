@@ -49,11 +49,11 @@ DO_COMMAND(do_showme)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_GAG);
 
-		gtd->ignore_level++;
+		gtd->level->ignore++;
 
 		show_info(ses, LIST_GAG, "#INFO GAG {%s}", arg1);
 
-		gtd->ignore_level--;
+		gtd->level->ignore--;
 
 		return ses;
 	}
@@ -81,7 +81,8 @@ DO_COMMAND(do_showme)
 		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 		{
 			save_pos(ses);
-			goto_rowcol(ses, ses->bot_row, 1);
+
+			goto_pos(ses, ses->split->bot_row, ses->split->top_col);
 		}
 
 		print_line(ses, &output, lnf);
@@ -107,7 +108,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 	root = ses->list[index];
 
-	if (gtd->verbose_level)
+	if (gtd->level->verbose || gtd->level->debug )
 	{
 		goto display;
 	}
@@ -122,7 +123,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 		goto end;
 	}
 
-	if (gtd->input_level)
+	if (gtd->level->input)
 	{
 		goto end;
 	}
@@ -173,7 +174,7 @@ void show_error(struct session *ses, int index, char *format, ...)
 	vasprintf(&buffer, format, args);
 	va_end(args);
 
-	if (gtd->verbose_level)
+	if (gtd->level->verbose || gtd->level->debug)
 	{
 		tintin_puts2(ses, buffer);
 
@@ -222,7 +223,7 @@ void show_debug(struct session *ses, int index, char *format, ...)
 
 	root = ses->list[index];
 
-	if (!HAS_BIT(root->flags, LIST_FLAG_DEBUG) && !HAS_BIT(root->flags, LIST_FLAG_LOG))
+	if (gtd->level->debug == 0 && !HAS_BIT(root->flags, LIST_FLAG_DEBUG) && !HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
 		pop_call();
 		return;
@@ -234,13 +235,13 @@ void show_debug(struct session *ses, int index, char *format, ...)
 
 	va_end(args);
 
-	if (HAS_BIT(root->flags, LIST_FLAG_DEBUG))
+	if (gtd->level->debug || HAS_BIT(root->flags, LIST_FLAG_DEBUG))
 	{
-		gtd->verbose_level++;
+		gtd->level->verbose++;
 
 		tintin_puts2(ses, buf);
 
-		gtd->verbose_level--;
+		gtd->level->verbose--;
 
 		pop_call();
 		return;
@@ -267,7 +268,7 @@ void show_info(struct session *ses, int index, char *format, ...)
 
 	root = ses->list[index];
 
-	if (!HAS_BIT(root->flags, LIST_FLAG_INFO))
+	if (gtd->level->info == 0 && !HAS_BIT(root->flags, LIST_FLAG_INFO))
 	{
 		pop_call();
 		return;
@@ -279,11 +280,11 @@ void show_info(struct session *ses, int index, char *format, ...)
 
 	va_end(args);
 
-	gtd->verbose_level++;
+	gtd->level->verbose++;
 
 	tintin_puts(ses, buf);
 
-	gtd->verbose_level--;
+	gtd->level->verbose--;
 
 	pop_call();
 	return;
@@ -352,11 +353,19 @@ void tintin_header(struct session *ses, char *format, ...)
 	va_list args;
 	int cols;
 
+	push_call("tintin_header(%p,%p)",ses,format);
+
 	va_start(args, format);
 	vsprintf(arg, format, args);
 	va_end(args);
 
-	cols = ses->wrap > 0 ? ses->wrap : gtd->screen->cols;
+	cols = get_scroll_cols(ses);
+
+	if (cols < 2)
+	{
+		pop_call();
+		return;
+	}
 
 	if ((int) strlen(arg) > cols - 2)
 	{
@@ -377,6 +386,9 @@ void tintin_header(struct session *ses, char *format, ...)
 	buf[cols] = 0;
 
 	tintin_puts2(ses, buf);
+
+	pop_call();
+	return;
 }
 
 void tintin_printf2(struct session *ses, char *format, ...)
@@ -427,11 +439,11 @@ void tintin_puts(struct session *ses, char *string)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_GAG);
 
-		gtd->ignore_level++;
+		gtd->level->ignore++;
 
 		show_info(ses, LIST_GAG, "#INFO GAG {%s}", string);
 
-		gtd->ignore_level--;
+		gtd->level->ignore--;
 	}
 	else
 	{
@@ -453,46 +465,6 @@ void tintin_puts2(struct session *ses, char *string)
 
 	tintin_puts3(ses, output);
 
-/*
-
-	if (ses == NULL)
-	{
-		ses = gtd->ses;
-	}
-
-	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_VERBOSE) && gtd->quiet_level && gtd->verbose_level == 0)
-	{
-		pop_call();
-		return;
-	}
-
-	if (strip_vt102_strlen(ses, ses->more_output) != 0)
-	{
-		output = str_dup_printf("\n\e[0m%s\e[0m", string);
-	}
-	else
-	{
-		output = str_dup_printf("\e[0m%s\e[0m", string);
-	}
-
-	add_line_buffer(ses, output, FALSE);
-
-	if (ses == gtd->ses)
-	{
-		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-		{
-			save_pos(ses);
-			goto_rowcol(ses, ses->bot_row, 1);
-		}
-
-		print_line(ses, &output, FALSE);
-
-		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-		{
-			restore_pos(ses);
-		}
-	}
-*/
 	str_free(output);
 
 	pop_call();
@@ -516,7 +488,7 @@ void tintin_puts3(struct session *ses, char *string)
 		ses = gtd->ses;
 	}
 
-	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_VERBOSE) && gtd->quiet_level && gtd->verbose_level == 0)
+	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_VERBOSE) && gtd->level->quiet && gtd->level->verbose == 0)
 	{
 		pop_call();
 		return;
@@ -538,7 +510,8 @@ void tintin_puts3(struct session *ses, char *string)
 		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 		{
 			save_pos(ses);
-			goto_rowcol(ses, ses->bot_row, 1);
+
+			goto_pos(ses, ses->split->bot_row, ses->split->top_col);
 		}
 
 		print_line(ses, &output, FALSE);

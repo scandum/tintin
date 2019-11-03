@@ -59,6 +59,8 @@ extern  int  client_send_dont_mccp2(struct session *ses, int cplen, unsigned cha
 extern  int  client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+
 extern  int  client_init_mccp3(struct session *ses);
 extern void  client_end_mccp3(struct session *ses);
 extern  int  client_skip_sb(struct session *ses, int cplen, unsigned char *cpsrc);
@@ -82,6 +84,7 @@ struct iac_type iac_client_table [] =
 	{   3,  (unsigned char []) {IAC, WILL, TELOPT_MCCP2},                     &client_recv_will_mccp2         },
 	{   3,  (unsigned char []) {IAC, WILL, TELOPT_MCCP3},                     &client_recv_will_mccp3         },
 	{   3,  (unsigned char []) {IAC, DONT, TELOPT_MCCP3},                     &client_recv_dont_mccp3         },
+	{   3,  (unsigned char []) {IAC, WONT, TELOPT_MCCP3},                     &client_recv_wont_mccp3         },
 	{   3,  (unsigned char []) {IAC, WILL, TELOPT_MSSP},                      &client_recv_will_mssp          },
 	{   3,  (unsigned char []) {IAC, SB,   TELOPT_MSSP},                      &client_recv_sb_mssp            },
 	{   3,  (unsigned char []) {IAC, SB,   TELOPT_MSDP},                      &client_recv_sb_msdp            },
@@ -131,28 +134,28 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 		return 0;
 	}
 
-	if (ses->mccp)
+	if (ses->mccp2)
 	{
-		ses->mccp->next_in   = src;
-		ses->mccp->avail_in  = cplen;
+		ses->mccp2->next_in   = src;
+		ses->mccp2->avail_in  = cplen;
 
-		ses->mccp->next_out  = gtd->mccp_buf;
-		ses->mccp->avail_out = gtd->mccp_len;
+		ses->mccp2->next_out  = gtd->mccp_buf;
+		ses->mccp2->avail_out = gtd->mccp_len;
 
 		inflate:
 
-		retval = inflate(ses->mccp, Z_SYNC_FLUSH);
+		retval = inflate(ses->mccp2, Z_SYNC_FLUSH);
 
 		switch (retval)
 		{
 			case Z_BUF_ERROR:
-				if (ses->mccp->avail_out == 0)
+				if (ses->mccp2->avail_out == 0)
 				{
 					gtd->mccp_len *= 2;
 					gtd->mccp_buf  = (unsigned char *) realloc(gtd->mccp_buf, gtd->mccp_len);
 
-					ses->mccp->avail_out = gtd->mccp_len / 2;
-					ses->mccp->next_out  = gtd->mccp_buf + gtd->mccp_len / 2;
+					ses->mccp2->avail_out = gtd->mccp_len / 2;
+					ses->mccp2->next_out  = gtd->mccp_buf + gtd->mccp_len / 2;
 
 					goto inflate;
 				}
@@ -161,40 +164,40 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					tintin_puts2(ses, "");
 					tintin_puts2(ses, "#COMPRESSION ERROR, Z_BUF_ERROR, DISABLING MCCP2.");
 					client_send_dont_mccp2(ses, 0, NULL);
-					inflateEnd(ses->mccp);
-					free(ses->mccp);
-					ses->mccp = NULL;
+					inflateEnd(ses->mccp2);
+					free(ses->mccp2);
+					ses->mccp2 = NULL;
 					cpsrc = src;
 					cplen = 0;
 				}
 				break;
 
 			case Z_OK:
-				if (ses->mccp->avail_out == 0)
+				if (ses->mccp2->avail_out == 0)
 				{
 					gtd->mccp_len *= 2;
 					gtd->mccp_buf  = (unsigned char *) realloc(gtd->mccp_buf, gtd->mccp_len);
 
-					ses->mccp->avail_out = gtd->mccp_len / 2;
-					ses->mccp->next_out  = gtd->mccp_buf + gtd->mccp_len / 2;
+					ses->mccp2->avail_out = gtd->mccp_len / 2;
+					ses->mccp2->next_out  = gtd->mccp_buf + gtd->mccp_len / 2;
 
 					goto inflate;
 				}
-				cplen = ses->mccp->next_out - gtd->mccp_buf;
+				cplen = ses->mccp2->next_out - gtd->mccp_buf;
 				cpsrc = gtd->mccp_buf;
 				break;
 
 			case Z_STREAM_END:
 				client_telopt_debug(ses, "#COMPRESSION END, DISABLING MCCP2.");
 
-				cnt = ses->mccp->next_out - gtd->mccp_buf;
+				cnt = ses->mccp2->next_out - gtd->mccp_buf;
 
-				cpsrc = src + (cplen - ses->mccp->avail_in);
-				cplen = ses->mccp->avail_in;
+				cpsrc = src + (cplen - ses->mccp2->avail_in);
+				cplen = ses->mccp2->avail_in;
 
-				inflateEnd(ses->mccp);
-				free(ses->mccp);
-				ses->mccp = NULL;
+				inflateEnd(ses->mccp2);
+				free(ses->mccp2);
+				ses->mccp2 = NULL;
 
 				client_translate_telopts(ses, gtd->mccp_buf, cnt);
 				break;
@@ -203,9 +206,9 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 				tintin_puts2(ses, "");
 				tintin_printf2(ses, "#COMPRESSION ERROR, DISABLING MCCP2, RETVAL %d.", retval);
 				client_send_dont_mccp2(ses, 0, NULL);
-				inflateEnd(ses->mccp);
-				free(ses->mccp);
-				ses->mccp = NULL;
+				inflateEnd(ses->mccp2);
+				free(ses->mccp2);
+				ses->mccp2 = NULL;
 				cpsrc = src;
 				cplen = 0;
 				break;
@@ -219,8 +222,6 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 	if (HAS_BIT(ses->logmode, LOG_FLAG_LOW) && ses->logfile)
 	{
 		fwrite(cpsrc, 1, cplen, ses->logfile);
-
-		fflush(ses->logfile);
 	}
 
  	if (ses->read_len + cplen >= ses->read_max)
@@ -440,7 +441,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					cplen--;
 					continue;
 
-				case 5:
+				case ASCII_ENQ:
 					check_all_events(ses, SUB_ARG, 0, 1, "VT100 ENQ", gtd->term);
 					cpsrc++;
 					cplen--;
@@ -525,7 +526,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 							for (skip = 2 ; cplen >= skip ; skip++)
 							{
-								if (cpsrc[skip] == '\a')
+								if (cpsrc[skip] == ASCII_BEL)
 								{
 									break;
 								}
@@ -669,12 +670,12 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 		char mtts[BUFFER_SIZE];
 
 		sprintf(mtts, "MTTS %d",
-			(HAS_BIT(ses->flags, SES_FLAG_ANSICOLOR) ? 1 : 0) +
+			(ses->color > 0 ? 1 : 0) +
 			(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2) +
-			(HAS_BIT(ses->flags, SES_FLAG_UTF8) && !HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8) ? 4 : 0) +
-			(HAS_BIT(ses->flags, SES_FLAG_256COLOR) ? 8 : 0) +
+			(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) ? 4 : 0) +
+			(ses->color > 16 ? 8 : 0) +
 			(HAS_BIT(ses->flags, SES_FLAG_SCREENREADER) ? 64 : 0) +
-			(HAS_BIT(ses->flags, SES_FLAG_TRUECOLOR) ? 256 : 0));
+			(ses->color > 256 ? 256 : 0));
 
 		telnet_printf(ses, 6 + strlen(mtts), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, mtts, IAC, SE);
 
@@ -755,9 +756,9 @@ int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 	int rows;
 	int cols;
 
-	rows = HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? ses->bot_row - ses->top_row + 1 : gtd->screen->rows;
+	rows = HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? ses->split->bot_row - ses->split->top_row + 1 : gtd->screen->rows;
 
-	cols = ses->wrap > 0 ? ses->wrap : gtd->screen->cols;
+	cols = get_scroll_cols(ses);
 
 	// Properly handle row and colum size of 255
 
@@ -1123,6 +1124,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 				last = MSDP_VAL;
 				break;
 
+			case '\r':
+				break;
+
 			case '\\':
 				*pto++ = '\\';
 				*pto++ = '\\';
@@ -1390,7 +1394,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 			{
 				if (!strcasecmp(var, "UTF-8"))
 				{
-					if (HAS_BIT(ses->flags, SES_FLAG_UTF8) && !HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8) && !HAS_BIT(ses->flags, SES_FLAG_FANSITOUTF8))
+					if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
 					{
 						telnet_printf(ses, 12, "%c%c%c%c UTF-8%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
 
@@ -1405,7 +1409,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				}
 				else if (!strcasecmp(var, "BIG-5"))
 				{
-					if (HAS_BIT(ses->flags, SES_FLAG_BIG5) || HAS_BIT(ses->flags, SES_FLAG_BIG5TOUTF8))
+					if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) || HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
 					{
 						telnet_printf(ses, 11, "%c%c%c%c BIG-5%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
 
@@ -1422,7 +1426,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				{
 					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 					{
-						if (HAS_BIT(ses->flags, SES_FLAG_FANSITOUTF8))
+						if (HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
 						{
 							telnet_printf(ses, 11, "%c%c%c%c FANSI%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
 
@@ -1914,24 +1918,24 @@ int client_send_dont_mccp2(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	if (ses->mccp)
+	if (ses->mccp2)
 	{
 		return 5;
 	}
 
-	ses->mccp = (z_stream *) calloc(1, sizeof(z_stream));
+	ses->mccp2 = (z_stream *) calloc(1, sizeof(z_stream));
 
-	ses->mccp->data_type = Z_ASCII;
-	ses->mccp->zalloc    = zlib_alloc;
-	ses->mccp->zfree     = zlib_free;
-	ses->mccp->opaque    = NULL;
+	ses->mccp2->data_type = Z_ASCII;
+	ses->mccp2->zalloc    = zlib_alloc;
+	ses->mccp2->zfree     = zlib_free;
+	ses->mccp2->opaque    = NULL;
 
-	if (inflateInit(ses->mccp) != Z_OK)
+	if (inflateInit(ses->mccp2) != Z_OK)
 	{
 		tintin_puts2(ses, "MCCP2: FAILED TO INITIALIZE");
 		client_send_dont_mccp2(ses, 0, NULL);
-		free(ses->mccp);
-		ses->mccp = NULL;
+		free(ses->mccp2);
+		ses->mccp2 = NULL;
 	}
 	else
 	{
@@ -1979,6 +1983,22 @@ int client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 	}
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DONT MCCP3");
+
+	if (ses->mccp3)
+	{
+		client_end_mccp3(ses);
+	}
+	return 3;
+}
+
+int client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
+{
+	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WONT MCCP3"))
+	{
+	 	return 3;
+	}
+
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WONT MCCP3");
 
 	if (ses->mccp3)
 	{

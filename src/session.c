@@ -76,6 +76,34 @@ DO_COMMAND(do_session)
 	}
 	else if (*arg1 && *arg == 0)
 	{
+		if (!strncasecmp(arg1, "telnet://", 9))
+		{
+			char *pti, *pto;
+
+			pto = temp;
+			pti = arg1 + 9;
+
+			while (*pti)
+			{
+				if (*pti == '/')
+				{
+					break;
+				}
+				else if (*pti == ':')
+				{
+					pti++;
+					*pto++ = ' ';
+				}
+				else
+				{
+					*pto++ = *pti++;
+				}
+			}
+			*pto = 0;
+
+			ses = new_session(ses, "telnet", temp, 0, 0);
+		}
+
 		if (*arg1 == '+')
 		{
 			return activate_session(ses->next ? ses->next : gts->next ? gts->next : ses);
@@ -221,7 +249,7 @@ void show_session(struct session *ses, struct session *ptr)
 
 	cat_sprintf(temp, " %8s", ptr == gtd->ses ? "(active)" :  "");
 
-	cat_sprintf(temp, " %10s", ptr->mccp ? ptr->mccp3 ? "(mccp 2+3)" : "(mccp 2)  " : "");
+	cat_sprintf(temp, " %10s", ptr->mccp2 ? (ptr->mccp3 ? "(mccp 2+3)" : "(mccp 2)  ") : ptr->mccp3 ? "(mccp 3)" : "");
 
 	cat_sprintf(temp, " %7s", HAS_BIT(ptr->flags, SES_FLAG_SNOOP) ? "(snoop)" : "");
 
@@ -278,7 +306,7 @@ struct session *activate_session(struct session *ses)
 
 	dirty_screen(ses);
 
-	tintin_printf(ses, "#SESSION '%s' ACTIVATED.", ses->name);
+	show_message(ses, LIST_COMMAND, "#SESSION '%s' ACTIVATED.", ses->name);
 
 	check_all_events(ses, SUB_ARG, 0, 1, "SESSION ACTIVATED", ses->name);
 
@@ -344,9 +372,14 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 	newses->group         = strdup(gts->group);
 	newses->flags         = gts->flags;
+	newses->color         = gts->color;
+	newses->logmode       = gts->logmode;
+	newses->charset       = gts->charset;
+
 	newses->telopts       = gts->telopts;
 	newses->auto_tab      = gts->auto_tab;
-
+	newses->packet_patch  = gts->packet_patch;
+	newses->tab_width     = gts->tab_width;
 	newses->cmd_color     = strdup(gts->cmd_color);
 
 	newses->read_max      = gts->read_max;
@@ -355,6 +388,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	newses->lognext_name  = strdup("");
 	newses->logline_name  = strdup("");
 	newses->rand          = utime();
+
 
 	LINK(newses, gts->next, gts->prev);
 
@@ -380,15 +414,17 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		}
 	}
 
-	newses->top_split = gts->top_split;
-	newses->bot_split = gts->bot_split;
+	newses->split  = calloc(1, sizeof(struct split_data));
 
-	newses->top_row = gts->top_row;
-	newses->bot_row = gts->bot_row;
+	memcpy(newses->split, gts->split, sizeof(struct split_data));
+
+	newses->cur_row = gts->cur_row;
+	newses->cur_col = gts->cur_col;
 
 	newses->wrap    = gts->wrap;
 
-	init_buffer(newses, -1);
+        newses->scroll = calloc(1, sizeof(struct scroll_data));
+	init_buffer(newses, gts->scroll->size);
 
 	memcpy(&newses->cur_terminal, &gts->cur_terminal, sizeof(gts->cur_terminal));
 
@@ -407,7 +443,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 	dirty_screen(newses);
 
-	if (gtd->background_level == 0)
+	if (gtd->level->background == 0)
 	{
 		gtd->ses = newses;
 	}
@@ -451,23 +487,19 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	}
 #endif
 
-
 	if (*file)
 	{
 		newses = do_read(newses, file);
 	}
 	check_all_events(newses, SUB_ARG, 0, 4, "SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port);
 
-	if (gtd->background_level == 0)
+	if (gtd->level->background == 0)
 	{
 		pop_call();
 		return newses;
 	}
-	else
-	{
-		pop_call();
-		return ses;
-	}
+	pop_call();
+	return ses;
 }
 
 struct session *connect_session(struct session *ses)
@@ -676,10 +708,10 @@ void dispose_session(struct session *ses)
 		delete_map(ses);
 	}
 
-	if (ses->mccp)
+	if (ses->mccp2)
 	{
-		inflateEnd(ses->mccp);
-		free(ses->mccp);
+		inflateEnd(ses->mccp2);
+		free(ses->mccp2);
 	}
 
 	init_buffer(ses, 0);

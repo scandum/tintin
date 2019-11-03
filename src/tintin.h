@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdbool.h>
+#include <sys/socket.h>
 
 /******************************************************************************
 *   Autoconf patching by David Hedbor                                         *
@@ -50,11 +51,9 @@
 #include <strings.h>
 #endif
 
-
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -102,12 +101,19 @@
 #include <sys/stat.h>
 #endif
 
+
+#if !defined(SO_PEERCRED)
+	#define SO_PEERCRED 17 
+#endif
+
 #ifndef __TINTIN_H__
 #define __TINTIN_H__
 
 /*
 	A bunch of constants
 */
+
+#define FLAG_NONE                        0
 
 #define FALSE                            0
 #define TRUE                             1
@@ -135,6 +141,7 @@
 #define COMMAND_SEPARATOR              ';'
 
 #define ASCII_NUL                        0
+#define ASCII_ENQ                        5 // Ignore if possible
 #define ASCII_BEL                        7
 #define ASCII_BS                         8
 #define ASCII_HTAB                       9
@@ -145,7 +152,9 @@
 #define ASCII_ESC                       27
 #define ASCII_DEL                      127
 
+#define DAEMON_DIR               "daemons"
 #define TINTIN_DIR               ".tintin"
+
 #define HISTORY_FILE         "history.txt"
 
 #define STRING_SIZE                  64000
@@ -153,11 +162,11 @@
 #define STACK_SIZE                    1000
 #define NUMBER_SIZE                    100
 #define LEGEND_SIZE                     50
-#define COLOR_SIZE                      25
+#define COLOR_SIZE                      50
 #define LIST_SIZE                        2
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.01.91 "
+#define CLIENT_VERSION           "2.01.92 "
 
 #define XT_E                            0x27
 #define XT_C                            0x5B
@@ -193,14 +202,14 @@
 #define COLOR_TEXT          "\e[0m"        // "<ddd>" // grey
 #define COLOR_TINTIN        "\e[38;5;184m" // "<eea>" // yellow
 
-#define TIMER_POLL_INPUT                 0
-#define TIMER_POLL_SESSIONS              1
-#define TIMER_POLL_CHAT                  2
-#define TIMER_POLL_PORT                  3
-#define TIMER_UPDATE_TICKS               4
-#define TIMER_UPDATE_DELAYS              5
-#define TIMER_UPDATE_PACKETS             6
-#define TIMER_UPDATE_CHAT                7
+#define TIMER_UPDATE_INPUT               0
+#define TIMER_UPDATE_SESSIONS            1
+#define TIMER_UPDATE_DELAYS              2
+#define TIMER_UPDATE_CHAT                3
+#define TIMER_UPDATE_PORT                4
+#define TIMER_UPDATE_TICKS               5
+#define TIMER_UPDATE_PATHS               6
+#define TIMER_UPDATE_PACKETS             7
 #define TIMER_UPDATE_TERMINAL            8
 #define TIMER_UPDATE_TIME                9
 #define TIMER_UPDATE_MEMORY             10
@@ -208,19 +217,20 @@
 #define TIMER_CPU                       12
 
 
-#define PULSE_PER_SECOND                20
+#define PULSE_PER_SECOND               100
 
-#define PULSE_POLL_INPUT                 1
-#define PULSE_POLL_SESSIONS              1
-#define PULSE_POLL_CHAT                  2
-#define PULSE_POLL_PORT                  2
-#define PULSE_UPDATE_TICKS               1
+#define PULSE_UPDATE_INPUT               1
+#define PULSE_UPDATE_SESSIONS            1
 #define PULSE_UPDATE_DELAYS              1
-#define PULSE_UPDATE_PACKETS             2
-#define PULSE_UPDATE_CHAT                2
-#define PULSE_UPDATE_TERMINAL            1
-#define PULSE_UPDATE_MEMORY              2
-#define PULSE_UPDATE_TIME                2
+#define PULSE_UPDATE_DAEMON              1
+#define PULSE_UPDATE_CHAT               10
+#define PULSE_UPDATE_PORT               10
+#define PULSE_UPDATE_TICKS              10
+#define PULSE_UPDATE_PATHS              10
+#define PULSE_UPDATE_PACKETS            10
+#define PULSE_UPDATE_TERMINAL           10
+#define PULSE_UPDATE_MEMORY             10
+#define PULSE_UPDATE_TIME               10
 
 /*
 	Index for lists used by tintin
@@ -323,6 +333,15 @@ enum operators
 #define BV38 (1LL << 37)
 #define BV39 (1LL << 38)
 
+#define BUFFER_FLAG_GREP              BV01
+
+#define CHARSET_FLAG_BIG5                 BV27
+#define CHARSET_FLAG_UTF8                 BV28
+#define CHARSET_FLAG_BIG5TOUTF8           BV29
+#define CHARSET_FLAG_KOI8TOUTF8           BV30
+#define CHARSET_FLAG_FANSITOUTF8          BV31
+#define CHARSET_FLAG_ALL                  CHARSET_FLAG_BIG5|CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8|CHARSET_FLAG_BIG5TOUTF8|CHARSET_FLAG_FANSITOUTF8
+
 #define COL_BLD                       BV01
 #define COL_UND                       BV02
 #define COL_BLK                       BV03
@@ -387,11 +406,48 @@ enum operators
 #define CHAT_FLAG_DND                 BV08
 #define CHAT_FLAG_LINKLOST            BV09
 
+#define DRAW_FLAG_NONE                   0
 #define DRAW_FLAG_ASCII               BV01
 #define DRAW_FLAG_UTF8                BV02
-#define DRAW_FLAG_PRUNED              BV03
-#define DRAW_FLAG_ROUNDED             BV04
-#define DRAW_FLAG_CROSSED             BV05
+#define DRAW_FLAG_CONVERT             BV03
+#define DRAW_FLAG_SCROLL              BV04
+#define DRAW_FLAG_COLOR               BV05
+#define DRAW_FLAG_BLANKED             BV06
+#define DRAW_FLAG_NUMBERED            BV07
+#define DRAW_FLAG_BOXED               BV08
+#define DRAW_FLAG_CROSSED             BV09
+#define DRAW_FLAG_PRUNED              BV10
+#define DRAW_FLAG_ROUNDED             BV11
+#define DRAW_FLAG_TEED                BV12
+#define DRAW_FLAG_CORNERED            BV13
+#define DRAW_FLAG_HOR                 BV14
+#define DRAW_FLAG_VER                 BV15
+#define DRAW_FLAG_LEFT                BV16
+#define DRAW_FLAG_RIGHT               BV17
+#define DRAW_FLAG_TOP                 BV18
+#define DRAW_FLAG_BOT                 BV19
+#define DRAW_FLAG_BUMP                BV20
+#define DRAW_FLAG_CIRCLED             BV21
+#define DRAW_FLAG_JEWELED             BV22
+#define DRAW_FLAG_FILLED              BV23
+#define DRAW_FLAG_TUBED               BV24
+
+
+#define EVENT_FLAG_CATCH              BV01
+#define EVENT_FLAG_CLASS              BV02
+#define EVENT_FLAG_INPUT              BV03
+#define EVENT_FLAG_MAP                BV04
+#define EVENT_FLAG_MOUSE              BV05
+#define EVENT_FLAG_OUTPUT             BV06
+#define EVENT_FLAG_PORT               BV07
+#define EVENT_FLAG_SCAN               BV08
+#define EVENT_FLAG_SCREEN             BV09
+#define EVENT_FLAG_SESSION            BV10
+#define EVENT_FLAG_SYSTEM             BV11
+#define EVENT_FLAG_TELNET             BV12
+#define EVENT_FLAG_TIME               BV13
+#define EVENT_FLAG_VT100              BV14
+
 
 
 #define PORT_FLAG_PRIVATE             BV01
@@ -443,6 +499,8 @@ enum operators
 #define SCREEN_FLAG_GET_ALL           BV05
 #define SCREEN_FLAG_GET_NONE          BV06
 
+#define SCROLL_FLAG_RESIZE            BV01
+
 #define SUB_NONE                      0
 #define SUB_ARG                       (1 <<  0)
 #define SUB_VAR                       (1 <<  1)
@@ -453,11 +511,22 @@ enum operators
 #define SUB_SEC                       (1 <<  6)
 #define SUB_EOL                       (1 <<  7)
 #define SUB_LNF                       (1 <<  8)
-#define SUB_FIX                       (1 <<  9)
+//#define SUB_FIX                       (1 <<  9)
 #define SUB_CMP                       (1 << 10)
 #define SUB_LIT                       (1 << 11)
 
-#define TINTIN_FLAG_RESETBUFFER       (1 <<  0)
+#define REGEX_FLAG_NONE               0
+#define REGEX_FLAG_FIX                (1 <<  0)
+#define REGEX_FLAG_ARG                (1 <<  1)
+#define REGEX_FLAG_CMD                (1 <<  2)
+
+#define WRAP_FLAG_DISPLAY             (1 <<  0)
+#define WRAP_FLAG_WORD                (1 <<  1)
+#define WRAP_FLAG_SPLIT               (1 <<  2)
+
+
+//#define TINTIN_FLAG_RESETBUFFER       (1 <<  0)
+
 #define TINTIN_FLAG_CONVERTMETACHAR   (1 <<  1)
 #define TINTIN_FLAG_HISTORYBROWSE     (1 <<  2)
 #define TINTIN_FLAG_HISTORYSEARCH     (1 <<  3)
@@ -467,6 +536,8 @@ enum operators
 #define TINTIN_FLAG_CHILDLOCK         (1 <<  7)
 #define TINTIN_FLAG_TERMINATE         (1 <<  8)
 #define TINTIN_FLAG_MOUSETRACKING     (1 <<  9)
+#define TINTIN_FLAG_FLUSH             (1 << 10)
+#define TINTIN_FLAG_DAEMONIZE         (1 << 11)
 
 #define SES_FLAG_ECHOCOMMAND          BV01
 #define SES_FLAG_SNOOP                BV02
@@ -474,6 +545,7 @@ enum operators
 #define SES_FLAG_PATHMAPPING          BV04
 #define SES_FLAG_SPLIT                BV05
 #define SES_FLAG_SPEEDWALK            BV06
+#define SES_FLAG_WORDWRAP             BV07
 #define SES_FLAG_READMUD              BV08
 #define SES_FLAG_CLOSED               BV09
 #define SES_FLAG_VERBATIM             BV10
@@ -481,9 +553,9 @@ enum operators
 #define SES_FLAG_REPEATENTER          BV12
 #define SES_FLAG_VERBOSE              BV13
 #define SES_FLAG_CONVERTMETA          BV14
-
-
-
+#define SES_FLAG_PRINTLINE            BV15
+#define SES_FLAG_PRINTBUFFER          BV16
+#define SES_FLAG_AUTOPATCH            BV17
 #define SES_FLAG_GAG                  BV18
 #define SES_FLAG_UPDATEVTMAP          BV19
 #define SES_FLAG_COLORPATCH           BV20
@@ -491,22 +563,14 @@ enum operators
 #define SES_FLAG_TELNET               BV22 // new
 #define SES_FLAG_SCAN                 BV23
 #define SES_FLAG_SCANABORT            BV24
-
+#define SES_FLAG_MOUSETRACKING        BV25
 #define SES_FLAG_RUN                  BV26
-#define SES_FLAG_BIG5                 BV27
-#define SES_FLAG_UTF8                 BV28
-#define SES_FLAG_BIG5TOUTF8           BV29
-#define SES_FLAG_KOI8TOUTF8           BV30
-#define SES_FLAG_FANSITOUTF8          BV31
-#define SES_FLAG_CHARSETS             SES_FLAG_BIG5|SES_FLAG_UTF8|SES_FLAG_KOI8TOUTF8|SES_FLAG_BIG5TOUTF8|SES_FLAG_FANSITOUTF8
+#define SES_FLAG_PORT                 BV27
+#define SES_FLAG_SCREENREADER         BV28
+#define SES_FLAG_SCROLLSPLIT          BV29
+#define SES_FLAG_MOUSEDEBUG           BV30
+#define SES_FLAG_MOUSEINFO            BV31
 
-#define SES_FLAG_PORT                 BV33
-#define SES_FLAG_SCREENREADER         BV34
-#define SES_FLAG_ANSICOLOR            BV35
-#define SES_FLAG_256COLOR             BV36
-#define SES_FLAG_TRUECOLOR            BV37
-#define SES_FLAG_MOUSETRACKING        BV38
-#define SES_FLAG_AUTOPATCH            BV39
 
 #define TELOPT_FLAG_TELNET            BV01
 #define TELOPT_FLAG_SGA               BV02
@@ -533,8 +597,7 @@ enum operators
 #define LIST_FLAG_NEST                BV13
 #define LIST_FLAG_DEFAULT             LIST_FLAG_MESSAGE
 
-#define NODE_FLAG_META                BV01
-#define NODE_FLAG_ANCHORED            BV02
+#define NODE_FLAG_ONESHOT             BV01
 
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
@@ -563,14 +626,19 @@ enum operators
 #define ROOM_FLAG_CURVED              BV06
 #define ROOM_FLAG_PATH                BV07
 #define ROOM_FLAG_NOGLOBAL            BV08
-#define ROOM_FLAG_INVISIBLE           BV09
-
+#define ROOM_FLAG_INVIS               BV09
+#define ROOM_FLAG_AVOID_TMP           BV10|ROOM_FLAG_AVOID
+#define ROOM_FLAG_HIDE_TMP            BV11|ROOM_FLAG_HIDE
+#define ROOM_FLAG_LEAVE_TMP           BV12|ROOM_FLAG_LEAVE
+#define ROOM_FLAG_VOID_TMP            BV13|ROOM_FLAG_VOID
+#define ROOM_FLAG_STATIC_TMP          BV13|ROOM_FLAG_STATIC
+#define ROOM_FLAG_CURVED_TMP          BV14|ROOM_FLAG_CURVED
 
 // keep synced with room flags
 
 #define EXIT_FLAG_HIDE                BV01
 #define EXIT_FLAG_AVOID               BV02
-#define EXIT_FLAG_INVISIBLE           BV03
+#define EXIT_FLAG_INVIS               BV03
 #define EXIT_FLAG_ALL                 BV01|BV02|BV03
 
 #define EXIT_GRID_0                     0
@@ -586,7 +654,7 @@ enum operators
 #define EXIT_GRID_SW                   10
 
 #define GRID_FLAG_HIDE                BV02
-#define GRID_FLAG_INVISIBLE           BV03
+#define GRID_FLAG_INVIS               BV03
 
 #define MAP_FLAG_STATIC               BV01
 #define MAP_FLAG_VTMAP                BV02
@@ -598,6 +666,7 @@ enum operators
 #define MAP_FLAG_SYMBOLGRAPHICS       BV08
 #define MAP_FLAG_UNICODEGRAPHICS      BV09
 #define MAP_FLAG_BLOCKGRAPHICS        BV10
+#define MAP_FLAG_RESIZE               BV11
 
 #define MAP_SEARCH_NAME                0
 #define MAP_SEARCH_EXITS               1
@@ -606,7 +675,8 @@ enum operators
 #define MAP_SEARCH_NOTE                4
 #define MAP_SEARCH_TERRAIN             5
 #define MAP_SEARCH_FLAG                6
-#define MAP_SEARCH_MAX                 7
+#define MAP_SEARCH_ID                  7
+#define MAP_SEARCH_MAX                 8
 
 #define MAP_EXIT_N                     1
 #define MAP_EXIT_E                     2
@@ -656,6 +726,7 @@ enum operators
 #define STARTUP_FLAG_SCREENREADER       2
 #define STARTUP_FLAG_NORESET            4
 #define STARTUP_FLAG_ARGUMENT           8
+#define STARTUP_FLAG_NOTITLE           16
 
 
 #define LEGEND_ASCII                    0
@@ -795,29 +866,32 @@ enum operators
 */
 
 #define URANGE(a, b, c)           ((b) < (a) ? (a) : (b) > (c) ? (c) : (b))
+//#define URANGE(a, b, c)           ((b) <= (a) ? (a) : (c) >= (b) ? (b) : (c) < (b) ? (b) : (c))
+
 #define UMAX(a, b)                ((a) > (b) ? (a) : (b))
 #define UMIN(a, b)                ((a) < (b) ? (a) : (b))
 
 #define next_arg(u)               (u < 99 ? u++ : u)
 
-#define IS_SPLIT(ses)             (gtd->screen->rows != (ses)->bot_row)
-#define SCROLL(ses)               ((ses)->cur_row == 0 || ((ses)->cur_row >= (ses)->top_row && (ses)->cur_row <= (ses)->bot_row) || (ses)->cur_row == gtd->screen->rows)
-#define VERBATIM(ses)             (gtd->verbatim_level || (gtd->input_level == 0 && HAS_BIT((ses)->flags, SES_FLAG_VERBATIM)))
+#define IS_SPLIT(ses)             (gtd->screen->rows != (ses)->split->bot_row)
+#define SCROLL(ses)               ((ses)->cur_row == 0 || ((ses)->cur_row >= (ses)->split->top_row && (ses)->cur_row <= (ses)->split->bot_row) || (ses)->cur_row == gtd->screen->rows)
+#define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && HAS_BIT((ses)->flags, SES_FLAG_VERBATIM)))
 
 #define DO_ARRAY(array) struct session *array (struct session *ses, struct listnode *list, char *arg, char *var)
 #define DO_BUFFER(buffer) void buffer (struct session *ses, char *arg)
 #define DO_CHAT(chat) void chat (char *arg1, char *arg2)
 #define DO_CLASS(class) struct session *class (struct session *ses, char *arg1, char *arg2)
 #define DO_COMMAND(command) struct session  *command (struct session *ses, char *arg)
-#define DO_CONFIG(config) struct session *config (struct session *ses, char *arg, int index)
+#define DO_CONFIG(config) struct session *config (struct session *ses, char *arg1, char *arg2, int index)
 #define DO_CURSOR(cursor) void cursor (struct session *ses, char *arg)
+#define DO_DAEMON(daemon) void daemon (struct session *ses, char *arg)
 #define DO_HISTORY(history) void history (struct session *ses, char *arg)
 #define DO_LINE(line) struct session *line (struct session *ses, char *arg)
 #define DO_MAP(map) void map (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_PATH(path) void path (struct session *ses, char *arg)
 #define DO_PORT(port) struct session *port (struct session *ses, char *arg1, char *arg2, char *arg)
 #define DO_SCREEN(screen) void screen (struct session *ses, int ind, char *arg, char *arg1, char *arg2)
-#define DO_DRAW(draw) void draw (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, int flags, char *arg, char *arg1, char *arg2)
+#define DO_DRAW(draw) void draw (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, int flags, char *color, char *arg, char *arg1, char *arg2)
 
 /*
 	Compatibility
@@ -825,7 +899,6 @@ enum operators
 
 
 #define atoll(str) (strtoll(str, NULL, 10))
-
 
 /************************ structures *********************/
 
@@ -849,7 +922,7 @@ struct listnode
 	char                  * arg3;
 	char                  * arg4;
 	char                  * group;
-//	int                     flags;
+	int                     flags;
 	union
 	{
 		pcre          * regex;
@@ -859,6 +932,76 @@ struct listnode
 	};
 };
 
+struct process_data
+{
+	pid_t                   pid;
+	uid_t                   uid;
+	gid_t                   gid;
+};
+
+struct tintin_data
+{
+	struct session        * ses;
+	struct session        * update;
+	struct session        * all;
+	struct session        * dispose_next;
+	struct session        * dispose_prev;
+	struct chat_data      * chat;
+	struct termios          old_terminal;
+	struct screen_data    * screen;
+	struct level_data     * level;
+	char                  * detach_file;
+	int                     detach_port;
+	struct process_data     detach_info;
+	int                     detach_pid;
+	int                     detach_sock;
+	char                 *  attach_file;
+	int                     attach_pid;
+	int                     attach_sock;
+//	int                     fd_attach;
+	int                     daemon;
+	char                  * buf;
+	char                  * out;
+	char                  * mud_output_buf;
+	int                     mud_output_max;
+	int                     mud_output_len;
+	unsigned char         * mccp_buf;
+	int                     mccp_len;
+	char                    input_buf[BUFFER_SIZE];
+	char                    input_tmp[BUFFER_SIZE];
+	char                    macro_buf[BUFFER_SIZE];
+	char                    paste_buf[BUFFER_SIZE];
+	char                    is_result[NUMBER_SIZE];
+	int                     input_off;
+	int                     input_len;
+	int                     input_cur;
+	int                     input_pos;
+	int                     input_hid;
+	int                     input_tab;
+	char                  * home;
+	char                  * lang;
+	char                  * os;
+	char                  * term;
+	char                  * exec;
+	time_t                  time;
+	struct tm		calendar;
+	unsigned long long      utime;
+	long long               timer[TIMER_CPU][5];
+	long long               total_io_ticks;
+	long long               total_io_exec;
+	long long               total_io_delay;
+	int                     str_size;
+	int                     history_size;
+	int                     command_ref[26];
+	int                     msdp_table_size;
+	int                     flags;
+	char                    tintin_char;
+	char                    verbatim_char;
+	char                    repeat_char;
+	char                  * vars[100];
+	char                  * cmds[100];
+	int                     args[100];
+};
 
 struct session
 {
@@ -866,11 +1009,12 @@ struct session
 	struct session        * prev;
 	struct map_data       * map;
 	struct port_data      * port;
-	z_stream              * mccp;
+	z_stream              * mccp2;
 	z_stream              * mccp3;
 	gnutls_session_t        ssl;
 	struct termios          cur_terminal;
 	struct scroll_data    * scroll;
+	struct split_data     * split;
 	char                  * name;
 	char                  * group;
 	FILE                  * logfile;
@@ -883,10 +1027,6 @@ struct session
 	time_t                  logline_time;
 	struct listroot       * list[LIST_MAX];
 	int                     created;
-	int                     top_split;
-	int                     bot_split;
-	int                     top_row;
-	int                     bot_row;
 	int                     cur_row;
 	int                     sav_row;
 	int                     cur_col;
@@ -898,7 +1038,9 @@ struct session
 	int                     socket;
 	int                     telopts;
 	int                     telopt_flag[8];
+	int                     event_flags;
 	long long               flags;
+	int                     charset;
 	char                  * session_host;
 	char                  * session_ip;
 	char                  * session_port;
@@ -909,81 +1051,65 @@ struct session
 	unsigned long long      connect_retry;
 	int                     connect_error;
 	char                    more_output[BUFFER_SIZE];
-	char                    color[100];
+	int                     color;
+	char                    color_patch[100];
+	unsigned long long      packet_patch;
 	unsigned long long      check_output;
 	int                     auto_tab;
+	int                     tab_width;
 	unsigned long long      rand;
 };
 
 
-struct tintin_data
+struct level_data
 {
-	struct session        * ses;
-	struct session        * update;
-	struct session        * all;
-	struct session        * dispose_next;
-	struct session        * dispose_prev;
-	struct chat_data      * chat;
-	struct termios          old_terminal;
-	struct screen_data    * screen;
-	char                  * buf;
-	char                  * out;
-	char                  * mud_output_buf;
-	int                     mud_output_max;
-	int                     mud_output_len;
-	unsigned char         * mccp_buf;
-	int                     mccp_len;
-	char                    input_buf[BUFFER_SIZE];
-	char                    input_tmp[BUFFER_SIZE];
-	char                    macro_buf[BUFFER_SIZE];
-	char                    paste_buf[BUFFER_SIZE];
-	int                     input_off;
-	int                     input_len;
-	int                     input_cur;
-	int                     input_pos;
-	int                     input_hid;
-	int                     input_tab;
-	char                  * home;
-	char                  * lang;
-	char                  * os;
-	char                  * term;
-	time_t                  time;
-	struct tm		calendar;
-	unsigned long long      utime;
-	long long               timer[TIMER_CPU][5];
-	long long               total_io_ticks;
-	long long               total_io_exec;
-	long long               total_io_delay;
-	int                     str_size;
-	int                     str_hash_size;
-	int                     history_size;
-	int                     command_ref[26];
-	int                     msdp_table_size;
-	int                     flags;
-	int                     background_level;
-	int                     debug_level;
-	int                     input_level;
-	int                     quiet_level;
-	int                     verbose_level;
-	int                     verbatim_level;
-	int                     ignore_level;
-	int                     scroll_level;
-	char                    tintin_char;
-	char                    verbatim_char;
-	char                    repeat_char;
-	char                  * vars[100];
-	char                  * cmds[100];
-	int                     args[100];
+	int                     background;
+	int                     debug;
+	int                     grep;
+	int                     ignore;
+	int                     info;
+	int                     input;
+	int                     oneshot;
+	int                     quiet;
+	int                     scroll;
+	int                     verbatim;
+	int                     verbose;
+};
+
+struct split_data
+{
+	int                     sav_top_row;
+	int                     sav_top_col;
+	int                     sav_bot_row;
+	int                     sav_bot_col;
+	int                     top_row;
+	int                     top_col;
+	int                     bot_row;
+	int                     bot_col;
 };
 
 struct scroll_data
 {
-	char                 ** buffer;
+	struct buffer_data   ** buffer;
 	int                     base;
 	int                     line;
-	int                     max;
-	int                     row;
+	int                     used;
+	int                     size;
+	int                     wrap;
+	int                     time;
 	char                  * input;
+	int                     flags;
+};
+
+
+struct buffer_data
+{
+	int                     width;
+	int                     height;
+	unsigned short          lines;
+	unsigned short          flags;
+	time_t                  time;
+	char                  * str;
 };
 
 struct chat_data
@@ -1053,198 +1179,7 @@ struct link_data
 	char                 * str3;
 };
 
-/*
-	Typedefs
-*/
-
-typedef struct session *ARRAY   (struct session *ses, struct listnode *list, char *arg, char *var);
-typedef void            CHAT    (char *left, char *right);
-typedef struct session *CLASS   (struct session *ses, char *left, char *right);
-typedef struct session *CONFIG  (struct session *ses, char *arg, int index);
-typedef struct session *COMMAND (struct session *ses, char *arg);
-typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2);
-typedef void            CURSOR  (struct session *ses, char *arg);
-typedef void            PATH    (struct session *ses, char *arg);
-typedef struct session *PORT    (struct session *ses, char *arg1, char *arg2, char *arg);
-typedef struct session *LINE    (struct session *ses, char *arg);
-typedef void            HISTORY (struct session *ses, char *arg);
-typedef void            BUFFER  (struct session *ses, char *arg);
-typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
-typedef void            SCREEN  (struct session *ses, int ind, char *arg, char *arg1, char *arg2);
-typedef void            DRAW    (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, int flags, char *arg, char *arg1, char *arg2);
-
-/*
-	Structures for tables.c
-*/
-
-struct array_type
-{
-	char                  * name;
-	ARRAY                 * array;
-	int                     lval;
-	int                     rval;
-};
-
-struct chat_type
-{
-	char                  * name;
-	CHAT                  * fun;
-	int                     lval;
-	int                     rval;
-	char                  * desc;
-};
-
-struct class_type
-{
-	char                  * name;
-	CLASS                 * group;
-};
-
-struct color_type
-{
-	char                  * name;
-	char                  * code;
-};
-
-struct command_type
-{
-	char                  * name;
-	COMMAND               * command;
-	int                     type;
-};
-
-struct config_type
-{
-	char                  * name;
-	char                  * msg_on;
-	char                  * msg_off;
-	CONFIG                * config;
-};
-
-struct draw_type
-{
-	char                  * name;
-	char                  * desc;
-	DRAW                  * fun;
-};
-
-struct event_type
-{
-	char                  * name;
-	char                  * desc;
-};
-
-struct list_type
-{
-	char                  * name;
-	char                  * name_multi;
-	int                     mode;
-	int                     args;
-	int                     flags;
-};
-
-struct port_type
-{
-	char                  * name;
-	PORT                  * fun;
-	int                     lval;
-	int                     rval;
-	char                  * desc;
-};
-
-struct rank_type
-{
-	char                  * name;
-	int                     flags;
-};
-
-struct substitution_type
-{
-	char                  * name;
-	int                     bitvector;
-};
-
-struct map_type
-{
-	char                  * name;
-	MAP                   * map;
-	int                     flags;
-	int                     check;
-};
-
-struct cursor_type
-{
-	char                  * name;
-	char                  * desc;
-	char                  * code;
-	int                     flags;
-	CURSOR                * fun;
-};
-
-struct timer_type
-{
-	char                  * name;
-};
-
-struct path_type
-{
-	char                  * name;
-	PATH                  * fun;
-	char                  * desc;
-};
-
-struct line_type
-{
-	char                  * name;
-	LINE                  * fun;
-};
-
-struct history_type
-{
-	char                  * name;
-	HISTORY               * fun;
-	char                  * desc;
-};
-
-struct buffer_type
-{
-	char                  * name;
-	BUFFER                * fun;
-	char                  * desc;
-};
-
-struct telopt_type
-{
-	char                  * name;
-	int                     want;
-	int                     flags;
-};
-
-struct msdp_type
-{
-	char                 * name;
-	int                    flags;
-	int                    rank;
-	MSDP                 * fun;
-};
-
-struct screen_type
-{
-	char                  * name;
-	char                  * desc;
-	int                     get1;
-	int                     get2;
-	int                     flags;
-	SCREEN                * fun;
-};
-
-struct map_legend_type
-{
-	char                  * name;
-	char                  * group;
-	char                  * min;
-	char                  * max;
-};
+// Unused
 
 struct map_group_type
 {
@@ -1271,22 +1206,6 @@ struct str_data
 	int                       len;
 };
 
-struct str_hash_data
-{
-	struct str_hash_data    * next;
-	struct str_hash_data    * prev;
-	unsigned int              count;
-	int                       flags;
-	int                       lines;
-	int                       length;
-	int                       hash;
-};
-
-struct str_hash_index_data
-{
-	struct str_hash_data    * f_node;
-	struct str_hash_data    * l_node;
-};
 
 struct row_data
 {
@@ -1306,15 +1225,20 @@ struct screen_data
 	int                     focus;
 	int                     char_height;
 	int                     char_width;
+	int                     desk_rows;
+	int                     desk_cols;
 	int                     desk_height;
 	int                     desk_width;
 	int                     top_row;
 	int                     bot_row;
 	int                     cur_row;
 	int                     cur_col;
-	int                     sav_row;
-	int                     sav_col;
+//	int                     sav_row;
+//	int                     sav_col;
 	int                     max_row;
+	int                     sav_lev;
+	int                     sav_row[STACK_SIZE];
+	int                     sav_col[STACK_SIZE];
 };
 
 struct map_data
@@ -1329,8 +1253,15 @@ struct map_data
 	char                  * buf;
 	char                  * out;
 	char                    color[MAP_COLOR_MAX][COLOR_SIZE];
+	int                     center_x;
+	int                     center_y;
+	int                     center_z;
 	int                     max_grid_x;
 	int                     max_grid_y;
+	int                     sav_top_row;
+	int                     sav_top_col;
+	int                     sav_bot_row;
+	int                     sav_bot_col;
 	int                     top_row;
 	int                     top_col;
 	int                     bot_row;
@@ -1370,14 +1301,16 @@ struct room_data
 	int                       x;
 	int                       y;
 	int                       z;
-	char                    * color;
-	char                    * name;
-	char                    * symbol;
-	char                    * desc;
 	char                    * area;
-	char                    * note;
-	char                    * terrain;
+	char                    * color;
 	char                    * data;
+	char                    * desc;
+	char                    * id;
+	char                    * name;
+	char                    * note;
+	char                    * symbol;
+	char                    * terrain;
+
 };
 
 struct exit_data
@@ -1407,7 +1340,240 @@ struct search_data
 	pcre                  * note;
 	pcre                  * terrain;
 	long long               flag;
+	char                  * id;
 };
+
+
+/*
+	Typedefs
+*/
+
+typedef struct session *ARRAY   (struct session *ses, struct listnode *list, char *arg, char *var);
+typedef void            CHAT    (char *arg1, char *arg2);
+typedef struct session *CLASS   (struct session *ses, char *left, char *right);
+typedef struct session *CONFIG  (struct session *ses, char *arg1, char *arg2, int index);
+typedef struct session *COMMAND (struct session *ses, char *arg);
+typedef void            DAEMON  (struct session *ses, char *arg);
+typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2);
+typedef void            CURSOR  (struct session *ses, char *arg);
+typedef void            PATH    (struct session *ses, char *arg);
+typedef struct session *PORT    (struct session *ses, char *arg1, char *arg2, char *arg);
+typedef struct session *LINE    (struct session *ses, char *arg);
+typedef void            HISTORY (struct session *ses, char *arg);
+typedef void            BUFFER  (struct session *ses, char *arg);
+typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
+typedef void            SCREEN  (struct session *ses, int ind, char *arg, char *arg1, char *arg2);
+typedef void            DRAW    (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, int flags, char *color, char *arg, char *arg1, char *arg2);
+
+/*
+	Structures for tables.c
+*/
+
+struct array_type
+{
+	char                  * name;
+	ARRAY                 * fun;
+	char                  * desc;
+};
+
+struct buffer_type
+{
+	char                  * name;
+	BUFFER                * fun;
+	char                  * desc;
+};
+
+struct chat_type
+{
+	char                  * name;
+	CHAT                  * fun;
+	int                     lval;
+	int                     rval;
+	char                  * desc;
+};
+
+struct class_type
+{
+	char                  * name;
+	CLASS                 * group;
+};
+
+struct color_type
+{
+	char                  * name;
+	char                  * code;
+	int                     len;
+};
+
+struct command_type
+{
+	char                  * name;
+	COMMAND               * command;
+	int                     type;
+};
+
+struct config_type
+{
+	char                  * name;
+	char                  * msg_on;
+	char                  * msg_off;
+	CONFIG                * config;
+};
+
+struct cursor_type
+{
+	char                  * name;
+	char                  * desc;
+	char                  * code;
+	int                     flags;
+	CURSOR                * fun;
+};
+
+struct daemon_type
+{
+	char                  * name;
+	PATH                  * fun;
+	char                  * desc;
+};
+
+struct draw_type
+{
+	char                  * name;
+	char                  * desc;
+	int                     flags;
+	DRAW                  * fun;
+};
+
+struct event_type
+{
+	char                  * name;
+	int                     flags;
+	char                  * desc;
+};
+
+struct history_type
+{
+	char                  * name;
+	HISTORY               * fun;
+	char                  * desc;
+};
+
+struct list_type
+{
+	char                  * name;
+	char                  * name_multi;
+	int                     mode;
+	int                     args;
+	int                     flags;
+};
+
+
+struct line_type
+{
+	char                  * name;
+	LINE                  * fun;
+	char                  * desc;
+};
+
+
+struct map_type
+{
+	char                  * name;
+	MAP                   * map;
+	int                     flags;
+	int                     check;
+};
+
+struct msdp_type
+{
+	char                 * name;
+	int                    flags;
+	int                    rank;
+	MSDP                 * fun;
+};
+
+struct path_type
+{
+	char                  * name;
+	PATH                  * fun;
+	char                  * desc;
+};
+
+struct port_type
+{
+	char                  * name;
+	PORT                  * fun;
+	int                     lval;
+	int                     rval;
+	char                  * desc;
+};
+
+struct pulse_type
+{
+	unsigned char           update_input;
+	unsigned char           update_sessions;
+	unsigned char           update_delays;
+	unsigned char           update_daemon;
+	unsigned char           update_chat;
+	unsigned char           update_port;
+	unsigned char           update_ticks;
+	unsigned char           update_paths;
+	unsigned char           update_packets;
+	unsigned char           update_terminal;
+	unsigned char           update_memory;
+	unsigned char           update_time;
+};
+
+
+struct rank_type
+{
+	char                  * name;
+	int                     flags;
+};
+
+struct substitution_type
+{
+	char                  * name;
+	int                     bitvector;
+};
+
+struct timer_type
+{
+	char                  * name;
+};
+
+struct telopt_type
+{
+	char                  * name;
+	int                     want;
+	int                     flags;
+};
+
+
+struct screen_type
+{
+	char                  * name;
+	char                  * desc;
+	int                     get1;
+	int                     get2;
+	int                     flags;
+	SCREEN                * fun;
+
+};
+
+struct map_legend_type
+{
+	char                  * name;
+	char                  * group;
+	char                  * min;
+	char                  * max;
+};
+
+
+/*
+	Various structures
+*/
+
 
 #endif
 
@@ -1444,13 +1610,40 @@ extern DO_ARRAY(array_tokenize);
 #endif
 
 
+#ifndef __BUFFER_H__
+#define __BUFFER_H__
+
+extern DO_COMMAND(do_buffer);
+extern DO_COMMAND(do_grep);
+
+extern void init_buffer(struct session *ses, int size);
+extern void add_line_buffer(struct session *ses, char *line, int more_output);
+extern int show_buffer(struct session *ses);
+
+extern DO_BUFFER(buffer_up);
+extern DO_BUFFER(buffer_clear);
+extern DO_BUFFER(buffer_down);
+extern DO_BUFFER(buffer_get);
+extern DO_BUFFER(buffer_home);
+extern DO_BUFFER(buffer_end);
+extern DO_BUFFER(buffer_lock);
+extern DO_BUFFER(buffer_find);
+extern DO_BUFFER(buffer_write);
+extern DO_BUFFER(buffer_info);
+
+#endif
 
 
 #ifndef __CHAT_H__
 #define __CHAT_H__
 
-
 extern DO_COMMAND(do_chat);
+
+extern void process_chat_connections(fd_set *read_set, fd_set *write_set, fd_set *exc_set);
+extern void chat_socket_printf(struct chat_data *buddy, char *format, ...);
+extern void close_chat(struct chat_data *buddy, int unlink);
+extern void chat_forward_session(struct session *ses, char *linelog);
+
 extern DO_CHAT(chat_accept);
 extern DO_CHAT(chat_call);
 extern DO_CHAT(chat_cancelfile);
@@ -1485,44 +1678,6 @@ extern DO_CHAT(chat_uninitialize);
 extern DO_CHAT(chat_who);
 extern DO_CHAT(chat_zap);
 
-extern  int chat_new(int s);
-extern void close_chat(struct chat_data *buddy, int unlink);
-extern void process_chat_connections(fd_set *read_set, fd_set *write_set, fd_set *exc_set);
-extern void chat_forward_session(struct session *ses, char *linelog);
-extern void chat_socket_printf(struct chat_data *buddy, char *format, ...);
-extern void chat_printf(char *format, ...);
-extern  int process_chat_input(struct chat_data *buddy);
-extern void get_chat_commands(struct chat_data *buddy, char *buf, int len);
-extern void chat_name_change(struct chat_data *buddy, char *txt);
-extern void chat_receive_text_everybody(struct chat_data *buddy, char *txt);
-extern void chat_receive_text_personal(struct chat_data *buddy, char *txt);
-extern void chat_receive_text_group(struct chat_data *buddy, char *txt);
-extern void chat_receive_message(struct chat_data *buddy, char *txt);
-extern void chat_receive_snoop_data(struct chat_data *buddy, char *txt);
-
-extern void ping_response(struct chat_data *ch, char *time);
-
-extern void request_response(struct chat_data *requester);
-extern void parse_requested_connections(struct chat_data *buddy, char *txt);
-
-extern void peek_response(struct chat_data *peeker);
-extern void parse_peeked_connections(struct chat_data *buddy, char *txt);
-
-
-extern void chat_receive_file(char *arg, struct chat_data *ch);
-extern void send_block(struct chat_data *ch);
-extern  int receive_block(unsigned char *s, struct chat_data *ch, int size);
-extern void deny_file(struct chat_data *ch, char *arg);
-extern void file_denied(struct chat_data *ch, char *txt);
-extern void file_cleanup(struct chat_data *buddy);
-
-extern int get_file_size(char *fpath);
-
-extern void chat_puts(char *arg);
-extern struct chat_data *find_buddy(char *arg);
-extern struct chat_data *find_group(char *arg);
-extern char *fix_file_name(char *name);
-
 #endif
 
 
@@ -1530,7 +1685,10 @@ extern char *fix_file_name(char *name);
 #define __CLASS_H__
 
 extern DO_COMMAND(do_class);
-extern int count_class(struct session *ses, struct listnode *group);
+
+extern  int count_class(struct session *ses, struct listnode *group);
+extern void parse_class(struct session *ses, char *input, struct listnode *group);
+
 extern DO_CLASS(class_open);
 extern DO_CLASS(class_close);
 extern DO_CLASS(class_list);
@@ -1538,7 +1696,6 @@ extern DO_CLASS(class_read);
 extern DO_CLASS(class_size);
 extern DO_CLASS(class_write);
 extern DO_CLASS(class_kill);
-extern void parse_class(struct session *ses, char *input, struct listnode *group);
 
 #endif
 
@@ -1547,6 +1704,8 @@ extern void parse_class(struct session *ses, char *input, struct listnode *group
 #define __CURSOR_H__
 
 extern DO_COMMAND(do_cursor);
+
+int inputline_cur_pos(void);
 
 extern DO_CURSOR(cursor_backspace);
 extern DO_CURSOR(cursor_brace_open);
@@ -1587,14 +1746,12 @@ extern DO_CURSOR(cursor_right);
 extern DO_CURSOR(cursor_right_word);
 extern DO_CURSOR(cursor_set);
 extern DO_CURSOR(cursor_suspend);
-
 extern DO_CURSOR(cursor_tab_backward);
 extern DO_CURSOR(cursor_tab_forward);
 extern DO_CURSOR(cursor_auto_tab_backward);
 extern DO_CURSOR(cursor_auto_tab_forward);
 extern DO_CURSOR(cursor_mixed_tab_backward);
 extern DO_CURSOR(cursor_mixed_tab_forward);
-
 extern DO_CURSOR(cursor_screen_focus_in);
 extern DO_CURSOR(cursor_screen_focus_out);
 
@@ -1605,11 +1762,11 @@ extern DO_CURSOR(cursor_screen_focus_out);
 #define __INPUT_H__
 
 extern void  process_input(void);
-extern void  read_line();
-extern void  read_key(void);
+extern void  read_line(char *input, int len);
+extern void  read_key(char *input, int len);
+extern int   check_key(char *input, int len);
 extern void  convert_meta(char *input, char *output, int eol);
 extern char *str_convert_meta(char *input, int eol);
-
 extern void  echo_command(struct session *ses, char *line);
 extern void  input_printf(char *format, ...);
 extern void  modified_input(void);
@@ -1617,14 +1774,18 @@ extern void  modified_input(void);
 #endif
 
 
-
-
 #ifndef __MAPPER_H__
 #define __MAPPER_H__
 
 extern DO_COMMAND(do_map);
 
+extern  int follow_map(struct session *ses, char *argument);
+extern void show_vtmap(struct session *ses);
+extern void map_mouse_handler(struct session *ses, char *left, char *right, int row, int col);
+extern  int delete_map(struct session *ses);
+
 extern DO_MAP(map_at);
+extern DO_MAP(map_center);
 extern DO_MAP(map_color);
 extern DO_MAP(map_create);
 extern DO_MAP(map_debug);
@@ -1664,39 +1825,6 @@ extern DO_MAP(map_update);
 extern DO_MAP(map_vnum);
 extern DO_MAP(map_write);
 
-
-extern void create_map(struct session *ses, char *arg);
-extern void delete_map(struct session *ses);
-extern int  create_room(struct session *ses, char *format, ...);
-extern void delete_room(struct session *ses, int room, int exits);
-extern struct exit_data *create_exit(struct session *ses, int room, char *format, ...);
-extern void delete_exit(struct session *ses, int room, struct exit_data *exit);
-extern void search_keywords(struct session *ses, char *arg, char *out, char *var);
-extern void map_search_compile(struct session *ses, char *arg, char *var);
-extern int match_room(struct session *ses, int room, struct search_data *search);
-extern int  find_room(struct session *ses, char *arg);
-extern void goto_room(struct session *ses, int room);
-extern struct exit_data *find_exit(struct session *ses, int room, char *arg);
-extern int  get_exit_dir(struct session *ses, char *arg);
-extern int  get_exit_grid(struct session *ses, int dir);
-extern void set_room_exits(struct session *ses, int room);
-extern int  get_room_exits(struct session *ses, int room);
-extern void displaygrid_build(struct session *ses, int room, int x, int y, int z);
-extern int  follow_map(struct session *ses, char *argument);
-extern void add_undo(struct session *ses, char *format, ...);
-extern void del_undo(struct session *ses, struct link_data *link);
-extern char *draw_room(struct session *ses, struct room_data *room, int line, int x, int y);
-extern int searchgrid_find(struct session *ses, int from, struct search_data *search);
-extern int searchgrid_walk(struct session *ses, int offset, int from, int dest);
-extern void shortest_path(struct session *ses, int run, char *delay, char *arg);
-extern void explore_path(struct session *ses, int run, char *left, char *right);
-extern int tunnel_void(struct session *ses, int from, int room, int dir);
-extern int check_global(struct session *ses, int room);
-extern int find_coord(struct session *ses, char *arg);
-extern int spatialgrid_find(struct session *ses, int vnum, int x, int y, int z);
-extern void show_vtmap(struct session *ses);
-extern void map_mouse_handler(struct session *ses, char *left, char *right, int row, int col);
-
 #endif
 
 
@@ -1704,8 +1832,11 @@ extern void map_mouse_handler(struct session *ses, char *left, char *right, int 
 #define __TT_MATH_H__
 
 extern DO_COMMAND(do_math);
+
 extern int is_math(struct session *ses, char *str);
+extern int get_ellipsis(struct listroot *root, char *name, int *min, int *max);
 extern long double get_number(struct session *ses, char *str);
+extern unsigned long long get_integer(struct session *ses, char *str);
 extern long double get_double(struct session *ses, char *str);
 extern void get_number_string(struct session *ses, char *str, char *result);
 extern long double mathswitch(struct session *ses, char *left, char *right);
@@ -1714,6 +1845,7 @@ extern int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 extern void mathexp_level(struct session *ses, struct link_data *node);
 extern void mathexp_compute(struct session *ses, struct link_data *node);
 extern long double tintoi(char *str);
+extern unsigned long long tintou(char *str);
 extern long double tincmp(char *left, char *right);
 extern long double tineval(struct session *ses, char *left, char *right);
 extern long double tindice(struct session *ses, char *left, char *right);
@@ -1721,118 +1853,103 @@ extern long double tindice(struct session *ses, char *left, char *right);
 #endif
 
 
-#ifndef __SPLIT_H__
-#define __SPLIT_H__
-
-extern DO_COMMAND(do_split);
-extern DO_COMMAND(do_unsplit);
-extern void init_split(struct session *ses, int top, int bot);
-extern void reset_screen(struct session *ses);
-extern void dirty_screen(struct session *ses);
-extern void split_show(struct session *ses, char *prompt, int row, int col);
-
-#endif
-
-
-
-
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
 extern DO_COMMAND(do_configure);
 
-extern DO_CONFIG(config_speedwalk);
-extern DO_CONFIG(config_verbatim);
-extern DO_CONFIG(config_repeatenter);
-extern DO_CONFIG(config_commandecho);
-extern DO_CONFIG(config_commandcolor);
-extern DO_CONFIG(config_verbose);
-extern DO_CONFIG(config_wordwrap);
-extern DO_CONFIG(config_logmode);
-extern DO_CONFIG(config_buffersize);
-extern DO_CONFIG(config_scrolllock);
-extern DO_CONFIG(config_historysize);
-extern DO_CONFIG(config_connectretry);
-extern DO_CONFIG(config_packetpatch);
-extern DO_CONFIG(config_tintinchar);
-extern DO_CONFIG(config_verbatimchar);
-extern DO_CONFIG(config_repeatchar);
-extern DO_CONFIG(config_debugtelnet);
-extern DO_CONFIG(config_convertmeta);
-extern DO_CONFIG(config_loglevel);
-extern DO_CONFIG(config_colorpatch);
-extern DO_CONFIG(config_mccp);
 extern DO_CONFIG(config_autotab);
+extern DO_CONFIG(config_buffersize);
 extern DO_CONFIG(config_charset);
 extern DO_CONFIG(config_colormode);
-extern DO_CONFIG(config_screenreader);
-extern DO_CONFIG(config_inheritance);
-extern DO_CONFIG(config_randomseed);
-extern DO_CONFIG(config_mousetracking);
+extern DO_CONFIG(config_colorpatch);
+extern DO_CONFIG(config_commandcolor);
+extern DO_CONFIG(config_commandecho);
+extern DO_CONFIG(config_connectretry);
 extern DO_CONFIG(config_childlock);
+extern DO_CONFIG(config_convertmeta);
+extern DO_CONFIG(config_debugtelnet);
+extern DO_CONFIG(config_historysize);
+extern DO_CONFIG(config_inheritance);
+extern DO_CONFIG(config_loglevel);
+extern DO_CONFIG(config_logmode);
+extern DO_CONFIG(config_mccp);
+extern DO_CONFIG(config_mousetracking);
+extern DO_CONFIG(config_packetpatch);
+extern DO_CONFIG(config_pid);
+extern DO_CONFIG(config_randomseed);
+extern DO_CONFIG(config_repeatchar);
+extern DO_CONFIG(config_repeatenter);
+extern DO_CONFIG(config_screenreader);
+extern DO_CONFIG(config_scrolllock);
+extern DO_CONFIG(config_speedwalk);
+extern DO_CONFIG(config_tabwidth);
 extern DO_CONFIG(config_telnet);
+extern DO_CONFIG(config_tintinchar);
+extern DO_CONFIG(config_verbatim);
+extern DO_CONFIG(config_verbatimchar);
+extern DO_CONFIG(config_verbose);
+extern DO_CONFIG(config_wordwrap);
 
 #endif
 
 
+#ifndef __SUBSTITUTE_H__
+#define __SUBSTITUTE_H__
 
-#ifndef __BUFFER_H__
-#define __BUFFER_H__
-
-extern void init_buffer(struct session *ses, int size);
-extern void add_line_buffer(struct session *ses, char *line, int more_output);
-extern DO_COMMAND(do_buffer);
-extern DO_COMMAND(do_grep);
-extern int show_buffer(struct session *ses);
-extern DO_BUFFER(buffer_up);
-extern DO_BUFFER(buffer_clear);
-extern DO_BUFFER(buffer_down);
-extern DO_BUFFER(buffer_get);
-extern DO_BUFFER(buffer_home);
-extern DO_BUFFER(buffer_end);
-extern DO_BUFFER(buffer_lock);
-extern DO_BUFFER(buffer_find);
-extern DO_BUFFER(buffer_write);
-extern DO_BUFFER(buffer_info);
+extern int is_color_code(char *str);
+extern int substitute_color(char *input, char *output, int colors);
 
 #endif
 
+#ifndef __DAEMON_H__
+#define __DAEMON_H__
+
+extern DO_COMMAND(do_daemon);
+
+extern DO_DAEMON(daemon_attach);
+extern DO_DAEMON(daemon_detach);
+extern DO_DAEMON(daemon_input);
+extern DO_DAEMON(daemon_kill);
+extern DO_DAEMON(daemon_list);
+
+extern void reset_daemon(void);
+extern void winch_daemon(void);
+
+#endif
 
 #ifndef __DATA_H__
 #define __DATA_H__
 
-extern struct listroot *init_list(struct session *ses, int type, int size);
+extern DO_COMMAND(do_kill);
+extern DO_COMMAND(do_killall);
+extern DO_COMMAND(do_message);
+extern DO_COMMAND(do_ignore);
+extern DO_COMMAND(do_debug);
+
+
 extern void kill_list(struct listroot *root);
 extern void free_list(struct listroot *root);
-extern struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int type);
-
-extern struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
-extern struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
-extern struct listnode *insert_index_list(struct listroot *root, struct listnode *node, int index);
-
 extern  int show_node_with_wild(struct session *ses, char *cptr, struct listroot *root);
 extern void show_node(struct listroot *root, struct listnode *node, int level);
 extern void show_nest(struct listnode *node, char *result);
 extern void show_list(struct listroot *root, int level);
-
-extern struct listnode *search_node_list(struct listroot *root, char *text);
-
 extern void delete_node_list(struct session *ses, int type, struct listnode *node);
 extern void delete_node_with_wild(struct session *ses, int index, char *string);
-
 extern void delete_index_list(struct listroot *root, int index);
 extern  int search_index_list(struct listroot *root, char *text, char *priority);
 extern  int locate_index_list(struct listroot *root, char *text, char *priority);
+extern  int bsearch_alpha_list(struct listroot *root, char *text, int seek);
+extern  int bsearch_priority_list(struct listroot *root, char *text, char *priority, int seek);
+extern  int nsearch_list(struct listroot *root, char *text);
+extern struct listroot *init_list(struct session *ses, int type, int size);
+extern struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int type);
+extern struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
+extern struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
+extern struct listnode *insert_index_list(struct listroot *root, struct listnode *node, int index);
+extern struct listnode *search_node_list(struct listroot *root, char *text);
 
 
-extern int bsearch_alpha_list(struct listroot *root, char *text, int seek);
-extern int bsearch_priority_list(struct listroot *root, char *text, char *priority, int seek);
-extern int nsearch_list(struct listroot *root, char *text);
-
-extern DO_COMMAND(do_kill);
-extern DO_COMMAND(do_message);
-extern DO_COMMAND(do_ignore);
-extern DO_COMMAND(do_debug);
 #endif
 
 
@@ -1854,21 +1971,24 @@ extern void dump_full_stack(void);
 extern DO_COMMAND(do_draw);
 
 DO_DRAW(draw_blank);
-DO_DRAW(draw_bot_line);
+DO_DRAW(draw_bot_side);
 DO_DRAW(draw_box);
 DO_DRAW(draw_box_text);
-DO_DRAW(draw_center_left_line);
-DO_DRAW(draw_center_right_line);
+DO_DRAW(draw_center_left_side);
+DO_DRAW(draw_center_right_side);
 DO_DRAW(draw_horizontal_line);
-DO_DRAW(draw_left_line);
+DO_DRAW(draw_left_side);
+DO_DRAW(draw_line);
 DO_DRAW(draw_map);
-DO_DRAW(draw_middle_bot_line);
-DO_DRAW(draw_middle_top_line);
-DO_DRAW(draw_right_line);
-DO_DRAW(draw_side_lines);
-DO_DRAW(draw_side_lines_text);
+DO_DRAW(draw_middle_bot_side);
+DO_DRAW(draw_middle_top_side);
+DO_DRAW(draw_right_side);
+DO_DRAW(draw_side);
+DO_DRAW(draw_vertical_lines);
+DO_DRAW(draw_vertical_lines_text);
+DO_DRAW(draw_square);
 DO_DRAW(draw_text);
-DO_DRAW(draw_top_line);
+DO_DRAW(draw_top_side);
 DO_DRAW(draw_vertical_line);
 
 #endif
@@ -1879,12 +1999,11 @@ DO_DRAW(draw_vertical_line);
 
 extern DO_COMMAND(do_event);
 extern DO_COMMAND(do_unevent);
-extern int check_all_events(struct session *ses, int flags, int args, int vars, char *fmt, ...);
+
+extern  int check_all_events(struct session *ses, int flags, int args, int vars, char *fmt, ...);
 extern void mouse_handler(struct session *ses, int val1, int val2, int val3, char type);
 
 #endif
-
-
 
 
 #ifndef __FILES_H__
@@ -1898,18 +2017,12 @@ extern void write_node(struct session *ses, int mode, struct listnode *node, FIL
 #endif 
 
 
-
-
-
-
 #ifndef __HELP_H__
 #define __HELP_H__
 
 extern DO_COMMAND(do_help);
 
 #endif
-
-
 
 
 #ifndef __HISTORY_H__
@@ -1930,19 +2043,21 @@ DO_HISTORY(history_size);
 DO_HISTORY(history_read);
 DO_HISTORY(history_write);
 
-
 #endif
 
 
 #ifndef __LINE_H__
 #define __LINE_H__
+
 extern DO_COMMAND(do_line);
 extern DO_LINE(line_background);
+extern DO_LINE(line_debug);
 extern DO_LINE(line_gag);
 extern DO_LINE(line_ignore);
 extern DO_LINE(line_log);
 extern DO_LINE(line_logmode);
 extern DO_LINE(line_logverbatim);
+extern DO_LINE(line_oneshot);
 extern DO_LINE(line_quiet);
 extern DO_LINE(line_strip);
 extern DO_LINE(line_substitute);
@@ -1955,14 +2070,14 @@ extern DO_LINE(line_verbose);
 #ifndef __LOG_H__
 #define __LOG_H__
 
-extern void logit(struct session *ses, char *txt, FILE *file, int newline);
-extern void loginit(struct session *ses, FILE *file, int newline);
 extern DO_COMMAND(do_log);
+
+extern void loginit(struct session *ses, FILE *file, int newline);
+extern void logit(struct session *ses, char *txt, FILE *file, int newline);
 extern void write_html_header(struct session *ses, FILE *fp);
 extern void vt102_to_html(struct session *ses, char *txt, char *out);
+
 #endif
-
-
 
 
 #ifndef __MAIN_H__
@@ -1970,15 +2085,12 @@ extern void vt102_to_html(struct session *ses, char *txt, char *out);
 
 extern struct session *gts;
 extern struct tintin_data *gtd;
-
-
 extern void winch_handler(int signal);
 extern void abort_handler(int signal);
 extern void pipe_handler(int signal);
 extern void suspend_handler(int signal);
 extern void trap_handler(int signal);
-
-extern int main(int argc, char **argv);
+extern  int main(int argc, char **argv);
 extern void init_tintin(int greeting);
 extern void quitmsg(char *message);
 extern void syserr_fatal(int signal, char *msg);
@@ -1999,9 +2111,7 @@ void  zlib_free(void *opaque, void *address);
 
 extern char *restring(char *point, char *string);
 extern char *restringf(char *point, char *fmt, ...);
-
-extern int str_len(char *str);
-
+extern  int str_len(char *str);
 extern char *str_alloc(int len);
 extern void str_clone(char **clone, char *original);
 extern char *str_mim(char *original);
@@ -2044,7 +2154,7 @@ extern DO_COMMAND(do_zap);
 #define __MSDP_H__
 
 extern void init_msdp_table(void);
-extern int msdp_find(char *var);
+extern  int msdp_find(char *var);
 extern void arachnos_devel(struct session *ses, char *fmt, ...);
 extern void arachnos_mudlist(struct session *ses, char *fmt, ...);
 extern void msdp_update_all(char *var, char *fmt, ...);
@@ -2061,11 +2171,10 @@ extern void msdp_command_send(struct session *ses, struct port_data *buddy, int 
 extern void msdp_command_unreport(struct session *ses, struct port_data *buddy, int index);
 extern void msdp_configure_arachnos(struct session *ses, struct port_data *buddy, int index);
 extern void write_msdp_to_descriptor(struct session *ses, struct port_data *buddy, char *src, int length);
-extern int msdp2json(unsigned char *src, int srclen, char *out);
-extern int json2msdp(unsigned char *src, int srclen, char *out);
+extern  int msdp2json(unsigned char *src, int srclen, char *out);
+extern  int json2msdp(unsigned char *src, int srclen, char *out);
 extern void arachnos_devel(struct session *ses, char *fmt, ...);
 extern void arachnos_mudlist(struct session *ses, char *fmt, ...);
-
 extern struct msdp_type msdp_table[];
 
 #endif
@@ -2108,12 +2217,11 @@ extern void process_mud_output(struct session *ses, char *linebuf, int prompt);
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
-extern int is_abbrev(char *s1, char *s2);
+extern  int is_abbrev(char *s1, char *s2);
 extern void filename_string(char *input, char *output);
 extern struct session *parse_input(struct session *ses, char *input);
 extern struct session *parse_command(struct session *ses, char *input);
-
-extern int is_speedwalk(struct session *ses, char *input);
+extern  int is_speedwalk(struct session *ses, char *input);
 extern void process_speedwalk(struct session *ses, char *input);
 extern struct session *parse_tintin_command(struct session *ses, char *input);
 extern char *get_arg_all(struct session *ses, char *string, char *result, int verbatim);
@@ -2135,6 +2243,11 @@ extern void do_one_line(char *line, struct session *ses);
 #define __PATH_H__
 
 extern DO_COMMAND(do_path);
+extern DO_COMMAND(do_pathdir);
+extern DO_COMMAND(do_unpathdir);
+
+extern void check_append_path(struct session *ses, char *forward, char *backward, int follow);
+
 extern DO_PATH(path_create);
 extern DO_PATH(path_describe);
 extern DO_PATH(path_delete);
@@ -2153,10 +2266,6 @@ extern DO_PATH(path_undo);
 extern DO_PATH(path_unzip);
 extern DO_PATH(path_walk);
 extern DO_PATH(path_zip);
-
-extern DO_COMMAND(do_pathdir);
-extern DO_COMMAND(do_unpathdir);
-extern void check_append_path(struct session *ses, char *forward, char *backward, int follow);
 
 // old
 
@@ -2214,30 +2323,30 @@ extern DO_COMMAND(do_screen);
 
 extern DO_SCREEN(screen_blur);
 extern DO_SCREEN(screen_clear);
+extern DO_SCREEN(screen_cursor);
+extern DO_SCREEN(screen_fill);
 extern DO_SCREEN(screen_focus);
 extern DO_SCREEN(screen_fullscreen);
-extern DO_SCREEN(screen_info);
 extern DO_SCREEN(screen_get);
-extern DO_SCREEN(screen_cursor);
-extern DO_SCREEN(screen_scrollbar);
+extern DO_SCREEN(screen_info);
 extern DO_SCREEN(screen_load);
-extern DO_SCREEN(screen_save);
-extern DO_SCREEN(screen_set);
 extern DO_SCREEN(screen_maximize);
 extern DO_SCREEN(screen_minimize);
+extern DO_SCREEN(screen_move);
+extern DO_SCREEN(screen_raise);
 extern DO_SCREEN(screen_refresh);
 extern DO_SCREEN(screen_resize);
-extern DO_SCREEN(screen_move);
 extern DO_SCREEN(screen_rescale);
-extern DO_SCREEN(screen_raise);
+extern DO_SCREEN(screen_save);
+extern DO_SCREEN(screen_scrollbar);
+extern DO_SCREEN(screen_scrollregion);
+extern DO_SCREEN(screen_set);
 
-extern int get_row_index(struct session *ses, char *arg);
-extern int get_col_index(struct session *ses, char *arg);
-
+extern  int get_row_index(struct session *ses, char *arg);
+extern  int get_col_index(struct session *ses, char *arg);
 extern void csip_handler(int var1, int var2, int var3);
 extern void csit_handler(int var1, int var2, int var3);
 extern void osc_handler(char ind, char *arg);
-
 extern void print_screen();
 extern void init_screen(int rows, int cols, int pix_rows, int pix_cols);
 extern void destroy_screen();
@@ -2247,7 +2356,14 @@ extern void erase_scroll_region(struct session *ses);
 extern void erase_split_region(struct session *ses);
 extern void erase_bot_region(struct session *ses);
 extern void erase_top_region(struct session *ses);
+extern void erase_left_region(struct session *ses);
+extern void erase_right_region(struct session *ses);
 extern void erase_square(struct session *ses, int top_row, int top_col, int bot_row, int bot_col);
+extern void fill_top_region(struct session *ses, char *arg);
+extern void fill_bot_region(struct session *ses, char *arg);
+extern void fill_left_region(struct session *ses, char *arg);
+extern void fill_right_region(struct session *ses, char *arg);
+extern void fill_split_region(struct session *ses, char *arg);
 extern void get_line_screen(char *str, int row);
 extern void get_word_screen(char *str, int row, int col);
 
@@ -2296,35 +2412,33 @@ extern void tintin_puts(struct session *ses, char *string);
 #endif
 
 
+#ifndef __SPLIT_H__
+#define __SPLIT_H__
+
+extern DO_COMMAND(do_split);
+extern DO_COMMAND(do_unsplit);
+
+extern void init_split(struct session *ses, int top, int bot, int left, int right);
+extern void reset_screen(struct session *ses);
+extern void dirty_screen(struct session *ses);
+extern void split_show(struct session *ses, char *prompt, int row, int col);
+
+#endif
+
+
 #ifndef __SSL_H__
 #define __SSL_H__
 
 extern DO_COMMAND(do_ssl);
+
 extern gnutls_session_t ssl_negotiate(struct session *ses);
 
 #endif
 
 
-#ifndef __STRHASH_H__
-#define __STRHASH_H__
-
-
-extern unsigned long long generate_hash_key(char *str);
-extern char *str_hash(char *str, int lines);
-extern char *str_unhash(char *str);
-extern int str_hash_lines(char *str);
-extern int str_hash_length(char *str);
-extern int str_hash_grep(char *str, int write);
-extern void reset_hash_table(void);
-extern void str_hash_info(struct session *ses);
-
-#endif
-
-
-
-
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
+
 
 extern DO_COMMAND(do_run);
 extern DO_COMMAND(do_scan);
@@ -2333,10 +2447,6 @@ extern DO_COMMAND(do_system);
 extern DO_COMMAND(do_textin);
 
 #endif
-
-
-
-
 
 
 #ifndef __TABLES_H__
@@ -2351,6 +2461,7 @@ extern struct color_type map_color_table[];
 extern struct command_type command_table[];
 extern struct config_type config_table[];
 extern struct cursor_type cursor_table[];
+extern struct daemon_type daemon_table[];
 extern struct draw_type draw_table[];
 extern struct event_type event_table[];
 extern struct history_type history_table[];
@@ -2362,7 +2473,7 @@ extern struct port_type port_table[];
 extern struct rank_type rank_table[];
 extern struct substitution_type substitution_table[];
 extern struct telopt_type telopt_table[];
-extern char *telcmds[];
+extern   char *telcmds[];
 extern struct timer_type timer_table[];
 extern struct screen_type screen_table[];
 extern struct map_legend_type map_legend_table[];
@@ -2375,18 +2486,13 @@ extern struct map_group_type map_group_table[];
 #define __TELOPT_H__
 
 extern  int client_translate_telopts(struct session *ses, unsigned char *src, int cplen);
-
 extern  int client_write_compressed(struct session *ses, char *txt, int length);
 extern  int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc);
-
 extern void announce_support(struct session *ses, struct port_data *buddy);
 extern  int server_translate_telopts(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen, unsigned char *out, int outlen);
-
 extern void write_mccp2(struct session *ses, struct port_data *buddy, char *txt, int length);
-
 extern void end_mccp2(struct session *ses, struct port_data *buddy);
 extern void end_mccp3(struct session *ses, struct port_data *buddy);
-
 extern void init_msdp_table(void);
 
 #endif
@@ -2397,14 +2503,13 @@ extern void init_msdp_table(void);
 
 extern void init_terminal(struct session *ses);
 extern void reset_terminal(struct session *ses);
-
 extern void save_session_terminal(struct session *ses);
 extern void refresh_session_terminal(struct session *ses);
-
 extern void echo_on(struct session *ses);
 extern void echo_off(struct session *ses);
 extern void init_terminal_size(struct session *ses);
-extern int get_scroll_size(struct session *ses);
+extern  int get_scroll_rows(struct session *ses);
+extern  int get_scroll_cols(struct session *ses);
 
 #endif
 
@@ -2413,8 +2518,9 @@ extern int get_scroll_size(struct session *ses);
 #define __TEXT_H__
 
 extern void print_line(struct session *ses, char **str, int isaprompt);
-int word_wrap(struct session *ses, char *textin, char *textout, int display);
-int word_wrap_split(struct session *ses, char *textin, char *textout, int display, int skip, int keep);
+extern void print_stdout(char *format, ...);
+extern  int word_wrap(struct session *ses, char *textin, char *textout, int display, int *height, int *width);
+extern  int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, int start, int end, int flags, int *height, int *width);
 
 #endif
 
@@ -2500,35 +2606,17 @@ extern DO_COMMAND(do_untick);
 
 #endif
 
-#ifndef __UPDATE_H__
-#define __UPDATE_H__
+// update.c
 
 extern void mainloop(void);
-extern void poll_input(void);
-extern void poll_sessions(void);
-extern void poll_chat(void);
-extern void poll_port(void);
-extern void tick_update(void);
-extern void delay_update(void);
-extern void packet_update(void);
-extern void chat_update(void);
-extern void terminal_update(void);
-extern void memory_update(void);
-extern void time_update(void);
-
 extern void show_cpu(struct session *ses);
-extern long long display_timer(struct session *ses, int timer);
-extern void open_timer(int timer);
-extern void close_timer(int timer);
-
-#endif
 
 
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
 
-extern int is_color_code(char *str);
+
 extern int is_number(char *str);
 extern unsigned long long hex_number_64bit(char *str);
 extern int hex_number_8bit(char *str);
@@ -2540,6 +2628,7 @@ extern unsigned long long generate_rand(struct session *ses);
 extern void seed_rand(struct session *ses, unsigned long long seed);
 extern char *capitalize(char *str);
 extern char *ntos(long long number);
+extern char *indent_one(int len);
 extern char *indent(int len);
 extern int cat_sprintf(char *dest, char *fmt, ...);
 extern void ins_sprintf(char *dest, char *fmt, ...);
@@ -2574,31 +2663,23 @@ extern int fansi_to_utf8(char *input, char *output);
 
 extern DO_COMMAND(do_variable);
 extern DO_COMMAND(do_unvariable);
-
 extern DO_COMMAND(do_local);
+extern DO_COMMAND(do_format);
+extern DO_COMMAND(do_replace);
 
-extern int get_color_names(struct session *ses, char *htype, char *result);
-
+extern  int string_raw_str_len(struct session *ses, char *str, int start, int end);
+extern  int string_str_raw_len(struct session *ses, char *str, int start, int end);
+extern  int get_color_names(struct session *ses, char *htype, char *result);
 extern void lowerstring(char *str);
 extern void numbertocharacter(struct session *ses, char *str);
 extern void charactertonumber(struct session *ses, char *str);
-
-extern int delete_variable(struct session *ses, char *variable);
+extern  int delete_variable(struct session *ses, char *variable);
+extern void justify_string(struct session *ses, char *in, char *out, int align, int cut);
+extern void format_string(struct session *ses, char *format, char *arg, char *out);
 extern struct listnode *search_variable(struct session *ses, char *variable);
-
 extern struct listnode *get_variable(struct session *ses, char *variable, char *result);
 extern struct listnode *set_variable(struct session *ses, char *variable, char *format, ...);
 
-extern int get_variable_index(struct session *ses, char *variable, char *result);
-
-extern void format_string(struct session *ses, char *format, char *arg, char *out);
-
-extern DO_COMMAND(do_format);
-extern DO_COMMAND(do_tolower);
-extern DO_COMMAND(do_toupper);
-extern DO_COMMAND(do_postpad);
-extern DO_COMMAND(do_prepad);
-extern DO_COMMAND(do_replace);
 
 #endif
 
@@ -2606,13 +2687,12 @@ extern DO_COMMAND(do_replace);
 #ifndef __VT102_H__
 #define __VT102_H__
 
+extern void init_pos(struct session *ses, int row, int col);
 extern void save_pos(struct session *ses);
-extern void load_pos(struct session *ses);
 extern void goto_pos(struct session *ses, int row, int col);
-
 extern void restore_pos(struct session *ses);
-extern void goto_rowcol(struct session *ses, int row, int col);
-
+extern void erase_cols(int cnt);
+extern void erase_row(struct session *ses);
 extern void erase_lines(struct session *ses, int rows);
 extern void erase_toeol(void);
 extern void erase_scroll_region(struct session *ses);
@@ -2624,8 +2704,9 @@ extern int skip_vt102_codes_non_graph(char *str);
 extern void strip_vt102_codes(char *str, char *buf);
 extern void strip_vt102_codes_non_graph(char *str, char *buf);
 extern void strip_non_vt102_codes(char *str, char *buf);
-extern void get_color_codes(char *old, char *str, char *buf);
+extern void get_color_codes(char *old, char *str, char *buf, int flags);
 extern int strip_vt102_strlen(struct session *ses, char *str);
+extern int strip_vt102_width(struct session *ses, char *str, int *lines);
 extern int strip_color_strlen(struct session *ses, char *str);
 extern char *strip_vt102_strstr(char *str, char *buf, int *len);
 extern int interpret_vt102_codes(struct session *ses, char *str, int real);
