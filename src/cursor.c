@@ -1643,7 +1643,7 @@ DO_CURSOR(cursor_screen_focus_in)
 {
 	gtd->screen->focus = 1;
 
-	check_all_events(gtd->ses, SUB_ARG, 1, 1, "SCREEN FOCUS", ntos(gtd->screen->focus));
+	check_all_events(gtd->ses, SUB_ARG, 1, 1, "WINDOW FOCUS IN", ntos(gtd->screen->focus));
 
 	msdp_update_all("SCREEN_FOCUS", "%d", gtd->screen->focus);
 }
@@ -1652,7 +1652,7 @@ DO_CURSOR(cursor_screen_focus_out)
 {
 	gtd->screen->focus = 0;
 
-	check_all_events(gtd->ses, SUB_ARG, 0, 1, "SCREEN FOCUS", ntos(gtd->screen->focus));
+	check_all_events(gtd->ses, SUB_ARG, 0, 1, "WINDOW FOCUS OUT", ntos(gtd->screen->focus));
 
 	msdp_update_all("SCREEN_FOCUS", "%d", gtd->screen->focus);
 }

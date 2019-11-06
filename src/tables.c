@@ -931,14 +931,14 @@ struct cursor_type cursor_table[] =
 		cursor_redraw_input
 	},
 	{
-		"SCREEN FOCUS IN",
+		"WINDOW FOCUS IN",
 		"Window is focussed in event",
 		"\e[I",
 		CURSOR_FLAG_GET_ALL|CURSOR_FLAG_ALWAYS,
 		cursor_screen_focus_in
 	},
 	{
-		"SCREEN FOCUS OUT",
+		"WINDOW FOCUS OUT",
 		"Window is focussed out event",
 		"\e[O",
 		CURSOR_FLAG_GET_ALL|CURSOR_FLAG_ALWAYS,
