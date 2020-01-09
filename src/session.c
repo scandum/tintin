@@ -414,7 +414,9 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		}
 	}
 
-	newses->split  = calloc(1, sizeof(struct split_data));
+	newses->event_flags = gts->event_flags;
+
+	newses->split   = calloc(1, sizeof(struct split_data));
 
 	memcpy(newses->split, gts->split, sizeof(struct split_data));
 
@@ -698,21 +700,18 @@ void dispose_session(struct session *ses)
 		fclose(ses->logline_file);
 	}
 
-	for (index = 0 ; index < LIST_MAX ; index++)
-	{
-		free_list(ses->list[index]);
-	}
-
 	if (ses->map)
 	{
 		delete_map(ses);
 	}
 
-	if (ses->mccp2)
+	for (index = 0 ; index < LIST_MAX ; index++)
 	{
-		inflateEnd(ses->mccp2);
-		free(ses->mccp2);
+		free_list(ses->list[index]);
 	}
+
+	client_end_mccp2(ses);
+	client_end_mccp3(ses);
 
 	init_buffer(ses, 0);
 
@@ -725,6 +724,7 @@ void dispose_session(struct session *ses)
 	free(ses->cmd_color);
 	free(ses->lognext_name);
 	free(ses->logline_name);
+	free(ses->split);
 
 	free(ses);
 

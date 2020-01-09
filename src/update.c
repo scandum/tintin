@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2006                        *
+*                      coded by Igor van den Hoven 2006                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -51,8 +50,9 @@ extern void close_timer(int timer);
 
 void mainloop(void)
 {
-	static struct timeval start_time, end_time, span_time, wait_time;
+	static struct timeval start_time, end_time, wait_time;
 	static struct pulse_type pulse;
+	static int wait_time_val, span_time_val;
 
 	pulse.update_input    =  0 + PULSE_UPDATE_INPUT;
 	pulse.update_sessions =  0 + PULSE_UPDATE_SESSIONS;
@@ -73,8 +73,8 @@ void mainloop(void)
 	{
 		gettimeofday(&start_time, NULL);
 
-		gtd->total_io_exec  += span_time.tv_usec;
-		gtd->total_io_delay += wait_time.tv_usec;
+		gtd->total_io_exec  += span_time_val;
+		gtd->total_io_delay += wait_time_val;
 
 		if (--pulse.update_delays == 0)
 		{
@@ -169,18 +169,26 @@ void mainloop(void)
 
 		if (start_time.tv_sec == end_time.tv_sec)
 		{
-			span_time.tv_usec = end_time.tv_usec - start_time.tv_usec;
+			span_time_val = end_time.tv_usec - start_time.tv_usec;
 		}
 		else
 		{
-			span_time.tv_usec = (end_time.tv_sec * 1000000LL + end_time.tv_usec) - (start_time.tv_sec * 1000000LL + start_time.tv_usec);
+			span_time_val = (end_time.tv_sec * 1000000LL + end_time.tv_usec) - (start_time.tv_sec * 1000000LL + start_time.tv_usec);
 		}
 
-		wait_time.tv_usec = 1000000 / PULSE_PER_SECOND - span_time.tv_usec;
+		wait_time_val = 1000000 / PULSE_PER_SECOND - span_time_val;
 
-		if (wait_time.tv_usec > 0)
+		wait_time.tv_usec = 1000000 / PULSE_PER_SECOND - span_time_val;
+
+		if (wait_time_val > 0)
 		{
+			wait_time.tv_usec = wait_time_val;
+
 			select(0, NULL, NULL, NULL, &wait_time);
+		}
+		else
+		{
+			wait_time_val = 0;
 		}
 	}
 	pop_call();
@@ -191,6 +199,7 @@ void update_input(void)
 {
 	fd_set read_fd;
 	static struct timeval timeout;
+	static int sleep;
 
 	if (gtd->detach_port)
 	{
@@ -217,6 +226,16 @@ void update_input(void)
 			}
 		}
 		return;
+	}
+
+	if (gtd->time_input + 10 < gtd->time)
+	{
+		if (sleep < 10)
+		{
+			sleep++;
+			return;
+		}
+		sleep = 0;
 	}
 
 	while (TRUE)
@@ -251,8 +270,19 @@ void update_sessions(void)
 {
 	fd_set read_fd, error_fd;
 	static struct timeval timeout;
+	static int sleep;
 	struct session *ses;
 	int rv;
+
+	if (gtd->time_session + 10 < gtd->time)
+	{
+		if (sleep < 10)
+		{
+			sleep++;
+			return;
+		}
+		sleep = 0;
+	}
 
 	push_call("update_sessions(void)");
 
@@ -278,15 +308,15 @@ void update_sessions(void)
 
 					if (rv < 0)
 					{
-						break;
+						break; // bug report after removal.
 
-						syserr_printf(ses, "update_sessions: %s:", ses->name);
+						syserr_printf(ses, "update_sessions: select:");
 
 						cleanup_session(ses);
 
 						gtd->mud_output_len = 0;
 
-						break;;
+						break;
 					}
 
 					if (rv == 0)
@@ -319,6 +349,8 @@ void update_sessions(void)
 						break;
 					}
 				}
+
+				gtd->time_session = gtd->time;
 
 				if (gtd->mud_output_len)
 				{
@@ -452,12 +484,16 @@ void update_daemon(void)
 			while (gtd->detach_sock)
 			{
 				FD_ZERO(&read_fd);
+//				FD_ZERO(&write_fd);
 				FD_ZERO(&error_fd);
 
 				FD_SET(gtd->detach_sock, &read_fd);
+//				FD_SET(gtd->detach_sock, &write_fd);
 				FD_SET(gtd->detach_sock, &error_fd);
 
 				rv = select(FD_SETSIZE, &read_fd, NULL, &error_fd, &timeout);
+
+//				tintin_printf2(gtd->ses, "debug: rv: %d (%d,%d,%d)\n", rv, FD_ISSET(gtd->detach_sock, &read_fd), FD_ISSET(gtd->detach_sock, &write_fd), FD_ISSET(gtd->detach_sock, &error_fd));
 
 				if (rv == 0)
 				{
@@ -486,8 +522,20 @@ void update_daemon(void)
 						goto attach;
 					}
 
+/*					if (!FD_ISSET(gtd->detach_sock, &write_fd))
+					{
+						FD_CLR(gtd->detach_sock, &read_fd);
+
+						gtd->detach_sock = close(gtd->detach_sock);
+
+						show_error(gtd->ses, LIST_COMMAND, "update_daemon: detach_sock: write_fd");
+
+						goto attach;
+					}
+*/
 					if (!FD_ISSET(gtd->detach_sock, &read_fd))
 					{
+//						gtd->detach_sock = close(gtd->detach_sock); // experimental
 						break;
 					}
 					process_input();
@@ -697,18 +745,18 @@ void tick_update(void)
 		{
 			node = root->list[root->update];
 
-			if (node->data == 0)
+			if (node->val64 == 0)
 			{
-				node->data = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
+				node->val64 = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
+				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
 			}
 
-			if (node->data <= gtd->utime)
+			if (node->val64 <= gtd->utime)
 			{
-				node->data += (long long) (get_number(ses, node->arg3) * 1000000LL);
+				node->val64 += (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
+				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
 
 				if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 				{
@@ -752,14 +800,14 @@ void delay_update(void)
 		{
 			node = root->list[root->update];
 
-			if (node->data == 0)
+			if (node->val64 == 0)
 			{
-				node->data = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
+				node->val64 = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_DELAY, "#INFO DELAY {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->data);
+				show_info(ses, LIST_DELAY, "#INFO DELAY {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
 			}
 
-			if (node->data <= gtd->utime)
+			if (node->val64 <= gtd->utime)
 			{
 				strcpy(buf, node->arg2);
 
@@ -792,15 +840,15 @@ void path_update(void)
 		{
 			node = root->list[root->update];
 
-			if (node->data > 0 && node->data <= gtd->utime)
+			if (node->val64 > 0 && node->val64 <= gtd->utime)
 			{
 				root->update++;
 
-				node->data = 0;
+				node->val64 = 0;
 
-				show_debug(ses, LIST_PATH, "#DEBUG PATH {%s}", node->arg1);
+				show_debug(ses, LIST_COMMAND, "#DEBUG PATH {%s}", node->arg1);
 
-				script_driver(ses, LIST_PATH, node->arg1);
+				script_driver(ses, LIST_COMMAND, node->arg1);
 			}
 			break;
 		}
@@ -834,8 +882,18 @@ void packet_update(void)
 
 			ses->more_output[0] = 0;
 
-			process_mud_output(ses, result, TRUE);
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
+			{
+				char buf[BUFFER_SIZE];
 
+				all_to_utf8(ses, result, buf);
+
+				process_mud_output(ses, buf, TRUE);
+			}
+			else
+			{
+				process_mud_output(ses, result, TRUE);
+			}
 			DEL_BIT(ses->flags, SES_FLAG_READMUD);
 
 			if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
@@ -1024,14 +1082,14 @@ void time_update(void)
 
 void show_cpu(struct session *ses)
 {
-	long long total_cpu;
+	long long total_cpu = 0;
 	int timer;
 
 	tintin_printf2(ses, "Section                           Time (usec)    Freq (msec)  %%Prog         %%CPU");
 
 	tintin_printf2(ses, "");
 
-	for (total_cpu = timer = 0 ; timer < TIMER_CPU ; timer++)
+	for (timer = 0 ; timer < TIMER_CPU ; timer++)
 	{
 		total_cpu += display_timer(ses, timer);
 	}
@@ -1040,6 +1098,9 @@ void show_cpu(struct session *ses)
 
 	tintin_printf2(ses, "Unknown CPU Usage:             %7.3f percent", (gtd->total_io_exec - total_cpu) * 100.0 / (gtd->total_io_delay + gtd->total_io_exec));
 	tintin_printf2(ses, "Average CPU Usage:             %7.3f percent", (gtd->total_io_exec)             * 100.0 / (gtd->total_io_delay + gtd->total_io_exec));
+//	tintin_printf2(ses, "Total   CPU Usecs:             %10ld", gtd->total_io_exec);
+//	tintin_printf2(ses, "Total   CPU Delay:             %10ld", gtd->total_io_delay);
+
 }
 
 
@@ -1059,7 +1120,9 @@ long long display_timer(struct session *ses, int timer)
 		return 0;
 	}
 
-	indicated_usage = gtd->timer[timer][0] / gtd->timer[timer][1] * gtd->timer[timer][4];
+//	indicated_usage = gtd->timer[timer][0] / gtd->timer[timer][1] * gtd->timer[timer][4];
+
+	indicated_usage = gtd->timer[timer][0];
 
 	tintin_printf2(ses, "%-30s%8lld       %8lld      %8.2f     %8.3f",
 		timer_table[timer].name,
@@ -1084,7 +1147,7 @@ void open_timer(int timer)
 
 	if (gtd->timer[timer][2] == 0)
 	{
-		gtd->timer[timer][2] = current_time ;
+		gtd->timer[timer][2] = current_time;
 	}
 	else
 	{

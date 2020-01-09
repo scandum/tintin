@@ -31,11 +31,8 @@
 DO_COMMAND(do_list)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-	struct listroot *root;
 	struct listnode *node;
 	int index, cnt;
-
-	root = ses->list[LIST_VARIABLE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
@@ -73,9 +70,9 @@ DO_COMMAND(do_list)
 		}
 		else
 		{
-			if ((node = search_nest_node(root, arg1)) == NULL)
+			if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 			{
-				node = set_nest_node(root, arg1, "");
+				node = set_nest_node_ses(ses, arg1, "");
 			}
 			array_table[cnt].fun(ses, node, arg, arg1);
 		}
@@ -107,12 +104,15 @@ DO_ARRAY(array_add)
 
 			set_nest_node(list->root, ntos(index++), "%s", arg2);
 
-//			insert_node_list(list->root, ntos(index++), arg2, "");
-
 			if (*str == COMMAND_SEPARATOR)
 			{
 				str++;
 			}
+		}
+
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
 		}
 	}
 	return ses;
@@ -127,8 +127,27 @@ DO_ARRAY(array_clear)
 		list->root = NULL;
 	}
 
-	set_nest_node(ses->list[LIST_VARIABLE], var, "");
+	set_nest_node_ses(ses, var, "");
 
+	return ses;
+}
+
+DO_ARRAY(array_collapse)
+{
+	int index;
+
+	if (list->root)
+	{
+		str_cpy(&list->arg2, "");
+
+		for (index = 0 ; index < list->root->used ; index++)
+		{
+			str_cat(&list->arg2, list->root->list[index]->arg2);
+		}
+		free_list(list->root);
+
+		list->root = NULL;
+	}
 	return ses;
 }
 
@@ -200,7 +219,7 @@ DO_ARRAY(array_delete)
 
 			for (cnt = index + 1 ; cnt < list->root->used ; cnt++)
 			{
-				list->root->list[cnt]->arg1 = restringf(list->root->list[cnt]->arg1, "%d", cnt);
+				str_cpy_printf(&list->root->list[cnt]->arg1, "%d", cnt);
 			}
 
 			delete_index_list(list->root, index);
@@ -209,6 +228,61 @@ DO_ARRAY(array_delete)
 	else
 	{
 		show_error(ses, LIST_VARIABLE, "#LIST DEL: {%s} is not a list.", var);
+	}
+	return ses;
+}
+
+DO_ARRAY(array_explode)
+{
+	char buf[BUFFER_SIZE], tmp[BUFFER_SIZE], *pti;
+	int index = 1;
+
+	if (list->root)
+	{
+		array_collapse(ses, list, "", "");
+	}
+
+	list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
+
+	pti = list->arg2;
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += sprintf(tmp, "%.*s", get_euc_size(ses, pti), pti);
+		}
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
+		{
+			pti += sprintf(tmp, "%.*s", get_utf8_size(pti), pti);
+		}
+		else
+		{
+			pti += sprintf(tmp, "%c", *pti);
+		}
+
+		set_nest_node(list->root, ntos(index++), "%s", tmp);
+	}
+	sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
+
+	pti = buf;
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += sprintf(tmp, "%.*s", get_euc_size(ses, pti), pti);
+		}
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
+		{
+			pti += sprintf(tmp, "%.*s", get_utf8_size(pti), pti);
+		}
+		else
+		{
+			pti += sprintf(tmp, "%c", *pti);
+		}
+
+		set_nest_node(list->root, ntos(index++), "%s", tmp);
 	}
 	return ses;
 }
@@ -239,17 +313,17 @@ DO_ARRAY(array_find)
 		}
 		if (index < list->root->used)
 		{
-			set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", index + 1);
+			set_nest_node_ses(ses, arg2, "%d", index + 1);
 		}
 		else
 		{
-			set_nest_node(ses->list[LIST_VARIABLE], arg2, "0");
+			set_nest_node_ses(ses, arg2, "0");
 		}
 		return ses;
 	}
 	else
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "0");
+		set_nest_node_ses(ses, arg2, "0");
 	}
 
 	return ses;
@@ -276,17 +350,17 @@ DO_ARRAY(array_get)
 
 		if (atoi(arg1) == 0 || index == -1)
 		{
-			set_nest_node(ses->list[LIST_VARIABLE], arg2, "0");
+			set_nest_node_ses(ses, arg2, "0");
 		}
 		else
 		{
-			set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", list->root->list[index]->arg2);
+			set_nest_node_ses(ses, arg2, "%s", list->root->list[index]->arg2);
 		}
 		return ses;
 	}
 	else
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "0");
+		set_nest_node_ses(ses, arg2, "0");
 	}
 
 	return ses;
@@ -321,7 +395,7 @@ DO_ARRAY(array_insert)
 
 	for (cnt = index ; cnt < list->root->used ; cnt++)
 	{
-		list->root->list[cnt]->arg1 = restringf(list->root->list[cnt]->arg1, "%d", cnt + 2);
+		str_cpy_printf(&list->root->list[cnt]->arg1, "%d", cnt + 2);
 	}
 
 	set_nest_node(list->root, ntos(index + 1), "%s", arg2);
@@ -333,38 +407,47 @@ DO_ARRAY(array_insert)
 
 DO_ARRAY(array_simplify)
 {
-	char arg1[BUFFER_SIZE], tmp[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE], *str;
 	int index;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
-
+/*
 	if (*arg1 == 0)
 	{
 		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} SIMPLIFY {variable}");
 		
 		return ses;
 	}
-
+*/
 	if (list->root)
 	{
 		for (index = 0 ; index < list->root->used ; index++)
 		{
 			if (index == 0)
 			{
-				strcpy(tmp, list->root->list[index]->arg2);
+				str = str_dup(list->root->list[index]->arg2);
 			}
 			else
 			{
-				cat_sprintf(tmp, ";%s", list->root->list[index]->arg2);
+				str_cat_printf(&str, ";%s", list->root->list[index]->arg2);
 			}
 		}
-		set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", tmp);
+		if (*arg1 == 0)
+		{
+			set_nest_node_ses(ses, list->arg1, "%s", str);
+		}
+		else
+		{
+			set_nest_node_ses(ses, arg1, "%s", str);
+		}
+
+		str_free(str);
 
 		return ses;
 	}
 	else
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST SIMPLIFY: {%s} is not a list.", arg1);
+		show_error(ses, LIST_VARIABLE, "#LIST SIMPLIFY: {%s} is not a list.", list->arg1);
 	}
 
 	return ses;
@@ -385,11 +468,11 @@ DO_ARRAY(array_size)
 
 	if (list->root)
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg1, "%d", list->root->used);
+		set_nest_node_ses(ses, arg1, "%d", list->root->used);
 	}
 	else
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg1, "0");
+		set_nest_node_ses(ses, arg1, "0");
 	}
 	return ses;
 }
@@ -412,13 +495,36 @@ DO_ARRAY(array_set)
 			return ses;
 		}
 
-		RESTRING(list->root->list[index]->arg2, arg2);
+		set_nest_node(list->root, ntos(index + 1), "%s", arg2);
+
+//		RESTRING(list->root->list[index]->arg2, arg2);
 
 		return ses;
 	}
 
 	show_error(ses, LIST_VARIABLE, "#LIST SET: {%s} is not a list.", var);
 
+	return ses;
+}
+
+DO_ARRAY(array_shuffle)
+{
+	char *swap;
+	int cnt, rnd;
+
+	if (!list->root)
+	{
+		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
+	}
+
+	for (cnt = 0 ; cnt < list->root->used ; cnt++)
+	{
+		rnd = generate_rand(ses) % list->root->used;
+
+		swap = list->root->list[cnt]->arg2;
+		list->root->list[cnt]->arg2 = list->root->list[rnd]->arg2;
+		list->root->list[rnd]->arg2 = swap;
+	}
 	return ses;
 }
 
@@ -492,9 +598,9 @@ DO_ARRAY(array_tokenize)
 
 	while (buf[i] != 0)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && buf[i] & 128 && buf[i+1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &buf[i]))
 		{
-			i += sprintf(tmp, "%c%c", buf[i], buf[i+1]);
+			i += sprintf(tmp, "%.*s", get_euc_size(ses, &buf[i]), &buf[i]);
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&buf[i]))
 		{
@@ -509,4 +615,3 @@ DO_ARRAY(array_tokenize)
 	}
 	return ses;
 }
-

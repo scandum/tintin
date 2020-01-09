@@ -34,12 +34,12 @@ struct command_type command_table[] =
 	{    "advertise",         do_advertise,         TOKEN_TYPE_COMMAND },
 	{    "alias",             do_alias,             TOKEN_TYPE_COMMAND },
 	{    "all",               do_all,               TOKEN_TYPE_COMMAND },
-//	{    "attach",            do_attach,            TOKEN_TYPE_COMMAND },
 	{    "bell",              do_bell,              TOKEN_TYPE_COMMAND },
 	{    "break",             do_nop,               TOKEN_TYPE_BREAK   },
 	{    "buffer",            do_buffer,            TOKEN_TYPE_COMMAND },
 	{    "button",            do_button,            TOKEN_TYPE_COMMAND },
 	{    "case",              do_nop,               TOKEN_TYPE_CASE    },
+	{    "cat",               do_cat,               TOKEN_TYPE_COMMAND },
 	{    "chat",              do_chat,              TOKEN_TYPE_COMMAND },
 	{    "class",             do_class,             TOKEN_TYPE_COMMAND },
 	{    "commands",          do_commands,          TOKEN_TYPE_COMMAND },
@@ -51,7 +51,7 @@ struct command_type command_table[] =
 	{    "debug",             do_debug,             TOKEN_TYPE_COMMAND },
 	{    "default",           do_nop,               TOKEN_TYPE_DEFAULT },
 	{    "delay",             do_delay,             TOKEN_TYPE_COMMAND },
-//	{    "detach",            do_detach,            TOKEN_TYPE_COMMAND },
+	{    "dictionary",        do_dictionary,        TOKEN_TYPE_COMMAND },
 	{    "draw",              do_draw,              TOKEN_TYPE_COMMAND },
 	{    "echo",              do_echo,              TOKEN_TYPE_COMMAND },
 	{    "else",              do_nop,               TOKEN_TYPE_ELSE    },
@@ -133,26 +133,28 @@ struct command_type command_table[] =
 
 struct list_type list_table[LIST_MAX] =
 {
-	{    "ACTION",            "ACTIONS",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
-	{    "ALIAS",             "ALIASES",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
-	{    "BUTTON",            "BUTTONS",            SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_PRIORITY },
-	{    "CLASS",             "CLASSES",            SORT_PRIORITY,    2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_INHERIT                                 },
-	{    "COMMAND",           "COMMANDS",           SORT_APPEND,      1,  LIST_FLAG_MESSAGE                                                                  },
-	{    "CONFIG",            "CONFIGURATIONS",     SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_INHERIT                 },
-	{    "DELAY",             "DELAYS",             SORT_DELAY,       3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
-	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "GAG",               "GAGS",               SORT_ALPHA,       1,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "HIGHLIGHT",         "HIGHLIGHTS",         SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
-	{    "HISTORY",           "HISTORIES",          SORT_APPEND,      1,  LIST_FLAG_MESSAGE                                                                  },
-	{    "MACRO",             "MACROS",             SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "PATH",              "PATHS",              SORT_APPEND,      2,  LIST_FLAG_MESSAGE                                                                  },
-	{    "PATHDIR",           "PATHDIRS",           SORT_ALPHA,       3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "PROMPT",            "PROMPTS",            SORT_PRIORITY,    4,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
-	{    "SUBSTITUTE",        "SUBSTITUTES",        SORT_PRIORITY,    3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
-	{    "TAB",               "TABS",               SORT_ALPHA,       1,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "TICKER",            "TICKERS",            SORT_ALPHA,       3,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "VARIABLE",          "VARIABLES",          SORT_ALPHA,       2,  LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_NEST }
+	{    "ACTION",            "ACTIONS",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "ALIAS",             "ALIASES",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "BUTTON",            "BUTTONS",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_PRIORITY },
+	{    "CLASS",             "CLASSES",            SORT_PRIORITY,    2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_INHERIT                                 },
+	{    "COMMAND",           "COMMANDS",           SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE                                                                  },
+	{    "CONFIG",            "CONFIGS",            SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "DELAY",             "DELAYS",             SORT_DELAY,       3, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
+	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "GAG",               "GAGS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "HIGHLIGHT",         "HIGHLIGHTS",         SORT_PRIORITY,    3, 0, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "HISTORY",           "HISTORIES",          SORT_APPEND,      1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
+	{    "LANDMARK",          "LANDMARKS",          SORT_ALPHA,       4, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
+	{    "MACRO",             "MACROS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "PATH",              "PATHS",              SORT_APPEND,      2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
+	{    "PATHDIR",           "PATHDIRS",           SORT_ALPHA,       3, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "PROMPT",            "PROMPTS",            SORT_ALPHA,       4, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
+	{    "SUBSTITUTE",        "SUBSTITUTES",        SORT_PRIORITY,    3, 0, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
+	{    "TAB",               "TABS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "TERRAIN",           "TERRAINS",           SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
+	{    "TICKER",            "TICKERS",            SORT_ALPHA,       3, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "VARIABLE",          "VARIABLES",          SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_NEST }
 };
 
 struct substitution_type substitution_table[] =
@@ -273,8 +275,8 @@ struct config_type config_table[] =
 
 	{
 		"LOG LEVEL",
-		"TinTin++ only logs low level mud data",
-		"TinTin++ only logs high level mud data",
+		"TinTin++ only logs low level server data",
+		"TinTin++ only logs high level server data",
 		config_loglevel
 	},
 
@@ -287,8 +289,8 @@ struct config_type config_table[] =
 
 	{
 		"MOUSE TRACKING",
-		"Generates mouse tracking events.",
-		"Do does not generate mouse events.",
+		"Generate mouse tracking events.",
+		"Do not generate mouse events.",
 		config_mousetracking
 	},
 
@@ -336,8 +338,8 @@ struct config_type config_table[] =
 
 	{
 		"SCROLL LOCK",
-		"You do not see mud output while scrolling",
-		"You see mud output while scrolling",
+		"You do not see server output while scrolling",
+		"You see server output while scrolling",
 		config_scrolllock
 	},
 
@@ -392,8 +394,8 @@ struct config_type config_table[] =
 
 	{
 		"WORDWRAP",
-		"Mud output is word wrapped",
-		"Mud output is line wrapped",
+		"Server output is word wrapped",
+		"Server output is line wrapped",
 		config_wordwrap
 	},
 
@@ -531,6 +533,7 @@ struct color_type map_color_table[] =
 {
 	{     "AVOID",            "<118>" },
 	{     "BACKGROUND",       ""      },
+	{     "BLOCK",            "<218>" },
 	{     "EXITS",            "<278>" },
 	{     "HIDE",             "<168>" },
 	{     "INVISIBLE",        "<208>" },
@@ -545,11 +548,14 @@ struct class_type class_table[] =
 {
 	{    "OPEN",              class_open             },
 	{    "CLOSE",             class_close            },
+	{    "KILL",              class_kill             },
 	{    "LIST",              class_list             },
+	{    "LOAD",              class_load             },
 	{    "READ",              class_read             },
+	{    "SAVE",              class_save             },
 	{    "SIZE",              class_size             },
 	{    "WRITE",             class_write            },
-	{    "KILL",              class_kill             },
+
 	{    "",                  NULL                   },
 };
 
@@ -564,7 +570,7 @@ struct chat_type chat_table[] =
 	{     "DOWNLOADDIR",      chat_downloaddir,    1, 0, "Set the download directory"                     },
 	{     "EMOTE",            chat_emote,          0, 1, "Send an emoted chat message"                    },
 	{     "FORWARD",          chat_forward,        1, 0, "Forward all chat messages to a buddy"           },
-	{     "FORWARDALL",       chat_forwardall,     1, 0, "Forward all chat/mud messages to a buddy"       },
+	{     "FORWARDALL",       chat_forwardall,     1, 0, "Forward all chat/server messages to a buddy"    },
 	{     "FILESTAT",         chat_filestat,       1, 0, "Show file transfer data"                        },
 	{     "GROUP",            chat_group,          0, 1, "Assign a group to a buddy"                      },
 	{     "IGNORE",           chat_ignore,         1, 0, "Ignore all messages from a buddy"               },
@@ -630,14 +636,17 @@ struct array_type array_table[] =
 	{     "ADD",              array_add,         "Add an item to a list table"             },
 	{     "CLEAR",            array_clear,       "Clear a list"                            },
 	{     "CLR",              array_clear,       NULL                                      },
+	{     "COLLAPSE",         array_collapse,    "Collapse the list into a variable"       },
 	{     "CREATE",           array_create,      "Create a list table with given items"    },
 	{     "DELETE",           array_delete,      "Delete a list item with given index"     },
+	{     "EXPLODE",          array_explode,     "Explode the variable into a list"        },
 	{     "FIND",             array_find,        "Find a list item with given regex"       },
 	{     "FND",              array_find,        NULL                                      },
 	{     "GET",              array_get,         "Retrieve a list item with given index"   },
 	{     "INSERT",           array_insert,      "Insert a list item at given index"       },
 	{     "LENGTH",           array_size,        NULL                                      },
 	{     "SET",              array_set,         "Change a list item at given index"       },
+	{     "SHUFFLE",          array_shuffle,     "Sort a list table randomly"              },
 	{     "SIMPLIFY",         array_simplify,    "Turn a list table into a simple list"    },
 	{     "SIZE",             array_size,        NULL                                      },
 	{     "SORT",             array_sort,        "Sort a list table alphabetically"        },
@@ -650,52 +659,59 @@ struct array_type array_table[] =
 
 struct map_type map_table[] =
 {
-	{     "AT",               map_at,              0,              2    },
-	{     "CENTER",           map_center,          MAP_FLAG_VTMAP, 2    },
-	{     "COLOR",            map_color,           MAP_FLAG_VTMAP, 1    },
-	{     "CREATE",           map_create,          MAP_FLAG_VTMAP, 0    },
-	{     "DEBUG",            map_debug,           0,              2    },
-	{     "DELETE",           map_delete,          MAP_FLAG_VTMAP, 1    },
-	{     "DESTROY",          map_destroy,         MAP_FLAG_VTMAP, 1    },
-	{     "DIG",              map_dig,             MAP_FLAG_VTMAP, 2    },
-	{     "EXIT",             map_exit,            MAP_FLAG_VTMAP, 2    },
-	{     "EXITFLAG",         map_exitflag,        MAP_FLAG_VTMAP, 2    },
-	{     "EXPLORE",          map_explore,         MAP_FLAG_VTMAP, 2    },
-	{     "FIND",             map_find,            MAP_FLAG_VTMAP, 2    },
-	{     "FLAG",             map_flag,            MAP_FLAG_VTMAP, 1    },
-	{     "GET",              map_get,             0,              2    },
-	{     "GLOBAL",           map_global,          0,              1    },
-	{     "GOTO",             map_goto,            MAP_FLAG_VTMAP, 1    },
-	{     "INFO",             map_info,            0,              1    },
-	{     "INSERT",           map_insert,          MAP_FLAG_VTMAP, 2    },
-	{     "JUMP",             map_jump,            MAP_FLAG_VTMAP, 2    },
-	{     "LEAVE",            map_leave,           MAP_FLAG_VTMAP, 2    },
-	{     "LEGENDA",          map_legend,          MAP_FLAG_VTMAP, 1    },
-	{     "LINK",             map_link,            MAP_FLAG_VTMAP, 2    },
-	{     "LIST",             map_list,            0,              2    },
-	{     "MAP",              map_map,             0,              2    },
-	{     "MOVE",             map_move,            MAP_FLAG_VTMAP, 2    },
-	{     "NAME",             map_name,            MAP_FLAG_VTMAP, 2    },
-	{     "OFFSET",           map_offset,          MAP_FLAG_VTMAP, 1    },
-	{     "READ",             map_read,            MAP_FLAG_VTMAP, 0    },
-	{     "RESIZE",           map_resize,          0,              1    },
-	{     "RETURN",           map_return,          MAP_FLAG_VTMAP, 1    },
-	{     "ROOMFLAG",         map_roomflag,        MAP_FLAG_VTMAP, 2    },
-	{     "RUN",              map_run,             MAP_FLAG_VTMAP, 2    },
-	{     "SET",              map_set,             MAP_FLAG_VTMAP, 2    },
-	{     "TRAVEL",           map_travel,          MAP_FLAG_VTMAP, 2    },
-	{     "UNDO",             map_undo,            MAP_FLAG_VTMAP, 2    },
-	{     "UNINSERT",         map_uninsert,        MAP_FLAG_VTMAP, 2    },
-	{     "UNLINK",           map_unlink,          MAP_FLAG_VTMAP, 2    },
-	{     "UPDATE",           map_update,          0,              0    },
-	{     "VNUM",             map_vnum,            MAP_FLAG_VTMAP, 2    },
-	{     "WRITE",            map_write,           0,              1    },
-	{     "",                 NULL,                0    }
+	{     "AT",               map_at,              0,              2, "Execute command at given location"    },
+	{     "CENTER",           map_center,          MAP_FLAG_VTMAP, 2, "Set the center of the map display"    },
+	{     "COLOR",            map_color,           MAP_FLAG_VTMAP, 1, "Set the color for given field"        },
+	{     "CREATE",           map_create,          MAP_FLAG_VTMAP, 0, "Creates the initial map"              },
+	{     "DEBUG",            map_debug,           0,              2, "Obscure debug information"            },
+	{     "DELETE",           map_delete,          MAP_FLAG_VTMAP, 1, "Delete the room at given direction"   },
+	{     "DESTROY",          map_destroy,         MAP_FLAG_VTMAP, 1, "Destroy area or map"                  },
+	{     "DIG",              map_dig,             MAP_FLAG_VTMAP, 2, "Create new room at given direction"   },
+	{     "ENTRANCE",         map_entrance,        MAP_FLAG_VTMAP, 2, "Change the given exit's entrance"     },
+	{     "EXIT",             map_exit,            MAP_FLAG_VTMAP, 2, "Change the given exit"                },
+	{     "EXITFLAG",         map_exitflag,        MAP_FLAG_VTMAP, 2, "Change the given exit's flags"        },
+	{     "EXPLORE",          map_explore,         MAP_FLAG_VTMAP, 2, "Save explored path to #path"          },
+	{     "FIND",             map_find,            MAP_FLAG_VTMAP, 2, "Save found path to #path"             },
+	{     "FLAG",             map_flag,            MAP_FLAG_VTMAP, 1, "Change the map's flags"               },
+	{     "GET",              map_get,             0,              2, "Get various room values"              },
+	{     "GLOBAL",           map_global,          0,              1, "Set the global exit room"             },
+	{     "GOTO",             map_goto,            MAP_FLAG_VTMAP, 1, "Move to the given room"               },
+	{     "INFO",             map_info,            0,              1, "Display map and room information"     },
+	{     "INSERT",           map_insert,          MAP_FLAG_VTMAP, 2, "Insert a room at given direction"     },
+	{     "JUMP",             map_jump,            MAP_FLAG_VTMAP, 2, "Move to the given coordinate"         },
+	{     "LANDMARK",         map_landmark,        0,              1, "Create a global room reference"       },
+	{     "LEAVE",            map_leave,           MAP_FLAG_VTMAP, 2, "Leave the map"                        },
+	{     "LEGEND" ,          map_legend,          MAP_FLAG_VTMAP, 1, "Manipulate the map legend"            },
+	{     "LINK",             map_link,            MAP_FLAG_VTMAP, 2, "Link room at given direction"         },
+	{     "LIST",             map_list,            0,              2, "List matching rooms"                  },
+	{     "MAP",              map_map,             0,              2, "Display the map"                      },
+	{     "MOVE",             map_move,            MAP_FLAG_VTMAP, 2, "Move to the given direction"          },
+	{     "NAME",             map_name,            MAP_FLAG_VTMAP, 2, "(obsolete) Use SET ROOMNAME instead"  },
+	{     "OFFSET",           map_offset,          MAP_FLAG_VTMAP, 1, "Set the offset of the vt map"         },
+	{     "READ",             map_read,            MAP_FLAG_VTMAP, 0, "Read a map file"                      },
+	{     "RESIZE",           map_resize,          0,              1, "Resize the map room vnum range"       },
+	{     "RETURN",           map_return,          MAP_FLAG_VTMAP, 1, "Return to last known room"            },
+	{     "ROOMFLAG",         map_roomflag,        MAP_FLAG_VTMAP, 2, "Change the room's flags"              },
+	{     "RUN",              map_run,             MAP_FLAG_VTMAP, 2, "Save found path to #path and run it"  },
+	{     "SET",              map_set,             MAP_FLAG_VTMAP, 2, "Set various room values"              },
+	{     "SYNC",             map_sync,            MAP_FLAG_VTMAP, 0, "Read a map file without overwriting"  },
+	{     "TERRAIN",          map_terrain,         MAP_FLAG_VTMAP, 1, "Create a terrain type"                },
+	{     "TRAVEL",           map_travel,          MAP_FLAG_VTMAP, 2, "Save explored path to #path and run it" },
+	{     "UNDO",             map_undo,            MAP_FLAG_VTMAP, 2, "Undo last map action"                 },
+	{     "UNINSERT",         map_uninsert,        MAP_FLAG_VTMAP, 2, "Uninsert room in given direction"     },
+	{     "UNLANDMARK",       map_unlandmark,      0,              1, "Remove a landmark"                    },
+	{     "UNLINK",           map_unlink,          MAP_FLAG_VTMAP, 2, "Remove given exit"                    },
+	{     "UNTERRAIN",        map_unterrain,       0,              1, "Remove a terrain type"                },
+	{     "UPDATE",           map_update,          0,              0, "Mark vt map for an auto update"       },
+	{     "VNUM",             map_vnum,            MAP_FLAG_VTMAP, 2, "Change the room vnum to given vnum"   },
+	{     "WRITE",            map_write,           0,              1, "Save the map to given file"           },
+	{     "",                 NULL,                0,              0, ""                                     }
 };
 
 
 struct cursor_type cursor_table[] =
 {
+/*
 	{
 		"AUTO TAB BACKWARD",
 		"Tab completion from scrollback buffer, backward",
@@ -710,6 +726,7 @@ struct cursor_type cursor_table[] =
 		CURSOR_FLAG_GET_ALL,
 		cursor_auto_tab_forward
 	},
+*/
 	{
 		"BACKSPACE",
 		"Delete backward character",
@@ -888,6 +905,7 @@ struct cursor_type cursor_table[] =
 		CURSOR_FLAG_GET_ONE,
 		cursor_insert
 	},
+/*
 	{
 		"MIXED TAB BACKWARD",
 		"Tab completion on last word, search backward",
@@ -902,6 +920,7 @@ struct cursor_type cursor_table[] =
 		CURSOR_FLAG_GET_ALL,
 		cursor_mixed_tab_forward
 	},
+*/
 	{
 		"NEXT WORD",
 		"Move cursor to the next word",
@@ -959,6 +978,28 @@ struct cursor_type cursor_table[] =
 		cursor_suspend
 	},
 	{
+		"TAB",
+		"<LIST|SCROLLBACK> <BACKWARD|FORWARD>",
+		"",
+		CURSOR_FLAG_GET_ONE,
+		cursor_tab
+	},
+	{
+		"TAB L S BACKWARD",
+		"Tab completion on last word, search backward",
+		"\e[Z", // shift-tab
+		CURSOR_FLAG_GET_ALL,
+		cursor_mixed_tab_backward
+	},
+	{
+		"TAB L S FORWARD",
+		"Tab completion on last word, search forward",
+		"\t",
+		CURSOR_FLAG_GET_ALL,
+		cursor_mixed_tab_forward
+	},
+/*
+	{
 		"TAB BACKWARD",
 		"Tab completion from tab list, backward",
 		"",
@@ -972,7 +1013,7 @@ struct cursor_type cursor_table[] =
 		CURSOR_FLAG_GET_ALL,
 		cursor_tab_forward
 	},
-
+*/
 	{
 		"", "", "\e[5~",   0, cursor_buffer_up
 	},
@@ -1054,9 +1095,16 @@ struct draw_type draw_table[] =
 {
 	{
 		"BOX",
-		"Draw a box.",
+		"Draw four sides of a box.",
 		DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT,
 		draw_box
+	},
+
+	{
+		"CORNER",
+		"Draw a corner",
+		DRAW_FLAG_CORNERED,
+		draw_corner
 	},
 
 	{
@@ -1067,10 +1115,24 @@ struct draw_type draw_table[] =
 	},
 
 	{
+		"RAIN",
+		"Draw digital rain.",
+		DRAW_FLAG_NONE,
+		draw_rain
+	},
+
+	{
 		"SIDE",
-		"Draw the side of a box.",
+		"Draw a line with corners.",
 		DRAW_FLAG_BOXED,
 		draw_side
+	},
+
+	{
+		"TABLE",
+		"Draw a table.",
+		DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT,
+		draw_table_grid
 	},
 
 	{
@@ -1299,11 +1361,13 @@ struct event_type event_table[] =
 	{    "MAP EXIT MAP",                           EVENT_FLAG_MAP,      "Triggers when exiting the map."          },
 	{    "MAP EXIT ROOM",                          EVENT_FLAG_MAP,      "Triggers when exiting a map room."       },
 	{    "MAP FOLLOW MAP",                         EVENT_FLAG_MAP,      "Triggers when moving to a map room."     },
-	{    "MAP LONG-CLICKED ",                      EVENT_FLAG_MAP,      "Triggers on vt map click."               },
-	{    "MAP PRESSED ",                           EVENT_FLAG_MAP,      "Triggers on vt map click."               },
-	{    "MAP RELEASED ",                          EVENT_FLAG_MAP,      "Triggers on vt map click."               },
-	{    "MAP SHORT-CLICKED ",                     EVENT_FLAG_MAP,      "Triggers on vt map click."               },
-	{    "MAP TRIPLE-CLICKED ",                    EVENT_FLAG_MAP,      "Triggers on vt map click."               },
+	{    "MAP LOCATION",                           EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP LONG-CLICKED ",                      EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP MOUSE LOCATION",                     EVENT_FLAG_MOUSE,    "Triggers when called by #screen raise."  }, 
+	{    "MAP PRESSED ",                           EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP RELEASED ",                          EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP SHORT-CLICKED ",                     EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
+	{    "MAP TRIPLE-CLICKED ",                    EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
 	{    "MAP UPDATED VTMAP",                      EVENT_FLAG_MAP,      "Triggers on vt map update."              },
 	{    "MINUTE",                                 EVENT_FLAG_TIME,     "Triggers each minute or given minute."   },
 	{    "MONTH",                                  EVENT_FLAG_TIME,     "Triggers each month or given month."     },
@@ -1330,8 +1394,10 @@ struct event_type event_table[] =
 	{    "SCREEN DESKTOP DIMENSIONS",              EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
 	{    "SCREEN DESKTOP SIZE",                    EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
 	{    "SCREEN DIMENSIONS",                      EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN FOCUS",                           EVENT_FLAG_SCREEN,   "Triggers when focus changes.",           },
+	{    "SCREEN LOCATION",                        EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
 	{    "SCREEN MINIMIZED",                       EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN POSITION",                        EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
+	{    "SCREEN MOUSE LOCATION",                  EVENT_FLAG_MOUSE,    "Triggers when called by #screen raise."  },
 	{    "SCREEN REFRESH",                         EVENT_FLAG_SCREEN,   "Triggers when the screen is refreshed."  },
 	{    "SCREEN RESIZE",                          EVENT_FLAG_SCREEN,   "Triggers when the screen is resized."    },
 	{    "SCREEN ROTATE LANDSCAPE",                EVENT_FLAG_SCREEN,   "Triggers when the screen is rotated."    },
@@ -1350,6 +1416,7 @@ struct event_type event_table[] =
 	{    "SESSION DISCONNECTED",                   EVENT_FLAG_SESSION,  "Triggers when a session disconnects."    },
 	{    "SESSION TIMED OUT",                      EVENT_FLAG_SESSION,  "Triggers when a session doesn't connect."},
 	{    "SHORT-CLICKED",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is short-clicked."   },
+	{    "SWIPED",                                 EVENT_FLAG_MOUSE,    "Triggers on mouse swipe."},
 	{    "SYSTEM ERROR",                           EVENT_FLAG_SYSTEM,   "Triggers on system errors."              },
 	{    "TIME",                                   EVENT_FLAG_TIME,     "Triggers on the given time."             },
 	{    "TRIPLE-CLICKED",                         EVENT_FLAG_MOUSE,    "Triggers when mouse is triple-clicked."  },
@@ -1363,8 +1430,6 @@ struct event_type event_table[] =
 	{    "VT100 ENQ",                              EVENT_FLAG_VT100,    "Triggers on an \\x05 call."              },
 	{    "VT100 SCROLL REGION",                    EVENT_FLAG_VT100,    "Triggers on vt100 scroll region change." },
 	{    "WEEK",                                   EVENT_FLAG_TIME,     "Triggers each week or given week."       },
-	{    "WINDOW FOCUS IN",                        EVENT_FLAG_SCREEN,   "Triggers on window focussing in."        },
-	{    "WINDOW FOCUS OUT",                       EVENT_FLAG_SCREEN,   "Triggers on window focussing out."       },
 	{    "WRITE ERROR",                            EVENT_FLAG_SYSTEM,   "Triggers when the write command fails."  },
 	{    "YEAR",                                   EVENT_FLAG_TIME,     "Triggers each year or given year."       },
 	{    "",                                       0,                   ""                                        }
@@ -1399,6 +1464,8 @@ struct path_type path_table[] =
 struct line_type line_table[] =
 {
 	{    "BACKGROUND",        line_background,     "Execute line without stealing session focus."   },
+	{    "BENCHMARK",         line_benchmark,      "Execute line and provide timing information."   },
+	{    "CAPTURE",           line_capture,        "Capture output in the given variable."          },
 	{    "DEBUG",             line_debug,          "Execute line in debug mode."                    },
 	{    "GAG",               line_gag,            "Gag the next line."                             },
 	{    "IGNORE",            line_ignore,         "Execute line with triggers ignored."            },
@@ -1490,7 +1557,7 @@ struct telopt_type telopt_table[] =
 	{    "OLD-ENVIRON",       TEL_N,               0 },
 	{    "AUTH",              TEL_N,               0 },
 	{    "ENCRYPT",           TEL_N,               0 },
-	{    "NEW-ENVIRON",       TEL_N,               ANNOUNCE_DO },
+	{    "NEW-ENVIRON",       TEL_Y,               ANNOUNCE_DO },
 	{    "TN3270E",           TEL_N,               0 }, /* 40 */
 	{    "XAUTH",             TEL_N,               0 },
 	{    "CHARSET",           TEL_Y,               ANNOUNCE_WILL },
@@ -1921,6 +1988,35 @@ struct map_legend_type map_legend_table[] =
 	{ "S W",		"MUDFONT CURVED",	"1x2",	"1x2"	},
 	{ "N W",		"MUDFONT CURVED",	"1x2",	"1x2"	},
 
+        { "NO DIAGONAL",        "UNICODE GRAPHICS",     "2x5",  "2x5"   },
+	{ "SE",                 "UNICODE GRAPHICS",     "⸌",    "2x5"   },
+	{ "NE",                 "UNICODE GRAPHICS",     "⸝",    "2x5"   }, 
+	{ "SE NE",              "UNICODE GRAPHICS",     ">",    "2x5"   }, 
+	{ "SW",                 "UNICODE GRAPHICS",     "⸍",    "2x5"   }, 
+	{ "SE SW",              "UNICODE GRAPHICS",     "⸌⸍",   "2x5"   }, 
+	{ "NE SW",              "UNICODE GRAPHICS",     "／",   "2x5"   }, 
+	{ "SE NE SW",           "UNICODE GRAPHICS",     ">⸍",   "2x5"   }, 
+	{ "NW",                 "UNICODE GRAPHICS",     "⸜",    "2x5"   }, 
+	{ "SE NW",              "UNICODE GRAPHICS",     "＼",   "2x5"   }, 
+	{ "NE NW",              "UNICODE GRAPHICS",     "⸝⸜",   "2x5"   }, 
+	{ "SE NE NW",           "UNICODE GRAPHICS",     ">⸜",   "2x5"   }, 
+	{ "SW NW",              "UNICODE GRAPHICS",     "<",    "2x5"   },
+	{ "SE SW NW",           "UNICODE GRAPHICS",     "⸌<",   "2x5"   }, 
+	{ "NE SW NW",           "UNICODE GRAPHICS",     "⸝<",   "2x5"   }, 
+	{ "SE NE SW NW",        "UNICODE GRAPHICS",     "><",   "2x5"   }, 
+	{ "D",                  "UNICODE GRAPHICS",     "-",    "2x5"   }, 
+	{ "N",                  "UNICODE GRAPHICS",     "↑",    "2x5"   }, 
+	{ "S",                  "UNICODE GRAPHICS",     "↓",    "2x5"   }, 
+	{ "N S",                "UNICODE GRAPHICS",     "│",    "2x5"   }, 
+	{ "U",                  "UNICODE GRAPHICS",     "+",    "2x5"   }, 
+	{ "E",                  "UNICODE GRAPHICS",     "🠆",    "2x5"   }, 
+	{ "W",                  "UNICODE GRAPHICS",     "🠄",    "2x5"   }, 
+	{ "E W",                "UNICODE GRAPHICS",     "─",    "2x5"   }, 
+	{ "ROOM L",             "UNICODE GRAPHICS",     "[",    "2x5"   }, 
+	{ "ROOM L CURVED",      "UNICODE GRAPHICS",     "(",    "2x5"   }, 
+	{ "ROOM R",             "UNICODE GRAPHICS",     "]",    "2x5"   }, 
+	{ "ROOM R CURVED",      "UNICODE GRAPHICS",     ")",    "2x5"   },
+
 	{ NULL,			NULL,			NULL,	NULL	}
 };
 
@@ -1956,5 +2052,66 @@ struct map_group_type map_group_table[] =
 	{ "MUDFONT CURVED",		"MUDFONT CURVED",	1, 2,	1, 2,	0, 0,	"" },
 	{ "MUDFONT CURVED BRAILLE",	"MUDFONT CURVED",	1, 2,	1, 2,	0, 0,	"{\\u2818} {\\u28A0} {\\u2844} {\\u2803} {} {} {} {}" },
 
+	{ "UNICODE GRAPHICS",           "UNICODE GRAPHICS",     2, 5,   2, 5,   0, 0,   "{ } {\\u2E0C} {\\u2E1D} {>} {\\u2E0D} {\\u2E0C\\u2E0D} {\\uFF0F} {>\\u2E0D} {\\u2E1C} {\\uFF3C} {\\u2E1D\\u2E1C} {>\\u2E1C} {<} {\\u2E0C<} {\\u2E1D<} {><} {-} {\\u2191} {\\u2193} {\\u2502} {+} {\\U01F806} {\\U01F804} {\\u2500} {[} {(} {]} {)}" },
+
 	{ NULL,				NULL,			0, 0,	0, 0,	0, 0,	"" }
 };
+
+struct stamp_type huge_stamp_table[] =
+{
+	{ " ",  23, "   \n   \n   \n   \n   \n   " },
+	{ "!",  23, "██╗\n██║\n██║\n╚═╝\n██╗\n╚═╝" },
+	{ "\"", 41, "██╗██╗\n2██║██║\n╚═╝╚═╝\n   \n   \n   " },
+	{ "#",  59, " ██╗ ██╗ \n████████╗\n╚██╔═██╔╝\n████████╗\n╚██╔═██╔╝\n ╚═╝ ╚═╝ " },
+	{ "&",  59, "  ████╗  \n ██╔═██╗ \n ╚████╔╝ \n██╔══██═╗\n╚█████╔█║\n ╚════╝╚╝" },
+	{ "%",  47, "██╗ ██╗\n╚═╝██╔╝\n  ██╔╝ \n ██╔╝  \n██╔╝██╗\n╚═╝ ╚═╝" },
+	{ "'",  23, "╗██╗\n██║\n╚═╝\n   \n   \n   " },
+
+	{ "+",  59, "   ██╗   \n   ██║   \n████████╗\n╚══██╔══╝\n   ██║   \n   ╚═╝   " },
+
+	{ "0",  53, " █████╗ \n██╔══██╗\n██║  ██║\n██║  ██║\n╚█████╔╝\n ╚════╝ " },
+	{ "1",  53, "  ▄██╗  \n ████║  \n ╚═██║  \n   ██║  \n ██████╗\n ╚═════╝" },
+	{ "2",  53, "██████╗ \n╚════██╗\n █████╔╝\n██╔═══╝ \n███████╗\n╚══════╝" },
+	{ "3",  53, "██████╗ \n╚════██╗\n █████╔╝\n ╚═══██╗\n██████╔╝\n╚═════╝ " },
+	{ "4",  53, "██╗  ██╗\n██║  ██║\n███████║\n╚════██║\n     ██║\n     ╚═╝" },
+	{ "5",  53, "███████╗\n██╔════╝\n███████╗\n╚════██║\n███████║\n╚══════╝" },
+	{ "6",  53, " █████╗ \n██╔═══╝ \n██████╗ \n██╔══██╗\n╚█████╔╝\n ╚════╝ " },
+	{ "7",  53, "███████╗\n╚════██║\n    ██╔╝\n   ██╔╝ \n   ██║  \n   ╚═╝  " },
+	{ "8",  53, " █████╗ \n██╔══██╗\n╚█████╔╝\n██╔══██╗\n╚█████╔╝\n ╚════╝ " },
+	{ "9",  53, " █████╗ \n██╔══██╗\n╚██████║\n ╚═══██║\n █████╔╝\n ╚════╝ " },
+
+	{ ":",  53, "        \n   ██╗  \n   ╚═╝  \n        \n   ██╗  \n   ╚═╝  " },
+
+	{ "A",  53, " █████╗ \n██╔══██╗\n███████║\n██╔══██║\n██║  ██║\n╚═╝  ╚═╝" },
+	{ "B",  53, "██████╗ \n██╔══██╗\n██████╔╝\n██╔══██╗\n██████╔╝\n╚═════╝ " },
+	{ "C",  53, " ██████╗\n██╔════╝\n██║     \n██║     \n╚██████╗\n ╚═════╝" },
+	{ "D",  53, "██████╗ \n██╔══██╗\n██║  ██║\n██║  ██║\n██████╔╝\n╚═════╝ " },
+	{ "E",  53, "███████╗\n██╔════╝\n█████╗  \n██╔══╝  \n███████╗\n╚══════╝" },
+	{ "F",  53, "███████╗\n██╔════╝\n█████╗  \n██╔══╝  \n██║     \n╚═╝     " },
+	{ "G",  59, " ██████╗ \n██╔════╝ \n██║  ███╗\n██║   ██║\n╚██████╔╝\n ╚═════╝ " },
+	{ "H",  53, "██╗  ██╗\n██║  ██║\n███████║\n██╔══██║\n██║  ██║\n╚═╝  ╚═╝" },
+	{ "I",  47, "██████╗\n╚═██╔═╝\n  ██║  \n  ██║  \n██████╗\n╚═════╝" },
+	{ "J",  53, "     ██╗\n     ██║\n     ██║\n██   ██║\n╚█████╔╝\n ╚════╝ " },
+	{ "K",  53, "██╗  ██╗\n██║ ██╔╝\n█████╔╝ \n██╔═██╗ \n██║  ██╗\n╚═╝  ╚═╝" },
+	{ "L",  53, "██╗     \n██║     \n██║     \n██║     \n███████╗\n╚══════╝" },
+	{ "M",  71, "███╗  ███╗\n████╗████║\n██╔███╔██║\n██║╚█╔╝██║\n██║ ╚╝ ██║\n╚═╝    ╚═╝" },
+	{ "N",  65, "███╗   ██╗\n████╗  ██║\n██╔██╗ ██║\n██║╚██╗██║\n██║ ╚████║\n╚═╝  ╚═══╝" },
+	{ "O",  59, " ██████╗ \n██╔═══██╗\n██║   ██║\n██║   ██║\n╚██████╔╝\n ╚═════╝ " },
+	{ "P",  53, "██████╗ \n██╔══██╗\n██████╔╝\n██╔═══╝ \n██║     \n╚═╝     " },
+	{ "Q",  59, " ██████╗ \n██╔═══██╗\n██║   ██║\n██║▄▄ ██║\n╚██████╔╝\n ╚══▀▀═╝ " },
+	{ "R",  53, "██████╗ \n██╔══██╗\n██████╔╝\n██╔══██╗\n██║  ██║\n╚═╝  ╚═╝" },
+	{ "S",  53, "███████╗\n██╔════╝\n███████╗\n╚════██║\n███████║\n╚══════╝" },
+	{ "T",  59, "████████╗\n╚══██╔══╝\n   ██║   \n   ██║   \n   ██║   \n   ╚═╝   " },
+	{ "U",  59, "██╗   ██╗\n██║   ██║\n██║   ██║\n██║   ██║\n╚██████╔╝\n ╚═════╝ " },
+	{ "V",  59, "██╗   ██╗\n██║   ██║\n██║   ██║\n╚██╗ ██╔╝\n ╚████╔╝ \n  ╚═══╝  " },
+	{ "W",  65, "██╗    ██╗\n██║    ██║\n██║ █╗ ██║\n██║███╗██║\n╚███╔███╔╝\n ╚══╝╚══╝ " },
+	{ "X",  53, "██╗  ██╗\n╚██╗██╔╝\n ╚███╔╝ \n ██╔██╗ \n██╔╝ ██╗\n╚═╝  ╚═╝" },
+	{ "Y",  59, "██╗   ██╗\n╚██╗ ██╔╝\n ╚████╔╝ \n  ╚██╔╝  \n   ██║   \n   ╚═╝   " },
+	{ "Z",  53, "███████╗\n╚══███╔╝\n  ███╔╝ \n ███╔╝  \n███████╗\n╚══════╝" },
+
+	{ "i",  23, "██╗\n╚═╝\n██╗\n██║\n██║\n╚═╝" },
+	{ "n",  47, "       \n       \n██▟███╗\n██║ ██║\n██║ ██║\n╚═╝ ╚═╝" },
+
+	{ NULL, 0, NULL }
+};
+

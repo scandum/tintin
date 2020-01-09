@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2001-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
@@ -62,7 +61,6 @@ extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned cha
 extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 
 extern  int  client_init_mccp3(struct session *ses);
-extern void  client_end_mccp3(struct session *ses);
 extern  int  client_skip_sb(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc);
 
@@ -442,7 +440,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					continue;
 
 				case ASCII_ENQ:
-					check_all_events(ses, SUB_ARG, 0, 1, "VT100 ENQ", gtd->term);
+					check_all_events(ses, SUB_ARG, 0, 1, "VT100 ENQ", gtd->term); // obsolete, but we'll handle it for now.
 					cpsrc++;
 					cplen--;
 					continue;
@@ -672,7 +670,7 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 		sprintf(mtts, "MTTS %d",
 			(ses->color > 0 ? 1 : 0) +
 			(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2) +
-			(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) ? 4 : 0) +
+			(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0) +
 			(ses->color > 16 ? 8 : 0) +
 			(HAS_BIT(ses->flags, SES_FLAG_SCREENREADER) ? 64 : 0) +
 			(ses->color > 256 ? 256 : 0));
@@ -1006,7 +1004,7 @@ int client_recv_sb_mssp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 {
-	char var[BUFFER_SIZE], val[BUFFER_SIZE], *pto;
+	char var[BUFFER_SIZE], val[BUFFER_SIZE], plain[BUFFER_SIZE], *pto;
 	int i, nest, state[100], last;
 
 	var[0] = val[0] = state[0] = nest = last = 0;
@@ -1087,9 +1085,10 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 					if (last)
 					{
+						strip_vt102_codes(val, plain);
 						client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP %s", var, var, val);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP", var, val);
+						check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+						check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = var;
 				}
@@ -1115,9 +1114,10 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 					if (last != MSDP_VAR)
 					{
+						strip_vt102_codes(val, plain);
 						client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP %s", var, var, val);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP", var, val);
+						check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+						check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = val;
 				}
@@ -1164,9 +1164,10 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 		if (last)
 		{
+			strip_vt102_codes(val, plain);
 			client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-			check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP %s", var, var, val);
-			check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP", var, val);
+			check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+			check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
 		}
 		i++;
 	}
@@ -1244,8 +1245,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 					if (last)
 					{
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, val);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, val);
+						strip_vt102_codes(val, plain);
+						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = var;
 				}
@@ -1277,8 +1279,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 					if (last != MSDP_VAR)
 					{
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, val);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, val);
+						strip_vt102_codes(val, plain);
+						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = val;
 				}
@@ -1322,8 +1325,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 		if (last)
 		{
-			check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, val);
-			check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, val);
+			strip_vt102_codes(val, plain);
+			check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+			check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
 		}
 		i++;
 	}
@@ -1394,7 +1398,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 			{
 				if (!strcasecmp(var, "UTF-8"))
 				{
-					if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
+					if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
 					{
 						telnet_printf(ses, 12, "%c%c%c%c UTF-8%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
 
@@ -1440,6 +1444,60 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 						}
 					}
 				}
+				else if (!strcasecmp(var, "ISO-8859-1") || !strcasecmp(var, "ISO-1"))
+				{
+					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					{
+						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO1TOUTF8))
+						{
+							telnet_printf(ses, 11, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
+							
+							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
+						}
+						else
+						{
+							telnet_printf(ses, 11, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, var, IAC, SE);
+
+							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED %s", var);
+						}
+					}
+				}
+				else if (!strcasecmp(var, "ISO-8859-2") || !strcasecmp(var, "ISO-2"))
+				{
+					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					{
+						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO2TOUTF8))
+						{
+							telnet_printf(ses, 11, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
+							
+							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
+						}
+						else
+						{
+							telnet_printf(ses, 11, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, var, IAC, SE);
+
+							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED %s", var);
+						}
+					}
+				}
+				else if (!strcasecmp(var, "GBK-1"))
+				{
+					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					{
+						if (HAS_BIT(ses->charset, CHARSET_FLAG_GBK1TOUTF8))
+						{
+							telnet_printf(ses, 11, "%c%c%c%c GBK-1%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
+
+							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED GBK-1");
+						}
+						else
+						{
+							telnet_printf(ses, 11, "%c%c%c%c GB-18030%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
+
+							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED GBK-1");
+						}
+					}
+				}
 			}
 		}
 		i++;
@@ -1455,6 +1513,26 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 /*
 	NEW-ENVIRON
 */
+
+int get_mtts_val(struct session *ses)
+{
+	return
+		(ses->color > 0 ? 1 : 0)
+		+
+		(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
+		+
+		(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
+		+
+		(ses->color > 16 ? 8 : 0)
+		+
+		(HAS_BIT(ses->flags, SES_FLAG_SCREENREADER) ? 64 : 0)
+		+
+//		proxy ? 128 : 0
+//		+
+		(ses->color > 256 ? 256 : 0)
+		+
+		512;
+}
 
 int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *src)
 {
@@ -1526,8 +1604,57 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 				{
 					client_telopt_debug(ses, "IAC SB NEW-ENVIRON SEND %s", sub2);
 
-					check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, "");
-					check_all_events(ses, SUB_ARG|SUB_SEC, 1, 4, "IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, "");
+					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "CATCH IAC SB NEW-ENVIRON", sub1, sub2, var, ""))
+					{
+						check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, "");
+
+						if (!check_all_events(ses, SUB_ARG|SUB_SEC, 1, 4, "CATCH IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, ""))
+						{
+							check_all_events(ses, SUB_ARG|SUB_SEC, 1, 4, "IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, "");
+
+							if (*var == 0)
+							{
+								telnet_printf(ses, -1, "%c%c%c" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c",
+									IAC, SB, TELOPT_NEW_ENVIRON,
+									ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset(ses),
+									ENV_IS, ENV_VAR, "CLIENT_NAME", ENV_VAL, CLIENT_NAME,
+									ENV_IS, ENV_VAR, "CLIENT_VERSION", ENV_VAL, CLIENT_VERSION,
+									ENV_IS, ENV_VAR, "MTTS", ENV_VAL, get_mtts_val(ses),
+									ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->term,
+									IAC, SE);
+							}
+							else if (!strcasecmp(var, "CHARSET"))
+							{
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset(ses), IAC, SE);
+
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CHARSET", get_charset(ses));
+							}
+							else if (!strcasecmp(var, "CLIENT_NAME"))
+							{
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CLIENT_NAME", ENV_VAL, CLIENT_NAME, IAC, SE);
+
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_NAME", CLIENT_NAME);
+							}
+							else if (!strcasecmp(var, "CLIENT_VERSION"))
+							{
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CLIENT_VERSION", ENV_VAL, CLIENT_VERSION, IAC, SE);
+
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_VERSION", CLIENT_VERSION);
+							}
+							else if (!strcasecmp(var, "MTTS") || *var == 0)
+							{
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%d%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "MTTS", ENV_VAL, get_mtts_val(ses), IAC, SE);
+
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR MTTS VAL %d", get_mtts_val(ses));
+							}
+							else if (!strcasecmp(var, "TERMINAL_TYPE"))
+							{
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->term, IAC, SE);
+
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->term);
+							}
+						}
+					}
 				}
 				break;
 
@@ -1944,6 +2071,26 @@ int client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc)
 	return 5;
 }
 
+void client_end_mccp2(struct session *ses)
+{
+	if (ses->mccp2 == NULL)
+	{
+		return;
+	}
+
+	if (deflateEnd(ses->mccp2) != Z_OK)
+	{
+		tintin_printf2(ses, "MCCP2: FAILED TO DEFLATE_END");
+	}
+
+	free(ses->mccp2);
+
+	ses->mccp2 = NULL;
+
+	client_telopt_debug(ses, "MCCP2: COMPRESSION END, DISABLING MCCP2");
+
+	return;
+}
 
 
 // MCCP3
@@ -2034,6 +2181,7 @@ int client_init_mccp3(struct session *ses)
 	if (deflateInit(stream, Z_BEST_COMPRESSION) != Z_OK)
 	{
 		client_telopt_debug(ses, "MCCP3: FAILED TO INITIALIZE");
+
 		free(stream);
 
 		return FALSE;

@@ -81,7 +81,7 @@ DO_PATH(path_create)
 
 	root->update = 0;
 
-	show_message(ses, LIST_PATH, "#PATH CREATE: YOU START MAPPING A NEW PATH.");
+	show_message(ses, LIST_COMMAND, "#PATH CREATE: YOU START MAPPING A NEW PATH.");
 
 	SET_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 }
@@ -97,7 +97,7 @@ DO_PATH(path_destroy)
 
 	DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
-	show_message(ses, LIST_PATH, "#PATH DESTROY: PATH DESTROYED.");
+	show_message(ses, LIST_COMMAND, "#PATH DESTROY: PATH DESTROYED.");
 }
 
 
@@ -105,13 +105,13 @@ DO_PATH(path_start)
 {
 	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
-		show_message(ses, LIST_PATH, "#PATH START: ERROR: YOU ARE ALREADY MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH START: ERROR: YOU ARE ALREADY MAPPING A PATH.");
 	}
 	else
 	{
 		SET_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
-		show_message(ses, LIST_PATH, "#PATH START: YOU START MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH START: YOU START MAPPING A PATH.");
 	}
 }
 
@@ -122,23 +122,23 @@ DO_PATH(path_stop)
 
 	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
-		show_message(ses, LIST_PATH, "#PATH STOP: YOU STOP MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH STOP: YOU STOP MAPPING A PATH.");
 
 		DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 	}
 	else
 	{
-		if (root->list[root->update]->data)
+		if (root->list[root->update]->val64)
 		{
 			for (index = 0 ; index < root->used ; index++)
 			{
-				root->list[index]->data = 0;
+				root->list[index]->val64 = 0;
 			}
-			show_message(ses, LIST_PATH, "#PATH STOP: YOU STOP RUNNING A PATH.");
+			show_message(ses, LIST_COMMAND, "#PATH STOP: YOU STOP RUNNING A PATH.");
 		}
 		else
 		{
-			show_message(ses, LIST_PATH, "#PATH STOP: YOU ARE NOT MAPPING OR RUNNING A PATH.");
+			show_message(ses, LIST_COMMAND, "#PATH STOP: YOU ARE NOT MAPPING OR RUNNING A PATH.");
 		}
 	}
 }
@@ -164,6 +164,8 @@ DO_PATH(path_describe)
 
 	i = x = y = z = 0;
 
+	i = root->update;
+
 	while (i < root->used)
 	{
 		node = search_node_list(ses->list[LIST_PATHDIR], root->list[i++]->arg1);
@@ -188,11 +190,18 @@ DO_PATH(path_describe)
 	{
 		if (z == 0)
 		{
-			tintin_printf2(ses, "The path is %d rooms long and the destination is right where you are.");
+			if (root->used > 2)
+			{
+				tintin_printf2(ses, "The path is %d rooms long and leads back to where you are at.", root->used);
+			}
+			else
+			{
+				tintin_printf2(ses, "The path is %d rooms long and the destination is right where you are at.", root->used);
+			}
 		}
 		else
 		{
-			tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms %s you.", root->used, abs(z), z < 0 ? "below" : "above", s);
+			tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms %s of you.", root->used, abs(z), z < 0 ? "below" : "above", s);
 		}
 	}
 	else
@@ -222,7 +231,7 @@ DO_PATH(path_map)
 
 	if (root->used == 0)
 	{
-		show_message(ses, LIST_PATH, "#PATH MAP: EMPTY PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH MAP: EMPTY PATH.");
 	}
 	else
 	{
@@ -268,7 +277,7 @@ DO_PATH(path_save)
 	}
 	else if (*arg2 == 0)
 	{
-		show_error(ses, LIST_PATH, "#SYNTAX: #PATH SAVE <BACKWARD|FORWARD|LENGTH|POSITION> <VARIABLE NAME>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH SAVE <BACKWARD|FORWARD|LENGTH|POSITION> <VARIABLE NAME>");
 	}
 	else if (is_abbrev(arg1, "BACKWARDS"))
 	{
@@ -283,9 +292,9 @@ DO_PATH(path_save)
 				cat_sprintf(result, "%c", COMMAND_SEPARATOR);
 			}
 		}
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", result);
+		set_nest_node_ses(ses, arg2, "%s", result);
 
-		show_message(ses, LIST_PATH, "#PATH SAVE: BACKWARD PATH SAVED TO {%s}", arg2);
+		show_message(ses, LIST_COMMAND, "#PATH SAVE: BACKWARD PATH SAVED TO {%s}", arg2);
 	}
 	else if (is_abbrev(arg1, "FORWARDS"))
 	{
@@ -300,29 +309,29 @@ DO_PATH(path_save)
 				cat_sprintf(result, "%c", COMMAND_SEPARATOR);
 			}
 		}
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", result);
+		set_nest_node_ses(ses, arg2, "%s", result);
 
-		show_message(ses, LIST_PATH, "#PATH SAVE: FORWARD PATH SAVED TO {%s}", arg2);
+		show_message(ses, LIST_COMMAND, "#PATH SAVE: FORWARD PATH SAVED TO {%s}", arg2);
 	}
 	else if (is_abbrev(arg1, "LENGTH"))
 	{
 		sprintf(result, "%d", root->used);
 
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", result);
+		set_nest_node_ses(ses, arg2, "%s", result);
 
-		show_message(ses, LIST_PATH, "#PATH SAVE: PATH LENGTH SAVED TO {%s}", arg2);
+		show_message(ses, LIST_COMMAND, "#PATH SAVE: PATH LENGTH SAVED TO {%s}", arg2);
 	}
 	else if (is_abbrev(arg1, "POSITION"))
 	{
 		sprintf(result, "%d", root->update + 1);
 
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", result);
+		set_nest_node_ses(ses, arg2, "%s", result);
 
-		show_message(ses, LIST_PATH, "#PATH SAVE: PATH POSITION SAVED TO {%s}", arg2);
+		show_message(ses, LIST_COMMAND, "#PATH SAVE: PATH POSITION SAVED TO {%s}", arg2);
 	}
 	else
 	{
-		show_error(ses, LIST_PATH, "#SYNTAX: #PATH SAVE <BACKWARD|FORWARD|LENGTH|POSITION> <VARIABLE NAME>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH SAVE <BACKWARD|FORWARD|LENGTH|POSITION> <VARIABLE NAME>");
 	}
 }
 
@@ -335,7 +344,7 @@ DO_PATH(path_load)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if ((node = search_node_list(ses->list[LIST_VARIABLE], arg1)) == NULL)
+	if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 	{
 		arg = arg1;
 	}
@@ -366,7 +375,7 @@ DO_PATH(path_load)
 			insert_node_list(root, temp, temp, "0", "");
 		}
 	}
-	show_message(ses, LIST_PATH, "#PATH LOAD: PATH WITH %d NODES LOADED.", root->used);
+	show_message(ses, LIST_COMMAND, "#PATH LOAD: PATH WITH %d NODES LOADED.", root->used);
 }
 
 DO_PATH(path_delete)
@@ -375,7 +384,7 @@ DO_PATH(path_delete)
 
 	if (root->used)
 	{
-		show_message(ses, LIST_PATH, "#PATH DELETE: DELETED MOVE {%s}.", root->list[root->used - 1]->arg1);
+		show_message(ses, LIST_COMMAND, "#PATH DELETE: DELETED MOVE {%s}.", root->list[root->used - 1]->arg1);
 
 		delete_index_list(root, root->used - 1);
 
@@ -401,13 +410,13 @@ DO_PATH(path_insert)
 
 	if (*arg1 == 0 && *arg2 == 0)
 	{
-		show_message(ses, LIST_PATH, "#PATH INSERT: ERROR: YOU MUST GIVE A COMMAND TO INSERT");
+		show_message(ses, LIST_COMMAND, "#PATH INSERT: ERROR: YOU MUST GIVE A COMMAND TO INSERT");
 	}
 	else
 	{
 		insert_node_list(root, arg1, arg2, "0", "");
 
-		show_message(ses, LIST_PATH, "#PATH INSERT: FORWARD {%s} BACKWARD {%s}.", arg1, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH INSERT: FORWARD {%s} BACKWARD {%s}.", arg1, arg2);
 
 		if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 		{
@@ -444,7 +453,7 @@ DO_PATH(path_run)
 
 			for (index = root->update ; index < root->used ; index++)
 			{
-				root->list[index]->data = gtd->utime + total;
+				root->list[index]->val64 = gtd->utime + total;
 
 				total += delay;
 			}
@@ -453,7 +462,7 @@ DO_PATH(path_run)
 		{
 			while (root->update < root->used)
 			{
-				script_driver(ses, LIST_PATH, root->list[root->update++]->arg1);
+				script_driver(ses, LIST_COMMAND, root->list[root->update++]->arg1);
 			}
 		}
 	}
@@ -480,7 +489,7 @@ DO_PATH(path_walk)
 		}
 		else
 		{
-			script_driver(ses, LIST_PATH, root->list[--root->update]->arg2);
+			script_driver(ses, LIST_COMMAND, root->list[--root->update]->arg2);
 
 			if (root->update == 0)
 			{
@@ -496,7 +505,7 @@ DO_PATH(path_walk)
 		}
 		else
 		{
-			script_driver(ses, LIST_PATH, root->list[root->update++]->arg1);
+			script_driver(ses, LIST_COMMAND, root->list[root->update++]->arg1);
 
 			if (root->update == root->used)
 			{
@@ -506,7 +515,7 @@ DO_PATH(path_walk)
 	}
 	else
 	{
-		show_error(ses, LIST_PATH, "#SYNTAX: #PATH WALK {FORWARD|BACKWARD}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH WALK {FORWARD|BACKWARD}.");
 	}
 }
 
@@ -519,7 +528,7 @@ DO_PATH(path_swap)
 
 	if (root->used == 0)
 	{
-		show_error(ses, LIST_PATH, "#PATH SWAP: ERROR: PATH IS EMPTY.");
+		show_error(ses, LIST_COMMAND, "#PATH SWAP: ERROR: PATH IS EMPTY.");
 
 		return;
 	}
@@ -554,7 +563,7 @@ DO_PATH(path_swap)
 		root->list[z]->arg2 = arg;
 	}
 
-	show_message(ses, LIST_PATH, "#PATH SWAP: PATH HAS BEEN SWAPPED.");
+	show_message(ses, LIST_COMMAND, "#PATH SWAP: PATH HAS BEEN SWAPPED.");
 }
 
 
@@ -592,14 +601,8 @@ DO_PATH(path_zip)
 		}
 		else
 		{
-			if (cnt > 1)
-			{
-				cat_sprintf(arg1, "%d%s", cnt, root->list[i]->arg1);
-			}
-			else
-			{
-				cat_sprintf(arg1, "%s", root->list[i]->arg1);
-			}
+			cat_sprintf(arg1, "%d%s", cnt, root->list[i]->arg1);
+
 			cnt = 1;
 		}
 	}
@@ -627,14 +630,7 @@ DO_PATH(path_zip)
 		}
 		else
 		{
-			if (cnt > 1)
-			{
-				cat_sprintf(arg2, "%d%s", cnt, root->list[i]->arg2);
-			}
-			else
-			{
-				cat_sprintf(arg2, "%s", root->list[i]->arg2);
-			}
+			cat_sprintf(arg2, "%d%s", cnt, root->list[i]->arg2);
 			cnt = 1;
 		}
 	}
@@ -645,7 +641,7 @@ DO_PATH(path_zip)
 
 	insert_node_list(root, arg1, arg2, "0", "");
 
-	show_message(ses, LIST_PATH, "#PATH ZIP: THE PATH HAS BEEN ZIPPED TO {%s} {%s}.", arg1, arg2);
+	show_message(ses, LIST_COMMAND, "#PATH ZIP: THE PATH HAS BEEN ZIPPED TO {%s} {%s}.", arg1, arg2);
 }
 
 DO_PATH(path_unzip)
@@ -656,7 +652,7 @@ DO_PATH(path_unzip)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if ((node = search_node_list(ses->list[LIST_VARIABLE], arg1)) == NULL)
+	if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 	{
 		arg = arg1;
 	}
@@ -727,7 +723,7 @@ DO_PATH(path_unzip)
 			}
 		}
 	}
-	show_message(ses, LIST_PATH, "#PATH UNZIP: PATH WITH %d NODES UNZIPPED.", root->used);
+	show_message(ses, LIST_COMMAND, "#PATH UNZIP: PATH WITH %d NODES UNZIPPED.", root->used);
 }
 
 
@@ -742,25 +738,25 @@ DO_PATH(path_goto)
 	{
 		root->update = root->used;
 
-		show_message(ses, LIST_PATH, "#PATH GOTO: POSITION SET TO {%d}.", root->update + 1);
+		show_message(ses, LIST_COMMAND, "#PATH GOTO: POSITION SET TO {%d}.", root->update + 1);
 	}
 	else if (is_abbrev(arg1, "START"))
 	{
 		root->update = 0;
 
-		show_message(ses, LIST_PATH, "#PATH GOTO: POSITION SET TO %d.", root->update + 1);
+		show_message(ses, LIST_COMMAND, "#PATH GOTO: POSITION SET TO %d.", root->update + 1);
 	}
 	else if (is_math(ses, arg1))
 	{
 		if (get_number(ses, arg1) < 1 || get_number(ses, arg1) > root->used + 1)
 		{
-			show_message(ses, LIST_PATH, "#PATH GOTO: POSITION MUST BE BETWEEN 1 AND %d.", root->used + 1);
+			show_message(ses, LIST_COMMAND, "#PATH GOTO: POSITION MUST BE BETWEEN 1 AND %d.", root->used + 1);
 		}
 		else
 		{
 			root->update = get_number(ses, arg1) - 1;
 
-			show_message(ses, LIST_PATH, "#PATH GOTO: POSITION SET TO %d.", root->update + 1);
+			show_message(ses, LIST_COMMAND, "#PATH GOTO: POSITION SET TO %d.", root->update + 1);
 		}
 	}
 }
@@ -777,33 +773,33 @@ DO_PATH(path_move)
 	{
 		if (root->update == 0)
 		{
-			show_message(ses, LIST_PATH, "#PATH GOTO: ALREADY AT START OF PATH.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH GOTO: ALREADY AT START OF PATH.", root->update);
 		}
 		else
 		{
 			root->update--;
 
-			show_message(ses, LIST_PATH, "#PATH MOVE: POSITION SET TO %d.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 		}
 	}
 	else if (is_abbrev(arg1, "FORWARD"))
 	{
 		if (root->update == root->used)
 		{
-			show_message(ses, LIST_PATH, "#PATH MOVE: ALREADY AT END OF PATH.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: ALREADY AT END OF PATH.", root->update);
 		}
 		else
 		{
 			root->update++;
 
-			show_message(ses, LIST_PATH, "#PATH MOVE: POSITION SET TO %d.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 		}
 	}
 	else if (is_math(ses, arg1))
 	{
 		root->update = URANGE(0, root->update + get_number(ses, arg1), root->used);
 
-		show_message(ses, LIST_PATH, "#PATH MOVE: POSITION SET TO %d.", root->update + 1);
+		show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update + 1);
 	}
 }
 
@@ -813,28 +809,28 @@ DO_PATH(path_undo)
 
 	if (root->used == 0)
 	{
-		show_message(ses, LIST_PATH, "#PATH UNDO: ERROR: PATH IS EMPTY.");
+		show_message(ses, LIST_COMMAND, "#PATH UNDO: ERROR: PATH IS EMPTY.");
 
 		return;
 	}
 
 	if (root->update != root->used)
 	{
-		show_message(ses, LIST_PATH, "#PATH UNDO: ERROR: YOUR POSITION IS NOT AT END OF PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH UNDO: ERROR: YOUR POSITION IS NOT AT END OF PATH.");
 	
 		return;
 	}
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
-		show_message(ses, LIST_PATH, "#PATH UNDO: ERROR: YOU ARE NOT CURRENTLY MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH UNDO: ERROR: YOU ARE NOT CURRENTLY MAPPING A PATH.");
 
 		return;
 	}
 
 	DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
-	script_driver(ses, LIST_PATH, root->list[root->used - 1]->arg2);
+	script_driver(ses, LIST_COMMAND, root->list[root->used - 1]->arg2);
 
 	SET_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
@@ -843,7 +839,7 @@ DO_PATH(path_undo)
 	root->update = root->used;
 
 
-	show_message(ses, LIST_PATH, "#PATH MOVE: POSITION SET TO %d.", root->update);
+	show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 }
 
 void check_append_path(struct session *ses, char *forward, char *backward, int follow)
@@ -933,11 +929,11 @@ DO_COMMAND(do_unpathdir)
 	{
 		if (delete_nest_node(ses->list[LIST_PATHDIR], arg1))
 		{
-			show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A PATHDIR.", arg1);
+			show_message(ses, LIST_PATHDIR, "#OK. {%s} IS NO LONGER A PATHDIR.", arg1);
 		}
 		else
 		{
-			delete_node_with_wild(ses, LIST_VARIABLE, arg1);
+			delete_node_with_wild(ses, LIST_PATHDIR, arg1);
 		}
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	}
@@ -954,7 +950,7 @@ DO_PATH(path_new)
 
 	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
-		show_message(ses, LIST_PATH, "#PATH NEW: YOU ARE ALREADY MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH NEW: YOU ARE ALREADY MAPPING A PATH.");
 	}
 	else
 	{
@@ -962,7 +958,7 @@ DO_PATH(path_new)
 
 		root->update = 0;
 
-		show_message(ses, LIST_PATH, "#PATH NEW: YOU ARE NOW MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH NEW: YOU ARE NOW MAPPING A PATH.");
 
 		SET_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 	}
@@ -972,13 +968,13 @@ DO_PATH(path_end)
 {
 	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
-		show_message(ses, LIST_PATH, "#PATH END: YOU ARE NO LONGER MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH END: YOU ARE NO LONGER MAPPING A PATH.");
 
 		DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 	}
 	else
 	{
-		show_message(ses, LIST_PATH, "#PATH: YOU ARE NOT MAPPING A PATH.");
+		show_message(ses, LIST_COMMAND, "#PATH: YOU ARE NOT MAPPING A PATH.");
 	}
 }
 	

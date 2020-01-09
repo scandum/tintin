@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/

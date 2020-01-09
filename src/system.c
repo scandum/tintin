@@ -38,6 +38,8 @@
 #include <termios.h>
 #include <sys/un.h>
 
+#include <sys/wait.h>
+
 DO_COMMAND(do_run)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], temp[BUFFER_SIZE], file[BUFFER_SIZE];
@@ -147,7 +149,7 @@ DO_COMMAND(do_script)
 				cat_sprintf(var, "{%d}{%s}", index++, tmp);
 			}
 
-			set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", var);
+			set_nest_node_ses(ses, arg1, "%s", var);
 
 			pclose(script);
 		}
@@ -181,7 +183,92 @@ DO_COMMAND(do_suspend)
 	return ses;
 }
 
+// use #run + waitpid() ?
 
+/*
+DO_COMMAND(do_system)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], temp[BUFFER_SIZE], buffer[BUFFER_SIZE];
+	int desc, pid;
+	struct winsize size;
+	char *argv[4] = {"sh", "-c", "", NULL};
+	int filedes[2];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SYSTEM {SHELL COMMAND}");
+		
+		return ses;
+	}
+
+	size.ws_row = get_scroll_rows(ses);
+	size.ws_col = get_scroll_cols(ses);
+	size.ws_ypixel = size.ws_row * gtd->screen->char_height;
+	size.ws_xpixel = size.ws_col * gtd->screen->char_width;
+
+	if (pipe(filedes) == -1)
+	{
+		perror("pipe");
+
+		return ses;
+	}
+
+	pid = fork();
+
+	switch (pid)
+	{
+		case -1:
+			syserr_printf(ses, "do_system: forkpty");
+			break;
+
+		case 0:
+			while ((dup2(filedes[1], STDOUT_FILENO) == -1) && (errno == EINTR)) {}
+			close(filedes[1]);
+			close(filedes[0]);
+
+			sprintf(temp, "exec %s", arg1);
+			argv[2] = temp;
+			execv("/bin/sh", argv);
+			perror("execv");
+			break;
+
+		default:
+			close(filedes[1]);
+
+			while (TRUE)
+			{
+				ssize_t count = read(filedes[0], buffer, sizeof(buffer));
+
+				if (count == -1)
+				{
+					if (errno == EINTR)
+					{
+						continue;
+					}
+					else
+					{
+						perror("read");
+					}
+					return ses;
+				}
+				else if (count == 0)
+				{
+					break;
+				}
+				else
+				{
+					tintin_printf2(ses, "%s", buffer);
+				}
+			}
+			close(filedes[0]);
+			wait(0);
+			break;
+	}
+	return ses;
+}
+*/
 
 DO_COMMAND(do_system)
 {

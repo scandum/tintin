@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2009                       *
 ******************************************************************************/
@@ -39,6 +38,40 @@ struct listroot *search_nest_root(struct listroot *root, char *arg)
 	return node->root;
 }
 
+struct listroot *search_nest_base_ses(struct session *ses, char *arg)
+{
+	struct listnode *node;
+	struct listroot *root;
+
+	int index;
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
+	{
+		for (index = gtd->script_index ; index ; index--)
+		{
+			root = gtd->script_stack[index]->local;
+
+			if (root->used)
+			{
+				node = search_node_list(root, arg);
+
+				if (node)
+				{
+					return root;
+				}
+			}
+		}
+	}
+
+	node = search_node_list(ses->list[LIST_VARIABLE], arg);
+
+	if (node == NULL)
+	{
+		return NULL;
+	}
+	return ses->list[LIST_VARIABLE];
+}
+
 struct listnode *search_base_node(struct listroot *root, char *variable)
 {
 	char name[BUFFER_SIZE];
@@ -48,6 +81,69 @@ struct listnode *search_base_node(struct listroot *root, char *variable)
 	return search_node_list(root, name);
 }
 
+struct listnode *search_nest_node_ses(struct session *ses, char *variable)
+{
+	char name[BUFFER_SIZE], *arg;
+	struct listroot *root;
+	struct listnode *node;
+	int index;
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
+	{
+		for (index = gtd->script_index ; index ; index--)
+		{
+			root = gtd->script_stack[index]->local;
+
+			if (root->used)
+			{
+				arg = get_arg_to_brackets(root->ses, variable, name);
+
+				while (root && *arg)
+				{
+					root = search_nest_root(root, name);
+
+					if (root)
+					{
+						arg = get_arg_in_brackets(root->ses, arg, name);
+					}
+				}
+
+				if (root)
+				{
+					node = search_node_list(root, name);
+
+					if (node)
+					{
+						return node;
+					}
+				}
+			}
+		}
+	}
+
+	root = ses->list[LIST_VARIABLE];
+
+	arg = get_arg_to_brackets(ses, variable, name);
+
+	while (root && *arg)
+	{
+		root = search_nest_root(root, name);
+
+		if (root)
+		{
+			arg = get_arg_in_brackets(root->ses, arg, name);
+		}
+	}
+
+	if (root)
+	{
+		return search_node_list(root, name);
+	}
+
+	return NULL;
+}
+
+	
 struct listnode *search_nest_node(struct listroot *root, char *variable)
 {
 	char name[BUFFER_SIZE], *arg;
@@ -767,25 +863,33 @@ void view_nest_node(struct listnode *node, char **str_result, int nest, int init
 	}
 }
 
-struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, ...)
+struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format, ...)
 {
 	struct listnode *node;
+	struct listroot *root;
 	char *arg, *arg2, name[BUFFER_SIZE];
 	va_list args;
 
-	push_call("set_nest_node(%p,%s,%p,...)",root,arg1,format);
+	push_call("set_nest_node_ses(%p,%s,%p,...)",ses,arg1,format);
 
 	va_start(args, format);
 	vasprintf(&arg2, format, args);
 	va_end(args);
 
-	arg = get_arg_to_brackets(root->ses, arg1, name);
+	arg = get_arg_to_brackets(ses, arg1, name);
 
-	check_all_events(root->ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
 
-	if (search_node_list(local_list(NULL), name))
+	root = search_nest_base_ses(ses, name);
+
+	if (root == NULL)
 	{
-		root = local_list(NULL);
+		root = ses->list[LIST_VARIABLE];
+		node = NULL;
+	}
+	else
+	{
+		node = search_nest_node(root, arg1);
 	}
 
 	while (*arg)
@@ -813,6 +917,165 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 		node = search_node_list(root, name);
 	}
+	else if (node)
+	{
+		str_cpy(&node->arg2, arg2);
+	}
+	else
+	{
+		node = update_node_list(root, name, arg2, "", "");
+	}
+
+	if (gtd->level->oneshot)
+	{
+		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+	}
+
+	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+
+	free(arg2);
+
+	pop_call();
+	return node;
+}
+
+// like set, but we're adding here.
+
+struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format, ...)
+{
+	struct listnode *node;
+	struct listroot *root;
+	char *arg, *arg2, name[BUFFER_SIZE];
+	va_list args;
+
+	push_call("add_nest_node_ses(%p,%s,%p,...)",ses,arg1,format);
+
+	va_start(args, format);
+	vasprintf(&arg2, format, args);
+	va_end(args);
+
+	arg = get_arg_to_brackets(ses, arg1, name);
+
+	check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+
+	root = search_nest_base_ses(ses, name);
+
+	if (root == NULL)
+	{
+		root = ses->list[LIST_VARIABLE];
+		node = NULL;
+	}
+	else
+	{
+		node = search_nest_node(root, arg1);
+	}
+
+	while (*arg)
+	{
+		root = update_nest_root(root, name);
+
+		if (root)
+		{
+			arg = get_arg_in_brackets(root->ses, arg, name);
+		}
+	}
+
+	node = search_node_list(root, name);
+
+/*
+	if (node && node->root)
+	{
+		free_list(node->root);
+
+		node->root = NULL;
+	}
+*/
+
+	if (*space_out(arg2) == DEFAULT_OPEN)
+	{
+		update_nest_node(update_nest_root(root, name), arg2);
+
+		node = search_node_list(root, name);
+	}
+	else if (node)
+	{
+		str_cpy(&node->arg2, arg2);
+	}
+	else
+	{
+		node = update_node_list(root, name, arg2, "", "");
+	}
+
+	if (gtd->level->oneshot)
+	{
+		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+	}
+
+	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+
+	free(arg2);
+
+	pop_call();
+	return node;
+}
+
+
+struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, ...)
+{
+	struct listroot *base;
+	struct listnode *node;
+	char *arg, *arg2, name[BUFFER_SIZE];
+	va_list args;
+
+	push_call("set_nest_node(%p,%s,%p,...)",root,arg1,format);
+
+	va_start(args, format);
+	vasprintf(&arg2, format, args);
+	va_end(args);
+
+	arg = get_arg_to_brackets(root->ses, arg1, name);
+
+	check_all_events(root->ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
+	{
+		base = search_nest_base_ses(root->ses, name);
+
+		if (base)
+		{
+			root = base;
+		}
+	}
+
+	while (*arg)
+	{
+		root = update_nest_root(root, name);
+
+		if (root)
+		{
+			arg = get_arg_in_brackets(root->ses, arg, name);
+		}
+	}
+
+	node = search_node_list(root, name);
+
+	if (node && node->root)
+	{
+		free_list(node->root);
+
+		node->root = NULL;
+	}
+
+	if (*space_out(arg2) == DEFAULT_OPEN)
+	{
+		update_nest_node(update_nest_root(root, name), arg2);
+
+		node = search_node_list(root, name);
+	}
+	else if (node)
+	{
+		str_cpy(&node->arg2, arg2);
+	}
 	else
 	{
 		node = update_node_list(root, name, arg2, "", "");
@@ -835,15 +1098,30 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, ...)
 {
-//	struct listnode *node;
-	char arg2[BUFFER_SIZE], name[BUFFER_SIZE], *arg;
+	struct listroot *base;
+	struct listnode *node;
+	char *arg, *arg2, name[BUFFER_SIZE];
 	va_list args;
 
+	push_call("add_nest_node(%p,%s,%p,...)",root,arg1,format);
+
 	va_start(args, format);
-	vsprintf(arg2, format, args);
+	vasprintf(&arg2, format, args);
 	va_end(args);
 
 	arg = get_arg_to_brackets(root->ses, arg1, name);
+
+	check_all_events(root->ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
+	{
+		base = search_nest_base_ses(root->ses, name);
+
+		if (base)
+		{
+			root = base;
+		}
+	}
 
 	while (*arg)
 	{
@@ -855,11 +1133,8 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 		}
 	}
 
-/*
-	Adding here, so don't clear the variable.
-
 	node = search_node_list(root, name);
-
+/*
 	if (node && node->root)
 	{
 		free_list(node->root);
@@ -867,16 +1142,35 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 		node->root = NULL;
 	}
 */
+
 	if (*space_out(arg2) == DEFAULT_OPEN)
 	{
-		update_nest_node(update_nest_root(root, name), arg2);
+		root = update_nest_root(root, name);
 
-		return search_node_list(root, name);
+		update_nest_node(root, arg2);
+
+		node = search_node_list(root, name);
+	}
+	else if (node)
+	{
+		str_cat(&node->arg2, arg2);
 	}
 	else
 	{
-		return update_node_list(root, name, arg2, "", "");
+		node = update_node_list(root, name, arg2, "", "");
 	}
+
+	if (gtd->level->oneshot)
+	{
+		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+	}
+
+	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+
+	free(arg2);
+
+	pop_call();
+	return node;
 }
 
 

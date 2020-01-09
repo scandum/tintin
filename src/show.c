@@ -441,7 +441,10 @@ void tintin_puts(struct session *ses, char *string)
 
 		gtd->level->ignore++;
 
-		show_info(ses, LIST_GAG, "#INFO GAG {%s}", string);
+		if (HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_INFO))
+		{
+			show_info(ses, LIST_GAG, "#INFO GAG {%s}", string);
+		}
 
 		gtd->level->ignore--;
 	}
@@ -479,13 +482,27 @@ void tintin_puts2(struct session *ses, char *string)
 
 void tintin_puts3(struct session *ses, char *string)
 {
-	char *output;
+	char *output, temp[STRING_SIZE];
 
 	push_call("tintin_puts3(%p,%p)",ses,string);
 
 	if (ses == NULL)
 	{
 		ses = gtd->ses;
+	}
+
+	if (ses->line_capturefile)
+	{
+		sprintf(temp, "{%d}{%s}", ses->line_captureindex++, string);
+
+		if (ses->line_captureindex == 1)
+		{
+			set_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
+		}
+		else
+		{
+			add_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
+		}
 	}
 
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_VERBOSE) && gtd->level->quiet && gtd->level->verbose == 0)

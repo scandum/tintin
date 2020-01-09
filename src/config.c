@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*   file: config.c - funtions related tintin++ configuration                  *
-*              (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                   *
-*                     coded by Igor van den Hoven 2004                        *
+*                               T I N T I N + +                               *
+*                                                                             *
+*                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
 
@@ -177,21 +176,26 @@ DO_CONFIG(config_charset)
 				DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			}
 		}
+		else if (is_abbrev(arg2, "ASCII"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+		}
 		else if (is_abbrev(arg2, "BIG-5"))
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_BIG5);
+		}
+		else if (is_abbrev(arg2, "GBK-1"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_GBK1);
 		}
 		else if (is_abbrev(arg2, "UTF-8"))
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_UTF8);
 		}
-		else if (is_abbrev(arg2, "ASCII"))
-		{
-			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
-		}
-		else if (is_abbrev(arg2, "BIG2UTF"))
+		else if (is_abbrev(arg2, "BIG5TOUTF8") || is_abbrev(arg2, "BIG2UTF"))
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8);
@@ -201,14 +205,29 @@ DO_CONFIG(config_charset)
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8);
 		}
-		else if (is_abbrev(arg2, "KOI2UTF"))
+		else if (is_abbrev(arg2, "GBK1TOUTF8"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8);
+		}
+		else if (is_abbrev(arg2, "ISO1TOUTF8"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8);
+		}
+		else if (is_abbrev(arg2, "ISO2TOUTF8"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8);
+		}
+		else if (is_abbrev(arg2, "KOI8TOUTF8"))
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8);
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <AUTO|ASCII|BIG-5|FANSI|UTF-8|BIG2UTF|KOI2UTF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <AUTO|ASCII|BIG-5|BIG5TOUTF8|FANSI|GBK-1|GBK1TOUTF8|KOI8TOUTF8|UTF-8>", config_table[index].name);
 
 			return NULL;
 		}
@@ -219,17 +238,29 @@ DO_CONFIG(config_charset)
 		case CHARSET_FLAG_BIG5:
 			strcpy(arg2, "BIG-5");
 			break;
+		case CHARSET_FLAG_GBK1:
+			strcpy(arg2, "GBK-1");
+			break;
 		case CHARSET_FLAG_UTF8:
 			strcpy(arg2, "UTF-8");
 			break;
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8:
-			strcpy(arg2, "BIG2UTF");
+			strcpy(arg2, "BIG5TOUTF8");
 			break;
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8:
 			strcpy(arg2, "FANSI");
 			break;
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8:
+			strcpy(arg2, "GBK1TOUTF8");
+			break;
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8:
-			strcpy(arg2, "KOI2UTF");
+			strcpy(arg2, "KOI8TOUTF8");
+			break;
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8:
+			strcpy(arg2, "ISO1TOUTF8");
+			break;
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8:
+			strcpy(arg2, "ISO2TOUTF8");
 			break;
 		default:
 			strcpy(arg2, "ASCII");
@@ -592,7 +623,7 @@ DO_CONFIG(config_mousetracking)
 		{
 			DEL_BIT(ses->flags, SES_FLAG_MOUSEINFO);
 			SET_BIT(ses->flags, SES_FLAG_MOUSEDEBUG);
-			SET_BIT(gtd->flags, SES_FLAG_MOUSETRACKING);
+			SET_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING);
 			print_stdout("\e[?1000h\e[?1002h\e[?1004h\e[?1006h");
 		}
 		else if (is_abbrev(arg2, "DEBUG INFO"))

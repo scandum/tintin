@@ -223,24 +223,13 @@ void write_line_mud(struct session *ses, char *line, int size)
 		return;
 	}
 
-	if (!HAS_BIT(ses->telopts, TELOPT_FLAG_TELNET))
+	if (!HAS_BIT(ses->telopts, TELOPT_FLAG_TELNET) && HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
-		{
-			char buf[BUFFER_SIZE];
+		char buf[BUFFER_SIZE];
 
-			size = utf8_to_big5(line, buf);
+		size = utf8_to_all(ses, line, buf);
 
-			strcpy(line, buf);
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_KOI8TOUTF8))
-		{
-			char buf[BUFFER_SIZE];
-
-			size = utf8_to_koi8(line, buf);
-
-			strcpy(line, buf);
-		}
+		strcpy(line, buf);
 	}
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "SEND OUTPUT", line, ntos(size));
@@ -252,7 +241,6 @@ void write_line_mud(struct session *ses, char *line, int size)
 			result = client_write_compressed(ses, line, size);
 		}
 #ifdef HAVE_GNUTLS_H
-
 		else if (ses->ssl)
 		{
 			result = gnutls_record_send(ses->ssl, line, size);
@@ -426,22 +414,12 @@ void readmud(struct session *ses)
 			strcpy(linebuf, line);
 		}
 
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8) || HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8) || HAS_BIT(ses->charset, CHARSET_FLAG_KOI8TOUTF8))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
 		{
 			char tempbuf[BUFFER_SIZE];
 
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
-			{
-				big5_to_utf8(linebuf, tempbuf);
-			}
-			else if (HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
-			{
-				fansi_to_utf8(linebuf, tempbuf);
-			}
-			else
-			{
-				koi8_to_utf8(linebuf, tempbuf);
-			}
+			all_to_utf8(ses, linebuf, tempbuf);
+
 			process_mud_output(ses, tempbuf, next_line == NULL);
 		}
 		else

@@ -31,11 +31,8 @@
 
 DO_COMMAND(do_read)
 {
+	char filename[BUFFER_SIZE];
 	FILE *fp;
-	struct stat filedata;
-	char *bufi, *bufo, filename[BUFFER_SIZE], temp[BUFFER_SIZE], *pti, *pto, last = 0;
-	int lvl, cnt, com, lnc, fix, ok;
-	int counter[LIST_MAX];
 
 	sub_arg_in_braces(ses, arg, filename, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -48,13 +45,23 @@ DO_COMMAND(do_read)
 		return ses;
 	}
 
+	return read_file(ses, fp, filename);
+}
+
+struct session *read_file(struct session *ses, FILE *fp, char *filename)
+{
+	struct stat filedata;
+	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
+	int lvl, cnt, com, lnc, fix, ok;
+	int counter[LIST_MAX];
+
 	temp[0] = getc(fp);
 
 	if (!ispunct((int) temp[0]))
 	{
 		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "INVALID START OF FILE");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE.", filename);
+		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE '%c'.", filename, temp[0]);
 
 		fclose(fp);
 
@@ -95,10 +102,11 @@ DO_COMMAND(do_read)
 	{
 		if (com == 0)
 		{
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 			{
 				*pto++ = *pti++;
 				*pto++ = *pti++;
+
 				continue;
 			}
 

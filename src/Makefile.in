@@ -64,7 +64,7 @@ system.o mapper.o tables.o buffer.o event.o tokenize.o chat.o utf8.o \
 advertise.o list.o forkpty.o utils.o line.o data.o variable.o msdp.o \
 port.o scan.o telopt_client.o screen.o cursor.o nest.o show.o mccp.o \
 telopt_server.o draw.o log.o path.o session.o class.o config.o ssl.o \
-regex.o substitute.o daemon.o
+regex.o substitute.o daemon.o dict.o
 
 default: all
 

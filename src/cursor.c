@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,29 +13,27 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*              (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                   *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2006                        *
+*                      coded by Igor van den Hoven 2006                       *
 ******************************************************************************/
-
 
 #include "tintin.h"
 
 DO_COMMAND(do_cursor)
 {
-	char all[BUFFER_SIZE], arg1[BUFFER_SIZE], right[BUFFER_SIZE], temp[BUFFER_SIZE];
+	char all[BUFFER_SIZE], arg1[BUFFER_SIZE], temp[BUFFER_SIZE];
 	int cnt;
 
 	get_arg_in_braces(ses, arg, all, GET_ALL);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	arg = sub_arg_in_braces(ses, arg, right, GET_ALL, SUB_VAR|SUB_FUN);
+//	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
@@ -60,7 +58,7 @@ DO_COMMAND(do_cursor)
 			{
 				if (is_abbrev(all, cursor_table[cnt].name))
 				{
-					cursor_table[cnt].fun(ses, right);
+					cursor_table[cnt].fun(ses, arg);
 
 					return ses;
 				}
@@ -69,7 +67,7 @@ DO_COMMAND(do_cursor)
 			{
 				if (is_abbrev(arg1, cursor_table[cnt].name))
 				{
-					cursor_table[cnt].fun(ses, right);
+					cursor_table[cnt].fun(ses, arg);
 
 					return ses;
 				}
@@ -225,23 +223,17 @@ int inputline_str_chk(int offset, int totlen)
 
 	while (offset < totlen)
 	{
-		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_BIG5))
+		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC))
 		{
-			if (HAS_BIT(gtd->input_buf[offset], 128) && (unsigned char) gtd->input_buf[offset] < 255)
+			if (is_euc_head(gtd->ses, &gtd->input_buf[offset]))
 			{
-				if (offset + 1 >= totlen)
+				size = get_euc_size(gtd->ses, &gtd->input_buf[offset]);
+
+				if (size == 1 || offset + size > totlen)
 				{
 					return FALSE;
 				}
-
-				if (is_big5(&gtd->input_buf[offset]))
-				{
-					offset += 2;
-				}
-				else
-				{
-					offset += 1;
-				}
+				offset += size;
 			}
 			else
 			{
@@ -457,13 +449,18 @@ DO_CURSOR(cursor_delete)
 		return;
 	}
 
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(&gtd->input_buf[gtd->input_cur]))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(gtd->ses, &gtd->input_buf[gtd->input_cur]))
 	{
-		gtd->input_len--;
+		size = get_euc_width(gtd->ses, &gtd->input_buf[gtd->input_cur], &width);
 
-		memmove(&gtd->input_buf[gtd->input_cur+1], &gtd->input_buf[gtd->input_cur+2], gtd->input_len - gtd->input_cur + 1);
+		gtd->input_len -= size;
 
-		input_printf("\e[2P");
+		memmove(&gtd->input_buf[gtd->input_cur], &gtd->input_buf[gtd->input_cur + size], gtd->input_len - gtd->input_cur + 1);
+
+		if (width)
+		{
+			input_printf("\e[%dP", width);
+		}
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 	{
@@ -605,15 +602,19 @@ DO_CURSOR(cursor_delete_word_right)
 
 DO_CURSOR(cursor_echo)
 {
-	if (*arg == 0)
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
 	{
 		TOG_BIT(ses->telopts, TELOPT_FLAG_ECHO);
 	}
-	else if (!strcasecmp(arg, "ON"))
+	else if (!strcasecmp(arg1, "ON"))
 	{
 		SET_BIT(ses->telopts, TELOPT_FLAG_ECHO);
 	}
-	else if (!strcasecmp(arg, "OFF"))
+	else if (!strcasecmp(arg1, "OFF"))
 	{
 		DEL_BIT(ses->telopts, TELOPT_FLAG_ECHO);
 	}
@@ -679,13 +680,17 @@ DO_CURSOR(cursor_exit)
 
 DO_CURSOR(cursor_get)
 {
-	if (*arg == 0)
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
 	{
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR GET {variable}");
 	}
 	else
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg, "%s", gtd->input_buf);
+		set_nest_node_ses(ses, arg1, "%s", gtd->input_buf);
 	}
 }
 
@@ -876,7 +881,7 @@ DO_CURSOR(cursor_history_find)
 
 	push_call("cursor_history_find(%s)", gtd->input_buf);
 
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_EUC))
 	{
 		if (inputline_str_chk(0, gtd->input_len) == FALSE)
 		{
@@ -931,15 +936,19 @@ DO_CURSOR(cursor_home)
 
 DO_CURSOR(cursor_insert)
 {
-	if (*arg == 0)
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
 	{
 		TOG_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT);
 	}
-	else if (!strcasecmp(arg, "ON"))
+	else if (!strcasecmp(arg1, "ON"))
 	{
 		SET_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT);
 	}
-	else if (!strcasecmp(arg, "OFF"))
+	else if (!strcasecmp(arg1, "OFF"))
 	{
 		DEL_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT);
 	}
@@ -956,7 +965,7 @@ DO_CURSOR(cursor_left)
 
 	if (gtd->input_cur > 0)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC))
 		{
 			gtd->input_cur--;
 			gtd->input_pos--;
@@ -1094,7 +1103,7 @@ DO_CURSOR(cursor_redraw_input)
 
 DO_CURSOR(cursor_redraw_line)
 {
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_EUC))
 	{
 		if (inputline_str_chk(0, gtd->input_len) == FALSE)
 		{
@@ -1160,15 +1169,12 @@ DO_CURSOR(cursor_right)
 
 	if (gtd->input_cur < gtd->input_len)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && (gtd->input_buf[gtd->input_cur] & 128) == 128)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC))
 		{
-			if (gtd->input_cur + 1 < gtd->input_len && gtd->input_buf[gtd->input_cur+1])
-			{
-				gtd->input_cur += 2;
-				gtd->input_pos += 2;
+			gtd->input_cur += get_euc_width(gtd->ses, &gtd->input_buf[gtd->input_cur], &width);
 
-				input_printf("\e[2C");
-			}
+			input_printf("\e[%dC", width);
+			gtd->input_pos += width;
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 		{
@@ -1230,17 +1236,21 @@ DO_CURSOR(cursor_right_word)
 
 DO_CURSOR(cursor_set)
 {
-	if (*arg == 0)
+	char arg1[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
 	{
 		return;
 	}
 
-	ins_sprintf(&gtd->input_buf[gtd->input_cur], "%s", arg);
+	ins_sprintf(&gtd->input_buf[gtd->input_cur], "%s", arg1);
 
-	gtd->input_len += strlen(arg);
-	gtd->input_cur += strlen(arg);
+	gtd->input_len += strlen(arg1);
+	gtd->input_cur += strlen(arg1);
 
-	gtd->input_pos += inputline_raw_str_len(gtd->input_cur - strlen(arg), gtd->input_cur);
+	gtd->input_pos += inputline_raw_str_len(gtd->input_cur - strlen(arg1), gtd->input_cur);
 
 	cursor_redraw_line(ses, "");
 
@@ -1466,6 +1476,84 @@ int cursor_calc_input_now(void)
 	return input_now;
 }
 
+DO_CURSOR(cursor_tab)
+{
+	char arg1[BUFFER_SIZE];
+	int flags;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	while (*arg)
+	{
+		if (is_abbrev(arg1, "LIST"))
+		{
+			SET_BIT(flags, TAB_FLAG_LIST);
+		}
+		else if (is_abbrev(arg1, "SCROLLBACK"))
+		{
+			SET_BIT(flags, TAB_FLAG_SCROLLBACK);
+		}
+
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
+		}
+	}
+
+	if (is_abbrev(arg1, "FORWARD"))
+	{
+		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> FORWARD");
+		}
+		else
+		{
+			if (HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK) == (TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+			{
+				cursor_mixed_tab_forward(ses, "");
+			}
+			else if (HAS_BIT(flags, TAB_FLAG_LIST))
+			{
+				cursor_tab_forward(ses, "");
+			}
+			else
+			{
+				cursor_auto_tab_forward(ses, "");
+			}
+		}
+		SET_BIT(flags, TAB_FLAG_FORWARD);
+	}
+	else if (is_abbrev(arg1, "BACKWARD"))
+	{
+		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> BACKWARD");
+		}
+		else
+		{
+			if (HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK) == (TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+			{
+				cursor_mixed_tab_backward(ses, "");
+			}
+			else if (HAS_BIT(flags, TAB_FLAG_LIST))
+			{
+				cursor_tab_backward(ses, "");
+			}
+			else
+			{
+				cursor_auto_tab_backward(ses, "");
+			}
+		}
+		SET_BIT(flags, TAB_FLAG_BACKWARD);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> <BACKWARD|FORWARD>");
+	}
+}
+
 DO_CURSOR(cursor_tab_forward)
 {
 	struct listroot *root = ses->list[LIST_COMMAND];
@@ -1643,7 +1731,7 @@ DO_CURSOR(cursor_screen_focus_in)
 {
 	gtd->screen->focus = 1;
 
-	check_all_events(gtd->ses, SUB_ARG, 1, 1, "SCREEN FOCUS", ntos(gtd->screen->focus));
+	check_all_events(gtd->ses, SUB_ARG, 0, 1, "SCREEN FOCUS", ntos(gtd->screen->focus));
 
 	msdp_update_all("SCREEN_FOCUS", "%d", gtd->screen->focus);
 }

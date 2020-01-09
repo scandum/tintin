@@ -222,9 +222,74 @@ struct session *parse_command(struct session *ses, char *input)
 	return ses;
 }
 
+char *substitute_speedwalk(struct session *ses, char *input, char *output)
+{
+	char num[NUMBER_SIZE], name[BUFFER_SIZE], *pti, *ptn, *pto;
+	int cnt, max;
+
+	pti = input;
+	pto = output;
+
+	while (*pti && pto - output < INPUT_SIZE)
+	{
+		while (isspace(*pti))
+		{
+			pti++;
+		}
+
+		if (isdigit(*pti))
+		{
+			ptn = num;
+
+			while (isdigit(*pti))
+			{
+				if (ptn - num < 4)
+				{
+					*ptn++ = *pti++;
+				}
+				else
+				{
+					pti++;
+				}
+			}
+			*ptn = 0;
+
+			max = atoi(num);
+		}
+		else
+		{
+			max = 1;
+		}
+
+		pti = get_arg_stop_digits(ses, pti, name, GET_ONE);
+
+		if (*name == 0)
+		{
+			break;
+		}
+
+		for (cnt = 0 ; cnt < max ; cnt++)
+		{
+			if (output != pto)
+			{
+				*pto++ = COMMAND_SEPARATOR;
+			}
+			pto += sprintf(pto, "%s", name);
+		}
+
+		if (*pti == COMMAND_SEPARATOR)
+		{
+			pti++;
+		}
+	}
+	*pto = 0;
+
+	return output;
+}
+	
 int is_speedwalk(struct session *ses, char *input)
 {
-	int flag = FALSE;
+	int digit = 0, flag = FALSE;
 
 	while (*input)
 	{
@@ -236,7 +301,12 @@ int is_speedwalk(struct session *ses, char *input)
 			case 'w':
 			case 'u':
 			case 'd':
-				flag = TRUE;
+				if (digit > 3)
+				{
+					return FALSE;
+				}
+				digit = 0;
+				flag  = TRUE;
 				break;
 
 			case '0':
@@ -249,6 +319,7 @@ int is_speedwalk(struct session *ses, char *input)
 			case '7':
 			case '8':
 			case '9':
+				digit++;
 				flag = FALSE;
 				break;
 
@@ -346,6 +417,28 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 }
 
 
+int cnt_arg_all(struct session *ses, char *string, int flag)
+{
+	char *arg, tmp[BUFFER_SIZE];
+	int cnt;
+
+	arg = string;
+	cnt = 0;
+
+	while (*arg)
+	{
+		cnt++;
+
+		arg = get_arg_in_braces(ses, arg, tmp, flag);
+
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
+		}
+	}
+	return cnt;
+}
+
 /*
 	get all arguments - only check for unescaped command separators
 */
@@ -354,7 +447,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 {
 	char *pto, *pti;
-	int nest = 0;
+	int skip, nest = 0;
 
 	pti = string;
 	pto = result;
@@ -372,10 +465,21 @@ char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			while (skip--)
+			{
+				*pto++ = *pti++;
+			}
 			continue;
 		}
 
@@ -419,7 +523,7 @@ char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 char *get_arg_in_braces(struct session *ses, char *string, char *result, int flag)
 {
 	char *pti, *pto;
-	int nest = 1;
+	int skip, nest = 1;
 
 	pti = space_out(string);
 	pto = result;
@@ -442,10 +546,21 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 	while (*pti)
 	{
 		
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			while (skip--)
+			{
+				*pto++ = *pti++;
+			}
 			continue;
 		}
 
@@ -498,17 +613,28 @@ char *sub_arg_in_braces(struct session *ses, char *string, char *result, int fla
 char *get_arg_with_spaces(struct session *ses, char *string, char *result, int flag)
 {
 	char *pto, *pti;
-	int nest = 0;
+	int skip, nest = 0;
 
 	pti = space_out(string);
 	pto = result;
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			while (skip--)
+			{
+				*pto++ = *pti++;
+			}
 			continue;
 		}
 
@@ -542,6 +668,73 @@ char *get_arg_with_spaces(struct session *ses, char *string, char *result, int f
 char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int flag)
 {
 	char *pto, *pti;
+	int skip, nest = 0;
+
+	pti = space_out(string);
+	pto = result;
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			*pto++ = *pti++;
+			*pto++ = *pti++;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			while (skip--)
+			{
+				*pto++ = *pti++;
+			}
+			continue;
+		}
+
+
+		if (*pti == '\\' && pti[1] == COMMAND_SEPARATOR)
+		{
+			*pto++ = *pti++;
+		}
+		else if (*pti == COMMAND_SEPARATOR && nest == 0)
+		{
+			break;
+		}
+		else if (isspace((int) *pti) && nest == 0)
+		{
+			pti++;
+			break;
+		}
+		else if (*pti == DEFAULT_OPEN)
+		{
+			nest++;
+		}
+		else if (*pti == '[' && HAS_BIT(flag, GET_NST))
+		{
+			nest++;
+		}
+		else if (*pti == DEFAULT_CLOSE)
+		{
+			nest--;
+		}
+		else if (*pti == ']' && HAS_BIT(flag, GET_NST))
+		{
+			nest--;
+		}
+		*pto++ = *pti++;
+	}
+	*pto = '\0';
+
+	return pti;
+}
+
+// Get one arg, stop at numbers, used for speedwalks
+
+char *get_arg_stop_digits(struct session *ses, char *string, char *result, int flag)
+{
+	char *pto, *pti;
 	int nest = 0;
 
 	pti = space_out(string);
@@ -549,7 +742,7 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -564,7 +757,7 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 		{
 			break;
 		}
-		else if (isspace((int) *pti) && nest == 0)
+		else if (isdigit((int) *pti) && nest == 0)
 		{
 			pti++;
 			break;
@@ -620,7 +813,7 @@ char *get_arg_to_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -687,7 +880,7 @@ char *get_arg_at_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -744,7 +937,7 @@ char *get_arg_in_brackets(struct session *ses, char *string, char *result)
 
 	while (*pti)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;
 			*pto++ = *pti++;
@@ -776,6 +969,26 @@ char *get_arg_in_brackets(struct session *ses, char *string, char *result)
 		pti++;
 	}
 	*pto = 0;
+
+	return pti;
+}
+
+char *get_char(struct session *ses, char *string, char *result)
+{
+	char *pti = string;
+
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+	{
+		pti += sprintf(result, "%c%c", pti[0], pti[1]);
+	}
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
+	{
+		pti += sprintf(result, "%.*s", get_utf8_size(pti), pti);
+	}
+	else
+	{
+		pti += sprintf(result, "%c", pti[0]);
+	}
 
 	return pti;
 }

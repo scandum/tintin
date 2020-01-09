@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
@@ -56,7 +55,11 @@ void save_pos(struct session *ses)
 	{
 		syserr_printf(ses, "sav_lev++ above 1000.");
 	}
-	print_stdout("\e[?25l");
+
+	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
+	{
+		print_stdout("\e[?25l");
+	}
 
 	pop_call();
 	return;
@@ -82,7 +85,11 @@ void restore_pos(struct session *ses)
 	{
 		goto_pos(ses, gtd->screen->sav_row[gtd->screen->sav_lev], gtd->screen->sav_col[gtd->screen->sav_lev]);
 	}
-	print_stdout("\e[?25h");
+
+	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
+	{
+		print_stdout("\e[?25h");
+	}
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
@@ -178,7 +185,7 @@ void reset_scroll_region(struct session *ses)
 
 int skip_vt102_codes(char *str)
 {
-	int skip;
+	int skip = 0;
 
 	push_call("skip_vt102_codes(%p)",str);
 
@@ -187,8 +194,8 @@ int skip_vt102_codes(char *str)
 		case   5:   /* ENQ */
 		case   7:   /* BEL */
 		case   8:   /* BS  */
-	/*	case   9: *//* HT  */
-	/*	case  10: *//* LF  */
+	//	case   9:      HT
+	//	case  10:      LF
 		case  11:   /* VT  */
 		case  12:   /* FF  */
 		case  13:   /* CR  */
@@ -198,12 +205,25 @@ int skip_vt102_codes(char *str)
 		case  19:   /* DC3 */
 		case  24:   /* CAN */
 		case  26:   /* SUB */
-		case 127:   /* DEL */
 			pop_call();
 			return 1;
 
 		case  27:   /* ESC */
 			break;
+
+		case  28: // HTML_OPEN
+			for (skip = 1 ; str[skip] ; skip++)
+			{
+				if (str[skip] == 30) // HTML_CLOSE
+				{
+					return skip + 1;
+				}
+			}
+			return 0;
+
+		case 127:   /* DEL */
+			pop_call();
+			return 1;
 
 		default:
 			pop_call();
@@ -314,6 +334,63 @@ int find_color_code(char *str)
 		if (isalpha((int) str[skip]))
 		{
 			return 0;
+		}
+	}
+	return 0;
+}
+
+int find_secure_color_code(char *str)
+{
+	int skip, valid = 1;
+
+	switch (str[0])
+	{
+		case  27:   /* ESC */
+			break;
+
+		default:
+			return 0;
+	}
+
+	switch (str[1])
+	{
+		case '[':
+			break;
+
+		default:
+			return 0;
+	}
+
+	for (skip = 2 ; str[skip] != 0 ; skip++)
+	{
+		switch (str[skip])
+		{
+			case 'm':
+				if (valid)
+				{
+					return skip + 1;
+				}
+				return 0;
+
+			case ';':
+				valid = 0;
+				break;
+
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				valid = 1;
+				break;
+
+			default:
+				return 0;
 		}
 	}
 	return 0;

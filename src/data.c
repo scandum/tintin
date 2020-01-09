@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                       coded by Igor van den Hoven 2004                      *
+*                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -53,6 +52,7 @@ void kill_list(struct listroot *root)
 	{
 		delete_index_list(root, root->used - 1);
 	}
+//	root->update = 0;
 }
 
 void free_list(struct listroot *root)
@@ -79,10 +79,10 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 		{
 			node = (struct listnode *) calloc(1, sizeof(struct listnode));
 
-			node->arg1  = strdup(sourcelist->list[i]->arg1);
-			node->arg2  = strdup(sourcelist->list[i]->arg2);
-			node->arg3  = strdup(sourcelist->list[i]->arg3);
-			node->arg4  = strdup(sourcelist->list[i]->arg4);
+			node->arg1  = str_dup_clone(sourcelist->list[i]->arg1);
+			node->arg2  = str_dup_clone(sourcelist->list[i]->arg2);
+			node->arg3  = str_dup_clone(sourcelist->list[i]->arg3);
+			node->arg4  = str_dup_clone(sourcelist->list[i]->arg4);
 			node->flags = sourcelist->list[i]->flags;
 			node->group = strdup(sourcelist->list[i]->group);
 
@@ -129,15 +129,15 @@ struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2,
 
 	node = (struct listnode *) calloc(1, sizeof(struct listnode));
 
-	if (HAS_BIT(root->flags, LIST_FLAG_PRIORITY) && *arg3 == 0)
+	if (list_table[root->type].priority_arg == 3 && *arg3 == 0)
 	{
 		strcpy(arg3, "5");
 	}
 
-	node->arg1 = strdup(arg1);
-	node->arg2 = strdup(arg2);
-	node->arg3 = strdup(arg3);
-	node->arg4 = strdup(arg4);
+	node->arg1 = str_dup(arg1);
+	node->arg2 = str_dup(arg2);
+	node->arg3 = str_dup(arg3);
+	node->arg4 = str_dup(arg4);
 
 	if (gtd->level->oneshot)
 	{
@@ -190,19 +190,18 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 
 		if (strcmp(node->arg2, arg2) != 0)
 		{
-			free(node->arg2);
-			node->arg2 = strdup(arg2);
+			node->arg2 = str_cpy(&node->arg2, arg2);
 		}
 
 		switch (root->type)
 		{
 			case LIST_DELAY:
 			case LIST_TICKER:
-				node->data = 0;
+				node->val64 = 0;
 				break;
 		}
 
-		if (HAS_BIT(root->flags, LIST_FLAG_PRIORITY) && *arg3 == 0)
+		if (list_table[root->type].priority_arg == 3 && *arg3 == 0)
 		{
 			strcpy(arg3, "5");
 		}
@@ -226,8 +225,7 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 			case SORT_DELAY:
 				if (strcmp(node->arg3, arg3) != 0)
 				{
-					free(node->arg3);
-					node->arg3 = strdup(arg3);
+					str_cpy(&node->arg3, arg3);
 				}
 				break;
 
@@ -282,10 +280,11 @@ void delete_index_list(struct listroot *root, int index)
 		root->update--;
 	}
 
-	free(node->arg1);
-	free(node->arg2);
-	free(node->arg3);
-	free(node->arg4);
+	str_free(node->arg1);
+	str_free(node->arg2);
+	str_free(node->arg3);
+	str_free(node->arg4);
+
 	free(node->group);
 
 	if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_REGEX))
@@ -295,6 +294,21 @@ void delete_index_list(struct listroot *root, int index)
 			free(node->regex);
 		}
 	}
+
+	switch (root->type)
+	{
+		case LIST_TERRAIN:
+			free(node->room);
+			break;
+
+		case LIST_CLASS:
+			if (node->data)
+			{
+				free(node->data);
+			}
+			break;
+	}
+
 	free(node);
 
 	memmove(&root->list[index], &root->list[index + 1], (root->used - index) * sizeof(struct listnode *));
@@ -327,6 +341,7 @@ struct listnode *search_node_list(struct listroot *root, char *text)
 		pop_call();
 		return root->list[index];
 	}
+
 	pop_call();
 	return NULL;
 }
@@ -533,7 +548,7 @@ void show_node(struct listroot *root, struct listnode *node, int level)
 			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2, node->arg3, node->arg4);
 			break;
 		case 3:
-			if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_PRIORITY) && !strcmp(node->arg3, "5"))
+			if (list_table[root->type].priority_arg == 3 && !strcmp(node->arg3, "5"))
 			{
 				tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1, str_arg2);
 			}
@@ -583,35 +598,65 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 
 	if (node)
 	{
-		switch(root->type)
+		if (list_table[root->type].script_arg == 2)
 		{
-			case LIST_EVENT:
-			case LIST_FUNCTION:
-			case LIST_MACRO:
+			if (list_table[root->type].args == 2)
+			{
 				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
-				break;
-
-			case LIST_ACTION:
-			case LIST_ALIAS:
-			case LIST_BUTTON:
-				if (!strcmp(node->arg3, "5"))
+			}
+			else if (list_table[root->type].args == 3)
+			{
+				if (list_table[root->type].priority_arg == 3)
 				{
-					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+					if (!strcmp(node->arg3, "5"))
+					{
+						tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+					}
+					else
+					{
+						tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
+					}
 				}
 				else
 				{
 					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
 				}
-				break;
+			}
+		}
+		else
+		{
+			show_node(root, node, 0);
+		}
 
-			case LIST_DELAY:
-			case LIST_TICKER:
-				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
-				break;
+		switch(root->type)
+		{
+//			case LIST_EVENT:
+//			case LIST_FUNCTION:
+//			case LIST_MACRO:
+//				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+//				break;
 
-			default:
-				show_node(root, node, 0);
-				break;
+//			case LIST_ACTION:
+//			case LIST_ALIAS:
+//			case LIST_BUTTON:
+//				if (!strcmp(node->arg3, "5"))
+//				{
+//					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2));
+//				}
+//				else
+//				{
+//					tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
+//				}
+//				break;
+
+//			case LIST_DELAY:
+//			case LIST_TICKER:
+//				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s\n" COLOR_BRACE "}\n{" COLOR_STRING "%s" COLOR_BRACE "}\n\n", gtd->tintin_char, list_table[root->type].name, node->arg1, script_viewer(ses, node->arg2), node->arg3);
+//				break;
+
+//			default:
+//				show_node(root, node, 0);
+//				break;
 		}
 		pop_call();
 		return TRUE;
@@ -630,7 +675,7 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 	return found;
 }
 
-void delete_node_with_wild(struct session *ses, int type, char *text)
+int delete_node_with_wild(struct session *ses, int type, char *text)
 {
 	struct listroot *root = ses->list[type];
 	struct listnode *node;
@@ -647,7 +692,7 @@ void delete_node_with_wild(struct session *ses, int type, char *text)
 
 		delete_node_list(ses, type, node);
 
-		return;
+		return TRUE;
 	}
 
 	for (i = root->used - 1 ; i >= 0 ; i--)
@@ -665,7 +710,10 @@ void delete_node_with_wild(struct session *ses, int type, char *text)
 	if (found == 0)
 	{
 		show_message(ses, type, "#KILL: NO MATCHES FOUND FOR %s {%s}.", list_table[type].name, arg1);
+
+		return FALSE;
 	}
+	return TRUE;
 }
 
 
@@ -690,7 +738,10 @@ DO_COMMAND(do_kill)
 	{
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
-			kill_list(ses->list[index]);
+			if (!HAS_BIT(ses->list[index]->flags, LIST_FLAG_HIDE))
+			{
+				kill_list(ses->list[index]);
+			}
 		}
 		show_message(ses, LIST_COMMAND, "#KILL - ALL LISTS CLEARED.");
 
@@ -1002,13 +1053,13 @@ DO_COMMAND(do_info)
 				else if (is_abbrev(arg2, "SAVE"))
 				{
 					sprintf(name, "info[%s]", list_table[index].name);
-					delete_nest_node(ses->list[LIST_VARIABLE], name);
+//					delete_nest_node(ses->list[LIST_VARIABLE], name);
 
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
 						sprintf(name, "info[%s][%d]", list_table[index].name, cnt);
 
-						set_nest_node(ses->list[LIST_VARIABLE], name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{flags}{%d}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->flags);
+						set_nest_node_ses(ses, name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{flags}{%d}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->flags);
 					}
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[%s]}", list_table[index].name);
 				}
@@ -1040,6 +1091,31 @@ DO_COMMAND(do_info)
 					tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9ull TOTAL OUT: %9ull RATIO: %3d", ses->mccp3->total_in, ses->mccp3->total_out, 100 * ses->mccp3->total_out / ses->mccp3->total_in);
 				}
 			}
+			else if (is_abbrev(arg1, "SESSION"))
+			{
+				if (is_abbrev(arg2, "SAVE"))
+				{
+					sprintf(name, "info[SESSION]");
+
+					set_nest_node_ses(ses, name, "{SESSION_NAME}{%s}", ses->name);
+					add_nest_node_ses(ses, name, "{SESSION_CLASS}{%s}", ses->group);
+					add_nest_node_ses(ses, name, "{SESSION_CREATED}{%d}", ses->created);
+					add_nest_node_ses(ses, name, "{SESSION_HOST} {%s}", ses->session_host);
+					add_nest_node_ses(ses, name, "{SESSION_IP} {%s}", ses->session_ip);
+					add_nest_node_ses(ses, name, "{SESSION_PORT} {%s}", ses->session_port);
+
+					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
+				}
+				else
+				{
+					tintin_printf2(ses, "{SESSION_NAME}{%s}", ses->name);
+					tintin_printf2(ses, "{SESSION_CLASS}{%s}", ses->group);
+					tintin_printf2(ses, "{SESSION_CREATED}{%d}", ses->created);
+					tintin_printf2(ses, "{SESSION_HOST} {%s}", ses->session_host);
+					tintin_printf2(ses, "{SESSION_IP} {%s}", ses->session_ip);
+					tintin_printf2(ses, "{SESSION_PORT} {%s}", ses->session_port);
+				}
+			}
 			else if (is_abbrev(arg1, "STACK"))
 			{
 				dump_stack();
@@ -1050,13 +1126,10 @@ DO_COMMAND(do_info)
 				{
 					sprintf(name, "info[SYSTEM]");
 
-					set_nest_node(ses->list[LIST_VARIABLE], name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%-3s}", CLIENT_NAME, CLIENT_VERSION);
-
-					add_nest_node(ses->list[LIST_VARIABLE], name, "{CLIENT}{{NAME}{%s}{VERSION}{%-3s}}", CLIENT_NAME, CLIENT_VERSION);
-
-					add_nest_node(ses->list[LIST_VARIABLE], name, "{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
-
-					set_nest_node(ses->list[LIST_VARIABLE], name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%-3s}", gtd->detach_port ? gtd->detach_file : "", gtd->attach_pid  ? gtd->attach_file : "");
+					set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
+					add_nest_node_ses(ses, name, "{CLIENT}{{NAME}{%s}{VERSION}{%s}}", CLIENT_NAME, CLIENT_VERSION);
+					add_nest_node_ses(ses, name, "{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
+					add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
 				}
@@ -1069,8 +1142,10 @@ DO_COMMAND(do_info)
 					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->lang);
 					tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->os);
 					tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->term);
+					tintin_printf2(ses, "#INFO SYSTEM: DETACH_PORT    = %d", gtd->detach_port);
 					tintin_printf2(ses, "#INFO SYSTEM: DETACH_FILE    = %s", gtd->detach_port ? gtd->detach_file : "");
-					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_pid  ? gtd->attach_file : "");
+					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_SOCK    = %d", gtd->attach_sock);
+					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_sock ? gtd->attach_file : "");
 				}
 			}
 			else

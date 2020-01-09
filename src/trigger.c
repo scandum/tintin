@@ -31,7 +31,7 @@ DO_COMMAND(do_action)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
@@ -713,7 +713,6 @@ DO_COMMAND(do_prompt)
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
-
 
 	if (*arg1 == 0)
 	{

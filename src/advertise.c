@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2009                       *
 ******************************************************************************/
@@ -102,10 +101,10 @@ struct advertisement_type advertisement_table[] =
 		"<178>To connect to Kallisti MUD enter: #session LoK kallistimud.com 4000\n"
 		"\n",
 	},
-
+/*
 	{
-		1400000000, /* 2014 */
- 		1800000000, /* 2027 */
+		1400000000, // 2014
+ 		1800000000, // 2027
 		100,
 
 		"\n"
@@ -134,7 +133,7 @@ struct advertisement_type advertisement_table[] =
 		"<178>To connect to Lowlands enter: #session lol lolamud.net 6969\n"
 		"\n"
 	},
-
+*/
 	{
 		1400000000,
 		1800000000,
@@ -176,7 +175,7 @@ struct advertisement_type advertisement_table[] =
 		"<078>Ateraan is a world of Intensive Roleplaying offering many unique and powerful\n"
 		"<078>guilds, races, politics, religion, justice, economy, and a storyline that is\n"
 		"<078>dominantly player controlled and based on a novel. The game is based on a\n"
-		"<078>Kingdom with fighters, merchants, mages, and thieves, and a fierce southern\n"
+		"<078>Kingdom with knights, merchants, mages, and thieves, and a fierce southern\n"
 		"<078>state that has warriors, shaman, slaves, and servants. Ships rule the seas and\n"
 		"<078>caravans travel the lands. With 100's of players and features like invasions,\n"
 		"<078>ship creation, house building, clans, theaters, leatherball fields, and massive\n"
@@ -194,10 +193,10 @@ struct advertisement_type advertisement_table[] =
                 "<178>To connect to New Worlds Ateraan enter: #session nwa ateraan.com 4002\n"
                 "\n"
 	},
-
+/*
 	{
-		1400000000,  /* 2014 */ 
-		1800000000,  /* 2027 */ 
+		1400000000,  // 2014
+		1800000000,  // 2027
 		100,
 
 		"\n"
@@ -224,6 +223,7 @@ struct advertisement_type advertisement_table[] =
 		"<178>To connect to Primal Darkness enter: #session pd mud.primaldarkness.com 5000\n"
 		"\n"
 	},
+*/
 /*	{
 		1400000000,
  		1800000000,

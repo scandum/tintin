@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2008                       *
 ******************************************************************************/
@@ -89,6 +88,62 @@ DO_LINE(line_background)
 
 	gtd->level->background--;
 
+	return ses;
+}
+
+DO_LINE(line_benchmark)
+{
+	long long start, end;
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BENCHMARK} {command}.");
+
+		return ses;
+	}
+
+	start = utime();
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	end = utime();
+
+	tintin_printf2(ses, "#LINE BENCHMARK: %lld USEC.", end - start);
+
+	return ses;
+}
+
+DO_LINE(line_capture)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 && *arg2)
+	{
+		if (ses->line_capturefile)
+		{
+			free(ses->line_capturefile);
+		}
+		ses->line_capturefile  = strdup(arg1);
+		ses->line_captureindex = 1;
+
+		ses = script_driver(ses, LIST_COMMAND, arg2);
+
+		if (ses->line_capturefile)
+		{
+			free(ses->line_capturefile);
+			ses->line_capturefile = NULL;
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE CAPTURE {VARIABLE} {command}.");
+	}
 	return ses;
 }
 
@@ -242,19 +297,23 @@ DO_LINE(line_logmode)
 			break;
 	}
 
-	DEL_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
-
 	if (is_abbrev(arg1, "HTML"))
 	{
 		SET_BIT(ses->logmode, LOG_FLAG_HTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
 	}
 	else if (is_abbrev(arg1, "PLAIN"))
 	{
 		SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
 	}
 	else if (is_abbrev(arg1, "RAW"))
 	{
 		SET_BIT(ses->logmode, LOG_FLAG_RAW);
+		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
+		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
 	}
 	else
 	{

@@ -69,7 +69,7 @@ DO_COMMAND(do_variable)
 	}
 	else
 	{
-		if (is_math(ses, arg1))
+		if (!valid_variable(ses, arg1))
 		{
 			show_message(ses, LIST_VARIABLE, "#VARIABLE: INVALID VARIALBE NAME {%s}.", arg1);
 			return ses;
@@ -115,7 +115,17 @@ DO_COMMAND(do_local)
 	}
 	else if (*arg1 && *arg == 0)
 	{
-		node = search_nest_node(root, arg1);
+		root = search_nest_base_ses(ses, arg1);
+
+		if (root)
+		{
+			node = search_nest_node_ses(ses, arg1);
+		}
+		else
+		{
+			root = local_list(ses);
+			node = NULL;
+		}
 
 		if (node)
 		{
@@ -132,7 +142,7 @@ DO_COMMAND(do_local)
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
-		node = set_nest_node(root, arg1, "%s", str);
+		node = set_nest_node_ses(ses, arg1, "%s", str);
 
 		while (*arg)
 		{
@@ -149,6 +159,8 @@ DO_COMMAND(do_local)
 		show_message(ses, LIST_VARIABLE, "#OK. LOCAL VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 
 		str_free(str);
+
+		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 	}
 	return ses;
 }
@@ -176,11 +188,52 @@ DO_COMMAND(do_unvariable)
 	return ses;
 }
 
+DO_COMMAND(do_cat)
+{
+	char arg1[BUFFER_SIZE], *str;
+	struct listnode *node;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0 || *arg == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: CAT {<VARIABLE>} {<ARGUMENT>}");
+	}
+	else
+	{
+		str = str_alloc(UMAX(strlen(arg), BUFFER_SIZE));
+
+		if ((node = search_nest_node_ses(ses, arg1)) == NULL)
+		{
+			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
+
+			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", str);
+		}
+
+		while (*arg)
+		{
+			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
+
+			check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", arg1, arg1, str);
+
+			if (*str)
+			{
+				str_cat(&node->arg2, str);
+			}
+		}
+
+		check_all_events(ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", arg1, arg1, str);
+
+		show_message(ses, LIST_VARIABLE, "#CAT: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, node->arg2);
+
+		str_free(str);
+	}
+	return ses;
+}
 
 DO_COMMAND(do_replace)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], buf[BUFFER_SIZE], tmp[BUFFER_SIZE], *pti, *ptm;
-	struct listroot *root;
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], tmp[BUFFER_SIZE], *pti, *ptm, *str;
 	struct listnode *node;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
@@ -194,18 +247,11 @@ DO_COMMAND(do_replace)
 		return ses;
 	}
 
-	root = local_list(ses);
-
-	if ((node = search_nest_node(root, arg1)) == NULL)
+	if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 	{
-		root = ses->list[LIST_VARIABLE];
+		show_error(ses, LIST_VARIABLE, "#REPLACE: VARIABLE {%s} NOT FOUND.", arg1);
 
-		if ((node = search_nest_node(root, arg1)) == NULL)
-		{
-			show_error(ses, LIST_VARIABLE, "#REPLACE: VARIABLE {%s} NOT FOUND.", arg1);
-
-			return ses;
-		}
+		return ses;
 	}
 
 	if (tintin_regexp(ses, NULL, node->arg2, arg2, 0, REGEX_FLAG_CMD) == FALSE)
@@ -215,7 +261,7 @@ DO_COMMAND(do_replace)
 	else
 	{
 		pti = node->arg2;
-		*buf = 0;
+		str = str_dup("");
 
 		do
 		{
@@ -235,17 +281,34 @@ DO_COMMAND(do_replace)
 
 			substitute(ses, arg3, tmp, SUB_CMD);
 
-			cat_sprintf(buf, "%s%s", pti, tmp);
+			str_cat_printf(&str, "%s%s", pti, tmp);
 
 			pti = ptm + strlen(gtd->cmds[0]);
 		}
 		while (tintin_regexp(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
 
-		strcat(buf, pti);
+		str_cat(&str, pti);
 
-		set_nest_node(root, arg1, "%s", buf);
+		str_cpy(&node->arg2, str);
+
+		str_free(str);
 	}
 	return ses;
+}
+
+int valid_variable(struct session *ses, char *arg)
+{
+	if (*arg == 0)
+	{
+		return FALSE;
+	}
+
+	if (is_math(ses, arg))
+	{
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /*
@@ -272,7 +335,7 @@ void numbertocharacter(struct session *ses, char *str)
 	{
 		sprintf(str, "%c", (int) get_number(ses, str));
 	}
-	else if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5))
+	else if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC))
 	{
 		sprintf(str, "%c%c", (unsigned int) get_number(ses, str) % 256, (unsigned int) get_number(ses, str) / 256);
 	}
@@ -290,9 +353,16 @@ void charactertonumber(struct session *ses, char *str)
 {
 	int result;
 
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(str))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, str))
 	{
-		result = (unsigned char) str[0] + (unsigned char) str[1] * 256;
+		if (get_euc_size(ses, str) == 4)
+		{
+			result = (unsigned char) str[0] + (unsigned char) str[1] * 256 + (unsigned char) str[2] * 256 * 256 + (unsigned char) str[3] * 256 * 256 * 256;
+		}
+		else
+		{
+			result = (unsigned char) str[0] + (unsigned char) str[1] * 256;
+		}
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
 	{
@@ -307,9 +377,16 @@ void charactertonumber(struct session *ses, char *str)
 
 void charactertohex(struct session *ses, char *str)
 {
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(str))
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, str))
 	{
-		sprintf(str, "%u", (unsigned char) str[0] + (unsigned char) str[1] * 256);
+		if (get_euc_size(ses, str) == 4)
+		{
+			sprintf(str, "%u", (unsigned char) str[0] + (unsigned char) str[1] * 256 + (unsigned char) str[2] * 256 * 256 + (unsigned char) str[3] * 256 * 256 * 256);
+		}
+		else
+		{
+			sprintf(str, "%u", (unsigned char) str[0] + (unsigned char) str[1] * 256);
+		}
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
 	{
@@ -333,6 +410,81 @@ void colorstring(struct session *ses, char *str)
 	get_color_names(ses, str, result);
 
 	strcpy(str, result);
+}
+
+int translate_color_names(struct session *ses, char *string, char *result)
+{
+	int cnt;
+
+	*result = 0;
+
+	if (*string == '<')
+	{
+		strcpy(result, string);
+
+		return TRUE;
+	}
+
+	if (*string == '\\')
+	{
+		strcpy(result, string);
+
+		return TRUE;
+	}
+
+	while (*string)
+	{
+
+		if (isalpha(*string))
+		{
+			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+			{
+				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
+				{
+					result += sprintf(result, "%s", color_table[cnt].code);
+
+					break;
+				}
+			}
+
+			if (*color_table[cnt].name == 0)
+			{
+				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+				{
+					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
+					{
+						result += sprintf(result, "%s", color_table[cnt].code);
+
+						break;
+					}
+				}
+
+				if (*color_table[cnt].name == 0)
+				{
+					return FALSE;
+				}
+			}
+			string += strlen(color_table[cnt].name);
+		}
+
+		switch (*string)
+		{
+			case ' ':
+			case ';':
+			case ',':
+			case '{':
+			case '}':
+				string++;
+				break;
+
+			case 0:
+				return TRUE;
+
+			default:
+				return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 int get_color_names(struct session *ses, char *string, char *result)
@@ -413,20 +565,24 @@ int get_color_names(struct session *ses, char *string, char *result)
 	return TRUE;
 }
 
-void headerstring(char *str)
+void headerstring(struct session *ses, char *str)
 {
-	char buf[BUFFER_SIZE];
+	char buf[BUFFER_SIZE], fill[BUFFER_SIZE];
+	int len, max;
 
-	if ((int) strlen(str) > gtd->screen->cols - 2)
+	len = string_raw_str_len(ses, str, 0, BUFFER_SIZE);
+	max =  get_scroll_cols(ses);
+
+	if (len > max - 2)
 	{
-		str[gtd->screen->cols - 2] = 0;
+		str[max] = 0;
+
+		return;
 	}
 
-	memset(buf, '#', gtd->screen->cols);
+	memset(fill, '#', max);
 
-	memcpy(&buf[(gtd->screen->cols - strlen(str)) / 2], str, strlen(str));
-
-	buf[gtd->screen->cols] = 0;
+	sprintf(buf, "%.*s%s%.*s%s", (max - len) / 2, fill, str, (max - len) / 2, fill, (max - len) % 2 ? "#" : "");
 
 	strcpy(str, buf);
 }
@@ -521,6 +677,131 @@ void thousandgroupingstring(struct session *ses, char *str)
 	strcpy(str, result + cnt2 + 1);
 }
 
+void chronosgroupingstring(struct session *ses, char *str)
+{
+	char *sign = "-";
+	long long val = (long long) get_number(ses, str);
+	int days, hours, minutes, seconds;
+
+	if (val < 0)
+	{
+		val *= -1;
+	}
+	else
+	{
+		sign = "";
+	}
+
+	seconds = val % 60;
+	val /= 60;
+
+	minutes = val % 60;
+	val /= 60;
+
+	hours = val % 24;
+	val /= 24;
+
+	days = val;
+
+	if (days)
+	{
+		sprintf(str, "%s%d:%02d:%02d:%02d", sign, days, hours, minutes, seconds);
+	}
+	else if (hours)
+	{
+		sprintf(str, "%s%d:%02d:%02d", sign, hours, minutes, seconds);
+	}
+	else
+	{
+		sprintf(str, "%s%d:%02d", sign, minutes, seconds);
+	}
+}
+
+void metricgroupingstring(struct session *ses, char *str)
+{
+	char big[]   = {' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y', '?', '?', '?', '?', '?', '?', '?', '?'};
+	char small[] = {' ', 'm', 'u', 'n', 'p', 'f', 'a', 'z', 'y', '?', '?', '?', '?', '?', '?', '?', '?'};
+	char tmp[NUMBER_SIZE];
+	long double val = get_number(ses, str);
+	int index = 0;
+
+	if (val >= 1000)
+	{
+                while (val >= 1000)
+                {
+                        val = val / 1000;
+                        index++;
+                }
+                if (val >= 100)
+                {
+                	sprintf(tmp, " %Lf", val);
+		}
+		else
+		{
+                	sprintf(tmp, "%Lf", val);
+		}
+                sprintf(str, "%.4s%c", tmp, big[index]);
+	}
+	else if (val > 0 && val < 0.01)
+	{
+		while (val < 0.01)
+		{
+			val = val * 1000;
+			index++;
+		}
+		sprintf(tmp, "%Lf", val);
+		sprintf(str, "%.4s%c", tmp, small[index]);
+	}
+	else if (val >= 0)
+	{
+		if (val >= 100)
+		{
+			sprintf(tmp, " %Lf", val);
+		}
+		else
+		{
+			sprintf(tmp, "%Lf", val);
+		}
+		sprintf(str, "%.4s%c", tmp, big[index]);
+	}
+	else if (val <= -0.01 && val > -1000)
+	{
+		if (val <= -100)
+		{
+			sprintf(tmp, " %Lf", val);
+		}
+		else
+		{
+			sprintf(tmp, "%Lf", val);
+		} 
+		sprintf(str, "%.5s%c", tmp, small[index]);
+	}
+	else if (val <= -1000)
+	{
+                while (val <= -100)
+                {
+                        if (val <= -10000)
+                        {
+                                val = (long double) ((long long) val / 100LL * 100LL);
+                        }
+                        val = val / 1000;
+                        index++;
+                }
+                sprintf(tmp, "%Lf", val);
+                sprintf(str, "%.5s%c", tmp, big[index]);
+	}
+
+	else if (val < 0 /*&& val > -0.01*/)
+	{
+		while (val > -0.01)
+		{
+			val = val * 1000;
+			index++;
+		}
+		sprintf(tmp, "%Lf", val);
+		sprintf(str, "%.5s%c", tmp, small[index]);
+	}
+}
 
 void stripspaces(char *str)
 {
@@ -741,7 +1022,13 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 			continue;
 		}
 
-		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
+		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC)  && is_euc_head(ses, &str[raw_cnt]))
+		{
+			raw_cnt += get_euc_width(ses, &str[raw_cnt], &width);
+
+			ret_cnt += width;
+		}
+		else if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
 			raw_cnt += get_utf8_width(&str[raw_cnt], &width);
 
@@ -964,7 +1251,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'h':
-						headerstring(arglist[i]);
+						headerstring(ses, arglist[i]);
 						break;
 
 					case 'l':
@@ -1012,7 +1299,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'C':
-						sprintf(arglist[i], "%d", gtd->screen->cols);
+						chronosgroupingstring(ses, arglist[i]);
 						break;
 
 					case 'D':
@@ -1038,19 +1325,17 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						sprintf(arglist[i], "%d", stringlength(ses, arglist[i]));
 						break;
 
-					// undocumented
 					case 'M':
-						timeval_t  = (time_t) *arglist[i] ? atoll(arglist[i]) : gtd->time;
-						timeval_tm = *localtime(&timeval_t);
-						strftime(arglist[i], BUFFER_SIZE, "%m", &timeval_tm);
+						metricgroupingstring(ses, arglist[i]);
 						break;
 
 					case 'R':
+						tintin_printf2(ses, "\e[1;31m#echo/#format %%R please use #screen {get} {rows} to get screen height.");
 						sprintf(arglist[i], "%d", gtd->screen->rows);
 						break;
 
 					case 'S':
-						sprintf(arglist[i], "%s", ses->name);
+						sprintf(arglist[i], "%d", spellcheck_count(ses, arglist[i]));
 						break;
 
 					case 'T':
@@ -1111,7 +1396,7 @@ DO_COMMAND(do_format)
 
 	format_string(ses, format, arg, result);
 
-	set_nest_node(ses->list[LIST_VARIABLE], destvar, "%s", result);
+	set_nest_node_ses(ses, destvar, "%s", result);
 
 	show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", destvar, result);
 

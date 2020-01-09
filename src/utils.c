@@ -471,7 +471,7 @@ void socket_printf(struct session *ses, size_t length, char *format, ...)
 	}
 }
 
-void telnet_printf(struct session *ses, size_t length, char *format, ...)
+void telnet_printf(struct session *ses, int length, char *format, ...)
 {
 	size_t size;
 
@@ -482,7 +482,7 @@ void telnet_printf(struct session *ses, size_t length, char *format, ...)
 	size = vsprintf(buf, format, args);
 	va_end(args);
 
-	if (size != length && HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
+	if (length != -1 && size != length && HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
 	{
 		tintin_printf(ses, "DEBUG TELNET: telnet_printf size difference: %d vs %d", size, length);
 	}
@@ -491,7 +491,7 @@ void telnet_printf(struct session *ses, size_t length, char *format, ...)
 	{
 		SET_BIT(ses->telopts, TELOPT_FLAG_TELNET);
 
-		write_line_mud(ses, buf, length);
+		write_line_mud(ses, buf, size);
 
 		DEL_BIT(ses->telopts, TELOPT_FLAG_TELNET);
 	}

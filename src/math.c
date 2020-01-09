@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
@@ -71,7 +70,7 @@ DO_COMMAND(do_math)
 	{
 		result = get_number(ses, arg2);
 
-		node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "%.*Lf", precision, result);
+		node = set_nest_node_ses(ses, arg1, "%.*Lf", precision, result);
 
 		show_message(ses, LIST_VARIABLE, "#MATH: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, node->arg2);
 	}
@@ -201,6 +200,7 @@ void mathexp(struct session *ses, char *str, char *result, int seed)
 	if (badnumber && debug)                                 \
 	{                                                       \
 		badnumber = 0;                                  \
+		precision = 0;                                  \
 		show_debug(ses, LIST_VARIABLE, "#MATH EXP: INVALID NUMBER %s.", buf3); \
 	}                                                       \
 	*pta = 0;                                               \
@@ -210,6 +210,7 @@ void mathexp(struct session *ses, char *str, char *result, int seed)
 	status = newstatus;                                     \
 	pta = buf3;                                             \
 	point = -1;                                             \
+	metric = 0;                                             \
 }
 
 void add_math_node(char *arg1, char *arg2, char *arg3)
@@ -239,10 +240,11 @@ void del_math_node(struct link_data *node)
 int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 {
 	char buf1[BUFFER_SIZE], buf2[BUFFER_SIZE], buf3[STRING_SIZE], *pti, *pta;
-	int level, status, point, badnumber, nest;
+	int level, status, point, badnumber, metric, nest;
 
 	nest      = 0;
 	level     = 0;
+	metric    = 0;
 	point     = -1;
 	status    = EXP_VARIABLE;
 	precision = seed;
@@ -274,6 +276,16 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '8':
 					case '9':
 						*pta++ = *pti++;
+
+						if (metric)
+						{
+							badnumber = 1;
+
+							if (debug == 0)
+							{
+								return FALSE;
+							}
+						}
 
 						if (point >= 0)
 						{
@@ -313,6 +325,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						status = EXP_BRACE;
 						nest++;
 						break;
+
 					case '"':
 						if (pta != buf3)
 						{
@@ -393,6 +406,90 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						else
 						{
 							*pta++ = *pti++;
+						}
+						break;
+
+					case 'K':
+					case 'M':
+//					case 'G':
+//					case 'T':
+//					case 'P':
+//					case 'E':
+//					case 'Z':
+//					case 'Y':
+						if (pta == buf3 || metric == 1)
+						{
+							badnumber = 1;
+
+							if (debug == 0)
+							{
+								return FALSE;
+							}
+							*pta++ = *pti++;
+							*pta = 0;
+						}
+						else
+						{
+							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+
+							*pta++ = '*';
+							MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+
+							switch (*pti++)
+							{
+								case 'K': pta += sprintf(pta, "1000"); break;
+								case 'M': pta += sprintf(pta, "1000000"); break;
+								case 'G': pta += sprintf(pta, "1000000000"); break;
+								case 'T': pta += sprintf(pta, "1000000000000"); break;
+								case 'P': pta += sprintf(pta, "1000000000000000"); break;
+								case 'E': pta += sprintf(pta, "1000000000000000000"); break;
+								case 'Z': pta += sprintf(pta, "1000000000000000000000"); break;
+								case 'Y': pta += sprintf(pta, "1000000000000000000000000"); break;
+							}
+							metric = 1;
+						}
+						break;
+
+					case 'm':
+					case 'u':
+//					case 'n':
+//					case 'p':
+//					case 'f':
+//					case 'a':
+//					case 'z':
+//					case 'y':
+						if (pta == buf3 || metric == 1)
+						{
+							badnumber = 1;
+
+							if (debug == 0)
+							{
+								return FALSE;
+							}
+							*pta++ = *pti++;
+							*pta = 0;
+						}
+						else
+						{
+							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+
+							*pta++ = '/';
+
+							MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+
+							switch (*pti++)
+							{
+								case 'm': pta += sprintf(pta, "1000"); break;
+								case 'u': pta += sprintf(pta, "1000000"); break;
+								case 'n': pta += sprintf(pta, "1000000000"); break;
+								case 'p': pta += sprintf(pta, "1000000000000"); break;
+								case 'f': pta += sprintf(pta, "1000000000000000"); break;
+								case 'a': pta += sprintf(pta, "1000000000000000000"); break;
+								case 'z': pta += sprintf(pta, "1000000000000000000000"); break;
+								case 'y': pta += sprintf(pta, "1000000000000000000000000"); break;
+							}
+							metric = 1;
+							precision = UMAX(precision, strlen(buf3) -1);
 						}
 						break;
 
@@ -782,7 +879,9 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 					if (tintoi(node->next->str3) == 0)
 					{
 						show_debug(ses, LIST_VARIABLE, "#MATH ERROR: DIVISION ZERO.");
-						value = tintoi(node->prev->str3);
+						value = 0;
+						precision = 0;
+//						value = tintoi(node->prev->str3);
 					}
 					else
 					{
@@ -1263,6 +1362,7 @@ long double tineval(struct session *ses, char *left, char *right)
 long double tindice(struct session *ses, char *left, char *right)
 {
 	unsigned long long cnt, numdice, sizedice, sum;
+	long double estimate;
 
 	numdice  = (unsigned long long) tintoi(left);
 	sizedice = (unsigned long long) tintoi(right);
@@ -1272,10 +1372,22 @@ long double tindice(struct session *ses, char *left, char *right)
 		return 0;
 	}
 
+	if (numdice > 100)
+	{
+		estimate = numdice / 100.0;
+		numdice = 100;
+	}
+	else
+	{
+		estimate = 1;
+	}
+
 	for (cnt = sum = 0 ; cnt < numdice ; cnt++)
 	{
 		sum += generate_rand(ses) % sizedice + 1;
 	}
+
+	sum *= estimate;
 
 	return (long double) sum;
 }

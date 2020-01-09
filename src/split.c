@@ -107,6 +107,8 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 {
 	push_call("init_split(%p,%d,%d,%d,%d)",ses,top_row,top_col,bot_row,bot_col);
 
+	SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
+
 	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
 		ses->split->top_row = 1;
@@ -116,8 +118,6 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 		ses->wrap = gtd->screen->cols;
 
 		init_pos(ses, gtd->screen->rows, 1);
-
-		SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 
 		if (ses->map && HAS_BIT(ses->map->flags, MAP_FLAG_VTMAP))
 		{
@@ -156,8 +156,6 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 
 	init_pos(ses, gtd->screen->rows, 1);
 
-	SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
-
 	if (HAS_BIT(ses->telopts, TELOPT_FLAG_NAWS))
 	{
 		client_send_sb_naws(ses, 0, NULL);
@@ -172,16 +170,19 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 	{
 		if (gtd->level->quiet == 0)
 		{
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
+//			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 			{
 				do_screen(ses, "FILL DEFAULT");
 			}
-			else
+/*			else
 			{
-				erase_scroll_region(ses);
-				buffer_end(ses, "");
 				fill_split_region(ses, "-");
-			}
+
+				erase_scroll_region(ses);
+				fill_split_region(ses, "-");
+				buffer_end(ses, "");
+
+			}*/
 		}
 	}
 	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN SPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
@@ -240,7 +241,7 @@ void dirty_screen(struct session *ses)
 
 void split_show(struct session *ses, char *prompt, int row, int col)
 {
-	char temp[BUFFER_SIZE];
+	char buf1[BUFFER_SIZE];
 	int original_row, original_col, len, clear;
 
 	original_row = row;
@@ -252,7 +253,7 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 	}
 	else if (row == 0)
 	{
-		row = gtd->screen->rows - 2;
+		row = gtd->screen->rows - 1;
 	}
 
 	clear = 0;
@@ -281,7 +282,7 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		return;
 	}
 
-	if (row >= ses->split->top_row && row <= ses->split->bot_row)
+	if (row > ses->split->top_row && row <= ses->split->bot_row)
 	{
 		if (col >= ses->split->top_col && col <= ses->split->bot_col)
 		{
@@ -299,17 +300,17 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 
 	if (len == 0)
 	{
-		sprintf(temp, "%.*s", gtd->screen->cols + 4, "\e[0m--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
+		sprintf(buf1, "%.*s", gtd->screen->cols + 4, "\e[0m--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 	}
 	else if (col - 1 + len <= gtd->screen->cols)
 	{
-		sprintf(temp, "%s", prompt);
+		sprintf(buf1, "%s", prompt);
 	}
 	else
 	{
 		show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", prompt);
 
-		sprintf(temp, "#PROMPT SIZE (%d) LONGER THAN ROW SIZE (%d)", len, gtd->screen->cols);
+		sprintf(buf1, "#PROMPT SIZE (%d) LONGER THAN ROW SIZE (%d)", len, gtd->screen->cols);
 	}
 
 	save_pos(ses);
@@ -320,7 +321,7 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 
 		goto_pos(ses, row, col);
 
-		print_stdout("%s%s", temp, gtd->input_buf);
+		print_stdout("%s%s", buf1, gtd->input_buf);
 
 		// bit of a hack
 
@@ -330,10 +331,10 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 	{
 		goto_pos(ses, row, col);
 
-		print_stdout("%s%s", clear ? "\e[2K" : "", temp);
+		print_stdout("%s%s", clear ? "\e[2K" : "", buf1);
 	}
 
-//	set_line_screen(temp, row - 1, col - 1);
+//	set_line_screen(buf1, row - 1, col - 1);
 
 	restore_pos(ses);
 }

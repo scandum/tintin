@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
@@ -122,7 +121,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 {
 	char color[COLOR_SIZE] = { 0 };
 	char *pti, *pto, *lis, *los, *chi, *cho;
-	int cur_height, cur_width, size, skip, lines, cur_col, tab, wrap;
+	int cur_height, cur_width, size, i, skip, lines, cur_col, tab, wrap, cur_space;
 
 	push_call("word_wrap(%s,%p,%p)",ses->name,textin,textout);
 
@@ -145,18 +144,27 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 
 	while (*pti && pto - textout < BUFFER_SIZE)
 	{
-		if (skip_vt102_codes(pti))
+		skip = skip_vt102_codes(pti);
+
+		if (skip)
 		{
-			get_color_codes(color, pti, color, GET_ONE);
-
-			if (HAS_BIT(flags, WRAP_FLAG_DISPLAY))
+			if (ses->color)
 			{
-				interpret_vt102_codes(ses, pti, TRUE);
+				get_color_codes(color, pti, color, GET_ONE);
+
+				if (HAS_BIT(flags, WRAP_FLAG_DISPLAY))
+				{
+					interpret_vt102_codes(ses, pti, TRUE);
+				}
+
+				for (i = 0 ; i < skip ; i++)
+				{
+					*pto++ = *pti++;
+				}
 			}
-
-			for (skip = skip_vt102_codes(pti) ; skip > 0 ; skip--)
+			else
 			{
-				*pto++ = *pti++;
+				pti += skip;
 			}
 			continue;
 		}
@@ -183,24 +191,25 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 
 			cur_width    = 0;
 			ses->cur_col = 1;
+			cur_space    = 1;
 
 			continue;
 		}
 
-		if (*pti == ' ')
+		if (*pti == ' ' || *pti == '\t')
 		{
+			cur_space = ses->cur_col;
 			los = pto;
 			lis = pti;
 		}
 
 		if (ses->cur_col > wrap)
 		{
-			ses->cur_col = 1;
 			cur_height++;
 
 			if (HAS_BIT(ses->flags, SES_FLAG_WORDWRAP))
 			{
-				if (pto - los >= 15 || wrap <= 20 || !SCROLL(ses))
+				if (ses->cur_col - cur_space >= 15 || wrap <= 20 || !SCROLL(ses))
 				{
 					*pto++ = '\n';
 					pto += sprintf(pto, "%s", color);
@@ -228,16 +237,21 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 			{
 				*pto++ = '\n';
 			}
+			ses->cur_col = 1;
+			cur_space = 1;
 		}
 		else
 		{
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && *pti & 128 && pti[1] != 0)
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 			{
-				*pto++ = *pti++;
-				*pto++ = *pti++;
+				size = get_euc_width(ses, pti, &tab);
 
-				cur_width += 2;
-				ses->cur_col += 2;
+				while (size--)
+				{
+					*pto++ = *pti++;
+				}
+				cur_width += tab;
+				ses->cur_col += tab;
 			}
 			else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 			{
@@ -258,14 +272,12 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 				{
 					tab = (wrap - ses->cur_col);
 				}
-				pto += sprintf(pto, "%.*s", tab, "        ");
+				pto += sprintf(pto, "%.*s", tab, "                ");
 				pti++;
 
 				cur_width += tab;
 				ses->cur_col += tab;
-
-				los = pto;
-				lis = pti;
+				cur_space = ses->cur_col;
 			}
 			else
 			{
@@ -297,7 +309,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 {
 	char color[COLOR_SIZE] = { 0 };
 	char *pti, *pto, *lis, *los;
-	int cur_height, size, i, lines, cur_col, cur_width, tab;
+	int cur_height, size, i, lines, cur_col, cur_width, tab, skip, cur_space;
 
 	push_call("word_wrap_split(%s,%p,%p,%d,%d,%d,%d)",ses->name,textin,textout,wrap,start,end,flags);
 
@@ -330,30 +342,32 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 
 	while (*pti && pto - textout < BUFFER_SIZE - 20)
 	{
-		push_call("skip");
-
-		if (cur_height > 10000 || cur_width > 10000)
+		if (cur_height > 10000 || cur_width > 100000)
 		{
-			print_stdout("debug: word_wrap_split: infinite loop?\n");
+			print_stdout("debug: word_wrap_split: wrap %d height %d width %d los %d start %d end %d\n", wrap, cur_height, cur_width, pto - los, start, end);
 			pop_call();
-			return 1;			
+			return 1;
 		}
-		tab = skip_vt102_codes(pti);
 
-		if (tab)
+		skip = skip_vt102_codes(pti);
+
+		if (skip)
 		{
-			get_color_codes(color, pti, color, GET_ONE);
-
-			for (i = 0 ; i < tab ; i++)
+			if (ses->color)
 			{
-				*pto++ = *pti++;
+				get_color_codes(color, pti, color, GET_ONE);
+
+				for (i = 0 ; i < skip ; i++)
+				{
+					*pto++ = *pti++;
+				}
 			}
-			pop_call();
+			else
+			{
+				pti += skip;
+			}
 			continue;
 		}
-
-		pop_call();
-		push_call("nl");
 
 		if (*pti == '\n')
 		{
@@ -386,33 +400,26 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			}
 
 			cur_col = 1;
+			cur_space = 1;
 			cur_width = 0;
-			pop_call();
 			continue;
 		}
 
 		if (*pti == ' ' || *pti == '\t')
 		{
+			cur_space = cur_col;
 			lis = pti;
 			los = pto;
 		}
 
-		pop_call();
-		push_call("wrap");
-
 		if (cur_col > wrap)
 		{
-			cur_col = 1;
-
 			cur_height++;
 
 			if (HAS_BIT(ses->flags, SES_FLAG_WORDWRAP))
 			{
-				if (pto - los > 15 || wrap <= 20)
+				if (cur_col - cur_space > 15 || wrap <= 20)
 				{
-					los = pto;
-					lis = pti;
-
 					if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height > start && cur_height < end))
 					{
 						*pto++ = '\n';
@@ -421,6 +428,8 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 					if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
 					{
 						pto += sprintf(pto, "%s", color);
+//						pto += sprintf(pto, "%s(%d,%d,%d)", color, start, end, cur_height);
+
 					}
 				}
 				else
@@ -438,13 +447,11 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 						pto += sprintf(pto, "%s", color);
 
 					}
+					pti++;
 				}
 			}
 			else
 			{
-				los = pto;
-				lis = pti;
-
 				if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height > start && cur_height < end))
 				{
 					*pto++ = '\n';
@@ -455,26 +462,28 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 					pto += sprintf(pto, "%s", color);
 				}
 			}
-			pop_call();
+			cur_col = 1;
+			cur_space = 1;
 			continue;
 		}
 
-		pop_call();
-		push_call("default");
-
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && is_big5(pti))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
+			size = get_euc_width(ses, pti, &tab);
+
 			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
 			{
-				*pto++ = *pti++;
-				*pto++ = *pti++;
+				while (size--)
+				{
+					*pto++ = *pti++;
+				}
 			}
 			else
 			{
-				pti += 2;
+				pti += size;
 			}
-			cur_width += 2;
-			cur_col += 2;
+			cur_width += tab;
+			cur_col += tab;
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 		{
@@ -508,10 +517,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 		{
 			if (*pti == '\t')
 			{
-				los = pto;
-				lis = pti;
-
-				tab = ses->tab_width - (ses->cur_col - 1) % ses->tab_width;
+				tab = ses->tab_width - (cur_col - 1) % ses->tab_width;
 
 				if (cur_col + tab >= wrap)
 				{
@@ -520,12 +526,13 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 
 				if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
 				{
-					pto += sprintf(pto, "%.*s", tab, "        ");
+					pto += sprintf(pto, "%.*s", tab, "                ");
 				}
 				pti++;
 
 				cur_width += tab;
 				cur_col += tab;
+				cur_space = cur_col;
 			}
 			else
 			{
@@ -541,7 +548,6 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 				cur_col++;
 			}
 		}
-		pop_call();
 	}
 	*pto = 0;
 

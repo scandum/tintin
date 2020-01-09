@@ -22,6 +22,7 @@
 *                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
 *                                                                             *
 *                         coded by Peter Unold 1992                           *
+*                    recoded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -36,6 +37,26 @@ struct tintin_data *gtd;
 void pipe_handler(int signal)
 {
 	syserr_printf(gtd->ses, "pipe_handler");
+}
+
+void xfsz_handler(int signal)
+{
+	syserr_printf(gtd->ses, "xfsz_handler");
+}
+
+void hub_handler(int signal)
+{
+	syserr_printf(gtd->ses, "hub_handler");
+}
+
+void ttin_handler(int signal)
+{
+	syserr_printf(gtd->ses, "ttin_handler");
+}
+
+void ttou_handler(int signal)
+{
+	syserr_printf(gtd->ses, "ttou_handler");
 }
 
 /*
@@ -69,7 +90,10 @@ void abort_handler(int signal)
 
 void child_handler(int signal)
 {
-	// syserr_fatal(signal, "child_handler");
+	return;
+	syserr_printf(gtd->ses, "child_handler");
+
+//	syserr_fatal(signal, "child_handler");
 }
 
 void interrupt_handler(int signal)
@@ -149,10 +173,11 @@ int main(int argc, char **argv)
 		syserr_fatal(-1, "signal SIGTERM");
 	}
 
-	if (signal(SIGCHLD, child_handler) == BADSIG)
+/*	if (signal(SIGCHLD, child_handler) == BADSIG)
 	{
 		syserr_fatal(-1, "signal SIGCHLD");
 	}
+*/
 /*
 	if (signal(SIGINT, interrupt_handler) == BADSIG)
 	{
@@ -164,16 +189,38 @@ int main(int argc, char **argv)
 	{
 		syserr_fatal(-1, "signal SIGTSTP");
 	}
-
+/*
 	if (signal(SIGPIPE, pipe_handler) == BADSIG)
 	{
 		syserr_fatal(-1, "signal SIGPIPE");
 	}
 
+	if (signal(SIGXFSZ, xfsz_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGXFSZ");
+	}
+
+	if (signal(SIGHUP, hub_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGHUP");
+	}
+
+	if (signal(SIGTTIN, hub_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGTTIN");
+	}
+
+	if (signal(SIGTTOU, hub_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGTTOU");
+	}
+*/
 	if (signal(SIGWINCH, winch_handler) == BADSIG)
 	{
 		syserr_fatal(-1, "signal SIGWINCH");
 	}
+
+	signal(SIGPIPE, SIG_IGN);
 
 	for (c = 0 ; c < argc ; c++)
 	{
@@ -188,7 +235,7 @@ int main(int argc, char **argv)
 
 	if (argc > 1)
 	{
-		while ((c = getopt(argc, argv, "a: e: G h r: R:: s t: T v")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: G h M:: r: R:: s t: T v V")) != EOF)
 		{
 			switch (c)
 			{
@@ -199,15 +246,17 @@ int main(int argc, char **argv)
 					printf("  -e  Execute given command.\n");
 					printf("  -G  Don't show the greeting screen.\n");
 					printf("  -h  This help section.\n");
+					printf("  -M  Matrix Digital Rain.\n");
 					printf("  -r  Read given file.\n");
 					printf("  -s  Enable screen reader mode.\n");
 					printf("  -t  Set given title.\n");
 					printf("  -T  Don't set the default title.\n");
 					printf("  -v  Enable verbose mode.\n");
+					printf("  -V  Show version information.\n");
 
 					exit(1);
-					break;
 
+				case 'M':
 				case 'G':
 					SET_BIT(greeting, STARTUP_FLAG_NOGREETING);
 					break;
@@ -215,6 +264,12 @@ int main(int argc, char **argv)
 				case 's':
 					SET_BIT(greeting, STARTUP_FLAG_SCREENREADER);
 					break;
+
+				case 'V':
+					printf("\nTinTin++ " CLIENT_VERSION "\n");
+					printf("\n(C) 2004-2019 Igor van den Hoven\n");
+					printf("\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\n");
+					exit(1);
 			}
 		}
 	}
@@ -241,7 +296,7 @@ int main(int argc, char **argv)
 
 		RESTRING(gtd->vars[2], argv[1]);
 
-		while ((c = getopt(argc, argv, "a: e: G h r: R:: s t: T v")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: G h M:: r: R:: s t: T v")) != EOF)
 		{
 			switch (c)
 			{
@@ -257,6 +312,10 @@ int main(int argc, char **argv)
 					break;
 
 				case 'G':
+					break;
+
+				case 'M':
+					do_test(gts, optarg ? optarg : "");
 					break;
 
 				case 'r':
@@ -366,7 +425,8 @@ void init_tintin(int greeting)
 
 	gtd->level          = (struct level_data *) calloc(1, sizeof(struct level_data));
 
-	gtd->str_size       = sizeof(struct str_data);
+	gtd->memory         = calloc(1, sizeof(struct str_data));
+
 	gtd->buf            = str_alloc(STRING_SIZE);
 	gtd->out            = str_alloc(STRING_SIZE);
 
@@ -448,6 +508,7 @@ void init_tintin(int greeting)
 	gts->name           = strdup("gts");
 	gts->group          = strdup("");
 	gts->session_host   = strdup("");
+	gts->session_ip     = strdup("");
 	gts->session_port   = strdup("");
 	gts->cmd_color      = strdup("");
 	gts->telopts        = TELOPT_FLAG_ECHO;
@@ -467,11 +528,13 @@ void init_tintin(int greeting)
 	gts->split  = calloc(1, sizeof(struct split_data));
 	gts->scroll = calloc(1, sizeof(struct scroll_data));
 
-	init_terminal_size(gts);
-
 	init_local(gts);
 
+	init_terminal_size(gts);
+
 	gtd->level->input++;
+
+	do_class(gts, "{CONFIG} {OPEN}");
 
 	do_configure(gts, "{AUTO TAB}         {5000}");
 	do_configure(gts, "{BUFFER SIZE}     {10000}");
@@ -499,7 +562,11 @@ void init_tintin(int greeting)
 	do_configure(gts, "{VERBOSE}           {OFF}");
 	do_configure(gts, "{WORDWRAP}           {ON}");
 
-	gtd->level->input--;
+	do_class(gts, "{CONFIG} {CLOSE}");
+
+
+
+	do_class(gts, "{PATHDIR} {OPEN}");
 
 	insert_node_list(gts->list[LIST_PATHDIR],  "n",  "s",  "1", "");
 	insert_node_list(gts->list[LIST_PATHDIR],  "e",  "w",  "2", "");
@@ -513,11 +580,13 @@ void init_tintin(int greeting)
 	insert_node_list(gts->list[LIST_PATHDIR], "se", "nw",  "6", "");
 	insert_node_list(gts->list[LIST_PATHDIR], "sw", "ne", "12", "");
 
+	do_class(gts, "{PATHDIR} {CLOSE}");
+
+	gtd->level->input--;
+
 	init_terminal(gts);
 
-	{
-		reset_screen(gts);
-	}
+	reset_screen(gts);
 
 	if (!HAS_BIT(greeting, STARTUP_FLAG_NOGREETING))
 	{

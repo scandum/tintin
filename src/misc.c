@@ -257,5 +257,30 @@ DO_COMMAND(do_send)
 
 DO_COMMAND(do_test)
 {
+	char arg1[BUFFER_SIZE], arg2[100], arg3[100], arg4[100];
+
+	strcpy(arg2, "9");
+	strcpy(arg3, "<f0b8>");
+	strcpy(arg4, "1 9");
+
+	if (isdigit(arg[0]))
+	{
+		sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
+
+		if (isxdigit(arg[1]) && isxdigit(arg[2]) && isxdigit(arg[3]))
+		{
+			sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
+
+			if (isdigit(arg[4]) && isdigit(arg[5]))
+			{
+				sprintf(arg4, "%d %d %s", (arg[4] - '0') * (arg[4] - '0') / 10, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+			}
+		}
+	}
+	sprintf(arg1, "#line quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg4);
+
+	script_driver(gtd->ses, LIST_COMMAND, arg1);
+
 	return ses;
 }
+

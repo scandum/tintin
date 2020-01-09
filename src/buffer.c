@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*              (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                   *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2004                        *
+*                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -98,7 +97,7 @@ void check_buffer(struct session *ses)
 	{
 		buffer = ses->scroll->buffer[index];
 
-		if (buffer->width < wrap)
+		if (buffer->height == 1 && buffer->width < wrap - 1)
 		{
 			buffer->height = buffer->lines;
 		}
@@ -269,7 +268,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 	col_len = get_scroll_cols(ses);
 
-	if (end + start == 0)
+	if (start == 0 && end == 0)
 	{
 		if (HAS_BIT(ses->flags, SES_FLAG_PRINTBUFFER) || ses->scroll->line == ses->scroll->used - 1)
 		{
@@ -284,7 +283,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 		if (ses->cur_row != ses->split->bot_row)
 		{
-			print_stdout("[1;31m%02d[0m \e[1;32mmisaligned", ses->cur_row);
+			print_stdout("[1;31m%02d[0m \e[1;32mmisaligned (%d)", ses->cur_row, ses->scroll->line);
 		}
 		else
 		{
@@ -299,7 +298,10 @@ void buffer_print(struct session *ses, int index, int start, int end)
 		if (buffer->height == 1)
 		{
 //			print_stdout("\e[1;37m%02d", ses->cur_row);//
-			print_stdout("%s", buffer->str);
+
+			word_wrap_split(ses, buffer->str, temp, ses->wrap, start, end, 0, &height, &width);
+
+			print_stdout("%s", temp);
 
 			erase_cols(col_len - buffer->width);
 
@@ -372,7 +374,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 int show_buffer(struct session *ses)
 {
-	int scroll_size, scroll_cnt, scroll_tmp, scroll_add, scroll_cut;
+	int scroll_size, scroll_cnt, scroll_tmp, scroll_add, scroll_cut, start, end;
 
 	if (ses != gtd->ses)
 	{
@@ -392,6 +394,8 @@ int show_buffer(struct session *ses)
 	{
 		scroll_add -= ses->scroll->base;
 	}
+
+	// scroll_cut is cut from top line
 
 	while (TRUE)
 	{
@@ -438,28 +442,80 @@ int show_buffer(struct session *ses)
 		SET_BIT(ses->flags, SES_FLAG_READMUD);
 	}
 
+	// scroll_cut is taken from top line
+	// scroll_base is taken from the bot line
+
 	if (scroll_cut)
 	{
 		scroll_tmp = ses->scroll->buffer[scroll_cnt]->height;
 
-		if (ses->scroll->base >= scroll_size || scroll_cut == scroll_size)
+		// bottom
+
+		if (scroll_cut == scroll_size)
 		{
-//			print_stdout("scroll_cnt %d, scroll->base: %d, scroll_tmp %d, scroll_cut %d\n", scroll_cnt, ses->scroll->base, scroll_tmp, scroll_cut);
-			buffer_print(ses, scroll_cnt, scroll_tmp - scroll_cut, scroll_tmp - scroll_cut + scroll_size);
+			start = scroll_tmp - scroll_cut;
+			end   = scroll_tmp;
+
+			if (end - start != scroll_size)
+			{
+//				print_stdout("\e[1;32mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
+			}
+			else
+			{
+				buffer_print(ses, scroll_cnt, start, end);
+			}
+		}
+		// middle chunk
+
+		else if (scroll_cut > scroll_size)
+		{
+			start = scroll_tmp - scroll_cut;
+			end   = scroll_tmp - scroll_cut + scroll_size;
+
+//			if (end - start > scroll_size)
+			{
+//				print_stdout("\e[1;1H\e[1;33mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
+			}
+//			else
+			{
+				buffer_print(ses, scroll_cnt, start, end);
+			}
 
 			goto eof;
 		}
+
+		// top chunk
 		else if (scroll_add == 0)
 		{
-//			print_stdout("scroll_add %d, scroll_cnt %d, scroll->base %d, scroll_tmp %d, scroll_cut %d\n", scroll_add, scroll_cnt, ses->scroll->base, scroll_tmp, scroll_cut);
+			start = ses->scroll->base;
+			end   = scroll_tmp - scroll_cut;
 
-			buffer_print(ses, scroll_cnt, ses->scroll->base, scroll_tmp - scroll_cut);
+//			if (end - start > scroll_size)
+			{
+//				print_stdout("\e[1;1H\e[1;34mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
+			}
+//			else
+			{
+				buffer_print(ses, scroll_cnt, start, end);
+			}
 
 			goto eof;
 		}
+		// bot chunk
+
 		else
 		{
-			buffer_print(ses, scroll_cnt, scroll_tmp - scroll_cut, scroll_tmp);
+			start = scroll_tmp - scroll_cut;
+			end   = scroll_tmp;
+
+//			if (end - start > scroll_size)
+			{
+//				print_stdout("\e[1;1H\e[1;35mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
+			}
+//			else
+			{
+				buffer_print(ses, scroll_cnt, start, end);
+			}
 		}
 		scroll_cnt++;
 		scroll_cut = 0;
@@ -481,7 +537,10 @@ int show_buffer(struct session *ses)
 
 		scroll_add -= scroll_tmp;
 
-		buffer_print(ses, scroll_cnt, 0, scroll_tmp);
+		start = 0;
+		end   = scroll_tmp;
+
+		buffer_print(ses, scroll_cnt, start, end);
 
 		scroll_cnt++;
 	}
@@ -490,7 +549,10 @@ int show_buffer(struct session *ses)
 	{
 		scroll_tmp = ses->scroll->buffer[scroll_cnt]->height;
 
-		buffer_print(ses, scroll_cnt, 0, scroll_tmp - ses->scroll->base);
+		start = 0;
+		end   = scroll_tmp - ses->scroll->base;
+
+		buffer_print(ses, scroll_cnt, start, end);
 	}
 
 	eof:
@@ -498,8 +560,6 @@ int show_buffer(struct session *ses)
 	// prompt
 
 	buffer_print(ses, 0, 0, 0);
-
-
 
 	restore_pos(ses);
 
@@ -831,7 +891,7 @@ DO_BUFFER(buffer_get)
 
 	if (*arg3 == 0)
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", ses->scroll->buffer[min]->str);
+		set_nest_node_ses(ses, arg1, "%s", ses->scroll->buffer[min]->str);
 
 		return;
 	}
@@ -853,13 +913,13 @@ DO_BUFFER(buffer_get)
 
 	cnt = 0;
 
-	set_nest_node(ses->list[LIST_VARIABLE], arg1, "");
+	set_nest_node_ses(ses, arg1, "");
 
 	while (min <= max)
 	{
 		sprintf(arg2, "%s[%d]", arg1, ++cnt);
 
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%s", ses->scroll->buffer[min++]->str);
+		set_nest_node_ses(ses, arg2, "%s", ses->scroll->buffer[min++]->str);
 	}
 
 	show_message(ses, LIST_COMMAND, "#BUFFER GET: %d LINES SAVED TO {%s}.", cnt, arg1);
@@ -887,7 +947,7 @@ DO_BUFFER(buffer_write)
 		{
 			show_message(ses, LIST_COMMAND, "#OK: WRITING BUFFER TO '%s'.", arg1);
 
-			loginit(ses, fp, LOG_FLAG_OVERWRITE | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
+			loginit(ses, fp, ses->logmode + LOG_FLAG_OVERWRITE);
 
 			for (cnt = 0 ; cnt < ses->scroll->used ; cnt++)
 			{

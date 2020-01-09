@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2006                       *
 ******************************************************************************/
@@ -98,6 +97,7 @@ void reset_terminal(struct session *ses)
 	{
 		print_stdout("\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
 	}
+	print_stdout("\e[?25h");
 	print_stdout("\e[23t");
 	print_stdout("\e[>4n");
 }
@@ -200,4 +200,40 @@ int get_scroll_rows(struct session *ses)
 int get_scroll_cols(struct session *ses)
 {
 	return ses->wrap;
+}
+
+char *get_charset(struct session *ses)
+{
+	switch (HAS_BIT(ses->charset, CHARSET_FLAG_ALL))
+	{
+		case CHARSET_FLAG_BIG5:
+			return "BIG-5";
+
+		case CHARSET_FLAG_GBK1:
+			return "GBK-1";
+
+		case CHARSET_FLAG_UTF8:
+			return "UTF-8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8:
+			return "BIG5TOUTF8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8:
+			return "FANSI";
+		
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8:
+			return "GBK1TOUTF8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8:
+			return "KOI8TOUTF8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8:
+			return "ISO1TOUTF8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8:
+			return "ISO2TOUTF8";
+
+		default:
+			return "ASCII";
+	}
 }

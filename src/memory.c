@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2007                       *
 ******************************************************************************/
@@ -62,12 +61,16 @@ char *str_alloc(int size)
 {
 	char *str;
 
-	struct str_data *str_ptr = (struct str_data *) calloc(1, gtd->str_size + size + 1);
+	struct str_data *str_ptr = (struct str_data *) calloc(1, sizeof(struct str_data) + size + 1);
+
+	LINK(str_ptr, gtd->memory->next, gtd->memory->prev);
+
+	gtd->memory->max++;
 
 	str_ptr->max = size + 1;
 	str_ptr->len = 0;
 
-	str = (char *) str_ptr + gtd->str_size;
+	str = (char *) str_ptr + sizeof(struct str_data);
 
 	*str = 0;
 
@@ -80,7 +83,11 @@ struct str_data *str_realloc(struct str_data *str_ptr, int size)
 	{
 		int len = str_ptr->len;
 
-		str_ptr = (struct str_data *) realloc(str_ptr, gtd->str_size + size + 1);
+		UNLINK(str_ptr, gtd->memory->next, gtd->memory->prev);
+
+		str_ptr = (struct str_data *) realloc(str_ptr, sizeof(struct str_data) + size + 1);
+
+		LINK(str_ptr, gtd->memory->next, gtd->memory->prev);
 
 		str_ptr->max = size + 1;
 		str_ptr->len = len;
@@ -94,10 +101,7 @@ struct str_data *str_resize(struct str_data *str_ptr, int add)
 
 	if (str_ptr->max <= len + add)
 	{
-		str_ptr = (struct str_data *) realloc(str_ptr, gtd->str_size + (len + 1) * 2 + add + 1);
-
-		str_ptr->max = (len + 1) * 2 + add + 1;
-		str_ptr->len = len;
+		str_ptr = str_realloc(str_ptr, len * 2 + add);
 	}
 	return str_ptr;
 }
@@ -117,29 +121,42 @@ char *str_mim(char *original)
 
 void str_clone(char **clone, char *original)
 {
-	struct str_data *clo_ptr = (struct str_data *) (*clone - gtd->str_size);
+	struct str_data *clo_ptr = (struct str_data *) (*clone - sizeof(struct str_data));
 	int len = str_len(original);
 
 	if (clo_ptr->max < len)
 	{
 		clo_ptr = str_realloc(clo_ptr, len * 2);
 
-		*clone = (char *) clo_ptr + gtd->str_size;
+		*clone = (char *) clo_ptr + sizeof(struct str_data);
 	}
+}
+
+char *str_dup_clone(char *original)
+{
+	char *dup;
+	int len;
+
+	len = str_len(original);
+	dup = str_alloc(len);
+
+	memcpy(dup, original, len + 1);
+
+	return dup;
 }
 
 // call after a non str_ function alters *str to set the correct length.
 
 void str_fix(char *original)
 {
-	struct str_data *str_ptr = (struct str_data *) (original - gtd->str_size);
+	struct str_data *str_ptr = (struct str_data *) (original - sizeof(struct str_data));
 
 	str_ptr->len = strlen(original);
 }
 
 int str_len(char *str)
 {
-	struct str_data *str_ptr = (struct str_data *) (str - gtd->str_size);
+	struct str_data *str_ptr = (struct str_data *) (str - sizeof(struct str_data));
 
 	return str_ptr->len;
 }
@@ -179,13 +196,13 @@ char *str_cpy(char **str, char *buf)
 
 	buf_len = strlen(buf);
 
-	str_ptr = (struct str_data *) (*str - gtd->str_size);
+	str_ptr = (struct str_data *) (*str - sizeof(struct str_data));
 
 	if (str_ptr->max <= buf_len)
 	{
 		str_ptr = str_realloc(str_ptr, buf_len);
 
-		*str = (char *) str_ptr + gtd->str_size;
+		*str = (char *) str_ptr + sizeof(struct str_data);
 	}
 	str_ptr->len = buf_len;
 
@@ -235,13 +252,13 @@ char *str_ncpy(char **str, char *buf, int len)
 		buf_len = len;
 	}
 
-	str_ptr = (struct str_data *) (*str - gtd->str_size);
+	str_ptr = (struct str_data *) (*str - sizeof(struct str_data));
 
 	if (str_ptr->max <= buf_len)
 	{
 		str_ptr = str_realloc(str_ptr, len);
 
-		*str = (char *) str_ptr + gtd->str_size;
+		*str = (char *) str_ptr + sizeof(struct str_data);
 	}
 
 	str_ptr->len = UMIN(buf_len, len);
@@ -260,13 +277,13 @@ char *str_cat(char **str, char *buf)
 
 	buf_len = strlen(buf);
 
-	str_ptr = (struct str_data *) (*str - gtd->str_size);
+	str_ptr = (struct str_data *) (*str - sizeof(struct str_data));
 
 	if (str_ptr->max <= str_ptr->len + buf_len)
 	{
 		str_ptr = str_resize(str_ptr, buf_len);
 
-		*str = (char *) str_ptr + gtd->str_size;
+		*str = (char *) str_ptr + sizeof(struct str_data);
 	}
 
 	strcpy(&(*str)[str_ptr->len], buf);
@@ -282,13 +299,13 @@ char *str_cat_chr(char **ptr, char chr)
 {
 	struct str_data *str_ptr;
 
-	str_ptr = (struct str_data *) (*ptr - gtd->str_size);
+	str_ptr = (struct str_data *) (*ptr - sizeof(struct str_data));
 
 	if (str_ptr->max <= str_ptr->len + 1)
 	{
 		str_ptr = str_resize(str_ptr, 1);
 
-		*ptr = (char *) str_ptr + gtd->str_size;
+		*ptr = (char *) str_ptr + sizeof(struct str_data);
 	}
 
 	(*ptr)[str_ptr->len++] = chr;
@@ -315,7 +332,60 @@ char *str_cat_printf(char **ptr, char *fmt, ...)
 	return *ptr;
 }
 
+char *str_ins(char **str, int index, char *buf)
+{
+	int buf_len;
+	struct str_data *str_ptr;
+
+	buf_len = strlen(buf);
+
+	str_ptr = (struct str_data *) (*str - sizeof(struct str_data));
+
+	if (str_ptr->max <= str_ptr->len + buf_len)
+	{
+		str_ptr = str_resize(str_ptr, buf_len);
+
+		*str = (char *) str_ptr + sizeof(struct str_data);
+	}
+
+	if (index >= str_ptr->len)
+	{
+		strcpy(&(*str)[str_ptr->len], buf);
+	}
+	else
+	{
+		int cnt;
+		char *pta, *ptz;
+
+		pta = &(*str)[str_ptr->len + 1];
+		ptz = &(*str)[str_ptr->len + 1 + buf_len];
+
+		for (cnt = 0 ; cnt < buf_len + 1 ; cnt++)
+		{
+			*ptz-- = *pta--;
+		}
+
+		pta = &(*str)[index];
+		ptz = buf;
+
+		for (cnt = 0 ; cnt < buf_len ; cnt++)
+		{
+			*pta++ = *ptz++;
+		}
+	}
+
+	str_ptr->len += buf_len;
+
+	return *str;
+}
+
 void str_free(char *ptr)
 {
-	free((struct str_data *) (ptr - gtd->str_size));
+	struct str_data *str_ptr = (struct str_data *) (ptr - sizeof(struct str_data));
+
+	UNLINK(str_ptr, gtd->memory->next, gtd->memory->prev);
+
+	gtd->memory->max--;
+
+	free(str_ptr);
 }

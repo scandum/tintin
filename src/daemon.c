@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2007                        *
+*                      coded by Igor van den Hoven 2019                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -186,8 +185,6 @@ DO_DAEMON(daemon_attach)
 		return;
 	}
 
-	DEL_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE);
-
 	sprintf(sock_file, "%s/%s.s", filename, arg2);
 
 	if (access(sock_file, F_OK) == -1)
@@ -203,12 +200,13 @@ DO_DAEMON(daemon_attach)
 
 		remove(sock_file);
 
-		if (*arg1 == 0)
+		if (HAS_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE) || *arg1 == 0)
 		{
 			goto start;
 		}
 		return;
 	}
+	DEL_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE);
 
 	memset(&addr_un, 0, sizeof(addr_un));
 
@@ -244,6 +242,16 @@ DO_DAEMON(daemon_attach)
 
 	show_message(ses, LIST_COMMAND, "#DAEMON ATTACH: CONNECTING {%d} TO {%d} {%s}", getpid(), gtd->attach_pid, sock_file);
 
+/*
+	error = select(gtd->attach_sock, NULL, &wds, NULL, &timeout);
+
+	if (error == -1)
+	{
+		syserr_printf(ses, "do_attach: %s: select:", sock_file);
+
+		return;
+	}
+*/
 	if (connect(gtd->attach_sock, (struct sockaddr *)&addr_un, sizeof(addr_un)) == -1)
 	{
 		syserr_printf(ses, "do_attach: %s: connect:", sock_file);
@@ -334,6 +342,11 @@ DO_DAEMON(daemon_detach)
 		return;
 	}
 
+	if (!get_daemon_dir(ses, filename))
+	{
+		return;
+	}
+
 	pid = fork();
 
 	if (pid < 0)
@@ -349,7 +362,7 @@ DO_DAEMON(daemon_detach)
 		{
 			DEL_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE);
 
-//			usleep(100000);
+			usleep(2000);
 
 			daemon_attach(ses, *arg1 ? arg1 : "pid");
 
@@ -640,6 +653,14 @@ void reset_daemon()
 
 		remove(gtd->detach_file);
 	}
+/*
+	if (gtd->attach_sock > 0)
+	{
+		print_stdout("unlinking(%s)\n", gtd->attach_file);
+
+		unlink(gtd->attach_file);
+	}
+*/
 }
 
 void winch_daemon()

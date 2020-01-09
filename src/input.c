@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2006                       *
 ******************************************************************************/
@@ -33,11 +32,30 @@ void process_input(void)
 
 	push_call("process_input(void)");
 
+	gtd->time_input = gtd->time;
+
 	if (gtd->detach_port)
 	{
-		if (gtd->detach_sock)
+		if (gtd->detach_sock > 0)
 		{
 			len = read(gtd->detach_sock, input, 1);
+
+			if (len <= 0)
+			{
+				if (len == -1)
+				{
+					syserr_printf(gtd->ses, "process_input: read", gtd->detach_sock);
+				}
+				else
+				{
+					show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: DETACHING FROM PID {%d} DUE TO READ FAILURE.", gtd->detach_pid);
+				}
+
+				gtd->detach_sock = close(gtd->detach_sock);
+
+				pop_call();
+				return;
+			}
 		}
 		else
 		{
@@ -63,7 +81,7 @@ void process_input(void)
 
 		gtd->attach_sock = close(gtd->attach_sock);
 
-		show_message(gtd->ses, LIST_COMMAND, "#ATTACH: WRITE ERROR: UNATTACHING.");
+		show_message(gtd->ses, LIST_COMMAND, "#DAEMON ATTACH: WRITE ERROR: UNATTACHING.");
 	}
 
 	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) && !HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
@@ -87,6 +105,7 @@ void process_input(void)
 	{
 		chat_paste(gtd->input_buf, NULL);
 
+		pop_call();
 		return;
 	}
 
@@ -355,9 +374,11 @@ int check_key(char *input, int len)
 	char buf[BUFFER_SIZE];
 	struct listroot *root;
 	struct listnode *node;
-	int cnt, val[3];
+	int cnt, val[5];
 
 	push_call("check_key(%p,%d)",input,len);
+
+//	tintin_printf2(gtd->ses, "check_key(%d,%s)",*gtd->macro_buf, gtd->macro_buf);
 
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
 	{
@@ -463,10 +484,19 @@ int check_key(char *input, int len)
 				}
 				else if (gtd->macro_buf[2] >= '0' && gtd->macro_buf[2] <= '9')
 				{
-					val[0] = val[1] = val[2] = cnt = input[0] = 0;
+					cnt = input[0] = 0;
+					memset(val, 0, sizeof(val));
 
+//					tintin_printf2(gtd->ses, "debug: %d %d %d %d %d", val[0], val[1], val[2], val[3], val[4], val[5]);
+		
 					for (len = 2 ; gtd->macro_buf[len] ; len++)
 					{
+						if (cnt > 5)
+						{
+							pop_call();
+							return FALSE;
+						}
+
 						if (isdigit(gtd->macro_buf[len]))
 						{
 							cat_sprintf(input, "%c", gtd->macro_buf[len]);
@@ -495,6 +525,17 @@ int check_key(char *input, int len)
 								case 't':
 									val[cnt++] = get_number(gtd->ses, input);
 									csit_handler(val[0], val[1], val[2]);
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
+								case '&':
+									val[cnt++] = get_number(gtd->ses, input);
+									input[0] = 0;
+									break;
+
+								case 'w':
+									rqlp_handler(val[0], val[1], val[2], val[3]);
 									gtd->macro_buf[0] = 0;
 									pop_call();
 									return TRUE;

@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2008                        *
+*                      coded by Igor van den Hoven 2008                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -61,19 +60,6 @@ struct script_regex
 	char                 * buf;
 	int                    val;
 };
-
-struct scriptroot
-{
-	struct scriptnode    * next;
-	struct scriptnode    * prev;
-	struct session       * ses;
-	struct listroot      * local;
-	int list;
-};
-
-struct scriptroot *script_stack[1001];
-
-int script_index;
 
 void debugtoken(struct session *ses, struct scriptroot *root, struct scriptnode *token)
 {
@@ -276,7 +262,7 @@ void handlereturntoken(struct session *ses, struct scriptnode *token)
 
 	substitute(ses, token->str, arg, SUB_VAR|SUB_FUN);
 
-	set_nest_node(ses->list[LIST_VARIABLE], "result", "%s", arg);
+	set_nest_node_ses(ses, "result", "%s", arg);
 }
 
 void handleswitchtoken(struct session *ses, struct scriptnode *token)
@@ -349,9 +335,9 @@ char *get_arg_parse(struct session *ses, struct scriptnode *token)
 {
 	static char buf[5];
 
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) && token->data->arg[0] & 128 && token->data->arg[1] != 0)
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, token->data->arg))
 	{
-		token->data->arg += sprintf(buf, "%c%c", token->data->arg[0], token->data->arg[1]);
+		token->data->arg += sprintf(buf, "%.*s", get_euc_size(ses, token->data->arg), token->data->arg);
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(token->data->arg))
 	{
@@ -455,7 +441,7 @@ void init_local(struct session *ses)
 	root->list = LIST_VARIABLE;
 	root->local = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 
-	script_stack[0] = root;
+	gtd->script_stack[0] = root;
 
 	return;
 }
@@ -466,7 +452,7 @@ struct listroot *local_list(struct session *ses)
 
 	push_call("local_list(%p)",ses);
 
-	root = script_stack[script_index]->local;
+	root = gtd->script_stack[gtd->script_index]->local;
 
 	pop_call();
 	return root;
@@ -843,7 +829,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 				}
 				else
 				{
-					set_nest_node(root->ses->list[LIST_VARIABLE], token->str, "%s", get_arg_foreach(root, token));
+					set_nest_node_ses(root->ses, token->str, "%s", get_arg_foreach(root, token));
 
 					if (*token->data->arg == 0)
 					{
@@ -878,7 +864,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 					resetlooptoken(root->ses, token);
 				}
 
-				set_nest_node(root->ses->list[LIST_VARIABLE], token->str, "%lld", token->data->cnt);
+				set_nest_node_ses(root->ses, token->str, "%lld", token->data->cnt);
 
 				token->data->cnt += token->data->inc;
 
@@ -911,7 +897,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 
 				}
 
-				set_nest_node(root->ses->list[LIST_VARIABLE], token->str, "%s", get_arg_parse(root->ses, token));
+				set_nest_node_ses(root->ses, token->str, "%s", get_arg_parse(root->ses, token));
 
 				if (*token->data->arg == 0)
 				{
@@ -1183,13 +1169,16 @@ struct session *script_driver(struct session *ses, int list, char *str)
 
 	gtd->level->input += list != LIST_COMMAND;
 
-	script_stack[++script_index] = root;
+	gtd->script_stack[++gtd->script_index] = root;
 
 	tokenize_script(root, 0, str);
 
 	ses = (struct session *) parse_script(root, 0, root->next, root->prev);
 
-	script_index--;
+	if (--gtd->script_index == 0)
+	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
+	}
 
 	gtd->level->input -= list != LIST_COMMAND;
 
@@ -1201,6 +1190,8 @@ struct session *script_driver(struct session *ses, int list, char *str)
 	free_list(root->local);
 	free(root);
 
+
+	
 	if (HAS_BIT(ses->flags, SES_FLAG_CLOSED))
 	{
 		pop_call();

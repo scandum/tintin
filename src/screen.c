@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*              (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                   *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2019                        *
+*                      coded by Igor van den Hoven 2019                       *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -101,10 +100,12 @@ DO_SCREEN(screen_cursor)
 {
 	if (is_abbrev(arg1, "HIDE"))
 	{
+		SET_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR);
 		screen_csi("?", "25", "", "", "l");
 	}
 	else if (is_abbrev(arg1, "SHOW"))
 	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR);
 		screen_csi("?", "25", "", "", "h");
 	}
 	else if (is_abbrev(arg1, "BAR"))
@@ -202,13 +203,16 @@ DO_SCREEN(screen_clear)
 
 DO_SCREEN(screen_fill)
 {
+	char buf[BUFFER_SIZE];
+
 	if (is_abbrev(arg1, "DEFAULT"))
 	{
-		char buf[BUFFER_SIZE];
+		if (ses->split->sav_top_col || ses->split->sav_bot_col)
+		{
+			sprintf(buf, "CLEAR SPLIT");
 
-		sprintf(buf, "CLEAR ALL");
-
-		do_screen(ses, buf);
+			do_screen(ses, buf);
+		}
 
 		if (ses->split->sav_top_row > 0)
 		{
@@ -328,83 +332,83 @@ DO_SCREEN(screen_get)
 
 	if (is_abbrev(arg1, "FOCUS"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->focus);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->focus);
 	}
 	else if (is_abbrev(arg1, "CHAR_HEIGHT"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->char_height);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->char_height);
 	}
 	else if (is_abbrev(arg1, "CHAR_WIDTH"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->char_width);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->char_width);
 	}
 	else if (is_abbrev(arg1, "COLS"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->cols);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->cols);
 	}
 	else if (is_abbrev(arg1, "CUR_COL"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->cur_col);
+		set_nest_node_ses(ses, arg2, "%d", ses->cur_col);
 	}
 	else if (is_abbrev(arg1, "CUR_ROW"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->cur_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->cur_row);
 	}
 	else if (is_abbrev(arg1, "HEIGHT"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->height);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->height);
 	}
 	else if (is_abbrev(arg1, "WIDTH"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->width);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->width);
 	}
 
 	else if (is_abbrev(arg1, "ROWS"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", gtd->screen->rows);
+		set_nest_node_ses(ses, arg2, "%d", gtd->screen->rows);
 	}
 
 	else if (is_abbrev(arg1, "SPLIT_TOP_BAR"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_top_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->sav_top_row);
 	}
 	else if (is_abbrev(arg1, "SPLIT_LEFT_BAR"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_top_col);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->sav_top_col);
 	}
 	else if (is_abbrev(arg1, "SPLIT_BOT_BAR"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_bot_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->sav_bot_row);
 	}
 	else if (is_abbrev(arg1, "SPLIT_RIGHT_BAR"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->sav_bot_col);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->sav_bot_col);
 	}
 
 	else if (is_abbrev(arg1, "SCROLL_ROWS"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_row - ses->split->top_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->bot_row - ses->split->top_row);
 	}
 	else if (is_abbrev(arg1, "SCROLL_COLS"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->wrap);
+		set_nest_node_ses(ses, arg2, "%d", ses->wrap);
 	}
 
 	else if (is_abbrev(arg1, "SCROLL_TOP_ROW"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->top_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->top_row);
 	}
 	else if (is_abbrev(arg1, "SCROLL_TOP_COL"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->top_col);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->top_col);
 	}
 	else if (is_abbrev(arg1, "SCROLL_BOT_ROW"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_row);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->bot_row);
 	}
 	else if (is_abbrev(arg1, "SCROLL_BOT_COL"))
 	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", ses->split->bot_col);
+		set_nest_node_ses(ses, arg2, "%d", ses->split->bot_col);
 	}
 	else
 	{
@@ -723,7 +727,8 @@ DO_SCREEN(screen_raise)
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN DESKTOP DIMENSIONS}");
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN DIMENSIONS}");
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN MINIMIZED}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN POSITION}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN MOUSE LOCATION}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN LOCATION}");
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN RESIZE}");
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RAISE} {SCREEN SIZE}");
 
@@ -747,7 +752,11 @@ DO_SCREEN(screen_raise)
 	{
 		screen_csit(ses, "11", "", "");
 	}
-	else if (is_abbrev(arg1, "POSITION"))
+	else if (is_abbrev(arg1, "MOUSE LOCATION"))
+	{
+		print_stdout("%s", "\e[2;1'z\e['|");
+	}
+	else if (is_abbrev(arg1, "LOCATION") || is_abbrev(arg1, "POSITION"))
 	{
 		screen_csit(ses, "13", "", "");
 	}
@@ -823,7 +832,6 @@ int get_col_index(struct session *ses, char *arg)
 
 
 
-	
 void csit_handler(int ind, int var1, int var2)
 {
 //	tintin_printf2(gtd->ses, "csit_handler(%d,%d,%d)",ind,var1,var2);
@@ -843,11 +851,11 @@ void csit_handler(int ind, int var1, int var2)
 			break;
 
 		case 3:
-			gtd->screen->pos_height = var2;
-			gtd->screen->pos_width  = var1;
-			check_all_events(NULL, SUB_ARG, 0, 2, "SCREEN POSITION", ntos(var2), ntos(var1)); // swap x y
-			msdp_update_all("SCREEN_POSITION_HEIGHT", "%d", gtd->screen->pos_height);
-			msdp_update_all("SCREEN_POSITION_WIDTH", "%d", gtd->screen->pos_width);
+			gtd->screen->pos_height = UMAX(0, var2);
+			gtd->screen->pos_width  = UMAX(0, var1);
+			check_all_events(NULL, SUB_ARG, 0, 4, "SCREEN LOCATION", ntos(var2 / gtd->screen->char_height), ntos(var1 / gtd->screen->char_width), ntos(var2), ntos(var1)); // swap x y
+			msdp_update_all("SCREEN_LOCATION_HEIGHT", "%d", gtd->screen->pos_height);
+			msdp_update_all("SCREEN_LOCATION_WIDTH", "%d", gtd->screen->pos_width);
 			break;
 
 		case 4:
@@ -891,6 +899,41 @@ void csit_handler(int ind, int var1, int var2)
 			msdp_update_all("SCREEN_DESKTOP_COLS", "%d", gtd->screen->desk_cols);
 			break;
 	}
+}
+
+void rqlp_handler(int event, int button, int height, int width)
+{
+	int row, col, rev_row, rev_col, char_height, char_width, rev_char_height, rev_char_width, debug, info, grid_val;
+	char *grid[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
+
+	row = 1 + height / UMAX(1, gtd->screen->char_height);
+	col = 1 + width / UMAX(1, gtd->screen->char_width);
+
+	char_height = 1 + height % UMAX(1, gtd->screen->char_height);
+	char_width  = 1 + width % UMAX(1, gtd->screen->char_width);
+
+	rev_row = -1 - (gtd->screen->rows - row);
+	rev_col = -1 - (gtd->screen->cols - col);
+
+	rev_char_height = -1 - (gtd->screen->char_height - char_height);
+	rev_char_width  = -1 - (gtd->screen->char_width - char_width);
+
+	grid_val = URANGE(0, char_height * 3 / gtd->screen->char_height, 2) * 3 + URANGE(0, char_width * 3 / gtd->screen->char_width, 2);
+
+	debug = HAS_BIT(gtd->ses->flags, SES_FLAG_MOUSEDEBUG) ? 1 : 0;
+	info  = HAS_BIT(gtd->ses->flags, SES_FLAG_MOUSEINFO) ? 1 : 0;
+
+	gtd->level->debug += debug;
+	gtd->level->info  += info;
+
+	check_all_events(gtd->ses, SUB_ARG, 0, 9, "SCREEN MOUSE LOCATION", ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), ntos(char_height), ntos(char_width), ntos(rev_char_height), ntos(rev_char_width), grid[grid_val]);
+
+	map_mouse_handler(gtd->ses, NULL, NULL, col, row, char_height, char_width);
+
+	gtd->level->debug -= debug;
+	gtd->level->info  -= info;
+
+//	tintin_printf2(gtd->ses, "rqlp_handler(%d,%d,%d,%d) (%d,%d,%d,%d) (%d,%d,%d,%d)", event,button,height,width, row,col,rev_row,rev_col, char_height,char_width,rev_char_height,rev_char_width);
 }
 
 void screen_osc(char *arg1, char *arg2)
@@ -1035,12 +1078,12 @@ void init_screen(int rows, int cols, int height, int width)
 {
 	int cnt;
 
-	gtd->screen->rows        = rows;
-	gtd->screen->cols        = cols;
-	gtd->screen->height      = height;
-	gtd->screen->width       = width;
-	gtd->screen->char_height = gtd->screen->height / gtd->screen->rows;
-	gtd->screen->char_width  = gtd->screen->width / gtd->screen->cols;
+	gtd->screen->rows        = UMAX(1, rows);
+	gtd->screen->cols        = UMAX(1, cols);
+	gtd->screen->height      = UMAX(1, height);
+	gtd->screen->width       = UMAX(1, width);
+	gtd->screen->char_height = UMAX(1, gtd->screen->height / gtd->screen->rows);
+	gtd->screen->char_width  = UMAX(1, gtd->screen->width / gtd->screen->cols);
 
 	gtd->screen->focus  = 1;
 

@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,13 +13,12 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
+*                               T I N T I N + +                               *
 *                                                                             *
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
@@ -39,7 +38,7 @@ char *help_related(struct session *ses, int index, int html)
 {
 	char *arg;
 	char tmp[BUFFER_SIZE], link[BUFFER_SIZE];
-	static char buf[BUFFER_SIZE];
+	static char buf[INPUT_SIZE];
 
 	push_call("help_related(%p,%d,%d)",ses,index,html);
 
@@ -297,7 +296,7 @@ struct help_type help_table[] =
 	{
 		"ALIAS",
 
-		"<178>Command<278>: #alias <178>{<278>name<178>} {<278>commands<178>}<278>\n"
+		"<178>Command<278>: #alias <178>{<278>name<178>} {<278>commands<178>} {<278>priority<178>}<278>\n"
 		"\n"
 		"         The #alias command can be used to shorten up long or oftenly used\n"
 		"         commands. The %1-99 variables are substituted from the arguments when\n"
@@ -531,6 +530,16 @@ struct help_type help_table[] =
 		"default statements switch"
 	},
 	{
+		"CAT",
+
+		"<178>Command<278>: #cat <178>{<278>variable<178>} {<278>argument<178>}<278>\n"
+		"\n"
+		"         The cat command will concatinate the argument to the given variable.\n",
+		
+		"format function local math replace script variable"
+	},
+
+	{
 		"CHARACTERS",
 
 		"<278>\n"
@@ -548,7 +557,7 @@ struct help_type help_table[] =
 		"         well. Trailing semi-colons are ignored when reading a script file\n"
 		"         as this is a common error.\n"
 		"\n"
-		"{ }      Curly brackets aka braces are used for seperating multi word command\n"
+		"{ }      Curly brackets aka braces are used for separating multi word command\n"
 		"         arguments, nesting commands, and nesting variables. Braces cannot\n"
 		"         easily be escaped and must always be used in pairs.\n"
 		"\n"
@@ -610,13 +619,27 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #class <178>{<278>name<178>} {<278>open<178>|<278>close<178>|<278>list<178>|<278>read<178>|<278>size<178>|<278>write<178>|<278>kill<178>} {<278>arg<178>}<278>\n"
 		"\n"
-		"         The {open} option will open a class, closing a previously opened\n"
-		"         class. All triggers added afterwards are assigned to this class.\n"
-		"         The {close} option will close the given class.\n"
-		"         The {list} option will show the given list of the class.\n"
-		"         The {read} option will open the class, read, and close afterwards.\n"
-		"         The {size} option will store the size of the class in a variable.\n"
-		"         The {write} option will write all triggers of the given class to file.\n"
+		"         <178>#class {<name>} {open}\n"
+		"         <278>  Open a class, closing a previously opened class. All triggers\n"
+		"         <278>  added afterwards are assigned to this class.\n"
+		"         <178>#class {<name>} {clear}\n"
+		"         <278>  Will delete all triggers associated with the given class.\n"
+		"         <178>#class {<name>} {close}\n"
+		"         <278>  Close the given class, opening the last open class, if any.\n"
+		"         <178>#class {<name>} {kill}\n"
+		"         <278>  Will clear, close, and remove the class.\n"
+		"         <178>#class {<name>} {list}\n"
+		"         <278>  List all triggers associated with the given class.\n"
+		"         <178>#class {<name>} {load}\n"
+		"         <278>  Will load the saved copy of the class from memory.\n"
+		"         <178>#class {<name>} {read} {<filename>\n"
+		"         <278>  Will open the class, read the file, and close afterwards.\n"
+		"         <178>#class {<name>} {save}\n"
+		"         <278>  Will save all triggers of the given class to memory.\n"
+		"         <178>#class {<name>} {size} {<variable>}\n"
+		"         <278>  Will store the size of the class in a variable.\n"
+		"         <178>#class {<name>} {write} {<filename>}\n"
+		"         <278>  Will write all triggers of the given class to file.\n"
 		"         The {kill} option will delete all triggers of the given class.\n"
 		"\n"
 		"         Keep in mind that the kill and read option are very fast allowing\n"
@@ -709,7 +732,7 @@ struct help_type help_table[] =
 		"<178>Command<278>: #config <178>{<278>option<178>} {<278>argument<178>}<278>\n"
 		"\n"
 		"         This allows you to configure various settings, the settings can be\n"
-		"         written to file with the #write or #writesession command.\n"
+		"         written to file with the #write command.\n"
 		"\n"
 		"         If you configure the global session (the one you see as you start up\n"
 		"         tintin) all sessions started will inherite these settings.\n"
@@ -723,7 +746,7 @@ struct help_type help_table[] =
 		"         #CONFIG {CHILD LOCK}   {ON|OFF} Enable or disable command input.\n"
 		"         #CONFIG {CONVERT META} {ON|OFF} Shows color codes and key bindings.\n"
 		"         #CONFIG {DEBUG TELNET} {ON|OFF} Shows telnet negotiations y/n.\n"
-		"         #CONFIG {LOG LEVEL}  {LOW|HIGH} LOW logs mud output before triggers.\n"
+		"         #CONFIG {LOG LEVEL}  {LOW|HIGH} LOW logs server output before triggers.\n"
 		"         #CONFIG {INHERITANCE}  {ON|OFF} Session trigger inheritance y/n.\n"
 		"         #CONFIG {MCCP}         {ON|OFF} Enable or disable MCCP support.\n"
 		"         #CONFIG {PID}          {NUMBER} Set the PID of the master process.\n",
@@ -835,7 +858,7 @@ struct help_type help_table[] =
 		"         before executing the given command. tintin won't wait before\n"
 		"         executing following input commands if any.\n"
 		"\n"
-		"         Floating point precision for miliseconds is possible.\n"
+		"         Floating point precision for milliseconds is possible.\n"
 		"\n"
 		"<178>Example<278>: #showme first;#delay {1} {#showme last}\n"
 		"         This will print 'first', and 'last' around one second later.\n"
@@ -871,15 +894,21 @@ struct help_type help_table[] =
 		"         BUMPED     will precede the draw with an enter.\n"
 		"         CIRCLED    will circle the corners.\n"
 		"         CONVERT    will draw text with meta conversion.\n"
-		"         CORNERED   will draw lines with corners if possible.\n"
 		"         CROSSED    will cross the corners.\n"
+		"         FILLED     will fill circles and jewels.\n"
+		"         GRID       will draw TABLE as a grid.\n"
 		"         HORIZONTAL will draw horizontal if possible.\n"
+		"         HUGE       will draw text in huge letters.\n"
 		"         JEWELED    will diamond the corners.\n"
+		"         JOINTED    will draw corners.\n"
 		"         LEFT       will draw on the left side if possible.\n"
+		"         NUMBERED   will draw numbered, mostly for debugging.\n"
 		"         PRUNED     will prune the corners.\n"
 		"         RIGHT      will draw on the right side if possible.\n"
 		"         ROUNDED    will round the corners.\n"
+		"         SHADOWED   will shadow HUGE text.\n"
 		"         TEED       will tee the corners.\n"
+		"         TRACED     will trace HUGE text.\n"
 		"         TOP        will draw on the top side if possible.\n"
 		"         TUBED      will draw tubes instead of lines.\n"
 		"         UNICODE    will draw in unicode mode.\n"
@@ -887,16 +916,26 @@ struct help_type help_table[] =
 		"\n"
 		"         The following types are available.\n"
 		"\n"
-		"         BOX        will draw a box.\n"
-		"         LINE       will draw a line.\n"
-		"         SIDE       will draw one or more sides of a box.\n"
-		"         TILE       will draw a tile\n"
+		"         <178>[ASCII|UNICODE|HUGE] BOX {[TEXT1]} {[TEXT2]}\n"
+		"         <278>  will draw a box.\n"
+		"         <178>[BLANKED|CIRCLED|CROSSED|JEWELED|ROUNDED|TEED|PRUNED] CORNER\n"
+		"         <278>  will draw a corner.\n"
+		"         <178>[BLANKED|HORIZONTAL|NUMBERED|TUBED|VERTICAL] LINE {[TEXT]}\n"
+		"         <278>  will draw a line.\n"
+		"         <178>RAIN {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}\n"
+		"         <278>  will draw digital rain.\n"
+		"         <178>[JOINTED|TOP|LEFT|BOTTOM|RIGHT] SIDE\n"
+		"         <278>  will draw one or more sides of a box.\n"
+		"         <178>[GRID] TABLE {[LIST1]} {[LIST2]}\n"
+		"         <278> will draw a table.\n"
+		"         <178>[HUGE] TILE {[TEXT1]} {[TEXT2]}\n"
+		"         <278>  will draw a tile\n"
 		"\n"
 		"         All draw types take an optional text argument as long as a valid\n"
 		"         square with enough space has been defined. Text is automatically\n"
 		"         word wrapped.\n"
 		"\n"
-		"<178>Example<278>: #draw {box} 1 1 3 20 {Hello world!}\n",
+		"<178>Example<278>: #draw Blue box 1 1 3 20 {Hello world!}\n",
 
 		"buffer echo grep showme"
 	},
@@ -907,7 +946,7 @@ struct help_type help_table[] =
 		"<178>Command<278>: #echo <178>{<278>format<178>} {<278>argument1<178>} {<278>argument2<178>} {<278>etc<178>}<278>\n"
 		"\n"
 		"         Echo command displays text on the screen with formatting options. See\n"
-		"         the help file for the format command for more informations.\n"
+		"         the help file for the format command for more information.\n"
 		"\n"
 		"         The echo command does not trigger actions.\n"
 		"\n"
@@ -918,7 +957,7 @@ struct help_type help_table[] =
 		"         #echo {[%38s][%-38s]} {Hello World} {Hello World}\n"
 		"         #echo {{this is %s on the top row} {-1}} {printed}\n",
 		
-		"buffer grep showme"
+		"buffer format grep showme"
 	},
 	{
 		"ELSE",
@@ -1006,8 +1045,8 @@ struct help_type help_table[] =
 		"         IAC <VAR> <VAR>\n"
 		"         IAC SB GMCP <MODULE>   %0 data     %1 raw data\n"
 		"         IAC SB MSSP            %0 variable %1 value\n"
-		"         IAC SB MSDP            %0 variable %1 value\n"
-		"         IAC SB MSDP <VAR>      %1 value\n"
+		"         IAC SB MSDP            %0 variable %1 value %2 plain value\n"
+		"         IAC SB MSDP <VAR>      %0 variable %1 value %2 plain value\n"
 		"         IAC SB NEW-ENVIRON     %0 variable %1 value\n"
 		"         IAC SB ZMP <VAR>       %0 value\n"
 		"         IAC SB <VAR>           %0 raw text %1 raw data\n"
@@ -1019,6 +1058,7 @@ struct help_type help_table[] =
 		"         MAP EXIT ROOM          %0 old vnum %1 new vnum\n"
 		"         MAP EXIT ROOM <VAR>    %0 old vnum %1 new vnum\n"
 		"         MAP FOLLOW MAP         %0 old vnum %1 new vnum %2 exit name\n"
+		"         MAP MOUSE LOCATION     %0 vnum %1 location\n"
 		"         MAP UPDATED VTMAP\n"
 		"         MINUTE                 %5 minute\n"
 		"         MONTH                  %1 month\n"
@@ -1042,7 +1082,10 @@ struct help_type help_table[] =
 		"         SCAN CSV LINE          %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
 		"         SCAN TSV HEADER        %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
 		"         SCAN TSV LINE          %0 all args %1 arg1 %2 arg3 .. %99 arg99\n"
-		"         SCREEN RESIZE          %0 rows %1 cols %1 height %2 width\n"
+		"         SCREEN FOCUS           %0 focus (0 or 1)\n"
+		"         SCREEN LOCATION        %0 rows %1 cols  %2 height %3 width\n"
+		"         SCREEN MOUSE LOCATION  %0-3 screen row/col %4-7 cell row/col %8 loc\n"
+		"         SCREEN RESIZE          %0 rows %1 cols %2 height %3 width\n"
 		"         SCREEN SPLIT           %0 top row %1 top col %2 bot row %3 bot col\n"
 		"         SCREEN UNSPLIT         %0 top row %1 top col %2 bot row %3 bot col\n"
 		"         SCROLLED <VAR>         %0 row %1 col %2 -row %3 -col %4 word %5 line\n"
@@ -1056,6 +1099,9 @@ struct help_type help_table[] =
 		"         SESSION DISCONNECTED   %0 name %1 host %2 ip %3 port\n"
 		"         SESSION TIMED OUT      %0 name %1 host %2 ip %3 port\n"
 		"         SHORT-CLICKED <VAR>    %0 row %1 col %2 -row %3 -col %4 word %5 line\n"
+		"         SWIPED <DIR>\n"
+		"           %0 dir %1 button %2 row %3 col %4 -row %5 -col %6 row %7 col %8 -row\n"
+		"           %9 -col %10 rows %11 cols\n"
 		"         SYSTEM ERROR           %0 name %1 system msg %2 error %3 error msg\n"
 		"         TIME                   %4 hour : %5 minute : %6 second\n"
 		"         TRIPLE-CLICKED <VAR>   %0 row %1 col %2 -row %3 -col %4 word %5 line\n"
@@ -1064,8 +1110,6 @@ struct help_type help_table[] =
 		"         VARIABLE UPDATED <VAR> %0 name %1 new value\n"
 		"         VT100 SCROLL REGION    %0 top row %1 bot row %2 rows %3 cols %4 wrap\n"
 		"         WEEK <DAY>             %2 day of the week\n"
-		"         WINDOW FOCUS IN        %0 name\n"
-		"         WINDOW FOCUS OUT       %0 name\n"
 		"         WRITE ERROR            %0 filename %1 error message\n"
 		"         YEAR                   %0 year\n"
 		"\n"
@@ -1083,7 +1127,7 @@ struct help_type help_table[] =
 
 		"<178>This command is obsolete, please use foreach instead.\n",
 
-		"cr"
+		"foreach"
 	},
 	{
 		"FOREACH",
@@ -1129,13 +1173,16 @@ struct help_type help_table[] =
 		"         #format {test} {%t}   {format}  display time with strftime format\n"
 		"                                         optional {{format}{time}} syntax\n"
 		"         #format {test} {%u}   {string}  uppercase text\n"
-		"         #format {list} {%w}   {string}  store wordwrapped text in {list}\n"
+		"         #format {list} {%w}   {string}  store word wrapped text in {list}\n"
 		"                                         optional {{string}{width}} syntax\n"
 		"         #format {test} {%x}      {hex}  print corresponding charset character\n"
 		"         #format {test} {%A}     {char}  store corresponding character value\n"
+		"         #format {test} {%C}   {number}  store number in chronological notation\n"
 		"         #format {test} {%D}      {hex}  convert hex to decimal in {test}\n"
 		"         #format {hash} {%H}   {string}  store a 64 bit string hash in {hash}\n"
 		"         #format {test} {%L}   {string}  store the string length in {test}\n"
+		"         #format {test} {%M}   {number}  convert number to metric in {test}\n"
+		"         #format {test} {%S}   {string}  store the number of spelling errors\n"
 		"         #format {time} {%T}         {}  store the epoch time in {time}\n"
 		"         #format {time} {%U}         {}  store the micro epoch time in {time}\n"
 		"         #format {test} {%X}      {dec}  convert dec to hexadecimal in {test}\n\n"
@@ -1143,7 +1190,7 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Comment<278>: See #help TIME for help on the %t argument.\n",
 		
-		"echo function local math replace script time variable"
+		"cat echo function local math replace script time variable"
 	},
 
 	{
@@ -1192,11 +1239,13 @@ struct help_type help_table[] =
 		"GREETING",
 
 		"<268>      #<268>##################################################################<268>#\n"
-		"<268>      #<278>                     T I N T I N + +   "CLIENT_VERSION"                   <268>#\n"
 		"<268>      #<278>                                                                  <268>#\n"
-		"<268>      #<278>                 <268>T<278>he K<268>i<278>cki<268>n<278> <268>T<278>ickin D<268>i<278>kuMUD Clie<268>n<278>t <268>                #\n"
+		"<268>      #<278>                    T I N T I N + +   "CLIENT_VERSION"                    <268>#\n"
 		"<268>      #<278>                                                                  <268>#\n"
+//		"<268>      #<278>                 <268>T<278>he K<268>i<278>cki<268>n<278> <268>T<278>ickin D<268>i<278>kuMUD Clie<268>n<278>t <268>                #\n"
+//		"<268>      #<278>                                                                  <268>#\n"
 		"<268>      #<278>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      <268>#\n"
+		"<268>      #<278>                                                                  <268>#\n"
 		"<268>      #<268>##################################################################<268>#<288>\n",
 		
 		""
@@ -1234,7 +1283,7 @@ struct help_type help_table[] =
 	{
 		"HIGHLIGHT",
 
-		"<178>Command<278>: #highlight <178>{<278>string<178>} {<278>color names<178>}<278>\n"
+		"<178>Command<278>: #highlight <178>{<278>string<178>} {<278>color names<178>} {<278>priority<178>}<278>\n"
 		"\n"
 		"         The highlight command is used to allow you to highlight strings of text.\n"
 		"\n"
@@ -1321,7 +1370,7 @@ struct help_type help_table[] =
 		"         when you press enter on an empty line.\n"
 		"\n"
 		"         You can press ctrl-r to enter an interactive regex enabled history\n"
-		"         search mode, or by issueing #cursor {history search}.\n"
+		"         search mode, or by issuing #cursor {history search}.\n"
 		"\n"
 		"         TinTin++ tries to bind the arrow up and down keys to scroll through\n"
 		"         the history list by default. You can bind these with a macro yourself\n"
@@ -1396,7 +1445,7 @@ struct help_type help_table[] =
 		"\n"
 		"         All TinTin++ commands starts with a '#'.\n"
 		"\n"
-		"<178>Example<278>: #help -- #help is a mud client command, and isn't send to the mud\n"
+		"<178>Example<278>: #help -- #help is a client command, and isn't send to the\n"
 		"         server.\n"
 		"\n"
 		"         All TinTin++ commands can be abbreviated when typed.\n"
@@ -1411,12 +1460,12 @@ struct help_type help_table[] =
 		"         There are 3 ways ';'s can be overruled.\n"
 		"\n"
 		"         \\say Hello ;) -- Lines starting with a '\\' aren't parsed by TinTin++.\n"
-		"         say Hello \\;) -- The escape character can esape 1 letter.\n"
+		"         say Hello \\;) -- The escape character can escape 1 letter.\n"
 		"         #config verbatim on -- Everything is send as is except '#' commands.\n"
 		"<128>\n"
-		"         Connecting to a mud\n"
+		"         Connecting to a server\n"
 		"<178>\n"
-		"Command<278>: #session <178>{<278>session name<178>} {<278>mud address<178>} {<278>port<178>}<278>\n"
+		"Command<278>: #session <178>{<278>session name<178>} {<278>server address<178>} {<278>port<178>}<278>\n"
 		"\n"
 		"         Example: #session someone tintin.sourceforge.net 4321\n"
 		"\n"
@@ -1425,8 +1474,7 @@ struct help_type help_table[] =
 		"\n"
 		"         You can get a list of all sessions by typing: #session. The current\n"
 		"         active session is marked with (active). Snooped sessions with\n"
-		"         (snooped). MCCP sessions (mud client compression protocol) with\n"
-		"         (mccp 2).\n"
+		"         (snooped). MCCP sessions (compression) with (mccp 2) and (mccp 3).\n"
 		"\n"
 		"<128>\n"
 		"         Split\n"
@@ -1509,7 +1557,7 @@ struct help_type help_table[] =
 		"<178>Command<278>: #highlight <178>{<278>text<178>} {<278>color<178>}<278>\n"
 		"\n"
 		"         This command works a bit like #action. The purpose of this command is\n"
-		"         to substitute text from the mud with color you provide. This command\n"
+		"         to substitute text from the server with color you provide. This command\n"
 		"         is a simplified version of the #substitute command.\n"
 		"\n"
 		"<178>Example<278>: #high <178>{<278>Snowy<178>} {<278>light yellow<178>}<278>\n"
@@ -1538,10 +1586,9 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Command<278>: #ticker <178>{<278>name<178>} {<278>commands<178>} {<278>seconds<178>}<278>\n"
 		"\n"
-		"         Every 60 seconds on a standard dikumud a so called tick occures. You\n"
-		"         regenerate hp/mana/move faster if you're sleeping/resting during a\n"
-		"         tick. So it's pretty nice to know when the next tick occures. TinTin++\n"
-		"         helps you with that.\n"
+		"         The name can be whatever you want it to be, and is only required for\n"
+		"         the unticker command. The commands will be executed every x amount of\n"
+		"         seconds, which is specified in the interval part.\n"
 		"\n"
 		"<178>Example<278>: #tick <178>{<278>tick<178>} {<278>#delay 50 #show 10 SECONDS TO TICK!;#show TICK!!!<178>} {<278>60<178>}<278>\n"
 		"\n"
@@ -1555,7 +1602,7 @@ struct help_type help_table[] =
 		"<278>\n"
 		"         When you order TinTin++ to read a command file, it parses all the text\n"
 		"         in the file. You can use command files to keep aliases/actions in,\n"
-		"         login to a mud (name, password etc..) and basically all kinds of\n"
+		"         login to a server (name, password etc..) and basically all kinds of\n"
 		"         commands.\n"
 		"\n"
 		"         You can make the command files with either a text editor (suggested),\n"
@@ -1647,6 +1694,9 @@ struct help_type help_table[] =
 		"         This data is written to the info variable.\n"
 		"\n"
 		"         #info cpu will show information about tintin's cpu usage.\n"
+		"         #info mccp will show information about data compression.\n"
+		"         #info stack will show the low level debugging stack.\n"
+		"         #info session will show some session information.\n"
 		"         #info system will show some system information.\n",
 
 		"class debug ignore kill message"
@@ -1657,19 +1707,19 @@ struct help_type help_table[] =
 		"<278>When TinTin++ starts up it sends \\e= to the terminal to enable the terminal's\n"
 		"application keypad mode, which can be disabled using #showme {\\e>}\n"
 		"\n"
-		"<178>     Configuration A            Configuration B            Configuration C<278>\n"
-		"+-----+-----+-----+-----+  +-----+-----+-----+-----+  +-----+-----+-----+-----+\n"
-		"|Num  |/    |*    |-    |  |Num  |/    |*    |-    |  |Num  |nkp/ |nkp* |nkp- |\n"
-		"+-----+-----+-----+-----+  +-----+-----+-----+-----+  +-----+-----+-----+-----+\n"
-		"|7    |8    |9    |     |  |Home |Up   |PgUp |     |  |nkp7 |nkp8 |nkp9 |     |\n"
-		"+-----+-----+-----+     |  +-----+-----+-----+     |  +-----+-----+-----+     |\n"
-		"|4    |5    |6    |+    |  |Left |Centr|Right|+    |  |nkp4 |nkp5 |nkp6 |nkp+ |\n"
-		"+-----+-----+-----+-----+  +-----+-----+-----+-----+  +-----+-----+-----+-----+\n"
-		"|1    |2    |3    |     |  |End  |Down |PgDn |     |  |nkp1 |nkp2 |nkp3 |     |\n"
-		"+-----+-----+-----+     |  +-----+-----+-----+     |  +-----+-----+-----+     |\n"
-		"|0          |.    |Enter|  |Ins        |Del  |Enter|  |nkp0       |nkp. |nkpEn|\n"
-		"+-----------+-----+-----+  +-----------+-----+-----+  +-----------+-----+-----+\n"
-		"\n"
+		"<178>      Configuration A           Configuration B           Configuration C<268>\n"
+		" ╭─────┬─────┬─────┬─────╮ ╭─────┬─────┬─────┬─────╮ ╭─────┬─────┬─────┬─────╮\n"
+		" │<178>num<268>  │<178>/<268>    │<178>*<268>    │<178>-<268>    │ │<178>num<268>  │<178>/<268>    │<178>*<268>    │<178>-<268>    │ │<178>Num<268>  │<178>nkp/<268> │<178>nkp*<268> │<178>nkp-<268> │\n"
+		" ├─────┼─────┼─────┼─────┤ ├─────┼─────┼─────┼─────┤ ├─────┼─────┼─────┼─────┤\n"
+		" │<178>7<268>    │<178>8<268>    │<178>9<268>    │<178>+<268>    │ │<178>Home<268> │<178>Up<268>   │<178>PgUp<268> │<178>+<268>    │ │<178>nkp7<268> │<178>nkp8<268> │<178>nkp9<268> │<178>nkp+<268> │\n"
+		" ├─────┼─────┼─────┤     │ ├─────┼─────┼─────┤     │ ├─────┼─────┼─────┤     │\n"
+		" │<178>4<268>    │<178>5<268>    │<178>6<268>    │     │ │<178>Left<268> │<178>Cntr<268> │<178>Right<268>│     │ │<178>nkp4<268> │<178>nkp5<268> │<178>nkp6<268> │     │\n"
+		" ├─────┼─────┼─────┼─────┤ ├─────┼─────┼─────┼─────┤ ├─────┼─────┼─────┼─────┤\n"
+		" │<178>1<268>    │<178>2<268>    │<178>3<268>    │<178>Enter<268>│ │<178>End<268>  │<178>Down<268> │<178>PgDn<268> │<178>Enter<268>│ │<178>nkp1<268> │<178>nkp2<268> │<178>nkp3<268> │<178>nkpEn<268>│\n"
+		" ├─────┴─────┼─────┤     │ ├─────┴─────┼─────┤     │ ├─────┴─────┼─────┤     │\n"
+		" │<178>0<268>          │<178>.<268>    │     │ │<178>Ins<268>        │<178>Del<268><268>  │     │ │<178>nkp0<268>       │<178>nkp.<268> │     │\n"
+		" ╰───────────┴─────┴─────╯ ╰───────────┴─────┴─────╯ ╰───────────┴─────┴─────╯\n"
+		"<278>\n"
 		"With keypad mode disabled numlock on will give you configuration A, and numlock\n"
 		"off will give you configuration B. With keypad mode enabled you'll get\n"
 		"configuration C.\n"
@@ -1718,6 +1768,9 @@ struct help_type help_table[] =
 		"\n"
 		"         <178>#line background <argument>\n"
 		"         <278>  Prevent new session activation.\n"
+		"\n"
+		"         <178>#line capture <variable> <argument.\n"
+		"         <278>  Argument is executed and output stored in <variable>.\n"
 		"\n"
 		"         <178>#line debug <argument>\n"
 		"         <278>  Argument is executed in debug mode.\n"
@@ -1773,12 +1826,15 @@ struct help_type help_table[] =
 		"\n"
 		"         #list {var} {add} {item}               Add {item} to the list\n"
 		"         #list {var} {clear}                    Empty the given list\n"
+		"         #list {var} {collapse}                 Turn list into a variable\n"
 		"         #list {var} {create} {item}            Create a list using {items}\n"
 		"         #list {var} {delete} {index} {number}  Delete the item at {index},\n"
 		"                                                the {number} is optional.\n"
+		"         #list {var} {explode}                  Turn list into a character list\n"
 		"         #list {var} {insert} {index} {string}  Insert {string} at given index\n"
 		"         #list {var} {find} {string} {variable} Return the found index\n"
 		"         #list {var} {get} {index} {variable}   Copy an item to {variable}\n"
+		"         #list {var} {shuffle}                  Shuffle the list\n"
 		"         #list {var} {set} {index} {string}     Change the item at {index}\n"
 		"         #list {var} {simplify} {variable}      Copy simple list to {variable}\n"
 		"         #list {var} {size} {variable}          Copy list size to {variable}\n"
@@ -1826,10 +1882,10 @@ struct help_type help_table[] =
 	{
 		"LOG",
 
-		"<178>Command<278>: #log <178>{<278>append<178>|<278>overwrite<178>} {<278>filename<178>}<278>\n"
+		"<178>Command<278>: #log <178>{<278>append<178>|<278>overwrite<178>|<278>off<178>} {<278>[filename]<178>}<278>\n"
 		"\n"
-		"         Logs session to a file, you can set the data type to either plain,\n"
-		"         raw, or html with the config command.\n",
+		"         Logs session output to a file, you can set the data type to either\n"
+		"         plain, raw, or html with the config command.\n",
 		
 		"read scan textin write"
 	},
@@ -1907,8 +1963,8 @@ struct help_type help_table[] =
 		"         <178>#map create <size>\n"
 		"         <278>  Creates a new map and room 1. The default size is 50000 rooms.\n"
 		"\n"
-		"         <178>#map destroy\n"
-		"         <278>  Deletes the map.\n"
+		"         <178>#map destroy {area|world} <name>\n"
+		"         <278>  Deletes the map or given area.\n"
 		"\n"
 		"         <178>#map delete <exit|vnum>\n"
 		"         <278>  Deletes the room for the given exit or vnum.\n"
@@ -1923,12 +1979,16 @@ struct help_type help_table[] =
 		"         <278>  to the given room vnum. If the room vnum doesn't exist a new\n"
 		"         <278>  room is created.\n"
 		"\n"
+		"         <178>#map entrance <exit> [option] [arg]\n"
+		"         <278>  Set the entrance data for the given exit. You must specify a\n"
+		"         <278>  valid two-way exit for this to work.\n"
+		"\n"
 		"         <178>#map exit <exit> <option> <arg>\n"
 		"         <278>  Set the exit data. Useful with a closed door where you can\n"
 		"         <278>  set the exit command: '#map exit e command {open east;e}'.\n"
 		"         <278>  Use #map exit <exit> for a list of available options.\n"
 		"\n"
-		"         <178>#map exitflag <exit> <HIDE|AVOID> [on|off]\n"
+		"         <178>#map exitflag <exit> <AVOID|BLOCK|HIDE|INVIS> [on|off]\n"
 		"         <278>  Set exit flags. See #map roomflag for more info.\n"
 		"\n"
 		"         <178>#map explore <exit>\n"
@@ -2006,6 +2066,12 @@ struct help_type help_table[] =
 		"         <278>  Jump to the given coordinate, which is relative\n"
 		"         <278>  to your current room.\n"
 		"\n"
+		"         <178>#map landmark <name> <vnum> [description] [size]\n"
+		"         <278>  Creates an alias to target the provided room vnum. The\n"
+		"         <278>  description is optional and should be brief. The size\n"
+		"         <278>  determines from how many rooms away the landmark can be\n"
+		"         <278>  seen.\n"
+		"\n"
 		"         <178>#map leave\n"
 		"         <278>  Makes you leave the map. Useful when entering a maze. You\n"
 		"         <278>  can return to your last known room using #map return.\n"
@@ -2080,12 +2146,17 @@ struct help_type help_table[] =
 		"         <278>\n"
 		"         <178>#map roomflag avoid\n"
 		"         <278>  When set, '#map find' will avoid a route leading\n"
-		"         <278>  through that room. Useful when you want to avoid death traps.\n"
+		"         <278>  through that room. Useful for locked doors, etc.\n"
+		"         <178>#map roomflag block\n"
+		"         <278>  When set the automapper will prevent movement into or through\n"
+		"         <278>  the room. Useful for death traps.\n"
 		"         <178>#map roomflag hide\n"
 		"         <278>  When set, '#map' will not display the map beyond\n"
 		"         <278>  this room. When mapping overlapping areas or areas that aren't\n"
 		"         <278>  build consistently you need this flag as well to stop\n"
 		"         <278>  auto-linking, unless you use void rooms.\n"
+		"         <178>#map roomflag invis\n"
+		"         <278>  When set the room will be colored with the INVIS color.\n"
 		"         <178>#map roomflag leave\n"
 		"         <278>  When entering a room with this flag, you will\n"
 		"         <278>  automatically leave the map. Useful when set at the entrance\n"
@@ -2112,6 +2183,22 @@ struct help_type help_table[] =
 		"         <278>  Set a map value for your current room, or given room if a room\n"
 		"         <278>  vnum is provided.\n"
 		"\n"
+		"         <178>#map sync <filename>\n"
+		"         <278>  Similar to #map read except the current map won't be unloaded\n"
+		"         <278>  or overwritten.\n"
+		"\n"
+		"         <178>#map terrain <name> <symbol> [flag]\n"
+		"         <278>  Set the terrain symbol and flag.\n"
+		"\n"
+		"         <178>#map terrain <name> <symbol> [DENSE|SPARSE|SCANT]\n"
+		"         <278>  Determine symbol density, omit for the default.\n"
+		"\n"
+		"         <178>#map terrain <name> <symbol> [NARROW|WIDE|VAST]\n"
+		"         <278>  Determine symbol spread range, omit for the default.\n"
+		"\n"
+		"         <178>#map terrain <name> <symbol> [FADEIN|FADEOUT]\n"
+		"         <278>  Determine symbol spread density, omit for the default.\n"
+		"\n"
 		"         <178>#map travel <direction> <delay>\n"
 		"         <278>  Follows the direction until a dead end or an intersection is\n"
 		"         <278>  found. Use braces around the direction if you use the delay,\n"
@@ -2126,10 +2213,16 @@ struct help_type help_table[] =
 		"         <178>#map uninsert <direction>\n"
 		"         <278>  Exact opposite of the insert command.\n"
 		"\n"
+		"         <178>#map unlandmark <name>\n"
+		"         <278>  Removes a landmark.\n"
+		"\n"
 		"         <178>#map unlink <direction> [both]\n"
 		"         <278>  Will remove the exit, this isn't two way so you can have the\n"
 		"         <278>  properly display no exit rooms and mazes.\n"
 		"         <278>  If you use the both argument the exit is removed two-ways.\n"
+		"\n"
+		"         <178>#map unterrain <name>\n"
+		"         <278>  Removes a terrain.\n"
 		"\n"
 		"         <178>#map update\n"
 		"         <278>  Sets the vtmap to update within the next 0.1 seconds.\n"
@@ -2208,8 +2301,9 @@ struct help_type help_table[] =
 		"           {#if {{%0} == {Bubba} && $afk} {reply I'm away, my friend.}}\n"
 		"         When you are away from keyboard, it will only reply to your friend.\n",
 
-		"format function local mathematics replace script variable"
+		"cat format function local mathematics replace script variable"
 	},
+
 	{
 		"MATHEMATICS",
 
@@ -2242,7 +2336,7 @@ struct help_type help_table[] =
 		"         ^^             10            logical xor\n"
 		"         ||             11            logical or\n"
 		"\n"
-		"Operator priority can be ignored by using paranthesis, for example (1 + 1) * 2\n"
+		"Operator priority can be ignored by using parentheses, for example (1 + 1) * 2\n"
 		"equals 4, while 1 + 1 * 2 equals 3.\n"
 		"\n"
 		"<178>String operations<278>\n"
@@ -2275,6 +2369,33 @@ struct help_type help_table[] =
 
 		"class debug ignore info kill"
 	},
+
+	{
+		"METRIC SYSTEM",
+
+		"  Name  Symbol                              Factor\n"
+		"--------------------------------------------------\n"
+//		" Yotta       Y   1 000 000 000 000 000 000 000 000\n"
+//		" Zetta       Z       1 000 000 000 000 000 000 000\n"
+//		"   Exa       E           1 000 000 000 000 000 000\n"
+//		"  Peta       P               1 000 000 000 000 000\n"
+//		"  Tera       T                   1 000 000 000 000\n"
+//		"  Giga       G                       1 000 000 000\n"
+		"  Mega       M                           1 000 000\n"
+		"  Kilo       K                               1 000\n"
+		"\n"
+		" milli       m                               0.001\n"
+		" micro       u                           0.000 001\n",
+//		"  nano       n                       0.000 000 001\n"
+//		"  pico       p                   0.000 000 000 001\n"
+//		" femto       f               0.000 000 000 000 001\n"
+//		"  atto       a           0.000 000 000 000 000 001\n"
+//		" zepto       z       0.000 000 000 000 000 000 001\n"
+//		" yocto       y   0.000 000 000 000 000 000 000 001\n",
+		
+		"echo format math"
+	},
+	
 	{
 		"MSDP",
 
@@ -2454,7 +2575,7 @@ struct help_type help_table[] =
 		"         Perl Compatible Regular Expressions<278>\n"
 		"\n"
 		"         You can embed a PCRE (Perl Compatible Regular Expression) using curley\n"
-		"         braces { }, these braces are replaced with paranthesis ( ) unless you\n"
+		"         braces { }, these braces are replaced with parentheses ( ) unless you\n"
 		"         use %!{ }.\n"
 		"<178>\n"
 		"         Or<278>\n"
@@ -2498,17 +2619,17 @@ struct help_type help_table[] =
 		"         The example only triggers if someone provides a number between 1 and\n"
 		"         999.\n"
 		"\n"
-		"         <178>Paranthesis<278>\n"
+		"         <178>Parantheses<278>\n"
 		"\n"
 		"         TinTin Regular Expressions automatically add parenthesis, for example\n"
 		"         %* translates to (.*?) in PCRE unless the %* is found at the start or\n"
 		"         end of the line, in which cases it translates to (.*). Paranthesis in\n"
 		"         PCRE causes a change in execution priority similar to mathematical\n"
-		"         expressions, but paranthesis also causes the match to be stored to a\n"
+		"         expressions, but parentheses also causes the match to be stored to a\n"
 		"         variable.\n"
 		"\n"
-		"         When nesting multiple sets of paranthesis each nest is assigned its\n"
-		"         numercial variable in order of appearance.\n"
+		"         When nesting multiple sets of parentheses each nest is assigned its\n"
+		"         numerical variable in order of appearance.\n"
 		"\n"
 		"Example: #act {%* chats '{Mu(ha)+}'} {chat %2ha!}\n"
 		"\n"
@@ -2565,8 +2686,8 @@ struct help_type help_table[] =
 		"\n"
 		"Example: #action {~\\e[1;37m%1} {#var roomname %1}\n"
 		"\n"
-		"         If the room name is the only line on the mud in bright white this\n"
-		"         color trigger will save the roomname.\n"
+		"         If the room name is the only line on the server in bright white\n"
+		"         white color trigger will save the roomname.\n"
 		"\n"
 		"\n"
 		"         This covers the basics. PCRE has more options, most of which are\n"
@@ -2612,7 +2733,7 @@ struct help_type help_table[] =
 		"         <278>  Send data to socket\n"
 		"\n"
 		"         <178>#port {uninitialize}\n"
-		"         <278>  Unitialize the port session.\n"
+		"         <278>  Uninitialize the port session.\n"
 		"\n"
 		"         <178>#port {who}\n"
 		"         <278>  Show all connections\n"
@@ -2622,7 +2743,9 @@ struct help_type help_table[] =
 		"\n"
 		"         The port command is very similar to chat except that it creates a\n"
 		"         new session dedicated to receiving socket connections at the given\n"
-		"         port number without built-in support for a communication protocol.\n",
+		"         port number without built-in support for a communication protocol.\n"
+		"\n"
+		"         You can init with 0 as the port number to create a dummy session.\n",
 
 		"all chat run session sessionname snoop ssl zap"
 	},
@@ -2698,16 +2821,26 @@ struct help_type help_table[] =
 		"\n"
 		"         Of the following the (lazy) match is available at %1-%99 + 1\n"
 		"\n"
-		"      %w match zero to any number of word characters.\n"
-		"      %W match zero to any number of non word characters.\n"
+		"      %a match zero to any number of characters except newlines.\n"
+		"      %A match zero to any number of newlines.\n"
 		"      %d match zero to any number of digits.\n"
 		"      %D match zero to any number of non digits.\n"
+		"      %p match zero to any number of printable characters.\n"
+		"      %P match zero to any number of non printable characters.\n"
 		"      %s match zero to any number of spaces.\n"
 		"      %S match zero to any number of non spaces.\n"
+		"      %u match zero to any number of unicode characters.\n"
+		"      %U match zero to any number of non unicode characters.\n"
+		"      %w match zero to any number of word characters.\n"
+		"      %W match zero to any number of non word characters.\n"
 		"\n"
+		"      If you want to match 1 digit use %+1d, if you want to match between 3\n"
+		"      and 5 spaces use %+3..5s, if you want to match between 0 and 1 word\n"
+		"      characters use %+0..1w\n"
+		"\n"
+		"      %+ match one to any number of characters.\n"
 		"      %? match zero or one character.\n"
-		"      %. match one character. (<118>do not use<278>)\n"
-		"      %+ match one to any number of characters. (<118>do not use<278>)\n"
+		"      %. match one character.\n"
 		"      %* match zero to any number of characters.\n"
 		"\n"
 		"      %i matching becomes case insensitive.\n"
@@ -2740,10 +2873,10 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #replace <178>{<278>variable<178>} {<278>oldtext<178>} {<278>newtext<178>}<278>\n"
 		"\n"
-		"         Searches the variable text replacing each occurance of 'oldtext' with\n"
+		"         Searches the variable text replacing each occurrence of 'oldtext' with\n"
 		"         'newtext'.\n",
 
-		"format function local math script variable"
+		"cat format function local math script variable"
 	},
 	{
 		"RETURN",
@@ -2765,7 +2898,7 @@ struct help_type help_table[] =
 		"\n"
 		"         The run command works much like the system command except that it\n"
 		"         runs the command in a pseudo terminal. The run command also creates\n"
-		"         a session that treats the given shell command as a mud server. This\n"
+		"         a session that treats the given shell command as a server. This\n"
 		"         allows you to run ssh, as well as any other shell application, with\n"
 		"         full tintin scripting capabilities. If a file name is given the file\n"
 		"         is loaded prior to execution.\n"
@@ -2818,7 +2951,7 @@ struct help_type help_table[] =
 		"         <178>#scan {txt} <filename>\n"
 		"\n"
 		"         <278>  The scan txt <filename> command reads in a file and sends its content\n"
-		"           to the screen as if it was send by a mud. After using scan you can\n"
+		"           to the screen as if it was send by a server. After using scan you can\n"
 		"           use page-up and down to view the file.\n"
 		"\n"
 		"           This command is useful to convert ansi color files to html or viewing\n"
@@ -2900,10 +3033,10 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #config <178>{<278>SCREEN READER<178>} {<278>ON|OFF<178>}<278>\n"
 		"\n"
-		"         Screen reader mode is enabled by using #config screen on. The main\n"
-		"         purpose of the screen reader mode is to tell MUDs that a screen reader\n"
-		"         is being used by using the MTTS standard. The MTTS specification is\n"
-		"         available at:\n"
+		"         Screen reader mode is enabled by using #config screen on.  The main\n"
+		"         purpose of the screen reader mode is to report to servers that a\n"
+		"         screen reader is being used by utilizing the MTTS standard.  The MTTS\n"
+		"         specification is available at:\n"
 		"\n"
 		"         http://tintin.sourceforge.net/protocols/mtts\n"
 		"\n"
@@ -2940,8 +3073,8 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #send <178>{<278>text<178>}<278>\n"
 		"\n"
-		"         Sends the text directly to the MUD, useful if you want to start with an\n"
-		"         escape code.\n",
+		"         Sends the text directly to the server, useful if you want to start\n"
+		"         with an escape code.\n",
 
 		"textin"
 	},
@@ -2982,7 +3115,7 @@ struct help_type help_table[] =
 		"         The startup session is named 'gts' and can be used for relog scripts. Do\n"
 		"         keep in mind that tickers do not work in the startup session.\n"
 		"\n"
-		"<178>Example<278>: #event {SESSION DISCONNECTED} {#gts #delay 10 #ses %0 mymud.com 4321}\n",
+		"<178>Example<278>: #event {SESSION DISCONNECTED} {#gts #delay 10 #ses %0 tintin.net 4321}\n",
 
 		"all port run sessionname snoop ssl zap"
 	},
@@ -3002,7 +3135,7 @@ struct help_type help_table[] =
 		"session when used without an argument. If an argument is given it will be\n"
 		"executed by that session as a command, the session will not be activated.\n"
 		"\n"
-		"<178>Example<278>: #ses one mymud.com 23;#ses two mymud.com 23;#one;#two grin\n"
+		"<178>Example<278>: #ses one tintin.net 23;#ses two tintin.net 23;#one;#two grin\n"
 		"\n"
 		"This will create two sessions, the session that was created last (two in this\n"
 		"case) will be automatically activated upon creation. Using #one, session one is\n"
@@ -3017,9 +3150,9 @@ struct help_type help_table[] =
 
 		"<178>Command<278>: #showme <178>{<278>string<178>} {<278>row<178>} <178>{<278>col<178>}<278>\n"
 		"\n"
-		"         Display the string to the terminal, do not send to the mud.  Useful for\n"
-		"         status, warnings, etc.  The {row} and col number are optional and work\n"
-		"         the same way as the row number of the #prompt trigger.\n"
+		"         Display the string to the terminal, do not send to the server.  Useful\n"
+		"         for status, warnings, etc.  The {row} and col number are optional and\n"
+		"         work the same way as the row number of the #prompt trigger.\n"
 		"\n"
 		"         Actions can be triggered by the showme command. If you want to avoid\n"
 		"         this from happening use: #line ignore #showme {<string>}.\n"
@@ -3047,15 +3180,16 @@ struct help_type help_table[] =
 	{
 		"SPEEDWALK",
 
-		"         <278>Speedwalking allows you to type multiple directions not separated by\n"
-		"         semicolons, and now it lets you prefix a direction with a number, to\n"
-		"         signify how many times to go that direction. You can turn it on/off\n"
-		"         with #config.\n"
+		"         <278>Speedwalking allows you to enter multiple directions without using\n"
+		"         semicolons. Directions should be prefixed with a number and will be\n"
+		"         executed the given number of times.\n"
+		"\n"
+		"         You can enable speedwalking with #CONFIG {SPEEDWALK} {ON}.\n"
 		"\n"
 		"<178>Example<278>: Without speedwalk, you have to type:\n"
 		"         s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w\n"
 		"         With speedwalk, you only have to type:\n"
-		"         2s5w3s3w2nw\n",
+		"         2s5w3s3w2n1w\n",
 
 		"alias cursor history keypad macro tab"
 	},
@@ -3142,9 +3276,9 @@ struct help_type help_table[] =
 	{
 		"SUBSTITUTE",
 
-		"<178>Command<278>: #substitute <178>{<278>text<178>} {<278>new text<178>}<278>\n"
+		"<178>Command<278>: #substitute <178>{<278>text<178>} {<278>new text<178>} {<278>priority<178>}<278>\n"
 		"\n"
-		"         Allows you to replace original text from the mud with different text.\n"
+		"         Allows you to replace text from the server with the new text.\n"
 		"         This is helpful for complex coloring and making things more readable.\n"
 		"         The %1-%99 variables can be used to capture text and use it as part of\n"
 		"         the new output, and the ^ char is valid to only check the beginning of\n"
@@ -3235,7 +3369,7 @@ struct help_type help_table[] =
 		"<178>Command<278>: #textin <178>{<278>filename<178>} {<278>delay<178>}<278>\n"
 		"\n"
 		"         Textin allows the user to read in a file, and send its contents\n"
-		"         directly to the mud.  Useful for doing online creation, or message\n"
+		"         directly to the server.  Useful for doing online creation, or message\n"
 		"         writing.\n"
 		"\n"
 		"         The delay is in seconds and takes a floating point number which is\n"
@@ -3353,7 +3487,7 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Comment<278>: You can remove a variable with the #unvariable command.\n",
 
-		"format function local math replace script"
+		"cat format function local math replace script"
 	},
 	{
 		"WHILE",

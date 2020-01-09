@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -13,15 +13,14 @@
 *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
 *   GNU General Public License for more details.                              *
 *                                                                             *
-*                                                                             *
 *   You should have received a copy of the GNU General Public License         *
 *   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
 ******************************************************************************/
 
 /******************************************************************************
-*              (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                   *
+*                               T I N T I N + +                               *
 *                                                                             *
-*                     coded by Igor van den Hoven 2004                        *
+*                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
 
@@ -32,7 +31,6 @@ DO_COMMAND(do_class)
 {
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
 	int i;
-
 	struct listroot *root;
 	struct listnode *node;
 
@@ -55,7 +53,7 @@ DO_COMMAND(do_class)
 	}
 	else if (*arg2 == 0)
 	{
-		class_list(ses, arg1, arg2);
+		class_list(ses, NULL, arg1, arg2);
 	}
 	else
 	{
@@ -73,13 +71,15 @@ DO_COMMAND(do_class)
 		}
 		else
 		{
-			if (!search_node_list(ses->list[LIST_CLASS], arg1))
+			node = search_node_list(ses->list[LIST_CLASS], arg1);
+
+			if (node == NULL)
 			{
 				check_all_events(ses, SUB_ARG, 0, 1, "CLASS CREATED", arg1);
 
-				update_node_list(ses->list[LIST_CLASS], arg1, arg2, arg3, "");
+				node = update_node_list(ses->list[LIST_CLASS], arg1, "", arg3, "");
 			}
-			class_table[i].group(ses, arg1, arg3);
+			class_table[i].fun(ses, node, arg1, arg3);
 		}
 	}
 	return ses;
@@ -108,32 +108,31 @@ int count_class(struct session *ses, struct listnode *group)
 	return cnt;
 }
 
-
-DO_CLASS(class_open)
+DO_CLASS(class_clear)
 {
-	int count;
+	int type, index;
+
+	for (type = 0 ; type < LIST_MAX ; type++)
+	{
+		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
+		{
+			continue;
+		}
+
+		for (index = 0 ; index < ses->list[type]->used ; index++)
+		{
+			if (!strcmp(ses->list[type]->list[index]->group, arg1))
+			{
+				delete_index_list(ses->list[type], index--);
+			}
+		}
+	}
+
+	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLEARED.", arg1);
 
 	if (!strcmp(ses->group, arg1))
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY OPENED AND ACTIVATED.", arg1);
-	}
-	else
-	{
-		if (*ses->group)
-		{
-			check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
-			check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
-		}
-		RESTRING(ses->group, arg1);
-
-		count = atoi(ses->list[LIST_CLASS]->list[0]->arg3);
-
-		update_node_list(ses->list[LIST_CLASS], arg1, "", ntos(--count), "");
-
-		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN OPENED AND ACTIVATED.", arg1);
-
-		check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", arg1);
-		check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+		class_close(ses, node, arg1, arg2);
 	}
 
 	return ses;
@@ -141,51 +140,41 @@ DO_CLASS(class_open)
 
 DO_CLASS(class_close)
 {
-	struct listnode *node;
-
-	node = search_node_list(ses->list[LIST_CLASS], arg1);
-
-	if (node == NULL)
+	if (atoi(node->arg3) == 0)
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", arg1);
 	}
 	else
 	{
-		if (atoi(node->arg3) == 0)
-		{
-			show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", arg1);
-		}
-		else
-		{
-			show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
 
-			update_node_list(ses->list[LIST_CLASS], arg1, "", "0","");
+		update_node_list(ses->list[LIST_CLASS], arg1, "", "0","");
 
-			if (!strcmp(ses->group, arg1))
+		if (!strcmp(ses->group, arg1))
+		{
+			check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
+			check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+
+			node = ses->list[LIST_CLASS]->list[0];
+
+			if (atoi(node->arg3))
 			{
-				check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
-				check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+				RESTRING(ses->group, node->arg1);
 
-				node = ses->list[LIST_CLASS]->list[0];
+				show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
 
-				if (atoi(node->arg3))
-				{
-					RESTRING(ses->group, node->arg1);
-
-					show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
-
-					check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", node->arg1);
-					check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
-				}
-				else
-				{
-					RESTRING(ses->group, "");
-				}
+				check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", node->arg1);
+				check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+			}
+			else
+			{
+				RESTRING(ses->group, "");
 			}
 		}
 	}
 	return ses;
 }
+
 
 DO_CLASS(class_list)
 {
@@ -223,13 +212,130 @@ DO_CLASS(class_list)
 	return ses;
 }
 
+
+DO_CLASS(class_kill)
+{
+	int group;
+
+	class_clear(ses, node, arg1, arg2);
+
+	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
+
+	delete_index_list(ses->list[LIST_CLASS], group);
+
+	check_all_events(ses, SUB_ARG, 0, 1, "CLASS DESTROYED", arg1);
+	check_all_events(ses, SUB_ARG, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
+
+	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN KILLED.", arg1);
+
+	return ses;
+}
+
+DO_CLASS(class_load)
+{
+	FILE *file;
+
+	if (node->data == NULL)
+	{
+		show_error(ses, LIST_CLASS, "#CLASS {%s} DOES NOT HAVE ANY DATA SAVED.", arg1);
+
+		return ses;
+	}
+	file = fmemopen(node->data, node->val32[1], "r");
+
+	read_file(ses, file, arg1);
+
+	return ses;
+}
+
+DO_CLASS(class_open)
+{
+	int count;
+
+	if (!strcmp(ses->group, arg1))
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY OPENED AND ACTIVATED.", arg1);
+	}
+	else
+	{
+		if (*ses->group)
+		{
+			check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
+			check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+		}
+		RESTRING(ses->group, arg1);
+
+		count = atoi(ses->list[LIST_CLASS]->list[0]->arg3);
+
+		update_node_list(ses->list[LIST_CLASS], arg1, "", ntos(--count), "");
+
+		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN OPENED AND ACTIVATED.", arg1);
+
+		check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", arg1);
+		check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+	}
+
+	return ses;
+}
+
+
 DO_CLASS(class_read)
 {
-	class_open(ses, arg1, arg2);
+	class_open(ses, node, arg1, arg2);
 
 	do_read(ses, arg2);
 
-	class_close(ses, arg1, arg2);
+	class_close(ses, node, arg1, arg2);
+
+	return ses;
+}
+
+DO_CLASS(class_save)
+{
+	FILE *file;
+	int list, index;
+
+	str_cpy(&node->arg4, "");
+
+	file = open_memstream(&node->data, (size_t *) &node->val32[1]);
+
+	fprintf(file, "%cCLASS {%s} OPEN\n\n", gtd->tintin_char, arg1);
+
+	for (list = 0 ; list < LIST_MAX ; list++)
+	{
+		if (!HAS_BIT(ses->list[list]->flags, LIST_FLAG_CLASS))
+		{
+			continue;
+		}
+
+		for (index = 0 ; index < ses->list[list]->used ; index++)
+		{
+			if (!strcmp(ses->list[list]->list[index]->group, arg1))
+			{
+				write_node(ses, list, ses->list[list]->list[index], file);
+			}
+		}
+	}
+
+	fprintf(file, "\n%cCLASS {%s} CLOSE\n", gtd->tintin_char, arg1);
+
+	fclose(file);
+
+	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN SAVED TO MEMORY (%d BYTES) (%s).", arg1, node->val32[1], node->data);
+
+	return ses;
+}	
+
+DO_CLASS(class_size)
+{
+	if (*arg1 == 0 || *arg2 == 0)
+	{
+		show_error(ses, LIST_CLASS, "#SYNTAX: #CLASS {<class name>} SIZE {<variable>}.");
+		
+		return ses;
+	}
+
+	set_nest_node_ses(ses, arg2, "%d", count_class(ses, node));
 
 	return ses;
 }
@@ -239,13 +345,6 @@ DO_CLASS(class_write)
 {
 	FILE *file;
 	int list, index;
-
-	if (!search_node_list(ses->list[LIST_CLASS], arg1))
-	{
-		show_error(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
-		
-		return ses;
-	}
 
 	if (*arg2 == 0 || (file = fopen(arg2, "w")) == NULL)
 	{
@@ -278,88 +377,5 @@ DO_CLASS(class_write)
 
 	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN WRITTEN TO FILE.", arg1);
 
-	return ses;
-}
-
-DO_CLASS(class_kill)
-{
-	int type, index, group;
-
-	if (!search_node_list(ses->list[LIST_CLASS], arg1))
-	{
-		show_error(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
-
-		return ses;
-	}
-
-	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
-
-	for (type = 0 ; type < LIST_MAX ; type++)
-	{
-		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
-		{
-			continue;
-		}
-
-		for (index = 0 ; index < ses->list[type]->used ; index++)
-		{
-			if (!strcmp(ses->list[type]->list[index]->group, arg1))
-			{
-				delete_index_list(ses->list[type], index--);
-			}
-		}
-	}
-
-	check_all_events(ses, SUB_ARG, 0, 1, "CLASS DESTROYED", arg1);
-	check_all_events(ses, SUB_ARG, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
-
-	delete_index_list(ses->list[LIST_CLASS], group);
-
-	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN KILLED.", arg1);
-
-	if (!strcmp(ses->group, arg1))
-	{
-		check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
-
-		struct listnode *node = ses->list[LIST_CLASS]->list[0];
-
-		if (node && atoi(node->arg3))
-		{
-			RESTRING(ses->group, node->arg1);
-
-			show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
-
-			check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", arg1);
-		}
-		else
-		{
-			RESTRING(ses->group, "");
-		}
-	}
-
-	return ses;
-}
-
-DO_CLASS(class_size)
-{
-	struct listnode *node;
-
-	if (*arg1 == 0 || *arg2 == 0)
-	{
-		show_error(ses, LIST_CLASS, "#SYNTAX: #CLASS {<class name>} SIZE {<variable>}.");
-		
-		return ses;
-	}
-
-	node = search_node_list(ses->list[LIST_CLASS], arg1);
-
-	if (node == NULL)
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "0");
-	}
-	else
-	{
-		set_nest_node(ses->list[LIST_VARIABLE], arg2, "%d", count_class(ses, node));
-	}
 	return ses;
 }
