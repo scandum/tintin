@@ -133,13 +133,14 @@
 
      Usage: #alias {name} {commands}
 
-     Use this command to define aliases. The variables %0, %1.. %9 contain the
-     arguments to the aliases-command as follows:
+     Use this command to define aliases. The variables %0, %1.. %99 contain
+     the arguments to the aliases-command as follows:
 
      the %0 variable contains ALL the arguments.
-     the %1 variable contains the 1. argument
+     the %1 variable contains the 1st argument
+     the %2 variable contains the 2nd argument
      ....
-     the %9 variable contains the 9. argument
+     the %99 variable contains the 99th argument
 
      Example: #alias nice say Hello Mr %1
 

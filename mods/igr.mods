@@ -1,3 +1,174 @@
+Nov 2019        2.01.93
+------------------------------------------------------------------------------
+
+regex.c         Added support for using %+4s to match 4 spaces, or %+0..2d
+                to match between 0 and 2 digits. Only works with letter
+                arguments.
+
+regex.c         Added %a regex as an alternative for %* because %+4* is
+                not valid.
+
+regex.c         Added %p regex which will match printable characters.
+
+regex.c         Added %u regex which should match whole unicode characters.
+
+utf8.c          Added BIG5toUTF8, KOI8toUTF8, ISO1toUTF8, ISO2toUTF8 charset
+                config options.
+
+utf8.c          Added GBK1TOUTF8 charset config option. When enabled 2 byte
+                GBK codes are translated to unicode.
+
+utf8.c          Added GBK-1 charset config option which should be able to
+                handle GB18030.
+
+mapper.c        Added a UNICODE GRAPHICS group to #map legend, this will
+                allow you to customize most of the unicodegraphics symbols.
+
+variable.c      Added #format <variable> %S option to do a spell check.
+                Returns the number of errors found. Still a work in
+                progress.
+
+                People using %S to get the session name should switch to
+                using #info session save.
+
+data.c          Added #info session option, this data can be saved.
+
+draw.c          Added #draw RAIN {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}
+
+                Use tt++ -M for a default example.
+
+class.c         Added #class clear, load, and save. See #help class.
+
+main.c          Configurations and pathdirs are automatically assigned to
+                the CONFIG and PATHDIR class on startup. Somewhat experimental
+                as there may be unforseen complications.
+
+list.c          Added #list <list> collapse and explode
+
+mapper.c        Updated #map {} output.
+
+nest.c          Added better #local support.
+
+variable.c      Added #cat command. See #help cat.
+
+event.c         Added SWIPED N/NE/E/SE/S/SW/W/NW events. These do not work
+                on Termux yet, but I've asked the Termux dev to enable
+                advanced mouse mode by default.
+
+draw.c          Added #draw TABLE type which comes with the GRID option to
+                change the drawing behavior. Requires a nested string
+                argument. Under construction.
+
+mapper.c        Added #map flag terrain on/off option to enable or disable
+                terrain displaying. Default for new maps is on.
+
+mapper.c        Added #map terrain <name> <symbol> [flag] and #map unterrain
+                Creates a symbol, which can be colored, for the given
+                terrain type. Density flags are DENSE, AMPLE, SPARSE, SCANT,
+                omit for default density. Range flags are NARROW, STANDARD,
+                WIDE, and VAST, omit for default.
+
+                Decay flags are FADEIN and FADEOUT which speak for
+                themselves. DOUBLE will expect the terrain symbol to be
+                2 characters or a double-width unicode character.
+
+variable.c      Added %C format option to store the given number using
+                chronological notation.
+
+                People using %C to get the screen width should switch to
+                using #screen get cols <var> and #screen get rows <var>
+
+mapper.c        Added a 4th argument to landmarks which will indicate the
+                distance from which the landmark will be visible in a future
+                #map describe command.
+
+draw.c          Added HUGE option to #draw. Only supports uppercase letters,
+                numbers, and a few punctuations for now.
+
+cursor.c        Added #cursor tab <list|scrollback> <backward|forward>
+                option. Allows people with custom tab settings to upgrade
+                to the new format before I start messing with it.
+
+                list goes exclusively through the tab list, scrollback goes
+                exclusively through the scrollback buffer, use both list and
+                scrollback to go through both.
+
+line.c          Added #line capture <variable> <command> option.
+
+mapper.c        Added the MAP MOUSE LOCATION event to go along with the 
+                SCREEN MOUSE LOCATION event. MAP MOUSE LOCATION is more
+                accurate than regular MAP click events. It needs to be
+                trigged with #screen raise mouse location, which is not
+                supported by all terminals.
+
+                You'll need to use ./configure --enable-dec-locator for xterm
+                to enable the MOUSE LOCATION events.
+
+
+list.c          Added #list <var> shuffle
+
+mapper.c        I'm working on a new speedwalk standard that will work with
+                diagonal exits. Initial support is added to the #map at,
+                #map goto, and the #map jump commands. Old speedwalk support
+                is going to be left unchanged.
+
+                The format is similar to old speed walks, except that
+                speedwalks like 2ene need to be changed to 2e1n1e.
+
+                #map jump and #map at will use virtual traversal, meaning you
+                can move through walls as long as the destination is an actual
+                location.
+
+                #map move and #map goto will use physical traversal, meaning
+                #map goto 10w only works if there is a straight line of 10
+                rooms leading west, while #map move 10w will create 10 rooms
+                if static mode is disabled. Keep in mind that #map move will
+                trigger map movements events while #map goto will not.
+
+                Regular #config SPEEDWALK speedwalks are unaffected.
+
+mapper.c        Added MAP MOUSE LOCATION event which allows more accurate
+                mouse clicking reports in unicode mode on terminals which
+                support it. Appears to be some obscure compile time option
+                on xterm.
+
+mapper.c        AsciiGraphics and UnicodeGraphics mapping modes now report
+                the exit that was clicked on MAP MOUSE click events in the
+                %2 argument.
+
+screen.c        Added #screen raise SCREEN MOUSE LOCATION, the SCREEN MOUSE
+                LOCATION in turn will report row,col,-row,-col, as well as
+                the row,col,-row,-col for the pixel position of the mouse
+                within the character cell. %8 will report the pixel position
+                as a 3x3 cell using values 1 through 9.
+
+mapper.c        Added the BLOCK exit flag and room flag. Works like AVOID, but
+                also prevents movement into the room.
+
+mapper.c        Added #map landmark <name> <vnum> [desc] and #map unlandmark.
+                Landmarks work as fast lookup aliases and to give tintin an
+                idea of locations of interest to eventually describe the map
+                in words for screen readers.
+
+mapper.c        Added #map exit <dir> color <code> option.
+
+mapper.c        Added exit coloring for avoid/hide/invis flagged exits.
+
+main.c          Added -V startup option to show version number.
+
+daemon.c        Added better link lost handling to daemons.
+
+cursor.c        Fixed #help event section on {SCREEN FOCUS}.
+
+math.c          Added metric suffix support to #math, see #help metric.
+
+variable.c      Added #echo %M to print numbers using the metric system,
+                supported suffixes are K M, m, and u.
+
+mapper.c        Added #map sync <filename> which will try to synchronize the
+                currently loaded map with the file being read. Should be a
+                valid alternative to #map read at all times.
+
 Sep 2019        2.01.92
 ------------------------------------------------------------------------------
 
@@ -836,8 +1007,6 @@ tinexp.c       @ $ * and & characters send from the server are only escaped if
                the key matches an existing variable. Keep in mind that ${ *{
                and &{ are always escaped.
 
-variable.c     Added #format <variable> %S option to store the session name to
-               the given variable.
 
 tinexp.c       Added support for <Fxxx> and <Bxxx> 12 bit color codes. F
                stands for foreground, B for background, xxx is hexadecimal RGB

@@ -1,0 +1,543 @@
+/******************************************************************************
+*   This file is part of TinTin++                                             *
+*                                                                             *
+*   Copyright 2004-2020 Igor van den Hoven                                    *
+*                                                                             *
+*   TinTin++ is free software; you can redistribute it and/or modify          *
+*   it under the terms of the GNU General Public License as published by      *
+*   the Free Software Foundation; either version 3 of the License, or         *
+*   (at your option) any later version.                                       *
+*                                                                             *
+*   This program is distributed in the hope that it will be useful,           *
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
+*   GNU General Public License for more details.                              *
+*                                                                             *
+*   You should have received a copy of the GNU General Public License         *
+*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+******************************************************************************/
+
+/******************************************************************************
+*                               T I N T I N + +                               *
+*                                                                             *
+*                      coded by Igor van den Hoven 2004                       *
+******************************************************************************/
+
+#include "tintin.h"
+
+
+void logit(struct session *ses, char *txt, FILE *file, int flags)
+{
+	char out[BUFFER_SIZE];
+
+	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
+
+	if (HAS_BIT(ses->logmode, LOG_FLAG_PLAIN))
+	{
+		strip_vt102_codes(txt, out);
+	}
+	else if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
+	{
+		vt102_to_html(ses, txt, out);
+	}
+	else
+	{
+		strcpy(out, txt);
+	}
+
+	if (HAS_BIT(flags, LOG_FLAG_LINEFEED))
+	{
+		strcat(out, "\n");
+	}
+	fputs(out, file);
+
+	fflush(file);
+
+	pop_call();
+	return;
+}
+
+void loginit(struct session *ses, FILE *file, int flags)
+{
+	push_call("loginit(%p,%p,%d)",ses,file,flags);
+
+	if (HAS_BIT(flags, LOG_FLAG_APPEND))
+	{
+		if (HAS_BIT(flags, LOG_FLAG_HTML))
+		{
+			fseek(file, 0, SEEK_END);
+
+			if (ftell(file) == 0)
+			{
+				write_html_header(ses, file);
+			}
+		}
+	}
+	else if (HAS_BIT(flags, LOG_FLAG_OVERWRITE) && HAS_BIT(flags, LOG_FLAG_HTML))
+	{
+		if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
+		{
+			write_html_header(ses, file);
+		}
+	}
+	pop_call();
+	return;
+}
+
+DO_COMMAND(do_log)
+{
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN|SUB_ESC);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LOG {APPEND|OVERWRITE|OFF} {<FILENAME>}");
+	}
+	else if (is_abbrev(arg1, "APPEND") && *arg2 != 0)
+	{
+		if (ses->logfile)
+		{
+			fclose(ses->logfile);
+		}
+
+		if ((ses->logfile = fopen(arg2, "a")))
+		{
+			SET_BIT(ses->logmode, LOG_FLAG_APPEND);
+
+			loginit(ses, ses->logfile, ses->logmode);
+
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
+		}
+	}
+	else if (is_abbrev(arg1, "OVERWRITE") && *arg2)
+	{
+		if (ses->logfile)
+		{
+			fclose(ses->logfile);
+		}
+
+		if ((ses->logfile = fopen(arg2, "w")))
+		{
+			SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
+
+			loginit(ses, ses->logfile, ses->logmode);
+
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", arg2);
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
+		}
+	}
+	else if (is_abbrev(arg1, "OFF"))
+	{
+		if (ses->logfile)
+		{
+			DEL_BIT(ses->logmode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+
+			fclose(ses->logfile);
+			ses->logfile = NULL;
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING TURNED OFF.");
+		}
+		else
+		{
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING ALREADY TURNED OFF.");
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LOG {APPEND|OVERWRITE|OFF} {<FILENAME>}");
+	}
+	return ses;
+}
+
+void write_html_header(struct session *ses, FILE *fp)
+{
+	char header[BUFFER_SIZE];
+	
+		sprintf(header, "<html>\n"
+		"<head>\n"
+		"<meta http-equiv='content-type' content='text/html; charset=%s'>\n"
+		"<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n"
+		"<meta name='description' content='Generated by TinTin++ "CLIENT_VERSION" - http://tintin.sourceforge.net'>\n"
+		"<style type='text/css'>\n"
+		"body {font-family:Consolas;font-size:12pt;}\n"
+		"a {text-decoration:none;}\n"
+		"a:link {color:#06b;}\n"
+		"a:visited {color:#6b0;}\n"
+		"a:hover {text-decoration:underline;}\n"
+		"a:active {color:#b06;}\n"
+		".d30{ color: #000; } .l30{ color: #555; } .b40{ background-color: #000; } .b50{ background-color: #555 }\n"
+		".d31{ color: #B00; } .l31{ color: #F55; } .b41{ background-color: #B00; } .b51{ background-color: #F55 }\n"
+		".d32{ color: #0B0; } .l32{ color: #5F5; } .b42{ background-color: #0B0; } .b52{ background-color: #5F5 }\n"
+		".d33{ color: #BB0; } .l33{ color: #FF5; } .b43{ background-color: #BB0; } .b53{ background-color: #FF5 }\n"
+		".d34{ color: #00B; } .l34{ color: #55F; } .b44{ background-color: #00B; } .b54{ background-color: #55F }\n"
+		".d35{ color: #B0B; } .l35{ color: #F5F; } .b45{ background-color: #B0B; } .b55{ background-color: #F5F }\n"
+		".d36{ color: #0BB; } .l36{ color: #5FF; } .b46{ background-color: #0BB; } .b56{ background-color: #5FF }\n"
+		".d37{ color: #BBB; } .l37{ color: #FFF; } .b47{ background-color: #BBB; } .b57{ background-color: #FFF }\n"
+		".d38{ color: #FFF; } .l38{ color: #FFF; } .b48{ background-color: #000; } .b58{ background-color: #000 }\n"
+		".d39{ color: #FFF; } .l39{ color: #FFF; } .b49{ background-color: #000; } .b59{ background-color: #000 }\n"
+		"</style>\n"
+		"<body bgcolor='#000000'>\n"
+		"</head>\n"
+		"<pre>\n"
+		"<span class='b49'><span class='d39'>\n",
+		HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) ? "utf-8" : 
+			HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) ? "big5" : 
+				HAS_BIT(ses->charset, CHARSET_FLAG_GBK1) ? "gb18030" : "iso-8859-1");
+
+	fputs(header, fp);
+}
+
+
+void vt102_to_html(struct session *ses, char *txt, char *out)
+{
+	char tmp[BUFFER_SIZE], *pti, *pto;
+	char xtc[] = { '0', '6', '8', 'B', 'D', 'F' };
+	int vtc, fgc, bgc, cnt;
+	int rgb[6] = { 0, 0, 0, 0, 0, 0 };
+
+	vtc = ses->vtc;
+	fgc = ses->fgc;
+	bgc = ses->bgc;
+
+	pti = txt;
+	pto = out;
+
+	while (*pti)
+	{
+		while (skip_vt102_codes_non_graph(pti))
+		{
+			pti += skip_vt102_codes_non_graph(pti);
+		}
+
+		switch (*pti)
+		{
+			case 27:
+				pti += 2;
+
+				for (cnt = 0 ; pti[cnt] ; cnt++)
+				{
+					tmp[cnt] = pti[cnt];
+
+					if (pti[cnt] == ';' || pti[cnt] == 'm')
+					{
+						tmp[cnt] = 0;
+
+						cnt = -1;
+						pti += 1 + strlen(tmp);
+
+						if (HAS_BIT(vtc, COL_XTF_R))
+						{
+							fgc = URANGE(0, atoi(tmp), 255);
+							DEL_BIT(vtc, COL_XTF_R);
+							SET_BIT(vtc, COL_XTF);
+						}
+						else if (HAS_BIT(vtc, COL_XTB_R))
+						{
+							bgc = URANGE(0, atoi(tmp), 255);
+							DEL_BIT(vtc, COL_XTB_R);
+							SET_BIT(vtc, COL_XTB);
+						}
+						else if (HAS_BIT(vtc, COL_TCF_R))
+						{
+							if (rgb[0] == 256)
+							{
+								rgb[0] = URANGE(0, atoi(tmp), 255);
+							}
+							else if (rgb[1] == 256)
+							{
+								rgb[1] = URANGE(0, atoi(tmp), 255);
+							}
+							else if (rgb[2] == 256)
+							{
+								rgb[2] = URANGE(0, atoi(tmp), 255);
+
+								fgc = rgb[0] * 256 * 256 + rgb[1] * 256 + rgb[2];
+	
+								DEL_BIT(vtc, COL_TCF_R);
+								SET_BIT(vtc, COL_TCF);
+							}
+						}
+						else if (HAS_BIT(vtc, COL_TCB_R))
+						{
+							if (rgb[3] == 256)
+							{
+								rgb[3] = URANGE(0, atoi(tmp), 255);
+							}
+							else if (rgb[4] == 256)
+							{
+								rgb[4] = URANGE(0, atoi(tmp), 255);
+							}
+							else if (rgb[5] == 256)
+							{
+								rgb[5] = URANGE(0, atoi(tmp), 255);
+
+								bgc = rgb[3] * 256 * 256 + rgb[4] * 256 + rgb[5];
+
+								DEL_BIT(vtc, COL_TCB_R);
+								SET_BIT(vtc, COL_TCB);
+							}
+						}
+						else
+						{
+							switch (atoi(tmp))
+							{
+								case 0:
+									vtc = 0;
+									fgc = 39;
+									bgc = 49;
+									break;
+								case 1:
+									SET_BIT(vtc, COL_BLD);
+									break;
+								case 2:
+									if (HAS_BIT(vtc, COL_TCF_2))
+									{
+										DEL_BIT(vtc, COL_XTF_5|COL_TCF_2);
+										SET_BIT(vtc, COL_TCF_R);
+										rgb[0] = 256; rgb[1] = 256; rgb[2] = 256;
+									}
+									else if (HAS_BIT(vtc, COL_TCB_2))
+									{
+										DEL_BIT(vtc, COL_XTB_5|COL_TCF_2);
+										SET_BIT(vtc, COL_TCB_R);
+										rgb[3] = 256; rgb[4] = 256; rgb[5] = 256;
+									}
+									else
+									{
+										DEL_BIT(vtc, COL_BLD);
+									}
+									break;
+								case 5:
+									if (HAS_BIT(vtc, COL_XTF_5))
+									{
+										DEL_BIT(vtc, COL_XTF_5|COL_TCF_2);
+										SET_BIT(vtc, COL_XTF_R);
+									}
+									else if (HAS_BIT(vtc, COL_XTB_5))
+									{
+										DEL_BIT(vtc, COL_XTB_5|COL_TCF_2);
+										SET_BIT(vtc, COL_XTB_R);
+									}
+									break;
+								case 7:
+									SET_BIT(vtc, COL_REV);
+									break;
+								case 21:
+								case 22:
+									DEL_BIT(vtc, COL_BLD);
+									break;
+								case 27:
+									DEL_BIT(vtc, COL_REV);
+									break;
+								case 38:
+									SET_BIT(vtc, COL_XTF_5|COL_TCF_2);
+									fgc = 38;
+									break;
+								case 48:
+									SET_BIT(vtc, COL_XTB_5|COL_TCB_2);
+									bgc = 48;
+									break;
+								default:
+									switch (atoi(tmp) / 10)
+									{
+										case 3:
+										case 9:
+											DEL_BIT(vtc, COL_XTF|COL_TCF);
+											break;
+										case 4:
+										case 10:
+											DEL_BIT(vtc, COL_XTB|COL_TCB);
+											break;
+									}
+									if (atoi(tmp) / 10 == 4)
+									{
+										bgc = atoi(tmp);
+									}
+									if (atoi(tmp) / 10 == 10)
+									{
+										bgc = atoi(tmp) - 50;
+									}
+
+									if (atoi(tmp) / 10 == 3)
+									{
+										fgc = atoi(tmp);
+									}
+									if (atoi(tmp) / 10 == 9)
+									{
+										SET_BIT(vtc, COL_BLD);
+
+										fgc = atoi(tmp) - 60;
+									}
+									break;
+							}
+						}
+					}
+
+					if (pti[-1] == 'm')
+					{
+						break;
+					}
+				}
+
+				if (!HAS_BIT(vtc, COL_REV) && HAS_BIT(ses->vtc, COL_REV))
+				{
+					cnt = fgc;
+					fgc = ses->fgc = bgc - 10;
+					bgc = ses->bgc = cnt + 10;
+				}
+
+				if (bgc != ses->bgc || fgc != ses->fgc || vtc != ses->vtc)
+				{
+					sprintf(pto, "</span>");
+					pto += strlen(pto);
+
+					if (bgc != ses->bgc)
+					{
+						if (HAS_BIT(vtc, COL_XTB))
+						{
+							if (bgc < 8)
+							{
+								sprintf(pto, "</span><span class='b%d'>", 40+bgc);
+							}
+							else if (bgc < 16)
+							{
+								sprintf(pto, "</span><span class='b%d'>", 50+bgc-8);
+							}
+							else if (bgc < 232)
+							{
+								sprintf(pto, "</span><span style='background-color: #%c%c%c;'>", xtc[(bgc-16) / 36], xtc[(bgc-16) % 36 / 6], xtc[(bgc-16) % 6]);
+							}
+							else
+							{
+								sprintf(pto, "</span><span style='background-color: rgb(%d,%d,%d);'>", (bgc-232) * 10 + 8, (bgc-232) * 10 + 8,(bgc-232) * 10 + 8);
+							}
+						}
+						else if (HAS_BIT(vtc, COL_TCB))
+						{
+							sprintf(pto, "</span><span style='background-color: rgb(%d,%d,%d);'>", rgb[3], rgb[4], rgb[5]);
+						}
+						else
+						{
+							sprintf(pto, "</span><span class='b%d'>", bgc);
+						}
+						pto += strlen(pto);
+					}
+
+					if (HAS_BIT(vtc, COL_XTF))
+					{
+						if (fgc < 8)
+						{
+							sprintf(pto, "<span class='d%d'>", 30+fgc);
+						}
+						else if (fgc < 16)
+						{
+							sprintf(pto, "<span class='l%d'>", 30+fgc-8);
+						}
+						else if (fgc < 232)
+						{
+							sprintf(pto, "<span style='color: #%c%c%c;'>", xtc[(fgc-16) / 36], xtc[(fgc-16) % 36 / 6], xtc[(fgc-16) % 6]);
+						}
+						else
+						{
+							sprintf(pto, "<span style='color: rgb(%d,%d,%d);'>", (fgc-232) * 10 + 8, (fgc-232) * 10 + 8,(fgc-232) * 10 + 8);
+						}
+					}
+					else if (HAS_BIT(vtc, COL_TCF))
+					{
+						sprintf(pto, "<span style='color: rgb(%d,%d,%d);'>", fgc / 256 / 256, fgc / 256 % 256, fgc % 256);
+					}
+					else
+					{
+						if (HAS_BIT(vtc, COL_BLD))
+						{
+							sprintf(pto, "<span class='l%d'>", fgc);
+						}
+						else
+						{
+							sprintf(pto, "<span class='d%d'>", fgc);
+						}
+					}
+					pto += strlen(pto);
+				}
+
+				if (HAS_BIT(vtc, COL_REV) && !HAS_BIT(ses->vtc, COL_REV))
+				{
+					cnt = fgc;
+					fgc = ses->fgc = bgc - 10;
+					bgc = ses->bgc = cnt + 10;
+				}
+
+				ses->vtc = vtc;
+				ses->fgc = fgc;
+				ses->bgc = bgc;
+				break;
+
+			case  6:
+				*pto++ = '&';
+				pti++;
+				break;
+
+			case 28:
+				*pto++ = '<';
+				pti++;
+				break;
+
+			case 30:
+				*pto++ = '>';
+				pti++;
+				break;
+
+			case '>':
+				sprintf(pto, "&gt;");
+				pto += strlen(pto);
+				pti++;
+				break;
+
+			case '<':
+				sprintf(pto, "&lt;");
+				pto += strlen(pto);
+				pti++;
+				break;
+
+			case '"':
+				sprintf(pto, "&quot;");
+				pto += strlen(pto);
+				pti++;
+				break;
+
+			case '&':
+				sprintf(pto, "&amp;");
+				pto += strlen(pto);
+				pti++;
+				break;
+
+			case '$':
+				sprintf(pto, "&dollar;");
+				pto += strlen(pto);
+				pti++;
+				break;
+
+			case '\\':
+				sprintf(pto, "&bsol;");
+				pto += strlen(pto);
+				pti++;
+				break;
+			case 0:
+				break;
+
+			default:
+				*pto++ = *pti++;
+				break;
+		}
+	}
+	*pto = 0;
+}

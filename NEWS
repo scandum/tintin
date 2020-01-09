@@ -1,6 +1,23 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.01.93
+----------------
+
+01) #format <var> %C needs to be changed to #screen get cols <var>
+    #format <var> %R needs to be changed to #screen get rows <var>
+    #format <var> %S needs to be changed to #info session save
+
+02) If you were using ${variable}[1] this needs to be changed to
+    ${variable[1]} to have the same behavior.
+
+03) $variable() *variable() and &variable() are reserved until further notice,
+    use ${variable}( for proper behavior.
+
+04) %+ should no longer be used in regular expressions.
+
+    You can replace '%+' with '%+1..a', see #help regex for more information.
+
 TinTin++ 2.01.92
 ----------------
 
@@ -17,12 +34,7 @@ TinTin++ 2.01.92
 
 04) #forall has been removed.
 
-05) %. and %+ should no longer be used in regular expressions. This will
-    allow expansion of tintin's make-shift regex syntax in the future.
-
-    Use {.} and {.+} and {.?+} instead.
-
-06) Added a notice for people still using $variable[] instead of
+05) Added a notice for people still using $variable[] instead of
     *variable[]. I'll change $variable[] eventually to be identical to
     $variable[%*].
 
