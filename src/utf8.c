@@ -1613,7 +1613,7 @@ int utf8_to_gbk1(char *input, char *output)
 				*pto++ = '?';
 				*pto++ = '?';
 			}
-			pti += 2;
+			pti += size;
 		}
 		else
 		{
