@@ -142,7 +142,7 @@ DO_COMMAND(do_local)
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
-		node = set_nest_node_ses(ses, arg1, "%s", str);
+		node = set_nest_node(root, arg1, "%s", str);
 
 		while (*arg)
 		{

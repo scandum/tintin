@@ -191,7 +191,6 @@ int skip_vt102_codes(char *str)
 
 	switch (str[0])
 	{
-		case   5:   /* ENQ */
 		case   7:   /* BEL */
 		case   8:   /* BS  */
 	//	case   9:      HT
@@ -403,7 +402,6 @@ int skip_vt102_codes_non_graph(char *str)
 
 	switch (str[skip])
 	{
-		case   5:   /* ENQ */
 		case   7:   /* BEL */
 	/*	case   8: *//* BS  */
 	/*	case   9: *//* HT  */

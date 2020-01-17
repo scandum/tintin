@@ -363,10 +363,10 @@ char *capitalize(char *str)
 
 char *ntos(long long number)
 {
-	static char outbuf[100][NUMBER_SIZE];
+	static char outbuf[10][NUMBER_SIZE];
 	static int cnt;
 
-	cnt = (cnt + 1) % 100;
+	cnt = (cnt + 1) % 10;
 
 	sprintf(outbuf[cnt], "%lld", number);
 

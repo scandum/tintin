@@ -108,7 +108,12 @@ void print_stdout(char *format, ...)
 	}
 	else
 	{
-		write(STDIN_FILENO, buffer, len);
+		SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+
+		printf("%s", buffer);
+
+//		fwrite(buffer, len, 1, stdout);
+//		write(STDIN_FILENO, buffer, len); slooow
 	}
 	free(buffer);
 }

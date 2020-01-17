@@ -545,7 +545,6 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 
 	while (*pti)
 	{
-		
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
 			*pto++ = *pti++;

@@ -134,7 +134,14 @@ struct listnode *insert_node_list(struct listroot *root, char *arg1, char *arg2,
 		strcpy(arg3, "5");
 	}
 
-	node->arg1 = str_dup(arg1);
+	if (HAS_BIT(root->flags, LIST_FLAG_NEST) && *arg1 == '\\')
+	{
+		node->arg1 = str_dup(arg1+1);
+	}
+	else
+	{
+		node->arg1 = str_dup(arg1);
+	}
 	node->arg2 = str_dup(arg2);
 	node->arg3 = str_dup(arg3);
 	node->arg4 = str_dup(arg4);
@@ -392,32 +399,36 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 
 	push_call("bsearch_alpha_list(%p,%p,%d)",root,text,seek);
 
+	if (seek == 0 && HAS_BIT(root->flags, LIST_FLAG_NEST))
+	{
+		switch (*text)
+		{
+			case '+':
+			case '-':
+				toi = get_number(root->ses, text);
+
+				if (toi > 0 && toi <= root->used)
+				{
+					pop_call();
+					return toi - 1;
+				}
+
+				if (toi < 0 && toi + root->used >= 0)
+				{
+					pop_call();
+					return root->used + toi;
+				}
+				break;
+
+			case '\\':
+				text++;
+				break;
+		}
+	}
+
 	bot = 0;
 	top = root->used - 1;
 	val = top;
-
-//	toi = get_number(root->ses, text);
-
-	if (seek == 0 && (*text == '+' || *text == '-') && is_math(root->ses, text) && HAS_BIT(root->flags, LIST_FLAG_NEST))
-	{
-		toi = get_number(root->ses, text);
-
-		if (toi > 0 && toi <= root->used)
-		{
-			pop_call();
-			return toi - 1;
-		}
-		if (toi < 0 && toi + root->used >= 0)
-		{
-			pop_call();
-			return root->used + toi;
-		}
-		else
-		{
-			pop_call();
-			return -1;
-		}
-	}
 
 	toi = is_number(text) ? tintoi(text) : 0;
 
@@ -1122,13 +1133,17 @@ DO_COMMAND(do_info)
 			}
 			else if (is_abbrev(arg1, "SYSTEM"))
 			{
+				char cwd[PATH_MAX];
+
+				getcwd(cwd, PATH_MAX);
+
 				if (is_abbrev(arg2, "SAVE"))
 				{
 					sprintf(name, "info[SYSTEM]");
 
 					set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
-					add_nest_node_ses(ses, name, "{CLIENT}{{NAME}{%s}{VERSION}{%s}}", CLIENT_NAME, CLIENT_VERSION);
-					add_nest_node_ses(ses, name, "{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
+//					add_nest_node_ses(ses, name, "{CLIENT}{{NAME}{%s}{VERSION}{%s}}", CLIENT_NAME, CLIENT_VERSION);
+					add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", cwd, gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
 					add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
@@ -1137,6 +1152,7 @@ DO_COMMAND(do_info)
 				{
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
+					tintin_printf2(ses, "#INFO SYSTEM: CWD            = %s", cwd);
 					tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->exec);
 					tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->home);
 					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->lang);
@@ -1147,6 +1163,20 @@ DO_COMMAND(do_info)
 					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_SOCK    = %d", gtd->attach_sock);
 					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_sock ? gtd->attach_file : "");
 				}
+			}
+			else if (is_abbrev(arg1, "UNICODE"))
+			{
+				int size, width, index;
+
+				size = get_utf8_size(arg2);
+				get_utf8_width(arg2, &width);
+				get_utf8_index(arg2, &index);
+
+				tintin_printf2(ses, "#INFO UNICODE: %s:  is_utf8_head  = %d (%s)", arg2, is_utf8_head(arg2), is_utf8_head(arg2) ? "true" : "false");
+				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_size  = %d", arg2, size);
+				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_width = %d", arg2, width);
+				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %d (decimal)", arg2, index);
+				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %x (hexadecimal)", arg2, index);
 			}
 			else
 			{

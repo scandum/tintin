@@ -282,7 +282,7 @@ int delete_map(struct session *ses)
 
 struct room_data *create_room(struct session *ses, char *format, ...)
 {
-	char *arg, buf[BUFFER_SIZE];
+	char *arg, buf[BUFFER_SIZE], arg1[BUFFER_SIZE];
 	struct room_data *newroom;
 	va_list args;
 
@@ -292,9 +292,9 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 
 	newroom = (struct room_data *) calloc(1, sizeof(struct room_data));
 
-	arg = buf;
+	arg = get_arg_in_braces(ses, buf, arg1, GET_ONE);
 
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->vnum    = atoi(buf);
+	newroom->vnum = atoi(arg1);
 
 	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYNC) && ses->map->room_list[newroom->vnum] != NULL)
 	{
@@ -305,17 +305,17 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 		return ses->map->room_list[vnum];
 	}
 
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->flags   = atoi(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->color   = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->name    = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->symbol  = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->desc    = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->area    = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->note    = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->terrain = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->data    = strdup(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->weight  = atof(buf);
-	arg = get_arg_in_braces(ses, arg, buf, GET_ONE); newroom->id      = strdup(buf);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->flags   = atoi(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->color   = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->name    = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->symbol  = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->desc    = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->area    = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->note    = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->terrain = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->data    = strdup(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->weight  = atof(arg1);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE); newroom->id      = strdup(arg1);
 
 	if (HAS_BIT(newroom->flags, ROOM_FLAG_AVOID))
 	{
@@ -1668,7 +1668,7 @@ char *draw_terrain_symbol(struct session *ses, struct room_data *room, int line,
 		{
 			case 12:
 			case 14:
-				if (room_grid[EXIT_GRID_0] && room_grid[EXIT_GRID_N] && room_grid[EXIT_GRID_0]->terrain_index != -1 && room_grid[EXIT_GRID_0]->terrain_index != room_grid[EXIT_GRID_N]->terrain_index)
+				if (room_grid[EXIT_GRID_0] && room_grid[EXIT_GRID_N] && room_grid[EXIT_GRID_0]->terrain_index != -1 && room_grid[EXIT_GRID_N]->terrain_index != -1 && room_grid[EXIT_GRID_0]->terrain_index != room_grid[EXIT_GRID_N]->terrain_index)
 				{
 					if (!HAS_BIT(ses->list[LIST_TERRAIN]->list[room_grid[EXIT_GRID_N]->terrain_index]->room->terrain_flags, TERRAIN_FLAG_DOUBLE))
 					{
@@ -2392,7 +2392,6 @@ char *draw_room(struct session *ses, struct room_data *room, int line, int x, in
 			}
 			else
 			{
-				
 				sprintf(room_left,  "%s%s", room_color, ses->map->legend[LEGEND_UNICODE_GRAPHICS + UNICODE_DIR_RL]);
 				sprintf(room_right, "%s%s", room_color, ses->map->legend[LEGEND_UNICODE_GRAPHICS + UNICODE_DIR_RR]);
 			}
@@ -6605,7 +6604,7 @@ DO_MAP(map_list)
 
 DO_MAP(map_map)
 {
-	char arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char arg3[BUFFER_SIZE], arg4[BUFFER_SIZE], tmp[BUFFER_SIZE];
 	FILE *logfile = NULL;
 	int x, y, line, row;
 
@@ -6713,7 +6712,7 @@ DO_MAP(map_map)
 	else if (HAS_BIT(ses->map->flags, MAP_FLAG_UNICODEGRAPHICS))
 	{
 		map_grid_y = 2 + (map_grid_y + 1) / 2;
-		map_grid_x = 2 + (map_grid_x + 3) / 5;
+		map_grid_x = 2 + (map_grid_x + 4) / 5;
 	}
 	else if (HAS_BIT(ses->map->flags, MAP_FLAG_BLOCKGRAPHICS))
 	{
@@ -6785,7 +6784,53 @@ DO_MAP(map_map)
 			}
 		}
 	}
-	else if (HAS_BIT(ses->map->flags, MAP_FLAG_UNICODEGRAPHICS) || HAS_BIT(ses->map->flags, MAP_FLAG_BLOCKGRAPHICS))
+	else if (HAS_BIT(ses->map->flags, MAP_FLAG_UNICODEGRAPHICS))
+	{
+		for (y = map_grid_y - 2 ; y >= 1 ; y--)
+		{
+			for (line = 1 ; line <= 2 ; line++)
+			{
+				str_cpy(&gtd->buf, ses->map->color[MAP_COLOR_BACK]);
+
+				for (x = 1 ; x < map_grid_x - 1 ; x++)
+				{
+					if (x == map_grid_x - 2)
+					{
+						strcpy(tmp, draw_room(ses, ses->map->grid_rooms[x + map_grid_x * y], line, x, y));
+
+						str_cat_printf(&gtd->buf, "%.*s", string_str_raw_len(ses, tmp, 0, 2), tmp);
+					}
+					else
+					{
+						str_cat(&gtd->buf, draw_room(ses, ses->map->grid_rooms[x + map_grid_x * y], line, x, y));
+					}
+//					str_cat(&gtd->buf, draw_room(ses, ses->map->grid_rooms[x + map_grid_x * y], line, x, y));
+				}
+
+				str_clone(&gtd->out, gtd->buf);
+
+				substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_LIT);
+
+				if (logfile)
+				{
+					fprintf(logfile, "%s\n", gtd->out);
+				}
+				else if (*arg3 == 'L')
+				{
+					cat_sprintf(arg1, "{%02d}{%s\e[0m}", ++row, gtd->out);
+				}
+				else if (*arg3 == 'V' || *arg3 == 'D')
+				{
+					cat_sprintf(arg1, "%s\e[0m\n", gtd->out);
+				}
+				else
+				{
+					tintin_puts2(ses, gtd->out);
+				}
+			}
+		}
+	}
+	else if (HAS_BIT(ses->map->flags, MAP_FLAG_BLOCKGRAPHICS))
 	{
 		for (y = map_grid_y - 2 ; y >= 1 ; y--)
 		{
@@ -7718,7 +7763,10 @@ DO_MAP(map_terrain)
 				strcat(buf1, "DOUBLE ");
 			}
 
-			buf1[strlen(buf1) - 1] = 0;
+			if (*buf1)
+			{
+				buf1[strlen(buf1) - 1] = 0;
+			}
 		}
 
 		node = update_node_list(root, arg1, arg2, buf1, "");

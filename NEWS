@@ -1,7 +1,7 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
-TinTin++ 2.01.93
+TinTin++ 2.02.00
 ----------------
 
 01) #format <var> %C needs to be changed to #screen get cols <var>

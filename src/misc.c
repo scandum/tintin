@@ -37,11 +37,8 @@ DO_COMMAND(do_bell)
 	if (*arg1 == 0)
 	{
 		print_stdout("\007");
-
-		return ses;
 	}
-
-	if (is_abbrev(arg1, "FLASH"))
+	else if (is_abbrev(arg1, "FLASH"))
 	{
 		if (is_abbrev(arg2, "ON"))
 		{
@@ -105,6 +102,7 @@ DO_COMMAND(do_bell)
 	{
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL {FLASH|FOCUS|MARGIN|RING|VOLUME} {ARGUMENT}");
 	}
+
 	return ses;
 }
 
@@ -267,13 +265,15 @@ DO_COMMAND(do_test)
 	{
 		sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
 
-		if (isxdigit(arg[1]) && isxdigit(arg[2]) && isxdigit(arg[3]))
+		if ((isxdigit(arg[1]) && isxdigit(arg[2]) && isxdigit(arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
 		{
 			sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
 
 			if (isdigit(arg[4]) && isdigit(arg[5]))
 			{
-				sprintf(arg4, "%d %d %s", (arg[4] - '0') * (arg[4] - '0') / 10, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+				sprintf(arg4, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+
+				tintin_printf2(ses, "debug: %s", arg4);
 			}
 		}
 	}

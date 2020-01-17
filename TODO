@@ -1,17 +1,8 @@
 * BUGS
 
-
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - #map exit <exit> dir is not updating the room grid.
-
-  - html log improvements
-  
-  - ascii draw mode for #screen fill DEFAULT
-
-  - #info unicode <character>
-
-  - pancake mode to display rooms at all levels and annotations
+  - provide the coordinate of the X on the vtmap.
 
   - screen move, negative arg handling.
 
@@ -23,6 +14,8 @@
   - #map legend support for unicode graphics.
   - add step count for #map list and rename distance to weight
   - multi-line room symbols
+  - pancake mode to display rooms at all levels and annotations
+  - there might be a terrain density bug
 
   - #math idea: 4 === 2+2 === 8-4
   - #math true/false handling?

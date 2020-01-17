@@ -576,7 +576,7 @@ void update_daemon(void)
 
 					winch_handler(0);
 
-					show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: UNATTACHING {%s} DUE TO READ ERROR.", gtd->attach_file);
+					show_message(gtd->ses, LIST_COMMAND, "#DAEMON UPDATE: UNATTACHING {%s}.", gtd->attach_file);
 				}
 				else
 				{

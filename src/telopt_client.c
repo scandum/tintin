@@ -439,12 +439,6 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					cplen--;
 					continue;
 
-				case ASCII_ENQ:
-					check_all_events(ses, SUB_ARG, 0, 1, "VT100 ENQ", gtd->term); // obsolete, but we'll handle it for now.
-					cpsrc++;
-					cplen--;
-					continue;
-
 				case ASCII_CR:
 					if (cplen > 1 && cpsrc[1] == ASCII_LF)
 					{
@@ -469,8 +463,16 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 						cpsrc++;
 						cplen--;
 					}
-
 					continue;
+
+				case ASCII_ENQ:
+					if (check_all_events(ses, SUB_ARG, 0, 1, "CATCH VT100 ENQ", gtd->term))
+					{
+						cpsrc++;
+						cplen--;
+						continue;
+					}
+					break;
 
 				default:
 					if (cpsrc[0] == ASCII_ESC)

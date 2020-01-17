@@ -1017,7 +1017,7 @@ DO_DRAW(draw_rain)
 {
 	char code[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE], *rain[400];
 	struct listnode *node;
-	int skp, row, col, len, rand, cnt, size, max, utfs[400];
+	int row, col, len, rand, cnt, size, max, utfs[400];
 	long double density, fade;
 
 	strcpy(code, arg2);
@@ -1207,8 +1207,6 @@ DO_DRAW(draw_rain)
 		}
 		else if (node->root->list[col]->val16[0] > 1)
 		{
-			skp = 1;
-
 			while (row < len)
 			{
 				if (node->root->list[col]->arg2[row] == ' ')
@@ -1237,20 +1235,18 @@ DO_DRAW(draw_rain)
 					sprintf(arg2, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
 					print_stdout("%s", arg3);
-					skp = 0;
 				}
 				else
 				{
 					sprintf(arg2, "%s%.*s", dim_color_code(ses, code, node->root->list[col]->val16[0] - cnt), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
 					print_stdout("%s", arg3);
-					skp = 0;
 				}
 
 				row += size;
 			}
 
-			if (skp)
+			if (node->root->list[col]->val16[0] - cnt > 16)
 			{
 				node->root->list[col]->val16[0] = 0;
 				node->root->list[col]->val16[1] = 0;

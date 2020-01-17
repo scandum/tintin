@@ -1,3 +1,17 @@
+Jan 2020        2.02.01
+------------------------------------------------------------------------------
+
+data.c          Added CWD field to #info system to get the current working
+                directory.
+
+data.c          Added the option to use #var var[\+1] to set and retrieve a
+                literal +1 instead of referencing the first index. This
+                behaves like the verbatim mode and the backslash is only
+                valid at the start of the line.
+
+data.c          Added #info unicode <character> option to display
+                information about the provided character.
+
 Nov 2019        2.02.00
 ------------------------------------------------------------------------------
 

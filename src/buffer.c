@@ -97,7 +97,7 @@ void check_buffer(struct session *ses)
 	{
 		buffer = ses->scroll->buffer[index];
 
-		if (buffer->height == 1 && buffer->width < wrap - 1)
+		if (buffer->width < wrap)
 		{
 			buffer->height = buffer->lines;
 		}

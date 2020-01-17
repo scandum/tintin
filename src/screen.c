@@ -467,17 +467,17 @@ DO_SCREEN(screen_move)
 		return;
 	}
 
-	height = (int) get_number(ses, arg2);
-	width  = (int) get_number(ses, arg1);
+	height = (int) get_number(ses, arg1);
+	width  = (int) get_number(ses, arg2);
 
 	if (height < 0)
 	{
-		strcpy(arg2, "0");
+		sprintf(arg1, "%d", 1 + gtd->screen->desk_height - gtd->screen->tot_height + height);
 	}
 
 	if (width < 0)
 	{
-		strcpy(arg1, "0");
+		sprintf(arg2, "%d", 1 + gtd->screen->desk_width - gtd->screen->tot_width + width);
 	}
 
 	screen_csit(ses, "3", arg2, arg1); // reverse x,y to row,col
@@ -859,6 +859,8 @@ void csit_handler(int ind, int var1, int var2)
 			break;
 
 		case 4:
+			gtd->screen->tot_height = UMAX(0, var1);
+			gtd->screen->tot_width  = UMAX(0, var2);
 			check_all_events(NULL, SUB_ARG, 0, 2, "SCREEN DIMENSIONS", ntos(var1), ntos(var2));
 			break;
 
@@ -1014,8 +1016,8 @@ DO_SCREEN(screen_info)
 
 	for (lvl = 0 ; lvl < gtd->screen->sav_lev ; lvl++)
 	{
-	tintin_printf2(ses, "gtd->screen->sav_row[%2d]: %4d", lvl, gtd->screen->sav_row[lvl]);
-	tintin_printf2(ses, "gtd->screen->sav_col[%2d]: %4d", lvl, gtd->screen->sav_col[lvl]);
+		tintin_printf2(ses, "gtd->screen->sav_row[%2d]: %4d", lvl, gtd->screen->sav_row[lvl]);
+		tintin_printf2(ses, "gtd->screen->sav_col[%2d]: %4d", lvl, gtd->screen->sav_col[lvl]);
 	}
 
 	tintin_printf2(ses, "");
@@ -1023,9 +1025,9 @@ DO_SCREEN(screen_info)
 	tintin_printf2(ses, "gtd->screen->rows:        %4d", gtd->screen->rows);
 	tintin_printf2(ses, "gtd->screen->cols:        %4d", gtd->screen->cols);
 	tintin_printf2(ses, "gtd->screen->height:      %4d", gtd->screen->height);
-	tintin_printf2(ses, "gtd->screen->pix_cows:    %4d", gtd->screen->width);
-
-	return;
+	tintin_printf2(ses, "gtd->screen->width:       %4d", gtd->screen->width);
+	tintin_printf2(ses, "gtd->screen->tot_height:  %4d", gtd->screen->tot_height);
+	tintin_printf2(ses, "gtd->screen->tot_width:   %4d", gtd->screen->tot_width);
 
 	tintin_printf2(ses, "");
 
@@ -1037,6 +1039,10 @@ DO_SCREEN(screen_info)
 
 	tintin_printf2(ses, "");
 
+	tintin_printf2(ses, "gtd->screen->desk_rows:   %4d", gtd->screen->desk_rows);
+	tintin_printf2(ses, "gtd->screen->desk_cols:   %4d", gtd->screen->desk_cols);
+	tintin_printf2(ses, "gtd->screen->desk_height: %4d", gtd->screen->desk_height);
+	tintin_printf2(ses, "gtd->screen->desk_width:  %4d", gtd->screen->desk_width);
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 	{

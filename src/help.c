@@ -577,15 +577,38 @@ struct help_type help_table[] =
 	{
 		"CHAT",
 
-		"<178>Command<278>: #chat <178>{<278>option<178>} {<278>argument<178>}<278>\n"
+		"<178>Command<278>: #chat <178>{<278>option<178>} {<278>argument<178>}\n"
+		"<278>\n"
+		"         The #chat command is used to create peer to peer connections to other\n"
+		"         clients, typically for the purpose of chatting and sending files.\n"
+		"         This is a decentralized chat system, meaning you have to exchange ip\n"
+		"         addresses and port numbers with other users in order to connect to\n"
+		"         them.\n"
 		"\n"
-		"         #chat {init}       {port}             Initilizes a chat port.\n"
-		"         #chat {name}       {name}             Sets your chat name.\n"
-		"         #chat {message}    {buddy|all} {text} Sends a chat message\n"
-		"\n"
-		"         #chat {accept}     {buddy} {boost}    Accept a file transfer\n"
-		"         #chat {call}       {address} {port}   Connect to a buddy\n"
-		"         #chat {cancel}     {buddy}            Cancel a file transfer\n"
+		"         <178>#chat {init} {port}\n"
+		"         <278>  #chat initialize launches your chat server. The port number is\n"
+		"           optional, and by default 4050 is used as your port. After using\n"
+		"           this command other people can connect to your chat server using\n"
+		"           your ip address and port number, and in turn you can connect to\n"
+		"           other people.\n"
+		"         <178>#chat {name} {name}\n"
+		"         <278>  By default your name is set to TinTin, but most servers will\n"
+		"           reject you if there is already someone with the name TinTin\n"
+		"           connected, so one of the first things you'd want to do is\n"
+		"           change your chat name. Your name can include color codes. Some\n"
+		"           names aren't accepted by tt++ chat servers, like the name 'all'\n"
+		"           and names longer than 20 characters.\n"
+		"         <178>#chat {message} {buddy|all} {text}\n"
+		"         <278>  This is the main command used for communication. If you use\n"
+		"           #chat message all, the message is marked as public and send to\n"
+		"           everyone you are connected to.\n"
+		"         <178>#chat {accept} {buddy} {boost}\n"
+		"         <278>  Accept a file transfer from a buddy. The boost is optional and\n"
+		"           must be a value between 1 and 1000.\n"
+		"         <178>#chat {call}       {address} {port}\n"
+		"         <278>  #chat call is used to connect to another chat server. If you\n"
+		"           omit the port argument the default port (4050) is used.\n"
+		"         <178>#chat {cancel}     {buddy}            Cancel a file transfer\n"
 		"         #chat {color}      {color names}      Set the default color\n"
 		"         #chat {decline}    {buddy}            Decline a file transfer\n"
 		"         #chat {dnd}                           Decline new connections\n"
@@ -609,15 +632,22 @@ struct help_type help_table[] =
 		"         #chat {sendfile}   {buddy} {filename} Start a file transfer\n"
 		"         #chat {serve}      {buddy}            Forward all public chat messages\n"
 		"         #chat {uninitialize}                  Uninitialize the chat port.\n"
-		"         #chat {who}                           Show all connections\n"
-		"         #chat {zap}        {buddy}            Close a connection\n",
+		"         <178>#chat {who}                           Show all connections\n"
+		"         <278>  #chat who shows all people you are connected to. The first\n"
+		"           column shows a reference number for the connection, which can be\n"
+		"           used instead of the connection's name when sending someone a message\n"
+		"           The second column shows the connection's name. The third column\n"
+		"           shows flags set for the connection, (P)rivate, (I)gnore, (S)erve,\n"
+		"           (F)orward to user, and (f)orward from user. The next columns show\n"
+		"           ip, port, and client name.\n"
+		"         <178>#chat {zap}        {buddy}            Close a connection\n",
 		
 		"port"
 	},
 	{
 		"CLASS",
 
-		"<178>Command<278>: #class <178>{<278>name<178>} {<278>open<178>|<278>close<178>|<278>list<178>|<278>read<178>|<278>size<178>|<278>write<178>|<278>kill<178>} {<278>arg<178>}<278>\n"
+		"<178>Command<278>: #class <178>{<278>name<178>} {<278>optionkill<178>} {<278>arg<178>}<278>\n"
 		"\n"
 		"         <178>#class {<name>} {open}\n"
 		"         <278>  Open a class, closing a previously opened class. All triggers\n"
@@ -790,8 +820,11 @@ struct help_type help_table[] =
 		"\n"
 		"         The cursor command's primarly goal is adding customizable input editing\n"
 		"         with macros. Subsequently many cursor commands only work properly when\n"
-		"         used within a macro or event.\n",
-		
+		"         used within a macro or event.\n"
+		"\n"
+		"         <178>#cursor tab <list;scrollback> <backward|forward>\n"
+		"         <278>  Tab through the given option(s) going forward or backward.\n"
+		,
 		"alias history keypad macro speedwalk tab"
 	},
 	{
@@ -1697,7 +1730,8 @@ struct help_type help_table[] =
 		"         #info mccp will show information about data compression.\n"
 		"         #info stack will show the low level debugging stack.\n"
 		"         #info session will show some session information.\n"
-		"         #info system will show some system information.\n",
+		"         #info system will show some system information.\n"
+		"         #info unicode will show information on the provided character.\n",
 
 		"class debug ignore kill message"
 	},
@@ -2198,6 +2232,9 @@ struct help_type help_table[] =
 		"\n"
 		"         <178>#map terrain <name> <symbol> [FADEIN|FADEOUT]\n"
 		"         <278>  Determine symbol spread density, omit for the default.\n"
+		"\n"
+		"         <178>#map terrain <name> <symbol> [DOUBLE]\n"
+		"         <278>  You're using two characters for the symbol.\n"
 		"\n"
 		"         <178>#map travel <direction> <delay>\n"
 		"         <278>  Follows the direction until a dead end or an intersection is\n"

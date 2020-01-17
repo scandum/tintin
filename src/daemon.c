@@ -649,7 +649,7 @@ void reset_daemon()
 {
 	if (gtd->detach_sock > 0)
 	{
-		print_stdout("removing(%s)\n", gtd->detach_file);
+//		print_stdout("removing(%s)\n", gtd->detach_file);
 
 		remove(gtd->detach_file);
 	}

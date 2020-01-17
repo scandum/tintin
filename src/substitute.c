@@ -27,6 +27,7 @@
 
 // color subs
 
+
 char *c256to16_fg[256] =
 {
 	"\e[22;30m", "\e[22;31m", "\e[22;32m", "\e[22;33m", "\e[22;34m", "\e[22;35m", "\e[22;36m", "\e[22;37m",
@@ -1556,106 +1557,113 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						pti += strlen(old);
 					}
-					else if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]) && pti[4] == '>')
+					else if (pti[1] && pti[2] && pti[3] && pti[4] == '>')
 					{
-						if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
+						if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
 						{
-							*pto++ = ASCII_ESC;
-							*pto++ = '[';
-
-							switch (pti[1])
+							if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
 							{
-								case '2':
-									*pto++ = '2';
-									*pto++ = '2';
-									*pto++ = ';';
-									break;
-								case '8':
-									break;
-								default:
-									*pto++ = pti[1];
-									*pto++ = ';';
+								*pto++ = ASCII_ESC;
+								*pto++ = '[';
+
+								switch (pti[1])
+								{
+									case '2':
+										*pto++ = '2';
+										*pto++ = '2';
+										*pto++ = ';';
+										break;
+									case '8':
+										break;
+									default:
+										*pto++ = pti[1];
+										*pto++ = ';';
+								}
+								switch (pti[2])
+								{
+									case '8':
+										break;
+									default:
+										*pto++ = '3';
+										*pto++ = pti[2];
+										*pto++ = ';';
+										break;
+								}
+								switch (pti[3])
+								{
+									case '8':
+										break;
+									default:
+										*pto++ = '4';
+										*pto++ = pti[3];
+										*pto++ = ';';
+										break;
+								}
+								pto--;
+								*pto++ = 'm';
 							}
-							switch (pti[2])
+							pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
+						}
+						else if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f' && pti[4] == '>')
+						{
+							cnt = 16 + (pti[1] - 'a') * 36 + (pti[2] - 'a') * 6 + (pti[3] - 'a');
+							
+							if (ses->color >= 256)
 							{
-								case '8':
-									break;
-								default:
-									*pto++ = '3';
-									*pto++ = pti[2];
-									*pto++ = ';';
-									break;
+								pto += sprintf(pto, "\e[38;5;%dm", cnt);
 							}
-							switch (pti[3])
+							else if (ses->color == 16)
 							{
-								case '8':
-									break;
-								default:
-									*pto++ = '4';
-									*pto++ = pti[3];
-									*pto++ = ';';
-									break;
+								pto += sprintf(pto, "%s", c256to16_fg[cnt]);
 							}
-							pto--;
-							*pto++ = 'm';
+							pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
 						}
-						pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
-					}
-					else if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f' && pti[4] == '>')
-					{
-						cnt = 16 + (pti[1] - 'a') * 36 + (pti[2] - 'a') * 6 + (pti[3] - 'a');
+						else if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F' && pti[4] == '>')
+						{
+							cnt = 16 + (pti[1] - 'A') * 36 + (pti[2] - 'A') * 6 + (pti[3] - 'A');
 
-						if (ses->color >= 256)
-						{
-							pto += sprintf(pto, "\e[38;5;%dm", cnt);
+							if (ses->color >= 256)
+							{
+								pto += sprintf(pto, "\e[48;5;%dm", cnt);
+							}
+							else if (ses->color == 16)
+							{
+								pto += sprintf(pto, "%s", c256to16_bg[cnt]);
+							}
+							pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
 						}
-						else if (ses->color == 16)
+						else if (pti[1] == 'g' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
 						{
-							pto += sprintf(pto, "%s", c256to16_fg[cnt]);
-						}
-						pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
-					}
-					else if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F' && pti[4] == '>')
-					{
-						cnt = 16 + (pti[1] - 'A') * 36 + (pti[2] - 'A') * 6 + (pti[3] - 'A');
+							cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
 
-						if (ses->color >= 256)
-						{
-							pto += sprintf(pto, "\e[48;5;%dm", cnt);
+							if (ses->color >= 256)
+							{
+								pto += sprintf(pto, "\e[38;5;%dm", cnt);
+							}
+							else if (ses->color == 16)
+							{
+								pto += sprintf(pto, "%s", c256to16_fg[cnt]);
+							}
+							pti += sprintf(old, "<g%c%c>", pti[2], pti[3]);
 						}
-						else if (ses->color == 16)
+						else if (pti[1] == 'G' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
 						{
-							pto += sprintf(pto, "%s", c256to16_bg[cnt]);
-						}
-						pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
-					}
-					else if (pti[1] == 'g' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
-					{
-						cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
+							cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
 
-						if (ses->color >= 256)
-						{
-							pto += sprintf(pto, "\e[38;5;%dm", cnt);
+							if (ses->color >= 256)
+							{
+								pto += sprintf(pto, "\e[48;5;%dm", cnt);
+							}
+							else if (ses->color == 16)
+							{
+								pto += sprintf(pto, "%s", c256to16_bg[cnt]);
+							}
+							pti += sprintf(old, "<G%c%c>", pti[2], pti[3]);
 						}
-						else if (ses->color == 16)
+						else
 						{
-							pto += sprintf(pto, "%s", c256to16_fg[cnt]);
+							*pto++ = *pti++;
 						}
-						pti += sprintf(old, "<g%c%c>", pti[2], pti[3]);
-					}
-					else if (pti[1] == 'G' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
-					{
-						cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
-
-						if (ses->color >= 256)
-						{
-							pto += sprintf(pto, "\e[48;5;%dm", cnt);
-						}
-						else if (ses->color == 16)
-						{
-							pto += sprintf(pto, "%s", c256to16_bg[cnt]);
-						}
-						pti += sprintf(old, "<G%c%c>", pti[2], pti[3]);
 					}
 					else if (toupper((int) pti[1]) == 'F' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
 					{

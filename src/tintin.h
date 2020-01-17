@@ -172,7 +172,7 @@
 #define LIST_SIZE                        2
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.00 "
+#define CLIENT_VERSION           "2.02.01 "
 
 #define XT_E                            0x27
 #define XT_C                            0x5B
@@ -1305,6 +1305,8 @@ struct screen_data
 	int                     cols;
 	int                     height;
 	int                     width;
+	int                     tot_height;
+	int                     tot_width;
 	int                     pos_height;
 	int                     pos_width;
 	int                     minimized;
