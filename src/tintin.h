@@ -38,6 +38,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <limits.h>
 
 /******************************************************************************
 *   Autoconf patching by David Hedbor                                         *
