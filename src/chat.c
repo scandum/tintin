@@ -1532,9 +1532,9 @@ DO_CHAT(chat_paste)
 
 	if (arg1 == NULL)
 	{
-		if (strlen(gtd->input_buf))
+		if (*gtd->ses->input->buf)
 		{
-			sprintf(temp, "%s\n%s", gtd->chat->paste_buf, gtd->input_buf);
+			sprintf(temp, "%s\n%s", gtd->chat->paste_buf, gtd->ses->input->buf);
 
 			RESTRING(gtd->chat->paste_buf, temp);
 

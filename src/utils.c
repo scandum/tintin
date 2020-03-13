@@ -327,16 +327,29 @@ unsigned long long utime()
 void seed_rand(struct session *ses, unsigned long long seed)
 {
 	ses->rand = seed % 4294967291ULL;
+	ses->rkey = seed % 5;
 }
 
 unsigned long long generate_rand(struct session *ses)
 {
-	ses->rand = ses->rand * 279470273ULL % 4294967291ULL;
+	static unsigned long long primes[] = {26196137413795067, 1062272168593625449, 5189794811, 237506310434573, 212938855558633 };
 
+	if (ses->rkey % 3 == 1)
+	{
+		ses->rand += 316595909ULL + primes[++ses->rkey % 5];
+	}
+	else
+	{
+		ses->rand += primes[++ses->rkey % 5];
+	}
+
+	return (unsigned int) ses->rand;
+
+//	ses->rand = (ses->rand + 260854879ULL) % 4294967291ULL;
 //	return ses->rand % 1000000000ULL;
 
-	return ses->rand;
 }
+
 /*
 uint32_t lcg_rand(uint32_t *state)
 {

@@ -173,16 +173,17 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 	return 0;
 }
 
-void mouse_handler(struct session *ses, int flags, int row, int col, char type)
+void mouse_handler(struct session *ses, int flags, int row, int col)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], line[BUFFER_SIZE], word[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], line[BUFFER_SIZE];
+	static char word[BUFFER_SIZE];
 	static char last[100], dir[10];
 	static long long click[3];
 	static int swipe[10];
-	int debug, info, rev_row, rev_col;
+	int debug, info, rev_row, rev_col, link;
 
-	push_call("mouse_handler(%p,%d,%d,%d,%c)",ses,flags,row,col,type);
-
+	push_call("mouse_handler(%p,%d,%d,%d,%c)",ses,flags,row,col);
+/*
 	if (!HAS_BIT(ses->event_flags, EVENT_FLAG_MOUSE))
 	{
 		if (!HAS_BIT(ses->flags, SES_FLAG_MOUSEINFO) && !HAS_BIT(ses->list[LIST_EVENT]->flags, LIST_FLAG_INFO))
@@ -190,31 +191,27 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 			return;
 		}
 	}
-
+*/
 	if (HAS_BIT(flags, MOUSE_FLAG_MOTION))
 	{
 		strcpy(arg1, "MOVED");
 	}
 	else
 	{
-		switch (type)
+		if (HAS_BIT(flags, MOUSE_FLAG_RELEASE))
 		{
-			case 'M':
-				if (HAS_BIT(flags, MOUSE_FLAG_WHEEL))
-				{
-					strcpy(arg1, "SCROLLED");
-				}
-				else
-				{
-					strcpy(arg1, "PRESSED");
-				}
-				break;
-			case 'm':
-				strcpy(arg1, "RELEASED");
-				break;
-			default:
-				strcpy(arg1, "UNKNOWN");
-				break;
+			strcpy(arg1, "RELEASED");
+		}
+		else
+		{
+			if (HAS_BIT(flags, MOUSE_FLAG_WHEEL))
+			{
+				strcpy(arg1, "SCROLLED");
+			}
+			else
+			{
+				strcpy(arg1, "PRESSED");
+			}
 		}
 	}
 
@@ -238,76 +235,57 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		strcat(arg2, "EXTRA ");
 	}
 
-	if (HAS_BIT(flags, MOUSE_FLAG_UNKNOWN))
-	{
-		strcat(arg2, "256 ");
-	}
-
-	if (HAS_BIT(flags, MOUSE_FLAG_WHEEL))
-	{
-		strcat(arg2, "MOUSE WHEEL ");
-	}
-	else
-	{
-		strcat(arg2, "MOUSE BUTTON ");
-	}
-
-	if (row - 1 < 0)
+	if (row < 1)
 	{
 		tintin_printf2(ses, "mouse_handler: bad row: (row,col)=(%d,%d)", row, col);
 		pop_call();
 		return;
 	}
-	else if (row - 1 > gtd->screen->rows)
+	else if (row > gtd->screen->rows)
 	{
 		tintin_printf2(ses, "mouse_handler: bad col: (row,col)=(%d,%d)", row, col);
 		pop_call();
 		return;
 	}
-	else
-	{
-		strcpy(line, "under development");
-		strcpy(word, "under development");
-//		get_line_screen(line, row - 1);
-//		get_word_screen(word, row - 1, col - 1);
-	}
+
+	get_line_screen(line, row - 1);
+
+	link = get_link_screen(ses, word, flags, row, col);
 
 	if (HAS_BIT(flags, MOUSE_FLAG_WHEEL))
 	{
-		if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A) && HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
+		switch (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A|MOUSE_FLAG_BUTTON_B))
 		{
-			strcat(arg2, "RIGHT");
-		}
-		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
-		{
-			strcat(arg2, "LEFT");
-		}
-		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A))
-		{
-			strcat(arg2, "DOWN");
-		}
-		else
-		{
-			strcat(arg2, "UP");
+			case 0:
+				strcat(arg2, "MOUSE WHEEL UP");
+				break;
+			case MOUSE_FLAG_BUTTON_A:
+				strcat(arg2, "MOUSE WHEEL DOWN");
+				break;
+			case MOUSE_FLAG_BUTTON_B:
+				strcat(arg2, "MOUSE WHEEL LEFT");
+				break;
+			case MOUSE_FLAG_BUTTON_A|MOUSE_FLAG_BUTTON_B:
+				strcat(arg2, "MOUSE WHEEL RIGHT");
+				break;
 		}
 	}
 	else
 	{
-		if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A) && HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
+		switch (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A|MOUSE_FLAG_BUTTON_B))
 		{
-			strcat(arg2, "FOUR");
-		}
-		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_B))
-		{
-			strcat(arg2, "THREE");
-		}
-		else if (HAS_BIT(flags, MOUSE_FLAG_BUTTON_A))
-		{
-			strcat(arg2, "TWO");
-		}
-		else
-		{
-			strcat(arg2, "ONE");
+			case 0:
+				strcat(arg2, "MOUSE BUTTON ONE");
+				break;
+			case MOUSE_FLAG_BUTTON_A:
+				strcat(arg2, "MOUSE BUTTON TWO");
+				break;
+			case MOUSE_FLAG_BUTTON_B:
+				strcat(arg2, "MOUSE BUTTON THREE");
+				break;
+			case MOUSE_FLAG_BUTTON_A|MOUSE_FLAG_BUTTON_B:
+				strcat(arg2, "MOUSE");
+				break;
 		}
 	}
 
@@ -317,10 +295,28 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 	gtd->level->debug += debug;
 	gtd->level->info  += info;
 
-	check_all_buttons(ses, row, col, arg1, arg2, word, line);
+	if (!HAS_BIT(ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+	{
+		check_all_buttons(ses, row, col, arg1, arg2, word, line);
+	}
 
 	rev_row = -1 - (gtd->screen->rows - row);
 	rev_col = -1 - (gtd->screen->cols - col);
+
+	switch (link)
+	{
+		case 1:
+			check_all_events(ses, SUB_ARG, 2, 6, "%s LINK %s", arg1, arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
+			break;
+		case 2:
+			if (flags == 0)
+			{
+				tintin_printf2(ses, "\e[1;32m         %s\n", capitalize(word));
+				
+				do_help(ses, word);
+			}
+			break;
+	}
 
 	check_all_events(ses, SUB_ARG, 2, 6, "%s %s", arg1, arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
 
@@ -349,7 +345,15 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 			{
 				if (click[0] - click[2] < 500000)
 				{
-					check_all_buttons(ses, row, col, "TRIPLE-CLICKED", arg2, word, line);
+					if (!HAS_BIT(ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+					{
+						check_all_buttons(ses, row, col, "TRIPLE-CLICKED", arg2, word, line);
+					}
+
+					if (link)
+					{
+						check_all_events(ses, SUB_ARG, 1, 6, "TRIPLE-CLICKED LINK %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
+					}
 
 					check_all_events(ses, SUB_ARG, 1, 6, "TRIPLE-CLICKED %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
@@ -363,7 +367,15 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 				}
 				else
 				{
-					check_all_buttons(ses, row, col, "DOUBLE-CLICKED", arg2, word, line);
+					if (!HAS_BIT(ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+					{
+						check_all_buttons(ses, row, col, "DOUBLE-CLICKED", arg2, word, line);
+					}
+
+					if (link)
+					{
+						check_all_events(ses, SUB_ARG, 1, 6, "DOUBLE-CLICKED LINK %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
+					}
 
 					check_all_events(ses, SUB_ARG, 1, 6, "DOUBLE-CLICKED %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
@@ -418,8 +430,13 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		}
 		else if (utime() - click[0] >= 500000)
 		{
+			
 			check_all_buttons(ses, row, col, "LONG-CLICKED", arg2, word, line);
 
+			if (link)
+			{
+				check_all_events(ses, SUB_ARG, 1, 6, "LONG-CLICKED LINK %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
+			}
 			check_all_events(ses, SUB_ARG, 1, 6, "LONG-CLICKED %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
 			check_all_events(ses, SUB_ARG, 2, 6, "LONG-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
@@ -432,8 +449,15 @@ void mouse_handler(struct session *ses, int flags, int row, int col, char type)
 		{
 			if (abs(swipe[0] - swipe[4]) <= 3 && abs(swipe[1] - swipe[5]) <= 3)
 			{
-				check_all_buttons(ses, row, col, "SHORT-CLICKED", arg2, word, line);
+				if (!HAS_BIT(ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+				{
+					check_all_buttons(ses, row, col, "SHORT-CLICKED", arg2, word, line);
+				}
 
+				if (link)
+				{
+					check_all_events(ses, SUB_ARG, 1, 6, "SHORT-CLICKED LINK %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
+				}
 				check_all_events(ses, SUB_ARG, 1, 6, "SHORT-CLICKED %s", arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
 				check_all_events(ses, SUB_ARG, 2, 6, "SHORT-CLICKED %s %d", arg2, row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);

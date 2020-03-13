@@ -250,7 +250,7 @@ DO_CLASS(class_load)
 
 		return ses;
 	}
-	file = fmemopen(node->data, node->val32[1], "r");
+	file = fmemopen(node->data, (size_t) node->val32[1], "r");
 
 	read_file(ses, file, arg1);
 

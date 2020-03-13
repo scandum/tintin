@@ -109,6 +109,8 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 
 	SET_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 
+	init_inputregion(ses, ses->input->sav_top_row, ses->input->sav_top_col, ses->input->sav_bot_row, ses->input->sav_bot_col);
+
 	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
 		ses->split->top_row = 1;
@@ -168,21 +170,9 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_SCROLLSPLIT))
 	{
-		if (gtd->level->quiet == 0)
+		if (HAS_BIT(ses->flags, SES_FLAG_VERBOSE) || gtd->level->verbose || gtd->level->quiet == 0)
 		{
-//			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
-			{
-				do_screen(ses, "FILL DEFAULT");
-			}
-/*			else
-			{
-				fill_split_region(ses, "-");
-
-				erase_scroll_region(ses);
-				fill_split_region(ses, "-");
-				buffer_end(ses, "");
-
-			}*/
+			do_screen(ses, "FILL DEFAULT");
 		}
 	}
 	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN SPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
@@ -317,15 +307,16 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 
 	if (row == gtd->screen->rows)
 	{
-		gtd->input_off = len + 1;
+		gtd->ses->input->off = len + 1;
 
 		goto_pos(ses, row, col);
 
-		print_stdout("%s%s", buf1, gtd->input_buf);
+		print_stdout("%s%s", buf1, gtd->ses->input->buf);
 
 		// bit of a hack
 
-		gtd->screen->sav_col[0] = inputline_cur_pos();
+		gtd->screen->sav_col[0] = inputline_cur_col();
+		gtd->screen->sav_row[0] = inputline_cur_row();
 	}
 	else
 	{

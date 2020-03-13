@@ -31,8 +31,8 @@ static int  draw_cnt;
 DO_COMMAND(do_draw)
 {
 	char *sub_arg, arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], color[BUFFER_SIZE], code[BUFFER_SIZE], arg3[BUFFER_SIZE], input[BUFFER_SIZE];
-	int index, flags;
-	int top_row, top_col, bot_row, bot_col, rows, cols;
+	long long flags;
+	int index, top_row, top_col, bot_row, bot_col, rows, cols;
 
 	substitute(ses, arg, input, SUB_VAR|SUB_FUN);
 
@@ -102,6 +102,14 @@ DO_COMMAND(do_draw)
 			{
 				SET_BIT(flags, DRAW_FLAG_CROSSED);
 			}
+			else if (is_abbrev(arg1, "CURSIVE"))
+			{
+				SET_BIT(flags, DRAW_FLAG_CURSIVE);
+			}
+			else if (is_abbrev(arg1, "FAT"))
+			{
+				SET_BIT(flags, DRAW_FLAG_FAT);
+			}
 			else if (is_abbrev(arg1, "FILLED"))
 			{
 				SET_BIT(flags, DRAW_FLAG_FILLED);
@@ -145,6 +153,14 @@ DO_COMMAND(do_draw)
 			else if (is_abbrev(arg1, "ROUNDED"))
 			{
 				SET_BIT(flags, DRAW_FLAG_ROUNDED);
+			}
+			else if (is_abbrev(arg1, "SANSSERIF"))
+			{
+				SET_BIT(flags, DRAW_FLAG_SANSSERIF);
+			}
+			else if (is_abbrev(arg1, "SCROLL"))
+			{
+				SET_BIT(flags, DRAW_FLAG_SCROLL);
 			}
 			else if (is_abbrev(arg1, "SHADOWED"))
 			{
@@ -199,8 +215,8 @@ DO_COMMAND(do_draw)
 					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 				}
 
-				top_row = get_row_index(ses, arg1);
-				top_col = get_col_index(ses, arg2);
+				top_row = get_row_index_arg(ses, arg1);
+				top_col = get_col_index_arg(ses, arg2);
 
 				if (*sub_arg)
 				{
@@ -212,8 +228,8 @@ DO_COMMAND(do_draw)
 					arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 				}
-				bot_row = get_row_index(ses, arg1);
-				bot_col = get_col_index(ses, arg2);
+				bot_row = get_row_index_arg(ses, arg1);
+				bot_col = get_col_index_arg(ses, arg2);
 
 				if (top_row == 0 && top_col == 0)
 				{
@@ -227,6 +243,15 @@ DO_COMMAND(do_draw)
 					top_row = 1;
 
 					SET_BIT(flags, DRAW_FLAG_SCROLL);
+				}
+				else
+				{
+					if (ses != gtd->ses)
+					{
+						show_error(ses, LIST_COMMAND, "#ERROR: #DRAW %s %d %d %d %d: SESSION IS IN THE BACKGROUND.", draw_table[index].name, top_row, top_col, bot_row, bot_col);
+
+						return ses;
+					}
 				}
 
 				if (top_col == 0)
@@ -289,6 +314,99 @@ DO_COMMAND(do_draw)
 
 // utilities
 
+char *alnum_normal[] =
+{
+	"\x00",   "\x01",   "\x02",   "\x03",   "\x04",   "\x05",   "\x06",   "\x07",   "\x08",   "\x09",   "\x10",   "\x11",   "\x12",   "\x13",   "\x14",   "\x15",   "\x16",   "\x17",   "\x18",   "\x19",   "\x20",   "\x21",   "\x22",   "\x23",   "\x24",   "\x25",   "\x26",   "\x27",   "\x28",   "\x29",   "\x30",   "\x31",
+	" ",      "!",      "\"",     "#",      "$",      "%",      "&",      "'",      "(",      ")",      "*",      "+",      ",",      "-",      ".",      "/",      "0",      "1",      "2",      "3",      "4",      "5",      "6",      "7",      "8",      "9",      ":",      ";",      "<",      "=",      ">",      "?",
+	"@",      "A",      "B",      "C",      "D",      "E",      "F",      "G",      "H",      "I",      "J",      "K",      "L",      "M",      "N",      "O",      "P",      "Q",      "R",      "S",      "T",      "U",      "V",      "W",      "X",      "Y",      "Z",      "[",      "\\",     "]",      "^",      "_",
+	"`",      "a",      "b",      "c",      "d",      "e",      "f",      "g",      "h",      "i",      "j",      "k",      "l",      "m",      "n",      "o",      "p",      "q",      "r",      "s",      "t",      "u",      "v",      "w",      "x",      "y",      "z",      "{",      "|",      "}",      "~",      "\x7F"
+};
+
+char *alnum_normal_fat[] =
+{
+	"\x00",   "\x01",   "\x02",   "\x03",   "\x04",   "\x05",   "\x06",   "\x07",   "\x08",   "\x09",   "\x10",   "\x11",   "\x12",   "\x13",   "\x14",   "\x15",   "\x16",   "\x17",   "\x18",   "\x19",   "\x20",   "\x21",   "\x22",   "\x23",   "\x24",   "\x25",   "\x26",   "\x27",   "\x28",   "\x29",   "\x30",   "\x31",
+	" ",      "!",      "\"",     "#",      "$",      "%",      "&",      "'",      "(",      ")",      "*",      "+",      ",",      "-",      ".",      "/",      "𝟎",      "𝟏",      "𝟐",      "𝟑",      "𝟒",      "𝟓",      "𝟔",      "𝟕",      "𝟖",      "𝟗",      ":",      ";",      "<",      "=",      ">",      "?",
+	"@",      "𝐀",      "𝐁",      "𝐂",      "𝐃",      "𝐄",      "𝐅",      "𝐆",      "𝐇",      "𝐈",      "𝐉",      "𝐊",      "𝐋",      "𝐌",      "𝐍",      "𝐎",      "𝐏",      "𝐐",      "𝐑",      "𝐒",      "𝐓",      "𝐔",      "𝐕",      "𝐖",      "𝐗",      "𝐘",      "Z",      "𝐙",      "\\",     "]",      "^",      "_",
+	"`",      "𝐚",      "𝐛",      "𝐜",      "𝐝",      "𝐞",      "𝐟",      "𝐠",      "𝐡",      "𝐢",      "𝐣",      "𝐤",      "𝐥",      "𝐦",      "𝐧",      "𝐨",      "𝐩",      "𝐪",      "𝐫",      "𝐬",      "𝐭",      "𝐮",      "𝐯",      "𝐰",      "𝐱",      "𝐲",      "𝐳",      "{",      "|",      "}",      "~",      "\x7F"
+};
+
+char *alnum_cursive[] =
+{
+	"\x00",   "\x01",   "\x02",   "\x03",   "\x04",   "\x05",   "\x06",   "\x07",   "\x08",   "\x09",   "\x10",   "\x11",   "\x12",   "\x13",   "\x14",   "\x15",   "\x16",   "\x17",   "\x18",   "\x19",   "\x20",   "\x21",   "\x22",   "\x23",   "\x24",   "\x25",   "\x26",   "\x27",   "\x28",   "\x29",   "\x30",   "\x31",
+	" ",      "!",      "\"",     "#",      "$",      "%",      "&",      "'",      "(",      ")",      "*",      "+",      ",",      "-",      ".",      "/",      "0",      "1",      "2",      "3",      "4",      "5",      "6",      "7",      "8",      "9",      ":",      ";",      "<",      "=",      ">",      "?",
+	"@",      "𝒜",      "ℬ",      "𝒞",      "𝒟",      "ℰ",      "ℱ",      "𝒢",      "ℋ",      "ℐ",      "𝒥",      "𝒦",      "ℒ",      "ℳ",      "𝒩",      "𝒪",      "𝒫",      "𝒬",      "ℛ",      "𝒮",      "𝒯",      "𝒰",      "𝒱",      "𝒲",      "𝒳",      "𝒴",      "𝒵",      "[",      "\\",     "]",      "^",      "_",
+	"`",      "𝒶",      "𝒷",      "𝒸",      "𝒹",      "ℯ",      "𝒻",      "ℊ",      "𝒽",      "𝒾",      "𝒿",      "𝓀",      "𝓁",      "𝓂",      "𝓃",      "ℴ",      "𝓅",      "𝓆",      "𝓇",      "𝓈",      "𝓉",      "𝓊",      "𝓋",      "𝓌",      "𝓍",      "𝓎",      "𝓏",      "{",      "|",      "}",      "~",      "\x7F"
+};
+
+char *alnum_sansserif[] =
+{
+	"\x00",   "\x01",   "\x02",   "\x03",   "\x04",   "\x05",   "\x06",   "\x07",   "\x08",   "\x09",   "\x10",   "\x11",   "\x12",   "\x13",   "\x14",   "\x15",   "\x16",   "\x17",   "\x18",   "\x19",   "\x20",   "\x21",   "\x22",   "\x23",   "\x24",   "\x25",   "\x26",   "\x27",   "\x28",   "\x29",   "\x30",   "\x31",
+	" ",      "!",      "\"",     "#",      "$",      "%",      "&",      "'",      "(",      ")",      "*",      "+",      ",",      "-",      ".",      "/",      "𝟢",      "𝟣",      "𝟤",      "𝟥",      "𝟦",      "𝟧",      "𝟨",      "𝟩",      "𝟪",      "𝟫",      ":",      ";",      "<",      "=",      ">",      "?",
+	"@",      "𝖠",      "𝖡",      "𝖢",      "𝖣",      "𝖤",      "𝖥",      "𝖦",      "𝖧",      "𝖨",      "𝖩",      "𝖪",      "𝖫",      "𝖬",      "𝖭",      "𝖮",      "𝖯",      "𝖰",      "𝖱",      "𝖲",      "𝖳",      "𝖴",      "𝖵",      "𝖶",      "𝖷",      "𝖸",      "𝖹",      "[",      "\\",     "]",      "^",      "_",
+	"`",      "𝖺",      "𝖻",      "𝖼",      "𝖽",      "𝖾",      "𝖿",      "𝗀",      "𝗁",      "𝗂",      "𝗃",      "𝗄",      "𝗅",      "𝗆",      "𝗇",      "𝗈",      "𝗉",      "𝗊",      "𝗋",      "𝗌",      "𝗍",      "𝗎",      "𝗏",      "𝗐",      "𝗑",      "𝗒",      "𝗓",      "{",      "|",      "}",      "~",      "\x7F"
+};
+
+void string_to_font(struct session *ses, long long flags, char *in, char *out)
+{
+	char buf[BUFFER_SIZE];
+	char *pti, *pto;
+	int skip;
+
+	push_call("string_to_font(%p,%d,%p,%p)",ses,flags,in,out);
+
+	// DRAW_FLAG_FAT, DRAW_FLAG_ITALIC, DRAW_FLAG_SERIF, DRAW_FLAG_CURSIVE, DRAW_FLAG_GOTHIC, DRAW_FLAG_TRACED, DRAW_FLAG_MONO
+
+	strcpy(buf, in);
+
+	pti = buf;
+	pto = out;
+
+	while (*pti)
+	{
+		skip = skip_vt102_codes(pti);
+
+		if (skip)
+		{
+			pto += sprintf(pto, "%.*s", skip, pti);
+
+			pti += skip;
+			
+			continue;
+		}
+
+		if (*pti >= 32)
+		{
+			switch (HAS_BIT(flags, DRAW_FLAG_FAT|DRAW_FLAG_CURSIVE|DRAW_FLAG_SANSSERIF))
+			{
+				case DRAW_FLAG_CURSIVE:
+					pto += sprintf(pto, "%s", alnum_cursive[(int) *pti]);
+					break;
+
+				case DRAW_FLAG_FAT:
+					pto += sprintf(pto, "%s", alnum_normal_fat[(int) *pti]);
+					break;
+
+				case DRAW_FLAG_SANSSERIF:
+					pto += sprintf(pto, "%s", alnum_sansserif[(int) *pti]);
+					break;
+
+				default:
+					*pto++ = *pti;
+					break;
+			}
+			pti++;
+		}
+		else
+		{
+			*pto++ = *pti++;
+		}
+	}
+	*pto++ = 0;
+
+	pop_call();
+	return;
+}
+
 int find_stamp(char *in, char *out)
 {
 	int cnt;
@@ -307,7 +425,7 @@ int find_stamp(char *in, char *out)
 	return 0;
 }
 
-void stamp_cat(char *color, int flags, char *str, char *cat, char *out)
+void stamp_cat(char *color, long long flags, char *str, char *cat, char *out)
 {
 	char *pts = str;
 	char *ptc = cat;
@@ -417,7 +535,7 @@ void stamp_cat(char *color, int flags, char *str, char *cat, char *out)
 	*pto = 0;
 }
 
-void string_to_stamp(struct session *ses, int flags, char *in, char *out)
+void string_to_stamp(struct session *ses, long long flags, char *in, char *out)
 {
 	char *pti, buf1[BUFFER_SIZE], buf2[BUFFER_SIZE], buf3[BUFFER_SIZE], chr1[CHAR_SIZE], color[COLOR_SIZE] = { 0 };
 	int skip;
@@ -456,7 +574,7 @@ void string_to_stamp(struct session *ses, int flags, char *in, char *out)
 	return;
 }
 
-char *get_draw_corner(int flags, char *str)
+char *get_draw_corner(long long flags, char *str)
 {
 	draw_cnt = (draw_cnt + 1) % 100;
 
@@ -783,7 +901,7 @@ char *get_draw_corner(int flags, char *str)
 	return draw_buf[draw_cnt];
 }
 
-char *draw_horizontal(int flags, char *str)
+char *draw_horizontal(long long flags, char *str)
 {
 	draw_cnt = (draw_cnt + 1) % 100;
 
@@ -813,7 +931,7 @@ char *draw_horizontal(int flags, char *str)
 	return draw_buf[draw_cnt];
 }
 
-char *draw_vertical(int flags, char *str)
+char *draw_vertical(long long flags, char *str)
 {
 	draw_cnt = (draw_cnt + 1) % 100;
 
@@ -990,16 +1108,16 @@ DO_DRAW(draw_line)
 DO_DRAW(draw_map)
 {
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	top_row = get_row_index(ses, arg1);
+	top_row = get_row_index_arg(ses, arg1);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	top_col = get_col_index(ses, arg1);
+	top_col = get_col_index_arg(ses, arg1);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	bot_row = get_row_index(ses, arg1);
+	bot_row = get_row_index_arg(ses, arg1);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	bot_col = get_col_index(ses, arg1);
+	bot_col = get_col_index_arg(ses, arg1);
 
 	rows = URANGE(1, 1 + bot_row - top_row, gtd->screen->rows);
 	cols = URANGE(1, 1 + bot_col - top_col, gtd->screen->cols);
@@ -1534,6 +1652,7 @@ DO_DRAW(draw_text)
 				arg++;
 			}
 		}
+		string_to_font(ses, flags, buf2, buf2);
 	}
 
 	if (HAS_BIT(flags, DRAW_FLAG_BOXED) /*|| HAS_BIT(flags, DRAW_FLAG_LINED)*/ || HAS_BIT(flags, DRAW_FLAG_TOP) || HAS_BIT(flags, DRAW_FLAG_PRUNED))

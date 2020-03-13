@@ -410,7 +410,7 @@ DO_CONFIG(config_connectretry)
 		gts->connect_retry = atoll(arg2) * 1000000LL;
 	}
 
-	sprintf(arg2, "%6.1Lf", (long double) gts->connect_retry / 1000000);
+	sprintf(arg2, "%.1Lf", (long double) gts->connect_retry / 1000000);
 
 	return ses;
 }
@@ -705,7 +705,18 @@ DO_CONFIG(config_packetpatch)
 
 	if (HAS_BIT(ses->flags, SES_FLAG_AUTOPATCH))
 	{
-		strcpy(arg2, "AUTO");
+		if (ses->list[LIST_PROMPT]->list[0])
+		{
+			strcpy(arg2, "AUTO PROMPT");
+		}
+		else if (HAS_BIT(ses->flags, SES_FLAG_AUTOPROMPT))
+		{
+			strcpy(arg2, "AUTO TELNET");
+		}
+		else
+		{
+			strcpy(arg2, "AUTO OFF");
+		}
 	}
 	else
 	{
@@ -759,7 +770,7 @@ DO_CONFIG(config_randomseed)
 			return NULL;
 		}
 	}
-	sprintf(arg2, "%llu", ses->rand);
+	sprintf(arg2, "%u", (unsigned int) ses->rand);
 
 	return ses;
 }

@@ -251,6 +251,8 @@ DO_COMMAND(do_button)
 	}
 	else
 	{
+		SET_BIT(ses->event_flags, EVENT_FLAG_MOUSE);
+
 		node = update_node_list(ses->list[LIST_BUTTON], arg1, arg2, arg3, "");
 
 		show_message(ses, LIST_BUTTON, "#OK. BUTTON {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
@@ -273,11 +275,11 @@ DO_COMMAND(do_button)
 		{
 			arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
-			RESTRING(node->arg4, arg2);
+			str_cpy(&node->arg4, arg2);
 		}
 		else
 		{
-			RESTRING(node->arg4, "PRESSED MOUSE BUTTON ONE");
+			str_cpy(&node->arg4, "PRESSED MOUSE BUTTON ONE");
 		}
 	}
 	return ses;
@@ -514,7 +516,7 @@ void check_all_gags(struct session *ses, char *original, char *line)
 
 		if (check_one_regexp(ses, node, line, original, 0))
 		{
-			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
+//			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
 
 			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
 			{
@@ -746,14 +748,14 @@ DO_COMMAND(do_unprompt)
 }
 
 
-void check_all_prompts(struct session *ses, char *original, char *line)
+int check_all_prompts(struct session *ses, char *original, char *line, int check)
 {
 	struct listroot *root = ses->list[LIST_PROMPT];
 	struct listnode *node;
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	if (check && !HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
-		return;
+		return 0;
 	}
 
 	for (root->update = 0 ; root->update < root->used ; root->update++)
@@ -762,6 +764,11 @@ void check_all_prompts(struct session *ses, char *original, char *line)
 
 		if (check_one_regexp(ses, node, line, original, 0))
 		{
+			if (!check)
+			{
+				return TRUE;
+			}
+
 			if (*node->arg2)
 			{
 				substitute(ses, node->arg2, original, SUB_ARG);
@@ -769,7 +776,7 @@ void check_all_prompts(struct session *ses, char *original, char *line)
 			}
 
 			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
-			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
+//			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
 
 			split_show(ses, original, atoi(node->arg3), atoi(node->arg4));
 
@@ -780,6 +787,7 @@ void check_all_prompts(struct session *ses, char *original, char *line)
 			SET_BIT(ses->flags, SES_FLAG_GAG);
 		}
 	}
+	return 0;
 }
 
 

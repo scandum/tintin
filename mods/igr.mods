@@ -1,6 +1,91 @@
-Jan 2020        2.02.01
+Jan 2020        2.02.02
 ------------------------------------------------------------------------------
 
+config.c        Added #config {packet patch} {auto} support which will
+                result in automatic telnet eor/ga handling and automatic
+                packet patching if #prompt is set correctly.
+
+help.c          Added auto-link generation for #help when mouse tracking is
+                enabled. Still experimental.
+
+mapper.c        Added #map get/set direction/pathdir to get/set the current
+                direction you are facing in numeric and alphabetic notation.
+
+tables.c        Added italic and unitalic #highlight keywords.
+
+tables.c        Pressing ctrl-delete will delete one word per default.
+
+mapper.c        Fixed #map undo issues with #map insert and #map dig.
+
+mapper.c        Now shows destination in #map exit <dir>
+
+base.c          Added %+64b and %+64B support to #format to convert to and
+                from base 64 encoding.
+
+                Added %+64z and %+64Z support to #format to zip the string
+                and convert it to base 64. May not compress it much but may
+                have some utility to store passwords. Security through
+                obscurity.
+
+                Added experimental %+252b/z and %+252B/Z options for Base
+                252 encoding.
+
+draw.c          Added FAT, CURSIVE, SCROLL, and SANSSERIF draw options.
+
+input.c         ctrl-v will now correctly capture ctrl-alt-f and similar
+                combinations. ctrl-v will also allow pasting blocks of text.
+                Example added to the SCRIPTS file.
+
+event.c         Added GAG SESSION CONNECTED, GAG SESSION CREATED, 
+                GAG SESSION DISCONNECTED, and GAG SESSION TIMED OUT events.
+
+mapper.c        Added #map roomflag fog. Works like #map roomflag hide but
+                the flag is auto cleared on entrance.
+
+line.c          Added #line convert options.
+
+mapper.c        Aded MAP CREATE ROOM and MAP DELETE ROOM events.
+
+utils.c         Increased the entropy of the random number generator.
+
+list.c          #list order sorts existing lists numerically.
+
+list.c          #list sort sorts existing lists alphabetically.
+
+sort.c          Added some fast sorting routines.
+
+list.c          Added #list reverse option.
+
+cursor.c        Added default bindings for ctrl-left, ctrl-right, and 
+                ctrl-backspace
+
+screen.c        Added advanced link support. To create an advanced link
+                surround a keyword with the \e[4m keyword \e24m tags and
+                prefix it with \e]68; code \a. The code must be valid
+                MSDP, which on click will spawn a LINK mouse event holding
+                the MSDP data as a tintin table. Example:
+
+                #config mouse on
+                #showme {\e]68;\x01key\x02val\a\e[4mthis is a test\e[24m}
+                #event {SHORT-CLICKED LINK MOUSE BUTTON ONE} {#showme {[%4]}}
+
+screen.c        Added basic link support. To create a basic link surround a
+                keyword with the \e[4m keyword \e[24m tags. When clicked with
+                mouse support enabled it'll spawn a LINK mouse event.
+
+map.c           Added #map exitflag <dir> <option> GET <variable> support.
+
+event.c         The %4 argument of mouse clicks once again reports the word
+                that has been clicked, with %5 reporting the line. Under
+                construction.
+
+screen.c        Added #screen input <square> to define the input region.
+                Currently only 1 line input regions are supported. Example:
+                #screen input 1 1 1 -1 will put the input line at the top of
+                the screen instead of the bottom. Under construction.
+
+Dec 2019        2.02.01
+------------------------------------------------------------------------------
 data.c          Added CWD field to #info system to get the current working
                 directory.
 
@@ -644,8 +729,7 @@ data.c          Added #INFO SYSTEM option, with #INFO SYSTEM SAVE saving the
                 supported are CLIENT_NAME and CLIENT_VERSION. 
 
 event.c         Added %4 and %5 arguments to mouse click events which hold the
-                word and line that was clicked. This is still under
-                construction and non-functional.
+                word and line that was clicked. Under construction.
 
 net.c           Slightly improved traditional prompt handling, but the code
                 will need a proper update to work properly.

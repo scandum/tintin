@@ -265,6 +265,10 @@ int main(int argc, char **argv)
 					SET_BIT(greeting, STARTUP_FLAG_SCREENREADER);
 					break;
 
+				case 'v':
+					SET_BIT(greeting, STARTUP_FLAG_VERBOSE);
+					break;
+
 				case 'V':
 					printf("\nTinTin++ " CLIENT_VERSION "\n");
 					printf("\n(C) 2004-2019 Igor van den Hoven\n");
@@ -319,9 +323,9 @@ int main(int argc, char **argv)
 					break;
 
 				case 'r':
-					gtd->level->input++;
+//					gtd->level->input++;
 					gtd->ses = do_read(gtd->ses, optarg);
-					gtd->level->input--;
+//					gtd->level->input--;
 					break;
 
 				case 'R':
@@ -342,7 +346,7 @@ int main(int argc, char **argv)
 					break;
 
 				case 'v':
-					do_configure(gtd->ses, "{VERBOSE} {ON}");
+//					do_configure(gtd->ses, "{VERBOSE} {ON}");
 					break;
 
 				default:
@@ -438,7 +442,7 @@ void init_tintin(int greeting)
 	gtd->mud_output_max = 16384;
 	gtd->mud_output_buf = (char *) calloc(1, gtd->mud_output_max);
 
-	gtd->input_off      = 1;
+
 
 	gtd->os             = strdup(getenv("OS")   ? getenv("OS")   : "UNKNOWN");
 	gtd->home           = strdup(getenv("HOME") ? getenv("HOME") : "~/");
@@ -525,16 +529,25 @@ void init_tintin(int greeting)
 		gts->list[index] = init_list(gts, index, 32);
 	}
 
-	gts->split  = calloc(1, sizeof(struct split_data));
-	gts->scroll = calloc(1, sizeof(struct scroll_data));
+	gts->split          = calloc(1, sizeof(struct split_data));
+	gts->scroll         = calloc(1, sizeof(struct scroll_data));
+	gts->input          = calloc(1, sizeof(struct input_data));
+	gts->input->buf     = str_alloc(BUFFER_SIZE);
+	gts->input->tmp     = str_alloc(BUFFER_SIZE);
+	gts->input->off     = 1;
 
 	init_local(gts);
 
 	init_terminal_size(gts);
 
-	gtd->level->input++;
+	init_buffer(gts, 10000);
 
-	do_class(gts, "{CONFIG} {OPEN}");
+	if (HAS_BIT(greeting,  STARTUP_FLAG_VERBOSE))
+	{
+		gtd->level->verbose++;
+	}
+
+	gtd->level->input++;
 
 	do_configure(gts, "{AUTO TAB}         {5000}");
 	do_configure(gts, "{BUFFER SIZE}     {10000}");
@@ -559,30 +572,26 @@ void init_tintin(int greeting)
 	do_configure(gts, "{TINTIN CHAR}         {#}");
 	do_configure(gts, "{VERBATIM}          {OFF}");
 	do_configure(gts, "{VERBATIM CHAR}      {\\}");
-	do_configure(gts, "{VERBOSE}           {OFF}");
+	do_configure(gts, HAS_BIT(greeting, STARTUP_FLAG_VERBOSE) ? "{VERBOSE} {ON}" : "{VERBOSE} {OFF}");
 	do_configure(gts, "{WORDWRAP}           {ON}");
 
-	do_class(gts, "{CONFIG} {CLOSE}");
-
-
-
-	do_class(gts, "{PATHDIR} {OPEN}");
-
-	insert_node_list(gts->list[LIST_PATHDIR],  "n",  "s",  "1", "");
-	insert_node_list(gts->list[LIST_PATHDIR],  "e",  "w",  "2", "");
-	insert_node_list(gts->list[LIST_PATHDIR],  "s",  "n",  "4", "");
-	insert_node_list(gts->list[LIST_PATHDIR],  "w",  "e",  "8", "");
-	insert_node_list(gts->list[LIST_PATHDIR],  "u",  "d", "16", "");
-	insert_node_list(gts->list[LIST_PATHDIR],  "d",  "u", "32", "");
-
-	insert_node_list(gts->list[LIST_PATHDIR], "ne", "sw",  "3", "");
-	insert_node_list(gts->list[LIST_PATHDIR], "nw", "se",  "9", "");
-	insert_node_list(gts->list[LIST_PATHDIR], "se", "nw",  "6", "");
-	insert_node_list(gts->list[LIST_PATHDIR], "sw", "ne", "12", "");
-
-	do_class(gts, "{PATHDIR} {CLOSE}");
+	do_pathdir(gts, " n  s  1");
+	do_pathdir(gts, " e  w  2");
+	do_pathdir(gts, " s  n  4");
+	do_pathdir(gts, " w  e  8");
+	do_pathdir(gts, " u  d 16");
+	do_pathdir(gts, " d  u 32");
+	do_pathdir(gts, "ne sw  3");
+	do_pathdir(gts, "nw se  9");
+	do_pathdir(gts, "se nw  6");
+	do_pathdir(gts, "sw ne 12");
 
 	gtd->level->input--;
+
+	if (HAS_BIT(greeting,  STARTUP_FLAG_VERBOSE))
+	{
+		gtd->level->verbose--;
+	}
 
 	init_terminal(gts);
 

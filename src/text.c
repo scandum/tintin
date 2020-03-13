@@ -55,7 +55,7 @@ void print_line(struct session *ses, char **str, int prompt)
 
 	out = str_alloc(BUFFER_SIZE + strlen(*str));
 
-	if (HAS_BIT(ses->flags, SES_FLAG_CONVERTMETA))
+	if (HAS_BIT(ses->flags, SES_FLAG_CONVERTMETA) || gtd->level->convert)
 	{
 		convert_meta(*str, out, TRUE);
 
@@ -79,7 +79,7 @@ void print_line(struct session *ses, char **str, int prompt)
 	{
 		print_stdout("%s\n", out);
 	}
-	add_line_screen(out);
+//	add_line_screen(out);
 
 	str_free(out);
 

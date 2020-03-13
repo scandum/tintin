@@ -77,9 +77,9 @@ void restore_pos(struct session *ses)
 		syserr_printf(ses, "sav_lev-- below 0.");
 	}
 
-	if (gtd->screen->sav_row[gtd->screen->sav_lev] == gtd->screen->rows)
+	if (gtd->screen->sav_lev == 1 /* gtd->screen->sav_row[gtd->screen->sav_lev] == inputline_cur_row()*/ /*gtd->screen->rows*/)
 	{
-		goto_pos(ses, gtd->screen->rows, inputline_cur_pos());
+		goto_pos(ses, inputline_cur_row(), inputline_cur_col());
 	}
 	else
 	{
@@ -263,6 +263,15 @@ int skip_vt102_codes(char *str)
 				case 'R':
 					pop_call();
 					return str[3] ? 3 : 2;
+
+				default:
+					for (skip = 2 ; str[skip] ; skip++)
+					{
+						if (str[skip] == '\a' || (str[skip] == '\e' && str[skip+1] == '\\'))
+						{
+							return skip + 1;
+						}
+					}
 			}
 			pop_call();
 			return 2;
@@ -294,6 +303,37 @@ int skip_vt102_codes(char *str)
 	}
 	pop_call();
 	return skip;
+}
+
+int skip_one_char(struct session *ses, char *str, int *width)
+{
+	int skip;
+
+	*width = 0;
+
+	if (*str)
+	{
+		skip = skip_vt102_codes(str);
+
+		if (skip)
+		{
+			return skip;
+		}
+
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, str))
+		{
+			return get_euc_width(ses, str, width);
+		}
+
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
+		{
+			return get_utf8_width(str, width);
+		}
+
+		*width = 1;
+		return 1;
+	}
+	return 0;
 }
 
 int find_color_code(char *str)
@@ -402,23 +442,23 @@ int skip_vt102_codes_non_graph(char *str)
 
 	switch (str[skip])
 	{
-		case   7:   /* BEL */
-	/*	case   8: *//* BS  */
-	/*	case   9: *//* HT  */
-	/*	case  10: *//* LF  */
-		case  11:   /* VT  */
-		case  12:   /* FF  */
-		case  13:   /* CR  */
-		case  14:   /* SO  */
-		case  15:   /* SI  */
-		case  17:   /* DC1 */
-		case  19:   /* DC3 */
-		case  24:   /* CAN */
-		case  26:   /* SUB */
-		case 127:   /* DEL */
+		case   7:   // BEL
+//		case   8:   // BS  
+//		case   9:   // HT  
+//		case  10:   // LF  
+		case  11:   // VT  
+		case  12:   // FF  
+		case  13:   // CR  
+		case  14:   // SO  
+		case  15:   // SI  
+		case  17:   // DC1 
+		case  19:   // DC3 
+		case  24:   // CAN 
+		case  26:   // SUB 
+		case 127:   // DEL 
 			return 1;
 
-		case  27:   /* ESC */
+		case  27:   // ESC 
 			break;
 
 		default:
@@ -463,7 +503,7 @@ int skip_vt102_codes_non_graph(char *str)
 				case 'R':
 					return 3;
 			}
-			return 2;
+			return 0;
 
 		case '[':
 			break;

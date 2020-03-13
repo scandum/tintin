@@ -172,7 +172,7 @@
 #define LIST_SIZE                        2
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.01 "
+#define CLIENT_VERSION           "2.02.02 "
 
 #define XT_E                            0x27
 #define XT_C                            0x5B
@@ -340,13 +340,16 @@ enum operators
 #define BV37 (1LL << 36)
 #define BV38 (1LL << 37)
 #define BV39 (1LL << 38)
+#define BV40 (1LL << 39)
 
-#define BUFFER_FLAG_GREP              BV01
+
+#define BUFFER_FLAG_GREP                  BV01
 
 
 #define CHARSET_FLAG_UTF8                 BV01
 #define CHARSET_FLAG_BIG5                 BV02
 #define CHARSET_FLAG_GBK1                 BV03
+
 
 #define CHARSET_FLAG_BIG5TOUTF8           BV04
 #define CHARSET_FLAG_FANSITOUTF8          BV05
@@ -456,23 +459,25 @@ enum operators
 #define DRAW_FLAG_TUBED               BV27
 #define DRAW_FLAG_UTF8                BV28
 #define DRAW_FLAG_VER                 BV29
-
+#define DRAW_FLAG_CURSIVE             BV30
+#define DRAW_FLAG_FAT                 BV31
+#define DRAW_FLAG_SANSSERIF           BV32
 
 #define EVENT_FLAG_CATCH              BV01
 #define EVENT_FLAG_CLASS              BV02
-#define EVENT_FLAG_INPUT              BV03
-#define EVENT_FLAG_MAP                BV04
-#define EVENT_FLAG_MOUSE              BV05
-#define EVENT_FLAG_OUTPUT             BV06
-#define EVENT_FLAG_PORT               BV07
-#define EVENT_FLAG_SCAN               BV08
-#define EVENT_FLAG_SCREEN             BV09
-#define EVENT_FLAG_SESSION            BV10
-#define EVENT_FLAG_SYSTEM             BV11
-#define EVENT_FLAG_TELNET             BV12
-#define EVENT_FLAG_TIME               BV13
-#define EVENT_FLAG_VT100              BV14
-
+#define EVENT_FLAG_GAG                BV03
+#define EVENT_FLAG_INPUT              BV04
+#define EVENT_FLAG_MAP                BV05
+#define EVENT_FLAG_MOUSE              BV06
+#define EVENT_FLAG_OUTPUT             BV07
+#define EVENT_FLAG_PORT               BV08
+#define EVENT_FLAG_SCAN               BV09
+#define EVENT_FLAG_SCREEN             BV10
+#define EVENT_FLAG_SESSION            BV11
+#define EVENT_FLAG_SYSTEM             BV12
+#define EVENT_FLAG_TELNET             BV13
+#define EVENT_FLAG_TIME               BV14
+#define EVENT_FLAG_VT100              BV15
 
 
 #define PORT_FLAG_PRIVATE             BV01
@@ -555,18 +560,19 @@ enum operators
 //#define TINTIN_FLAG_RESETBUFFER       (1 <<  0)
 
 #define TINTIN_FLAG_CONVERTMETACHAR   (1 <<  1)
-#define TINTIN_FLAG_HISTORYBROWSE     (1 <<  2)
-#define TINTIN_FLAG_HISTORYSEARCH     (1 <<  3)
-#define TINTIN_FLAG_PROCESSINPUT      (1 <<  4)
-#define TINTIN_FLAG_INHERITANCE       (1 <<  5)
-#define TINTIN_FLAG_INSERTINPUT       (1 <<  6)
-#define TINTIN_FLAG_CHILDLOCK         (1 <<  7)
-#define TINTIN_FLAG_TERMINATE         (1 <<  8)
-#define TINTIN_FLAG_MOUSETRACKING     (1 <<  9)
-#define TINTIN_FLAG_FLUSH             (1 << 10)
-#define TINTIN_FLAG_DAEMONIZE         (1 << 11)
-#define TINTIN_FLAG_HIDDENCURSOR      (1 << 12)
-#define TINTIN_FLAG_LOCAL             (1 << 13)
+//#define TINTIN_FLAG_CONVERTEDMETACHAR (1 <<  2)
+#define TINTIN_FLAG_HISTORYBROWSE     (1 <<  3)
+#define TINTIN_FLAG_HISTORYSEARCH     (1 <<  4)
+#define TINTIN_FLAG_PROCESSINPUT      (1 <<  5)
+#define TINTIN_FLAG_INHERITANCE       (1 <<  6)
+#define TINTIN_FLAG_INSERTINPUT       (1 <<  7)
+#define TINTIN_FLAG_CHILDLOCK         (1 <<  8)
+#define TINTIN_FLAG_TERMINATE         (1 <<  9)
+#define TINTIN_FLAG_MOUSETRACKING     (1 << 10)
+#define TINTIN_FLAG_FLUSH             (1 << 11)
+#define TINTIN_FLAG_DAEMONIZE         (1 << 12)
+#define TINTIN_FLAG_HIDDENCURSOR      (1 << 13)
+#define TINTIN_FLAG_LOCAL             (1 << 14)
 
 #define SES_FLAG_ECHOCOMMAND          BV01
 #define SES_FLAG_SNOOP                BV02
@@ -599,6 +605,7 @@ enum operators
 #define SES_FLAG_SCROLLSPLIT          BV29
 #define SES_FLAG_MOUSEDEBUG           BV30
 #define SES_FLAG_MOUSEINFO            BV31
+#define SES_FLAG_AUTOPROMPT           BV32
 
 
 #define TELOPT_FLAG_TELNET            BV01
@@ -665,6 +672,7 @@ enum operators
 #define ROOM_FLAG_CURVED_TMP          BV14|ROOM_FLAG_CURVED
 #define ROOM_FLAG_BLOCK               BV15
 #define ROOM_FLAG_TERRAIN             BV20
+#define ROOM_FLAG_FOG                 BV21
 
 // keep synced with room flags
 
@@ -757,7 +765,7 @@ enum operators
 #define MOUSE_FLAG_MOTION              32
 #define MOUSE_FLAG_WHEEL               64
 #define MOUSE_FLAG_EXTRA              128
-#define MOUSE_FLAG_UNKNOWN            256
+#define MOUSE_FLAG_RELEASE            256
 
 #define CURSOR_FLAG_ALWAYS              1
 //#define CURSOR_FLAG_NEVER               2
@@ -769,6 +777,7 @@ enum operators
 #define STARTUP_FLAG_NORESET            4
 #define STARTUP_FLAG_ARGUMENT           8
 #define STARTUP_FLAG_NOTITLE           16
+#define STARTUP_FLAG_VERBOSE           32
 
 #define WRAP_FLAG_DISPLAY             (1 <<  0)
 #define WRAP_FLAG_WORD                (1 <<  1)
@@ -793,6 +802,7 @@ enum operators
 #define UNICODE_DIR_NE                  2
 #define UNICODE_DIR_SW                  4
 #define UNICODE_DIR_NW                  8
+
 #define UNICODE_DIR_D                  16
 #define UNICODE_DIR_N                  17
 #define UNICODE_DIR_S                  18
@@ -812,13 +822,15 @@ enum operators
 #define MAP_COLOR_BACK                  1
 #define MAP_COLOR_BLOCK                 2
 #define MAP_COLOR_EXIT                  3
-#define MAP_COLOR_HIDE                  4
-#define MAP_COLOR_INVIS                 5
-#define MAP_COLOR_PATH                  6
-#define MAP_COLOR_ROOM                  7
-#define MAP_COLOR_SYMBOL                8
-#define MAP_COLOR_USER                  9
-#define MAP_COLOR_MAX                   10
+#define MAP_COLOR_FOG                   4
+#define MAP_COLOR_HIDE                  5
+#define MAP_COLOR_INVIS                 6
+#define MAP_COLOR_PATH                  7
+#define MAP_COLOR_ROOM                  8
+#define MAP_COLOR_SYMBOL                9
+#define MAP_COLOR_USER                  10
+
+#define MAP_COLOR_MAX                   11
 
 
 /*
@@ -1046,17 +1058,17 @@ struct tintin_data
 	int                     mud_output_len;
 	unsigned char         * mccp_buf;
 	int                     mccp_len;
-	char                    input_buf[BUFFER_SIZE];
-	char                    input_tmp[BUFFER_SIZE];
+/*	char                    input_buf[BUFFER_SIZE];
+	char                    input_tmp[BUFFER_SIZE];*/
 	char                    macro_buf[BUFFER_SIZE];
 	char                    paste_buf[BUFFER_SIZE];
-	char                    is_result[NUMBER_SIZE];
-	int                     input_off;
+	char                    is_result[NUMBER_SIZE]; // not properly utilized?
+/*	int                     input_off;
 	int                     input_len;
 	int                     input_cur;
 	int                     input_pos;
 	int                     input_hid;
-	int                     input_tab;
+	int                     input_tab;*/
 	char                  * home;
 	char                  * lang;
 	char                  * os;
@@ -1071,10 +1083,11 @@ struct tintin_data
 	long long               total_io_ticks;
 	long long               total_io_exec;
 	long long               total_io_delay;
+	long long               convert_time;
 	int                     history_size;
 	int                     command_ref[26];
 	int                     msdp_table_size;
-	int                     flags;
+	long long               flags;
 	struct scriptroot     * script_stack[STACK_SIZE];
 	int                     script_index;
 	char                    tintin_char;
@@ -1097,6 +1110,7 @@ struct session
 	struct termios          cur_terminal;
 	struct scroll_data    * scroll;
 	struct split_data     * split;
+	struct input_data     * input;
 	char                  * name;
 	char                  * group;
 	FILE                  * logfile;
@@ -1142,22 +1156,24 @@ struct session
 	int                     auto_tab;
 	int                     tab_width;
 	unsigned long long      rand;
+	unsigned short          rkey;
 };
 
 
 struct level_data
 {
-	int                     background;
-	int                     debug;
-	int                     grep;
-	int                     ignore;
-	int                     info;
-	int                     input;
-	int                     oneshot;
-	int                     quiet;
-	int                     scroll;
-	int                     verbatim;
-	int                     verbose;
+	unsigned int            background;
+	unsigned int            convert;
+	unsigned int            debug;
+	unsigned int            grep;
+	unsigned int            ignore;
+	unsigned int            info;
+	unsigned int            input;
+	unsigned int            oneshot;
+	unsigned int            quiet;
+	unsigned int            scroll;
+	unsigned int            verbatim;
+	unsigned int            verbose;
 };
 
 struct split_data
@@ -1172,6 +1188,53 @@ struct split_data
 	int                     bot_col;
 };
 
+struct input_data
+{
+	int                     sav_top_row;
+	int                     sav_top_col;
+	int                     sav_bot_row;
+	int                     sav_bot_col;
+
+	int                     top_row;
+	int                     top_col;
+	int                     bot_row;
+	int                     bot_col;
+
+	int                     rel_row;
+	int                     rel_col;
+
+	int                     len;
+	int                     off;
+	int                     pos;
+	int                     cur;
+	int                     hid;
+	int                     tab;
+
+	char                   *buf;
+	char                   *tmp;
+};
+
+struct window_data
+{
+	char                    *name;
+
+	int                     top_row;
+	int                     top_col;
+	int                     bot_row;
+	int                     bot_col;
+
+	int                     off_row;
+	int                     off_col;
+
+	int                     max_row;
+	int                     max_col;
+
+	int                     pos_row;
+	int                     pos_col;
+
+	struct input_data      **buffer;
+};
+
 struct scroll_data
 {
 	struct buffer_data   ** buffer;
@@ -1184,7 +1247,6 @@ struct scroll_data
 	char                  * input;
 	int                     flags;
 };
-
 
 struct buffer_data
 {
@@ -1292,7 +1354,6 @@ struct str_data
 	int                       len;
 };
 
-
 struct row_data
 {
 	char                  * str;
@@ -1321,8 +1382,6 @@ struct screen_data
 	int                     bot_row;
 	int                     cur_row;
 	int                     cur_col;
-//	int                     sav_row;
-//	int                     sav_col;
 	int                     max_row;
 	int                     sav_lev;
 	int                     sav_row[STACK_SIZE];
@@ -1333,6 +1392,7 @@ struct map_data
 {
 	struct room_data     ** room_list;
 	struct room_data     ** grid_rooms;
+	int                   * grid_vnums;
 	FILE                  * logfile;
 	struct link_data      * undo_head;
 	struct link_data      * undo_tail;
@@ -1400,7 +1460,6 @@ struct room_data
 	char                    * note;
 	char                    * symbol;
 	char                    * terrain;
-
 };
 
 struct exit_data
@@ -1439,6 +1498,8 @@ struct search_data
 /*
 	Typedefs
 */
+
+typedef int             CMPFUNC (const void *a, const void *b);
 
 typedef struct session *ARRAY   (struct session *ses, struct listnode *list, char *arg, char *var);
 typedef void            CHAT    (char *arg1, char *arg2);
@@ -1696,24 +1757,41 @@ extern DO_COMMAND(do_advertise);
 #define __ARRAY_H__
 
 extern DO_COMMAND(do_list);
+
 extern DO_ARRAY(array_add);
 extern DO_ARRAY(array_clear);
 extern DO_ARRAY(array_collapse);
 extern DO_ARRAY(array_create);
-extern DO_ARRAY(array_explode);
-extern DO_ARRAY(array_insert);
 extern DO_ARRAY(array_delete);
+extern DO_ARRAY(array_explode);
 extern DO_ARRAY(array_find);
 extern DO_ARRAY(array_get);
+extern DO_ARRAY(array_insert);
+extern DO_ARRAY(array_order);
+extern DO_ARRAY(array_reverse);
+extern DO_ARRAY(array_set);
 extern DO_ARRAY(array_shuffle);
 extern DO_ARRAY(array_simplify);
 extern DO_ARRAY(array_size);
-extern DO_ARRAY(array_set);
 extern DO_ARRAY(array_sort);
 extern DO_ARRAY(array_tokenize);
 
 #endif
 
+
+#ifndef __BASE_H__
+#define __BASE_H__
+
+extern int str_to_base64(char *in, char *out, size_t size);
+extern int base64_to_str(char *in, char *out, size_t size);
+
+extern int str_to_base252(char *in, char *out, size_t size);
+extern int base252_to_str(char *in, char *out, size_t size);
+
+extern void str_to_base252z(char *in, char *out, size_t size);
+extern void base252z_to_str(char *in, char *out, size_t size);
+
+#endif
 
 #ifndef __BUFFER_H__
 #define __BUFFER_H__
@@ -1812,7 +1890,10 @@ extern DO_CLASS(class_write);
 
 extern DO_COMMAND(do_cursor);
 
-int inputline_cur_pos(void);
+int inputline_cur_row(void);
+int inputline_cur_col(void);
+
+int inputline_max_row(void);
 
 extern DO_CURSOR(cursor_backspace);
 extern DO_CURSOR(cursor_brace_open);
@@ -2125,7 +2206,7 @@ extern DO_COMMAND(do_event);
 extern DO_COMMAND(do_unevent);
 
 extern  int check_all_events(struct session *ses, int flags, int args, int vars, char *fmt, ...);
-extern void mouse_handler(struct session *ses, int val1, int val2, int val3, char type);
+extern void mouse_handler(struct session *ses, int val1, int val2, int val3);
 
 #endif
 
@@ -2178,6 +2259,7 @@ extern DO_COMMAND(do_line);
 extern DO_LINE(line_background);
 extern DO_LINE(line_benchmark);
 extern DO_LINE(line_capture);
+extern DO_LINE(line_convert);
 extern DO_LINE(line_debug);
 extern DO_LINE(line_gag);
 extern DO_LINE(line_ignore);
@@ -2383,6 +2465,9 @@ extern DO_COMMAND(do_path);
 extern DO_COMMAND(do_pathdir);
 extern DO_COMMAND(do_unpathdir);
 
+int exit_to_dir(struct session *ses, char *name);
+char *dir_to_exit(struct session *ses, int dir);
+
 extern void check_append_path(struct session *ses, char *forward, char *backward, int follow);
 
 extern DO_PATH(path_create);
@@ -2466,10 +2551,12 @@ extern DO_SCREEN(screen_focus);
 extern DO_SCREEN(screen_fullscreen);
 extern DO_SCREEN(screen_get);
 extern DO_SCREEN(screen_info);
+extern DO_SCREEN(screen_inputregion);
 extern DO_SCREEN(screen_load);
 extern DO_SCREEN(screen_maximize);
 extern DO_SCREEN(screen_minimize);
 extern DO_SCREEN(screen_move);
+extern DO_SCREEN(screen_print);
 extern DO_SCREEN(screen_raise);
 extern DO_SCREEN(screen_refresh);
 extern DO_SCREEN(screen_resize);
@@ -2479,17 +2566,15 @@ extern DO_SCREEN(screen_scrollbar);
 extern DO_SCREEN(screen_scrollregion);
 extern DO_SCREEN(screen_set);
 
-extern  int get_row_index(struct session *ses, char *arg);
-extern  int get_col_index(struct session *ses, char *arg);
+extern void init_inputregion(struct session *ses, int top_row, int top_col, int bot_row, int bot_col);
+extern  int get_row_index(struct session *ses, int val);
+extern  int get_col_index(struct session *ses, int val);
+extern  int get_row_index_arg(struct session *ses, char *arg);
+extern  int get_col_index_arg(struct session *ses, char *arg);
 extern void csip_handler(int var1, int var2, int var3);
 extern void csit_handler(int var1, int var2, int var3);
 extern void rqlp_handler(int event, int button, int row, int col);
 extern void osc_handler(char ind, char *arg);
-extern void print_screen();
-extern void init_screen(int rows, int cols, int pix_rows, int pix_cols);
-extern void destroy_screen();
-extern void add_line_screen(char *str);
-extern void set_line_screen(char *str, int row, int col);
 extern void erase_scroll_region(struct session *ses);
 extern void erase_split_region(struct session *ses);
 extern void erase_bot_region(struct session *ses);
@@ -2502,7 +2587,15 @@ extern void fill_bot_region(struct session *ses, char *arg);
 extern void fill_left_region(struct session *ses, char *arg);
 extern void fill_right_region(struct session *ses, char *arg);
 extern void fill_split_region(struct session *ses, char *arg);
+
+extern void print_screen();
+extern void init_screen(int rows, int cols, int pix_rows, int pix_cols);
+extern void destroy_screen();
+extern int inside_scroll_region(struct session *ses, int row, int col);
+extern void add_line_screen(char *str);
+extern void set_line_screen(char *str, int row, int col);
 extern void get_line_screen(char *str, int row);
+extern  int get_link_screen(struct session *ses, char *result, int flags, int row, int col);
 extern void get_word_screen(char *str, int row, int col);
 
 #endif
@@ -2549,6 +2642,16 @@ extern void tintin_puts(struct session *ses, char *string);
 
 #endif
 
+
+#ifndef __SORT_H__
+#define __SORT_H__
+
+extern void quadsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp);
+extern int cmp_int(const void * a, const void * b);
+extern int cmp_str(const void * a, const void * b);
+extern int cmp_num(const void * a, const void * b);
+
+#endif
 
 #ifndef __SPLIT_H__
 #define __SPLIT_H__
@@ -2734,7 +2837,7 @@ extern DO_COMMAND(do_unmacro);
 
 extern DO_COMMAND(do_prompt);
 extern DO_COMMAND(do_unprompt);
-extern void check_all_prompts(struct session *ses, char *original, char *line);
+extern int check_all_prompts(struct session *ses, char *original, char *line, int check);
 
 extern DO_COMMAND(do_substitute);
 extern DO_COMMAND(do_unsubstitute);
@@ -2860,6 +2963,7 @@ extern void scroll_region(struct session *ses, int top, int bottom);
 extern void reset_scroll_region(struct session *ses);
 extern int find_color_code(char *str);
 extern int find_secure_color_code(char *str);
+extern int skip_one_char(struct session *ses, char *str, int *width);
 extern int skip_vt102_codes(char *str);
 extern int skip_vt102_codes_non_graph(char *str);
 extern void strip_vt102_codes(char *str, char *buf);

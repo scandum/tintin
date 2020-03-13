@@ -201,7 +201,7 @@ void mathexp(struct session *ses, char *str, char *result, int seed)
 	{                                                       \
 		badnumber = 0;                                  \
 		precision = 0;                                  \
-		show_debug(ses, LIST_VARIABLE, "#MATH EXP: INVALID NUMBER %s.", buf3); \
+		show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3); \
 	}                                                       \
 	*pta = 0;                                               \
 	sprintf(buf1, "%02d", level);                           \
@@ -388,8 +388,8 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						pti++;
 						break;
 
-					case ')':
 					case 'd':
+					case ')':
 					case '*':
 					case '/':
 					case '%':
@@ -428,7 +428,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							*pta++ = *pti++;
 							*pta = 0;
 						}
-						else
+						else if (badnumber == 0)
 						{
 							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
 
@@ -447,6 +447,10 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 								case 'Y': pta += sprintf(pta, "1000000000000000000000000"); break;
 							}
 							metric = 1;
+						}
+						else
+						{
+							*pta++ = *pti++;
 						}
 						break;
 
@@ -469,7 +473,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							*pta++ = *pti++;
 							*pta = 0;
 						}
-						else
+						else if (badnumber == 0)
 						{
 							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
 
@@ -490,6 +494,10 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							}
 							metric = 1;
 							precision = UMAX(precision, strlen(buf3) -1);
+						}
+						else
+						{
+							*pta++ = *pti++;
 						}
 						break;
 
@@ -839,6 +847,7 @@ void mathexp_compute(struct session *ses, struct link_data *node)
                         max = max << 32ULL;
                         SET_BIT(min, (unsigned int) tintoi(node->prev->str3));
                         value64 = max | min;
+                        break;
 
 		case 'd':
 			if (tintoi(node->next->str3) <= 0)

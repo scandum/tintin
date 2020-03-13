@@ -624,6 +624,7 @@ int client_recv_do_sga(struct session *ses, int cplen, unsigned char *cpsrc)
 int client_mark_prompt(struct session *ses, int cplen, unsigned char *cpsrc)
 {
 	SET_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
+	SET_BIT(ses->flags, SES_FLAG_AUTOPROMPT);
 
 	if (cpsrc[1] == GA)
 	{

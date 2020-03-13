@@ -1,6 +1,6 @@
 This document will hopefully answer most questions regarding tintin++ (tt++).
 
-Last updated: 12/28/2010
+Last updated: 03/07/2020
 
 Q00) I'm new to tintin, how do I get started?
 
@@ -19,29 +19,29 @@ A00) Quite easy, start tintin using tt++ or ./tt++, to connect to a mud type:
 Q01) What machines does tintin work on?
 
 A01) Pretty much any UNIX machine with a modern compiler as well as Windows,
-     Mac OS X, and Android.
+     Mac OS X, Android, and iOS.
 
 Q02) What version should I use 1.50 or 1.86 or 2.00 ?
 
 A02) TinTin++ 2.00 is twice the size of 1.86 with over 90% of the 1.86 code
      rewritten. TinTin++ 2.00 is not backward compatible with 1.50 or 1.86.
-     The NEWS file contains known compatibility issues.
+     The NEWS file contains all known compatibility issues.
 
-Q06) I can't get tintin compiled still.  Where can I get more help?
+Q06) I can't get tintin compiled.  Where can I get more help?
 
 A06) See the INSTALL file.
 
-Q07) I can't get tintin compiled, can't you send me a binary of tintin?
+Q07) I still can't get tintin compiled?
 
-A07) See the install section on the website for help. A pre-compiled
-     binary is only available for Windows.
+A07) See the install section on the website for even more detailed help.
+     A pre-compiled binary is only available for Windows.
 
 Q08) I would like to help, how can I contribute to tintin?
 
-A08) You can assist people on the message board and give bug reports or
-     suggestions. A link to the beta version is often available on the
-     forum in the Announcements section, beta testing is very helpful to
-     avoid buggy releases.
+A08) You can assist people on the discord channel and give bug reports or
+     suggestions. A link to the beta version is available on the forum
+     in the Beta Testing section, beta testing is very important to the
+     continued development of TinTin++.
 
      TinTin++ is mostly a solo project and over 95% of the code has been
      written by Igor van den Hoven. If you however feel the need to
@@ -83,6 +83,7 @@ A14) If you read the COPYING file you will see you are allowed to modify and
      redistribute this version as long as you make it clear you made changes,
      and what those changes are. If you want to use tintin code in another
      program not licensed under GPL 3 you need permission from the author.
+
      Make sure to see if the exact code you want to use isn't existent in older
      tintin++ versions before contacting me, because I obviously cannot give
      permission for code I didn't write :) Also notice that older tintin++
@@ -111,7 +112,7 @@ A17) Use %%0 %%1 %%2 for the arguments of the nested action.
 
 Q18) How to enable support for chinese muds?
 
-A18  Use: #config BIG-5 on
+A18  Use: #config charset ? to get a list of support character sets.
 
 Q19) I use Mac OS X and ran tintin a few times, now every time I open a terminal
      window, it runs tintin automatically.
@@ -122,3 +123,12 @@ A19) You clicked "use settings as default" while running tintin. There's a few
      to redo anyting custom you set up (screen size, colors, etc.), but it
      will get the terminal back to the default of loading into your home
      directory.
+
+Q20) What is the recommended terminal emulator?
+
+A20) TinTin++ is being developed to work properly with xterm.
+
+Q21) What is the recommended font?
+
+A21) The default unicode settings are configured to work with Consolas and the 
+     mintty terminal for the Windows build.

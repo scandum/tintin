@@ -65,7 +65,7 @@ DO_COMMAND(do_bell)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL POP {ON|OFF}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #BELL FOCUS {ON|OFF}");
 		}
 	}
 	else if (is_abbrev(arg1, "MARGIN"))
@@ -273,7 +273,7 @@ DO_COMMAND(do_test)
 			{
 				sprintf(arg4, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
 
-				tintin_printf2(ses, "debug: %s", arg4);
+				tintin_printf2(ses, "do_test debug: %s", arg4);
 			}
 		}
 	}

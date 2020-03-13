@@ -84,6 +84,22 @@ void process_input(void)
 		show_message(gtd->ses, LIST_COMMAND, "#DAEMON ATTACH: WRITE ERROR: UNATTACHING.");
 	}
 
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	{
+		if (gtd->convert_time == 0)
+		{
+			gtd->convert_time = 100000LL + utime();
+		}
+		else
+		{
+			if (gtd->convert_time < gtd->utime)
+			{
+				gtd->convert_time = 0;
+				DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
+			}
+		}
+	}
+
 	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) && !HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
 	{
 		read_key(input, len);
@@ -103,7 +119,7 @@ void process_input(void)
 
 	if (gtd->chat && gtd->chat->paste_time)
 	{
-		chat_paste(gtd->input_buf, NULL);
+		chat_paste(gtd->ses->input->buf, NULL);
 
 		pop_call();
 		return;
@@ -111,12 +127,12 @@ void process_input(void)
 
 	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
 	{
-		add_line_history(gtd->ses, gtd->input_buf);
+		add_line_history(gtd->ses, gtd->ses->input->buf);
 	}
 
 	if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
 	{
-		echo_command(gtd->ses, gtd->input_buf);
+		echo_command(gtd->ses, gtd->ses->input->buf);
 	}
 	else
 	{
@@ -128,9 +144,9 @@ void process_input(void)
 		buffer_end(gtd->ses, "");
 	}
 
-	check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 1, "RECEIVED INPUT", gtd->input_buf);
+	check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 1, "RECEIVED INPUT", gtd->ses->input->buf);
 
-	if (check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH RECEIVED INPUT", gtd->input_buf) == 1)
+	if (check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH RECEIVED INPUT", gtd->ses->input->buf) == 1)
 	{
 		pop_call();
 		return;
@@ -138,11 +154,11 @@ void process_input(void)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))
 	{
-		write_mud(gtd->ses, gtd->input_buf, SUB_EOL);
+		write_mud(gtd->ses, gtd->ses->input->buf, SUB_EOL);
 	}
 	else
 	{
-		gtd->ses = script_driver(gtd->ses, LIST_COMMAND, gtd->input_buf);
+		gtd->ses = script_driver(gtd->ses, LIST_COMMAND, gtd->ses->input->buf);
 	}
 
 	if (IS_SPLIT(gtd->ses))
@@ -150,7 +166,7 @@ void process_input(void)
 		erase_toeol();
 	}
 
-	gtd->input_buf[0] = 0;
+	gtd->ses->input->buf[0] = 0;
 
 	fflush(NULL);
 
@@ -162,9 +178,9 @@ void read_line(char *input, int len)
 {
 	int size, width, index;
 
-//	gtd->input_buf[gtd->input_len] = 0;
+//	gtd->ses->input->buf[gtd->ses->input->len] = 0;
 
-	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
+	if (HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA) || gtd->level->convert)
 	{
 		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
 	}
@@ -223,7 +239,7 @@ void read_line(char *input, int len)
 				{
 					size = get_utf8_width(gtd->macro_buf, &width);
 
-					if (HAS_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT) && gtd->input_len != gtd->input_cur)
+					if (HAS_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT) && gtd->ses->input->len != gtd->ses->input->cur)
 					{
 						if (width)
 						{
@@ -231,13 +247,13 @@ void read_line(char *input, int len)
 						}
 					}
 
-					ins_sprintf(&gtd->input_buf[gtd->input_cur], "%.*s", size, gtd->macro_buf);
+					ins_sprintf(&gtd->ses->input->buf[gtd->ses->input->cur], "%.*s", size, gtd->macro_buf);
 
-					gtd->input_pos += width;
-					gtd->input_cur += size;
-					gtd->input_len += size;
+					gtd->ses->input->pos += width;
+					gtd->ses->input->cur += size;
+					gtd->ses->input->len += size;
 
-					if (width && gtd->input_len != gtd->input_cur)
+					if (width && gtd->ses->input->len != gtd->ses->input->cur)
 					{
 						input_printf("\e[%d@%.*s", width, size, gtd->macro_buf);
 					}
@@ -249,18 +265,18 @@ void read_line(char *input, int len)
 				}
 				else
 				{
-					if (HAS_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT) && gtd->input_len != gtd->input_cur)
+					if (HAS_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT) && gtd->ses->input->len != gtd->ses->input->cur)
 					{
 						cursor_delete(gtd->ses, "");
 					}
 
-					ins_sprintf(&gtd->input_buf[gtd->input_cur], "%c", gtd->macro_buf[0]);
+					ins_sprintf(&gtd->ses->input->buf[gtd->ses->input->cur], "%c", gtd->macro_buf[0]);
 
-					gtd->input_len++;
-					gtd->input_cur++;
-					gtd->input_pos++;
+					gtd->ses->input->len++;
+					gtd->ses->input->cur++;
+					gtd->ses->input->pos++;
 
-					if (gtd->input_len != gtd->input_cur)
+					if (gtd->ses->input->len != gtd->ses->input->cur)
 					{
 						input_printf("\e[1@%c", gtd->macro_buf[0]);
 					}
@@ -272,8 +288,8 @@ void read_line(char *input, int len)
 				}
 
 //				gtd->macro_buf[0] = 0;
-				gtd->input_tmp[0] = 0;
-				gtd->input_buf[gtd->input_len] = 0;
+				gtd->ses->input->tmp[0] = 0;
+				gtd->ses->input->buf[gtd->ses->input->len] = 0;
 
 				cursor_check_line_modified(gtd->ses, "");
 
@@ -294,7 +310,7 @@ void read_key(char *input, int len)
 {
 	int cnt;
 
-	if (gtd->input_buf[0] == gtd->tintin_char)
+	if (gtd->ses->input->buf[0] == gtd->tintin_char)
 	{
 		read_line(input, len);
 
@@ -325,9 +341,9 @@ void read_key(char *input, int len)
 		{
 			case ASCII_CR:
 			case ASCII_LF:
-				gtd->input_buf[0] = 0;
+				gtd->ses->input->buf[0] = 0;
 				gtd->macro_buf[0] = 0;
-				gtd->input_len = 0;
+				gtd->ses->input->len = 0;
 
 				if (HAS_BIT(gtd->ses->flags, SES_FLAG_RUN))
 				{
@@ -340,9 +356,9 @@ void read_key(char *input, int len)
 				break;
 
 			default:
-				if (gtd->macro_buf[cnt] == gtd->tintin_char && gtd->input_buf[0] == 0)
+				if (gtd->macro_buf[cnt] == gtd->tintin_char && gtd->ses->input->buf[0] == 0)
 				{
-					if (gtd->input_len != gtd->input_cur)
+					if (gtd->ses->input->len != gtd->ses->input->cur)
 					{
 						print_stdout("\e[1@%c", gtd->macro_buf[cnt]);
 					}
@@ -350,19 +366,19 @@ void read_key(char *input, int len)
 					{
 						print_stdout("%c", gtd->macro_buf[cnt]);
 					}
-					gtd->input_buf[0] = gtd->tintin_char;
-					gtd->input_buf[1] = 0;
+					gtd->ses->input->buf[0] = gtd->tintin_char;
+					gtd->ses->input->buf[1] = 0;
 					gtd->macro_buf[0] = 0;
-					gtd->input_len = 1;
-					gtd->input_cur = 1;
-					gtd->input_pos = 1;
+					gtd->ses->input->len = 1;
+					gtd->ses->input->cur = 1;
+					gtd->ses->input->pos = 1;
 				}
 				else
 				{
 					socket_printf(gtd->ses, 1, "%c", gtd->macro_buf[cnt]);
-					gtd->input_buf[0] = 127;
+					gtd->ses->input->buf[0] = 127;
 					gtd->macro_buf[0] = 0;
-					gtd->input_len = 0;
+					gtd->ses->input->len = 0;
 				}
 				break;
 		}
@@ -390,7 +406,7 @@ int check_key(char *input, int len)
 			{
 				node = root->list[root->update];
 
-				if (*node->arg1 == '^' && gtd->input_len)
+				if (*node->arg1 == '^' && gtd->ses->input->len)
 				{
 					continue;
 				}
@@ -417,7 +433,7 @@ int check_key(char *input, int len)
 			}
 		}
 
-		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) || HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) || gtd->input_buf[0] == gtd->tintin_char)
+		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) || HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) || gtd->ses->input->buf[0] == gtd->tintin_char)
 		{
 			for (cnt = 0 ; *cursor_table[cnt].fun != NULL ; cnt++)
 			{
@@ -444,7 +460,7 @@ int check_key(char *input, int len)
 		{
 			if (gtd->macro_buf[1] == '[')
 			{
-				if (gtd->macro_buf[2] == '<' && !HAS_BIT(gtd->ses->list[LIST_BUTTON]->flags, LIST_FLAG_IGNORE))
+				if (gtd->macro_buf[2] == '<' && HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
 				{
 					val[0] = val[1] = val[2] = cnt = input[0] = 0;
 
@@ -464,9 +480,10 @@ int check_key(char *input, int len)
 									break;
 
 								case 'm':
+									SET_BIT(val[0], MOUSE_FLAG_RELEASE);
 								case 'M':
 									val[cnt++] = get_number(gtd->ses, input);
-									mouse_handler(gtd->ses, val[0], val[2], val[1], gtd->macro_buf[len]); // swap x y to row col
+									mouse_handler(gtd->ses, val[0], val[2], val[1]); // swap x y to row col
 									gtd->macro_buf[0] = 0;
 									pop_call();
 									return TRUE;
@@ -652,17 +669,18 @@ void convert_meta(char *input, char *output, int eol)
 				{
 					*pto++ = '\\';
 					*pto++ = 'r';
-					*pto = 0;
-					DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
-					pop_call();
-					return;
+					pti++;
 				}
-				if (eol)
+				else if (eol)
 				{
 					*pto++ = '\\';
 					*pto++ = 'r';
+					*pto++ = *pti++;
 				}
-				*pto++ = *pti++;
+				else
+				{
+					*pto++ = *pti++;
+				}
 				break;
 
 			case ASCII_VTAB:
@@ -676,18 +694,18 @@ void convert_meta(char *input, char *output, int eol)
 				{
 					*pto++ = '\\';
 					*pto++ = 'n';
-					*pto = 0;
-					DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
-					pop_call();
-					return;
+					pti++;
 				}
-
-				if (eol)
+				else if (eol)
 				{
 					*pto++ = '\\';
 					*pto++ = 'n';
+					*pto++ = *pti++;
 				}
-				*pto++ = *pti++;
+				else
+				{
+					*pto++ = *pti++;
+				}
 
 				break;
 
@@ -716,7 +734,10 @@ void convert_meta(char *input, char *output, int eol)
 	}
 	*pto = 0;
 
-	DEL_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR);
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_CONVERTMETACHAR))
+	{
+		gtd->convert_time = 200000LL + gtd->utime;
+	}
 
 	pop_call();
 	return;
@@ -791,7 +812,7 @@ void input_printf(char *format, ...)
 
 	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HISTORYSEARCH))
 	{
-		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) && gtd->input_buf[0] != gtd->tintin_char)
+		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) && gtd->ses->input->buf[0] != gtd->tintin_char)
 		{
 			return;
 		}

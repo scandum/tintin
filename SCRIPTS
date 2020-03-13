@@ -1,15 +1,21 @@
 #nop -------------------------------------------------------------------------
+#nop Learn by example
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
 #nop Loop through room 1 to 1000 and change the color of rooms with the
 #nop static (16) flag to <168>.
 #nop -------------------------------------------------------------------------
 
 #loop 1 1000 vnum
 {
-	#map goto $vnum;
-	#map get roomflags result;
-	#if {$result & 16}
+	#map at $vnum
 	{
-		#map set roomcolor <168>
+		#map get roomflags result;
+		#if {$result & 16}
+		{
+			#map set roomcolor <168>
+		}
 	}
 }
 
@@ -56,7 +62,7 @@
 {200}
 
 #nop -------------------------------------------------------------------------
-#nop Maintain a friendlist.
+#nop Maintain a friendlist. %i creates a case insensitive regex.
 #nop -------------------------------------------------------------------------
 
 #variable {friendlist}
@@ -66,9 +72,7 @@
 
 #function isfriend
 {
-	#format name %l {%0};
-
-	#return &friendlist[$name];
+	#return &friendlist[%i%0];
 }
 
 #act {%1 follows you.}
@@ -108,7 +112,8 @@
 }
 
 #nop -------------------------------------------------------------------------
-#nop Append a goto to your current room when saving a map
+#nop Append a goto to your current room when saving a map. You can use
+#nop #map return instead.
 #nop -------------------------------------------------------------------------
 
 #alias {savemap}
@@ -307,3 +312,36 @@
 }
 
 #substitute {{\b[a-zA-Z]+\b}} {@spellcheck{%1}}
+
+#nop -------------------------------------------------------------------------
+#nop This function tests the random number engine
+#nop -------------------------------------------------------------------------
+
+#alias random
+{
+	#var random {};
+	#loop 1 1000 cnt
+	{
+		#math tmp 1d1000000000 % 10;
+		#math random[$tmp] $random[$tmp] + 1
+	};
+	#var random
+}
+
+#nop -------------------------------------------------------------------------
+#nop This macro allows pasting multi-line code fragments on pressing ctrl-v
+#nop -------------------------------------------------------------------------
+
+#macro {\cv}
+{
+	#cursor {convert meta} on;
+	#line oneshot #event {CATCH RECEIVED INPUT}
+	{
+		#line sub {esc} #var paste {%0};
+		#replace paste {\\n\\n} {;};
+		#replace paste {\\n} {};
+		#replace paste {\\t} {};
+		#replace paste {;;} {;};
+		#1 {$paste}
+	}
+}

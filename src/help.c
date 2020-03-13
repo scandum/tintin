@@ -50,9 +50,19 @@ char *help_related(struct session *ses, int index, int html)
 	{
 		arg = get_arg_in_braces(ses, arg, tmp, GET_ONE);
 
-		if (html)
+		if (html == 1)
 		{
 			sprintf(link, "\\c<a href='%s.php'\\c>%s\\c</a\\c>", tmp, tmp);
+			sprintf(tmp, "%s", link);
+		}
+		else if (html == 2)
+		{
+			sprintf(link, "\\c<a href='#%s'\\c>%s\\c</a\\c>", capitalize(tmp), tmp);
+			sprintf(tmp, "%s", link);
+		}
+		else if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
+		{
+			sprintf(link, "\e]68;2;%s\a\e[4m%s\e[24m", tmp, tmp);
 			sprintf(tmp, "%s", link);
 		}
 
@@ -78,7 +88,7 @@ char *help_related(struct session *ses, int index, int html)
 
 DO_COMMAND(do_help)
 {
-	char arg1[BUFFER_SIZE], buf[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE], buf[BUFFER_SIZE], tmp[BUFFER_SIZE];
 	int cnt, found;
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
@@ -89,13 +99,22 @@ DO_COMMAND(do_help)
 
 		for (cnt = 0 ; *help_table[cnt].name != 0 ; cnt++)
 		{
-			if (strlen(buf) + 19 > ses->wrap)
+			if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
+			{
+				sprintf(tmp, "%.*s\e]68;2;%s\a\e[4m%s\e[24m", 15 - (int) strlen(help_table[cnt].name), "                ", help_table[cnt].name, help_table[cnt].name);
+			}
+			else
+			{
+				sprintf(tmp, "%15s", help_table[cnt].name);
+			}
+
+			if (strip_vt102_strlen(ses, buf) + 15 > ses->wrap)
 			{
 				print_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
 
 				*buf = 0;
 			}
-			cat_sprintf(buf, "%19s ", help_table[cnt].name);
+			cat_sprintf(buf, "%s ", tmp);
 		}
 
 		if (*buf)
@@ -118,7 +137,7 @@ DO_COMMAND(do_help)
 
 		for (cnt = 0 ; *help_table[cnt].name != 0 ; cnt++)
 		{
-			if (cnt && cnt % 4 == 0)
+			if (cnt && cnt % 5 == 0)
 			{
 				substitute(ses, buf, buf, SUB_ESC|SUB_COL);
 
@@ -126,7 +145,7 @@ DO_COMMAND(do_help)
 
 				*buf = 0;
 			}
-			cat_sprintf(buf, "     \\c<a href='#%s'\\c>%15s\\c</a\\c>", help_table[cnt].name, help_table[cnt].name);
+			cat_sprintf(buf, " \\c<a href='#%s'\\c>%15s\\c</a\\c>", help_table[cnt].name, help_table[cnt].name);
 		}
 
 		cat_sprintf(buf, "\n\n");
@@ -155,7 +174,7 @@ DO_COMMAND(do_help)
 
 			if (*help_table[cnt].also)
 			{
-				substitute(ses, help_related(ses, cnt, 0), buf, SUB_COL);
+				substitute(ses, help_related(ses, cnt, 2), buf, SUB_ESC|SUB_COL);
 
 				logit(ses, buf, logfile, LOG_FLAG_LINEFEED);
 			}
@@ -214,7 +233,7 @@ DO_COMMAND(do_help)
 			if (is_abbrev(arg1, help_table[cnt].name))
 			{
 				print_lines(ses, SUB_COL, "%s<088>\n", help_table[cnt].text);
-				
+
 				if (*help_table[cnt].also)
 				{
 					print_lines(ses, SUB_COL, "%s<088>\n\n", help_related(ses, cnt, 0));
@@ -380,7 +399,7 @@ struct help_type help_table[] =
 		"         It's possible to adjust the alarm bell volume on some terminals.\n"
 		"\n"
 		"<178>Example<278>: #loop {1} {8} {cnt} {#line substitute variables\n"
-		"           #delay {$cnt} #showme {Volume $cnt: #bell volume $cnt;#bell}\n",
+		"           #delay {$cnt} {#showme Volume $cnt: #bell volume $cnt;#bell}\n",
 
 		"screen"
 	},
@@ -923,11 +942,13 @@ struct help_type help_table[] =
 		"\n"
 		"         ASCII      will draw in ASCII mode.\n"
 		"         BLANKED    will blank the lines and corners.\n"
+		"         BOLD       will draw text with bold letters.\n"
 		"         BOTTOM     will draw on the bottom side if possible.\n"
 		"         BUMPED     will precede the draw with an enter.\n"
 		"         CIRCLED    will circle the corners.\n"
 		"         CONVERT    will draw text with meta conversion.\n"
 		"         CROSSED    will cross the corners.\n"
+		"         CURSIVE    will draw text with cursive letters.\n"
 		"         FILLED     will fill circles and jewels.\n"
 		"         GRID       will draw TABLE as a grid.\n"
 		"         HORIZONTAL will draw horizontal if possible.\n"
@@ -939,6 +960,7 @@ struct help_type help_table[] =
 		"         PRUNED     will prune the corners.\n"
 		"         RIGHT      will draw on the right side if possible.\n"
 		"         ROUNDED    will round the corners.\n"
+		"         SCROLL     will draw in the scrolling region.\n"
 		"         SHADOWED   will shadow HUGE text.\n"
 		"         TEED       will tee the corners.\n"
 		"         TRACED     will trace HUGE text.\n"
@@ -1146,8 +1168,8 @@ struct help_type help_table[] =
 		"         WRITE ERROR            %0 filename %1 error message\n"
 		"         YEAR                   %0 year\n"
 		"\n"
-		"         To see all events trigger use #event info on. Since this can quite\n"
-		"         spammy it's possible to gag event info messages.\n"
+		"         To see all events trigger use #event info on. Since this can get\n"
+		"         rather spammy it's possible to gag event info messages.\n"
 		"\n"
 		"<178>Example<278>: #event {SESSION CONNECTED} {#read mychar.tin}\n"
 		"\n"
@@ -1263,6 +1285,8 @@ struct help_type help_table[] =
 		"         Removes any line that contains the string.\n"
 		"\n"
 		"<178>Comment<278>: See '#help action', for more information about triggers.\n"
+		"\n"
+		"         There are a system messages that can be gagged using gag events.\n"
 		"\n"
 		"<178>Comment<278>: You can remove a gag with the #ungag command.\n",
 		
@@ -1452,7 +1476,8 @@ struct help_type help_table[] =
 	{
 		"INDEX",
 
-		"<278>"
+		"<128>         INDEX\n"
+		"<278>\n"
 		"         On this page you'll find an introduction to using TinTin++. Additional\n"
 		"         information can be found in the individual help sections.\n"
 		"<128>\n"
@@ -1478,8 +1503,7 @@ struct help_type help_table[] =
 		"\n"
 		"         All TinTin++ commands starts with a '#'.\n"
 		"\n"
-		"<178>Example<278>: #help -- #help is a client command, and isn't send to the\n"
-		"         server.\n"
+		"<178>Example<278>: #help -- #help is a client command, and isn't send to the server.\n"
 		"\n"
 		"         All TinTin++ commands can be abbreviated when typed.\n"
 		"\n"
@@ -1737,7 +1761,6 @@ struct help_type help_table[] =
 	},
 	{
 		"KEYPAD",
-
 		"<278>When TinTin++ starts up it sends \\e= to the terminal to enable the terminal's\n"
 		"application keypad mode, which can be disabled using #showme {\\e>}\n"
 		"\n"
@@ -1806,6 +1829,9 @@ struct help_type help_table[] =
 		"         <178>#line capture <variable> <argument.\n"
 		"         <278>  Argument is executed and output stored in <variable>.\n"
 		"\n"
+		"         <178>#line convert <argument>\n"
+		"         <278>  Argument is executed with escaped meta characters.\n"
+		"\n"
 		"         <178>#line debug <argument>\n"
 		"         <278>  Argument is executed in debug mode.\n"
 		"\n"
@@ -1822,9 +1848,6 @@ struct help_type help_table[] =
 		"         <178>#line logmode <option> <argument>\n"
 		"         <278>  Argument is executed using the provided logmode, available\n"
 		"         <278>  modes are: html, plain, and raw.\n"
-//		"\n"
-//		"         <178>#line logverbatim {filename} {[text]}  Log text without variable\n"
-//		"         <278>                                  substitution.\n"
 		"\n"
 		"         <178>#line oneshot <argument>\n"
 		"         <278>  Argument is executed in oneshot mode, all triggers created will\n"
@@ -1868,6 +1891,7 @@ struct help_type help_table[] =
 		"         #list {var} {insert} {index} {string}  Insert {string} at given index\n"
 		"         #list {var} {find} {string} {variable} Return the found index\n"
 		"         #list {var} {get} {index} {variable}   Copy an item to {variable}\n"
+		"         #list {var} {order} {string}           Insert item in numerical order\n"
 		"         #list {var} {shuffle}                  Shuffle the list\n"
 		"         #list {var} {set} {index} {string}     Change the item at {index}\n"
 		"         #list {var} {simplify} {variable}      Copy simple list to {variable}\n"
@@ -1893,6 +1917,281 @@ struct help_type help_table[] =
 		"break continue foreach loop parse repeat return while"
 	},
 
+	{
+		"LISTS",
+
+		"<278>         There are several different types of lists in tintin which behave in a\n"
+		"         fairly universal manner. To properly explain lists it's easiest to\n"
+		"         explain the most basic variable type first before discussing more\n"
+		"         complex types.\n"
+		"\n"
+		"       - Basic variable: The standard key = value variable.\n"
+		"\n"
+		"       - Simple list: A string that contains semicolon delimited fields.\n"
+		"         {a;b;c}. Can be saved as a variable.\n"
+		"\n"
+		"       - Brace list: A string in which fields are delimited with braces.\n"
+		"         {a}{b}{c}. Brace lists cannot be stored as a variable because tables\n"
+		"         use braces as well, they must be stored as a simple list instead.\n"
+		"\n"
+		"       - Table: Think of this as variables nested within another variable. Or\n"
+		"          as variables contained within another variable.\n"
+		"\n"
+		"       - List: A table that uses integers for its indexes. Also known as an\n"
+		"         array. The #list command is a utility command for using tables as\n"
+		"         arrays.\n"
+		"<128>\n"
+		"         Simple Variables\n"
+		"<278>\n"
+		"<178>Example:<278>\n"
+		"         #variable {simple} {Hello World!}\n"
+		"         #showme $simple\n"
+		"\n"
+		"         To see if the 'simple' variable exists you can use &simple which will\n"
+		"         display 0 if the variable does not exist, or the variable's index if\n"
+		"         it exists.\n"
+		"\n"
+		"         If you have multiple variables they are sorted alphabetically and\n"
+		"         numerically. While it's not all that relevant for simple variables,\n"
+		"         the first variable has index 1, the second variable index 2, and so\n"
+		"         on.\n"
+		"\n"
+		"         Variable names need to start with a letter and only exist of letters,\n"
+		"         numbers, and underscores. If you need to use a non standard variable\n"
+		"         name this is possible using braces.\n"
+		"\n"
+		"<178>Example: <278>#variable {:)} {Happy Happy!};#showme ${:)}\n"
+		"\n"
+		"         Variables can be accessed using their index. While primarily useful\n"
+		"         for tables it is possible to do this for simple variables. Use +1 for\n"
+		"         the first variable, +2 for the second variable, etc. Use -1 for the\n"
+		"         last variable, -2 for the second last variable, etc.\n"
+		"\n"
+		"<178>Example:<278> #showme The first variable is: ${+1}\n"
+		"<128>\n"
+		"         Removing Variables\n"
+		"<278>\n"
+		"         To remove a variable, use #unvariable or #unvar (every command can be\n"
+		"         abbreviated). It's possible to remove multiple variables at once\n"
+		"         using #unvar {var 1} {var 2} {etc}\n"
+		"\n"
+		"         Variables are unique to each session, so if you have multiple\n"
+		"         sessions, removing a variable from one session won't remove it from\n"
+		"         other sessions.\n"
+		"\n"
+		"         If you remove a table variable, all variables contained within that\n"
+		"         table variable are removed as well.\n"
+		"<128>\n"
+		"         Simple Lists\n"
+		"<278>\n"
+		"         A simple list is a string that contains semicolon delimited fields.\n"
+		"         Commands can be entered as simple lists, for example:\n"
+		"         #showme {a};#showme {b} will execute a single line as two commands.\n"
+		"\n"
+		"         Several commands take a simple list as their input, these are:\n"
+		"         #foreach, #line substitute, #path load, #list create, and #highlight.\n"
+		"<128>\n"
+		"         Brace Lists\n"
+		"<278>\n"
+		"         A brace list is a string in which fields are delimited with braces.\n"
+		"         Most commands take a brace list for their arguments, for example:\n"
+		"         #session {x} {mud.com} {1234} {mud.tin}. The session command takes\n"
+		"         4 arguments, the 4th argument (command file) is optional.\n"
+		"\n"
+		"         Commands that take a simple list as their input will also accept a\n"
+		"         brace list, keep in mind you'll have to embed the brace list in an\n"
+		"         extra set of braces, for example: #path load {{n}{s}{w}{w}}, which is\n"
+		"         identical to: #path load {n;s;w;w}.\n"
+		"\n"
+		"         Brace lists cannot be stored as variables because TinTin++ will\n"
+		"         confuse them with tables. You can convert a brace list to a table\n"
+		"         variable using: #list {bracelist} {create} {{a}{b}{c}} this will look\n"
+		"         internally as: {{1}{a}{2}{b}{3}{c}}. You can then convert this table\n"
+		"         to a simple list using: #list {bracelist} {simplify} {simplelist}\n"
+		"         which will store {a;b;c} in the $simplelist variable.\n"
+		"\n"
+		"         Braces cannot easily be escaped in TinTin++. Using \\{ or \\} will not\n"
+		"         work. The reason for this is due to several factors, but primarily\n"
+		"         backward compatibility. To escape braces you must define them using\n"
+		"         hexadecimal notation using \\x7B and \\x7D. See #help escape for a list\n"
+		"         of escape options, and the help file will also remind you of how to\n"
+		"         escape braces.\n"
+		"<128>\n"
+		"         Tables\n"
+		"<278>\n"
+		"         Tables are key/value pairs stored within a variable. Tables are also\n"
+		"         known as associative arrays, dictionaries, maps, nested variables,\n"
+		"         structures, and probably a couple of other names. There are several\n"
+		"         ways to create and access tables.\n"
+		"\n"
+		"<178>Example:<278> #variable {friendlist} {{bob}{bob@mail.com} {bubba}{sunset@gmail.com}}\n"
+		"\n"
+		"         This will create a friendlist with two entries, the key is the name of\n"
+		"         the friend, the value is the email address of the friend. You can see\n"
+		"         the email address of bob using: #showme {$friendlist[bob]}. You can\n"
+		"         also define this table as following:\n"
+		"\n"
+		"<178>Example:<278>\n"
+		"         #variable {friendlist[bob]} {bob@mail.com}\n"
+		"         #variable {friendlist[bubba]} {sunset@gmail.com}\n"
+		"\n"
+		"         This would create the exact same table as the single line declaration\n"
+		"         used previously. To see the first key in the table use:\n"
+		"         *friendlist[+1], to see the first value in the table use:\n"
+		"         $friendlist[+1]. To see the size of the table use &friendlist[]. To\n"
+		"         print a bracelist of all friends use *friendlist[%*], to print a\n"
+		"         bracelist of all friends whose name starts with the letter 'a' you\n"
+		"         would use: *friendlist[a%*]. Similarly to see the number of friends\n"
+		"         you have whose name ends with the letter 'b' you would use:\n"
+		"         &friendlist[%*b].\n"
+		"\n"
+		"         See #help regexp for a brief overview of regular expression options.\n"
+		"         While TinTin++ supports PCRE (perl-compatible regular expressions), it\n"
+		"         embeds them within its own regular expression syntax that is simpler\n"
+		"         and less invasive, while still allowing the full power of PCRE for\n"
+		"         those who need it.\n"
+		"\n"
+		"<178>Example:<278> #unvariable {friendlist[bubba]}\n"
+		"\n"
+		"         This would remove {bubba} from the friendlist. To remove the entire\n"
+		"         friendlist you would use: #unvariable {friendlist}.\n"
+		"\n"
+		"<178>Example:<278> #variable {friendlist} {{bob} {{email}{bob@ma.il} {phone}{123456789}}}\n"
+		"\n"
+		"         There is no limit to the number of nests, simply add more braces. To\n"
+		"         see Bob's email in this example you would use:\n"
+		"         #showme {$friendlist[bob][email]}.\n"
+		"<278>\n"
+		"         Lists\n"
+		"\n"
+		"         Tables are sorted alphabetically with the exception of numbers which\n"
+		"         are sorted numerically. If you want to determine the sorting order\n"
+		"         yourself you can use use the #list command which helps you to use\n"
+		"         tables as arrays.\n"
+		"\n"
+		"<178>Example:<278> #action {%1 chats %2} {#list chats add {%0}}\n"
+		"\n"
+		"         Each time a chat is received it's added to the end of the 'chats' list\n"
+		"         variable. If you type #variable chats this might look like:\n"
+		"\n"
+		"         <138>#<168>VARIABLE <258>{<178>chats<258>}\n"
+		"         {\n"
+		"                 {<178>1<258>} {<178>Bubba chats Hi<258>}\n"
+		"                 {<178>2<258>} {<178>Bob chats Hi bub<258>}\n"
+		"                 {<178>3<258>} {<178>Bubba chats Bye<258>}\n"
+		"                 {<178>4<258>} {<178>Bob chats bub bye<258>}\n"
+		"         }\n"
+		"<128>\n"
+		"         Parsing\n"
+		"<278>\n"
+		"         There are various ways to parse lists and tables, using either #loop,\n"
+		"         #foreach, #while, or #<number>.\n"
+		"\n"
+		"         #loop takes two numeric arguments, incrementing or decrementing the\n"
+		"         first number until it matches the second number. The value of the loop\n"
+		"         counter is stored in the provided variable.\n"
+		"\n"
+		"         #foreach takes either a simple list or a brace list as its first\n"
+		"         argument. Foreach will go through each item in the list and store the\n"
+		"         value in the provided variable.\n"
+		"\n"
+		"         #while will perform an if check on the first argument, if the result\n"
+		"         is true it will execute the commands in the second argument. Then it\n"
+		"         performs an if check on the first argument again. It will continue to\n"
+		"         repeat until the if check returns 0 or the loop is interrupted with a\n"
+		"         control flow command. It takes special care to avoid infinite loops.\n"
+		"\n"
+		"         #<number> will execute the provided argument 'number' times. For\n"
+		"         example: #4 {#showme beep! \\a}\n"
+		"\n"
+		"         Here are some examples.\n"
+		"\n"
+		"<178>Example:<278> #list friends create {bob;bubba;zorro}\n"
+		"\n"
+		"         Internally this looks like {{1}{bob}{2}{bubba}{3}{zorro}} and the\n"
+		"         list can be parsed in various ways.\n"
+		"\n"
+		"<178>Example:<278> #foreach {$friends[%*]} {name} {#show $name}\n"
+		"\n"
+		"<178>Example:<278> #foreach {*friends[%*]} {i} {#show $friends[$i]}\n"
+		"\n"
+		"<178>Example:<278> #loop {1} {&friends[]} {i} {#show $friends[+$i]}\n"
+		"\n"
+		"<178>Example:<278> #math i 1;#while {&friends[+$i]} {#show $friends[+$i];\n"
+		"         #math i $i + 1}\n"
+		"\n"
+		"<178>Example:<278> #math i 1;#&friends[] {#show $friends[+$i];#math i $i + 1}\n"
+		"\n"
+		"         Each of the five examples above performs the same task; printing the\n"
+		"         three names in the friends list.\n"
+		"\n"
+		"         If you want to get a better look at what goes on behind the scenes\n"
+		"         while executing scripts you can use '#debug all on'. To stop seeing\n"
+		"         debug information use '#debug all off'.\n"
+		"<128>\n"
+		"         Optimization\n"
+		"<278>\n"
+		"         TinTin++ tables are exceptionally fast while they remain under 100\n"
+		"         items. Once a table grows beyond 10000 items there can be performance\n"
+		"         issues when inserting and removing items in the beginning or middle of\n"
+		"         the table.\n"
+		"\n"
+		"         The plan is to eventually implement an indexable and flexible data\n"
+		"         structure for large tables.\n"
+		"\n"
+		"         If you load a large table from file it's important to make sure it's\n"
+		"         sorted, when using #write to save a table it's automatically sorted.\n"
+		"\n"
+		"         If you notice performance issues on large tables it's relatively easy\n"
+		"         to create a hash table.\n"
+		"\n"
+		"<178>Example:<278>\n"
+		"\n"
+		"         #alias {sethash}\n"
+		"         {\n"
+		"         	#format hash %H %1;\n"
+		"         	#math hash1 $hash % 100;\n"
+		"         	#math hash2 $hash / 100 % 100;\n"
+		"         	#var hashtable[$hash1][$hash2][%1] %2\n"
+		"         }\n"
+		"\n"
+		"         #function {gethash}\n"
+		"         {\n"
+		"         	#format hash %H %1;\n"
+		"         	#math hash1 $hash % 100;\n"
+		"         	#math hash2 $hash / 100 % 100;\n"
+		"         	#return $hashtable[$hash1][$hash2][%1]\n"
+		"         }\n"
+		"\n"
+		"         #alias {test}\n"
+		"         {\n"
+		"         	sethash bli hey;\n"
+		"         	sethash bla hi;\n"
+		"         	sethash blo hello;\n"
+		"         	#showme The value of bla is: @gethash{bla}\n"
+		"         }\n"
+		"\n"
+		"         The above script will rapidly store and retrieve over 1 million items.\n"
+		"         Looping through a hash table is relatively easy as well.\n"
+		"\n"
+		"<178>Example:<278>\n"
+		"\n"
+		"         #alias {showhash}\n"
+		"         {\n"
+		"         	#foreach {*hashtable[%*]} {hash1}\n"
+		"         	{\n"
+		"         		#foreach {*hashtable[$hash1][%*]} {hash2}\n"
+		"         		{\n"
+		"         			#echo {%-20s = %s}\n"
+		"                                        {hashtable[$hash1][$hash2]}\n"
+		"                                        {$hashtable[$hash1][$hash2]}\n"
+		"         		}\n"
+		"         	}\n"
+		"        }\n",
+		
+		"break continue foreach loop parse repeat return while"
+	},
+	
 	{
 		"LOCAL",
 
@@ -2274,6 +2573,121 @@ struct help_type help_table[] =
 
 		"path pathdir"
 	},
+
+	{
+		"MAPPING",
+
+		"<278>\n"
+		"         TinTin++ has a powerful automapper that uses a room system similar to\n"
+		"         Diku MUDs which means that odd map layouts and weird exit\n"
+		"         configurations aren't a problem. The mapper provides tools to improve\n"
+		"         the visual map display. For basic path tracking see #help PATH.\n"
+		"\n"
+		"<178>         #map create [size]\n"
+		"<278>\n"
+		"         This command creates the initial map. The size is 50,000 by default\n"
+		"         and can be changed at any time with the #map resize command. If you\n"
+		"         play a MUD that uses MSDP or GMCP to provide room numbers you'll have\n"
+		"         to increase it to the highest reported room number. Increasing the\n"
+		"         size of the map doesn't decrease performance.\n"
+		"\n"
+		"<178>         #map goto <location>\n"
+		"<278>\n"
+		"         When you create the map you are not automatically inside the map. By\n"
+		"         default room number (vnum) 1 is created, so you can go to it using\n"
+		"         #map goto 1. Once you are inside the map new rooms are automatically\n"
+		"         created as you move around. Movement commands are defined with the\n"
+		"         pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are\n"
+		"         defined.\n"
+		"<178>\n"
+		"         #map map <rows> <cols> <append|overwrite|list|variable> <name>\n"
+		"<278>\n"
+		"         To see the map you can use #map map. It's annoying to have to\n"
+		"         constantly type #map map however. Instead it's possible to use #split\n"
+		"         to display a vt100 map. To do so execute:\n"
+		"         <178>#split 16 1\n"
+		"         #map flag vtmap on<278>\n"
+		"         The first command sets the top split lines to 16 and the bottom split\n"
+		"         line to 1. If you want a smaller or larger map display you can use a\n"
+		"         different value than 16.\n"
+		"\n"
+		"         If you don't need to display diagonal exits and prefer a more compact\n"
+		"         look you can use #map flag AsciiGraphics off. This will enable the\n"
+		"         standard display which uses UTF-8 box drawing characters, results may\n"
+		"         vary depending on the font used.\n"
+		"\n"
+		"         If your terminal supports UTF-8 you can also give #Map flag unicode on\n"
+		"         a try.\n"
+		"\n"
+		"         If you want to display the map in a different location of the screen\n"
+		"         use something like:\n"
+		"         <178>#split 0 1 0 -80\n"
+		"         #map offset 1 81 -4 -1<278>\n"
+		"         This will display the map on the right side of the screen, if the\n"
+		"         width of the screen is wide enough.\n"
+		"<178>\n"
+		"         #map undo\n"
+		"<278>\n"
+		"         If you accidentally walk into the wall on your MUD the mapper will\n"
+		"         still create a new room. You can easily fix this mistake by using\n"
+		"         #map undo. If you want to move around on the map without moving around\n"
+		"         on the MUD you can use: #map move {direction}. To delete a room\n"
+		"         manually you can use: #map delete {direction}. To create a room\n"
+		"         manually you can use: #map dig {direction}.\n"
+		"<178>\n"
+		"         #map write <filename>\n"
+		"<278>\n"
+		"         You can save your map using #map write, to load a map you can use\n"
+		"         #map read <filename>.\n"
+		"<178>\n"
+		"         #map set <option> <value>\n"
+		"<278>\n"
+		"         You can set the room name using #map set roomname <name>. You either\n"
+		"         have to do this manually or create triggers to set the room name\n"
+		"         automatically. Once the room name is set you can use #map goto with\n"
+		"         the room name to visit it. If there are two rooms with the same name\n"
+		"         #map goto will go to the most nearby room. If you want to always go\n"
+		"         to the same room you should memorize the room number. You can further\n"
+		"         narrow down the matches by providing additional arguments, for example:\n"
+		"<178>\n"
+		"         #map goto {dark alley} {roomexits} {n;e} {roomarea} {Haddock Ville}\n"
+		"<278>\n"
+		"         You can set the room weight using #map set roomweight {value}. The\n"
+		"         weight by default is set to 1.0 and it represents the difficulty of\n"
+		"         traversing the room. If you have a lake as an alternative route, and\n"
+		"         traversing water rooms is 4 times slower than regular rooms, then you\n"
+		"         could set the weight of the lake rooms to 4.0. If the lake is 3 rooms\n"
+		"         wide the total weight is 12. If walking around the lake has a weight\n"
+		"         less than 12 the mapper will go around the lake, if the weight is\n"
+		"         greater than 12 the mapper will take a route through the lake.\n"
+		"\n"
+		"         You can set the room symbol using #map set roomsymbol {value}. The\n"
+		"         symbol should be one, two, or three characters, which can be\n"
+		"         colorized. You can for example mark shops with an 'S' and colorize the\n"
+		"         'S' depending on what type of shop it is.\n"
+		"<178>\n"
+		"         #map run <location> <delay>\n"
+		"\n"
+		"         The run command will have tintin find the shortest path to the given\n"
+		"         location and execute the movement commands to get there. You can\n"
+		"         provide a delay in seconds with floating point precision, for example:\n"
+		"         <178>#map run {dark alley} {0.5}<278>\n"
+		"<178>\n"
+		"         #map insert {direction} {flag}\n"
+		"<278>\n"
+		"         The insert command is useful for adding spacer rooms called void rooms.\n"
+		"         Often rooms overlap, and by adding void rooms you can stretch out\n"
+		"         exits. For example: #map insert north void. You cannot enter void rooms\n"
+		"         once they've been created, so you'll have to use #map info in an\n"
+		"         adjacent room to find the room vnum, then use #map goto {vnum} to\n"
+		"         visit.\n"
+		"\n"
+		"         It's also possible to align rooms using void rooms. This is easily\n"
+		"         done using #map insert north void.\n",
+
+		"map path pathdir"
+	},
+
 	{
 		"MATH",
 
@@ -2410,36 +2824,37 @@ struct help_type help_table[] =
 	{
 		"METRIC SYSTEM",
 
-		"  Name  Symbol                              Factor\n"
-		"--------------------------------------------------\n"
-//		" Yotta       Y   1 000 000 000 000 000 000 000 000\n"
-//		" Zetta       Z       1 000 000 000 000 000 000 000\n"
-//		"   Exa       E           1 000 000 000 000 000 000\n"
-//		"  Peta       P               1 000 000 000 000 000\n"
-//		"  Tera       T                   1 000 000 000 000\n"
-//		"  Giga       G                       1 000 000 000\n"
-		"  Mega       M                           1 000 000\n"
-		"  Kilo       K                               1 000\n"
+		"<278>\n"
+		"             Name  Symbol                              Factor\n"
+		"           --------------------------------------------------\n"
+//		"            Yotta       Y   1 000 000 000 000 000 000 000 000\n"
+//		"            Zetta       Z       1 000 000 000 000 000 000 000\n"
+//		"              Exa       E           1 000 000 000 000 000 000\n"
+//		"             Peta       P               1 000 000 000 000 000\n"
+//		"             Tera       T                   1 000 000 000 000\n"
+//		"             Giga       G                       1 000 000 000\n"
+		"             Mega       M                           1 000 000\n"
+		"             Kilo       K                               1 000\n"
 		"\n"
-		" milli       m                               0.001\n"
-		" micro       u                           0.000 001\n",
-//		"  nano       n                       0.000 000 001\n"
-//		"  pico       p                   0.000 000 000 001\n"
-//		" femto       f               0.000 000 000 000 001\n"
-//		"  atto       a           0.000 000 000 000 000 001\n"
-//		" zepto       z       0.000 000 000 000 000 000 001\n"
-//		" yocto       y   0.000 000 000 000 000 000 000 001\n",
+		"            milli       m                               0.001\n"
+		"            micro       u                           0.000 001\n",
+//		"             nano       n                       0.000 000 001\n"
+//		"             pico       p                   0.000 000 000 001\n"
+//		"            femto       f               0.000 000 000 000 001\n"
+//		"             atto       a           0.000 000 000 000 000 001\n"
+//		"            zepto       z       0.000 000 000 000 000 000 001\n"
+//		"            yocto       y   0.000 000 000 000 000 000 000 001\n",
 		
 		"echo format math"
 	},
-	
+
 	{
 		"MSDP",
 
 		"<278>\n"
-		"         MSDP is part of the #port functionality. See #help event for\n"
-		"         additional documentation as all MSDP events are available as\n"
-		"         regular events.\n"
+		"         MSDP (Mud Server Data Protocol) is part of the #port functionality.\n"
+		"         See #help event for additional documentation as all MSDP events are\n"
+		"         available as regular events.\n"
 		"\n"
 		"         Available MSDP events can be queried using the MSDP protocol\n"
 		"         as described in the specification.\n"
@@ -2448,6 +2863,23 @@ struct help_type help_table[] =
 
 		"event port"
 	},
+
+	{
+		"MSLP",
+
+		"<278>\n"
+		"         MSLP (Mud Server Link Protocol) is supported by TinTin++. See #help\n"
+		"         event for additional documentation as all MSLP events are available\n"
+		"         as regular events.\n"
+		"\n"
+		"         Available MSLP sequences can be generated using the MSLP protocol\n"
+		"         as described in the specification.\n"
+		"<178>\n"
+		"         https://tintin.mudhalla.net/protocols/mslp\n",
+
+		"event port"
+	},
+
 	{
 		"NOP",
 
@@ -2719,7 +3151,7 @@ struct help_type help_table[] =
 		"         To make matching easier text triggers (Actions, Gags, Highlights,\n"
 		"         Prompts, and Substitutes) have their color codes stripped. If you\n"
 		"         want to create a color trigger you must start the triggers with a ~\n"
-		"         (tilda). To make escape codes visible use #config {convert meta} on.\n"
+		"         (tilde). To make escape codes visible use #config {convert meta} on.\n"
 		"\n"
 		"Example: #action {~\\e[1;37m%1} {#var roomname %1}\n"
 		"\n"
@@ -3022,15 +3454,15 @@ struct help_type help_table[] =
 		"         <178>#screen fullscreen [on|off]\n"
 		"         <278>  Toggles fullscreen mode when used without an argument.\n"
 		"\n"
-		"         <178>#screen get <rows|cols|height|width> <var>\n"
-		"         <278>  Get the rows/cols size in characters or height/width in pixels.\n"
-		"\n"
-		"         <178>#screen get <top_row|bot_row|top_split|bot_split> <var>\n"
-		"         <278>  Get the top and bot row of the scrolling region or the height\n"
-		"         <888>  of the top and bot split bars.\n"
+		"         <178>#screen get <option> <var>\n"
+		"         <278>  Get various screen options and save them to <var>. Use #screen\n"
+		"         <278>  get without an argument to see all available options.\n"
 		"\n"
 		"         <178>#screen info\n"
 		"         <278>  Debugging information.\n"
+		"\n"
+		"         <178>#screen input <square>\n"
+		"         <278>  Set the input region\n"
 		"\n"
 		"         <178>#screen load <both|label|title>\n"
 		"         <278>  Reload the saved title, label, or both.\n"
@@ -3058,6 +3490,9 @@ struct help_type help_table[] =
 		"\n"
 		"         <178>#screen save <both|label|title>\n"
 		"         <278>  Save the title, label, or both.\n"
+		"\n"
+		"         <178>#screen scroll <square>\n"
+		"         <278>  Set the scrolling region, changes the split setting.\n"
 		"\n"
 		"         <178>#screen set <both|label|title>\n"
 		"         <278>  Set the title, label, or both. Only title works on Windows.\n",
@@ -3115,6 +3550,7 @@ struct help_type help_table[] =
 
 		"textin"
 	},
+
 	{
 		"SESSION",
 
@@ -3217,16 +3653,17 @@ struct help_type help_table[] =
 	{
 		"SPEEDWALK",
 
-		"         <278>Speedwalking allows you to enter multiple directions without using\n"
+		"<278>\n"
+		"         Speedwalking allows you to enter multiple directions without using\n"
 		"         semicolons. Directions should be prefixed with a number and will be\n"
 		"         executed the given number of times.\n"
 		"\n"
 		"         You can enable speedwalking with #CONFIG {SPEEDWALK} {ON}.\n"
 		"\n"
 		"<178>Example<278>: Without speedwalk, you have to type:\n"
-		"         s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w\n"
-		"         With speedwalk, you only have to type:\n"
-		"         2s5w3s3w2n1w\n",
+		"         <178>s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w\n"
+		"         <278>With speedwalk, you only have to type:\n"
+		"         <178>2s5w3s3w2n1w\n",
 
 		"alias cursor history keypad macro tab"
 	},
@@ -3292,8 +3729,9 @@ struct help_type help_table[] =
 	{
 		"STATEMENTS",
 
-		"         TinTin++ knows the following statements.\n"
 		"<278>\n"
+		"         TinTin++ knows the following statements.\n"
+		"\n"
 		"         #break\n"
 		"         #case {value} {true}\n"
 		"         #continue\n"
@@ -3466,7 +3904,7 @@ struct help_type help_table[] =
 		"         %z  5 digit timezone offset. (-1200 ... +1400)\n"
 		"         %Z  Abbreviated name of the time zone.\n",
 
-		"echo format"
+		"echo event format"
 	},
 	{
 		"VARIABLE",

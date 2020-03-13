@@ -1,6 +1,20 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.02
+----------------
+01) Most commands in a command file are executed quietly when using #read,
+    which includes #split. Use #line verbose #split to have split lines
+    displayed when the command is executed through #read.
+
+
+TinTin++ 2.02.01
+----------------
+
+01) In order to save configs and pathdirs you must use #class CONFIG write
+    <filename> and #class PATHDIR write <filename>
+
+
 TinTin++ 2.02.00
 ----------------
 
@@ -17,6 +31,7 @@ TinTin++ 2.02.00
 04) %+ should no longer be used in regular expressions.
 
     You can replace '%+' with '%+1..a', see #help regex for more information.
+
 
 TinTin++ 2.01.92
 ----------------
@@ -37,6 +52,7 @@ TinTin++ 2.01.92
 05) Added a notice for people still using $variable[] instead of
     *variable[]. I'll change $variable[] eventually to be identical to
     $variable[%*].
+
 
 TinTin++ 2.01.90
 ---------------
@@ -87,6 +103,7 @@ TinTin++ 2.01.90
     because I've repeatedly swapped row and col in VT100 which can be a tricky
     bug to track down.
 
+
 TinTin++ 2.01.8
 ---------------
 
@@ -96,12 +113,14 @@ TinTin++ 2.01.8
     as %0 and %1. Instead you can use #info system save, which will save
     CLIENT_NAME and CLIENT_VERSION to the $info[SYSTEM] variable.
 
+
 TinTin++ 2.01.7
 ---------------
 
     Added proper class nesting. When closing the active class, the last active
     class is activated. This change will cause trouble for scripts that don't
     properly close classes.
+
 
 TinTin++ 2.01.5
 ---------------
@@ -111,15 +130,18 @@ TinTin++ 2.01.5
 02) Removed dot notation support for variables. #var bla.bli blo is no longer
     valid, nor is $bla.bli.
 
+
 TinTin++ 2.01.4
 ---------------
 
     Added support for *{variable} to show variable names.
 
+
 TinTin++ 2.00.2
 ---------------
 
     Removed the #suspend command, it's been moved to #cursor suspend.
+
 
 TinTin++ 1.99.7
 ---------------
@@ -158,6 +180,7 @@ TinTin++ 1.99.7
     and #RETURN statements have been added and should work more or less as
     expected.
 
+
 TinTin++ 1.99.1
 ---------------
 
@@ -178,11 +201,13 @@ TinTin++ 1.99.1
 
     #list friends create {{Alicia} {Bubba} {Cathie} {Kayla} {Zorro}}
 
+
 TinTin++ 1.99.1
 ---------------
 
     Triggers now use PCRE (Perl Compatible Regular Expressions).
     See #help regex for details.
+
 
 TinTin++ 1.96.6
 ---------------
@@ -190,10 +215,12 @@ TinTin++ 1.96.6
     #PATHDIR is now specificly designed to hold a direction, the opposite
     direction, and the vector of said direction for the #MAP command.
 
+
 TinTin++ 1.95.0
 ---------------
 
     Removed #antisubsittute as its utility was too limited for inclusion.
+
 
 TinTin++ 1.94.4
 ---------------
@@ -206,15 +233,18 @@ TinTin++ 1.94.4
 
     #action {~\0;32m%0 says '%1'} {say I don't like green says.}
 
+
 TinTin++ 1.94.0
 ---------------
 
     #SLEEP has been removed. The #DELAY command can be used instead.
 
+
 TinTin++ 1.91.0
 ---------------
 
     Removed the #speedwalk command, it's been moved to the #config menu.
+
 
 TinTin++ 1.90.0
 ---------------
@@ -227,6 +257,7 @@ TinTin++ 1.90.0
     !w         --> repeats who all
     !s         --> repeats score
     !ll        --> sends !ll as a command
+
 
 TinTin++ 1.89.0
 ---------------
@@ -247,6 +278,7 @@ TinTin++ 1.89.0
 03) #MATH and #IF support 64 floating point arithmatic expressions. They also
     support strings, which must be enclosed in quotes. See #HELP MATH for more
     information.
+
 
 TinTin++ 1.88.0
 ---------------

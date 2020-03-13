@@ -142,7 +142,11 @@ DO_COMMAND(do_local)
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
+		DEL_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
+
 		node = set_nest_node(root, arg1, "%s", str);
+
+		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 
 		while (*arg)
 		{
@@ -159,8 +163,6 @@ DO_COMMAND(do_local)
 		show_message(ses, LIST_VARIABLE, "#OK. LOCAL VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 
 		str_free(str);
-
-		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 	}
 	return ses;
 }
@@ -314,6 +316,114 @@ int valid_variable(struct session *ses, char *arg)
 /*
 	support routines for #format
 */
+
+void stringtobase(char *str, char *base)
+{
+	char *buf;
+
+	push_call("stringtobase(%p,%p)",str,base);
+
+	buf = strdup(str);
+
+	switch (atoi(base))
+	{
+		case 64:
+			str_to_base64(buf, str, strlen(str));
+			break;
+
+		case 252:
+			str_to_base252(buf, str, strlen(str));
+			break;
+
+		default:
+			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			break;
+	}
+	free(buf);
+
+	pop_call();
+	return;
+}
+
+void basetostring(char *str, char *base)
+{
+	char *buf;
+
+	push_call("basetostring(%p,%p)",str,base);
+
+	buf = strdup(str);
+
+	switch (atoi(base))
+	{
+		case 64:
+			base64_to_str(buf, str, strlen(str));
+			break;
+
+		case 252:
+			base252_to_str(buf, str, strlen(str));
+			break;
+
+		default:
+			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			break;
+	}
+	pop_call();
+	return;
+}
+
+void stringtobasez(char *str, char *base)
+{
+	char *buf;
+
+	push_call("stringtobase(%p,%p)",str,base);
+
+	buf = strdup(str);
+
+	switch (atoi(base))
+	{
+		case 64:
+			str_to_base64(buf, str, strlen(str));
+			break;
+
+		case 252:
+			str_to_base252z(buf, str, strlen(str));
+			break;
+
+		default:
+			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			break;
+	}
+	free(buf);
+
+	pop_call();
+	return;
+}
+
+void basetostringz(char *str, char *base)
+{
+	char *buf;
+
+	push_call("basetostring(%p,%p)",str,base);
+
+	buf = strdup(str);
+
+	switch (atoi(base))
+	{
+		case 64:
+			base64_to_str(buf, str, strlen(str));
+			break;
+
+		case 252:
+			base252z_to_str(buf, str, strlen(str));
+			break;
+
+		default:
+			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			break;
+	}
+	pop_call();
+	return;
+}
 
 unsigned long long generate_hash_key(char *str)
 {
@@ -956,7 +1066,18 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &str[raw_cnt]))
+		{
+			tmp_cnt = get_euc_width(ses, &str[raw_cnt], &width);
+
+			if (str_cnt >= start)
+			{
+				ret_cnt += tmp_cnt;
+			}
+			raw_cnt += tmp_cnt;
+			str_cnt += width;
+		}
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
 			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
 
@@ -1022,13 +1143,13 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 			continue;
 		}
 
-		if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC)  && is_euc_head(ses, &str[raw_cnt]))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC)  && is_euc_head(ses, &str[raw_cnt]))
 		{
 			raw_cnt += get_euc_width(ses, &str[raw_cnt], &width);
 
 			ret_cnt += width;
 		}
-		else if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
 			raw_cnt += get_utf8_width(&str[raw_cnt], &width);
 
@@ -1144,85 +1265,93 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 				*ptn = 0;
 
-				if (*ptf == 0)
+				switch (*ptf)
 				{
-					show_error(ses, LIST_VARIABLE, "#FORMAT STRING: UNKNOWN ARGUMENT {%s}.", pts);
-					continue;
-				}
+					case 0:
+						show_error(ses, LIST_VARIABLE, "#FORMAT STRING: UNKNOWN ARGUMENT {%s}.", pts);
+						continue;
 
-				if (*ptf == 'd' || *ptf == 'f' || *ptf == 'X')
-				{
-					strcpy(argformat, pts);
+					case 'd':
+					case 'f':
+					case 'X':
+						strcpy(argformat, pts);
 
-					ptn = pts + 1;
-					*ptn = 0;
-				}
-				else if (*ptf == 'w')
-				{
-					strcpy(argformat, pts+1);
-					ptn = pts + 1;
-					*ptn = 0;
-				}
-				else if (pts[1])
-				{
-					char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+						ptn = pts + 1;
+						*ptn = 0;
+						break;
 
-					ptt = arg1;
-					ptn = pts + 1;
+					case 'w':
+					case 'b':
+					case 'B':
+					case 'z':
+					case 'Z':
+						strcpy(argformat, pts+1);
+						ptn = pts + 1;
+						*ptn = 0;
+						break;
 
-					while (*ptn && *ptn != '.')
-					{
-						*ptt++ = *ptn++;
-					}
-
-					*ptt = 0;
-
-					if (*ptn == 0)
-					{
-						if (atoi(arg1) < 0)
+					default:
+						if (pts[1])
 						{
-							sprintf(argformat, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+							char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+
+							ptt = arg1;
+							ptn = pts + 1;
+
+							while (*ptn && *ptn != '.')
+							{
+								*ptt++ = *ptn++;
+							}
+
+							*ptt = 0;
+
+							if (*ptn == 0)
+							{
+								if (atoi(arg1) < 0)
+								{
+									sprintf(argformat, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+								}
+								else
+								{
+									sprintf(argformat, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+								}
+							}
+							else
+							{
+								ptt = arg2;
+								ptn = ptn + 1;
+		
+								while (*ptn)
+								{
+									*ptt++ = *ptn++;
+								}
+		
+								*ptt = 0;
+		
+								if (atoi(arg1) < 0)
+								{
+									sprintf(argformat, "%%%d.%d",
+										atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
+										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
+								}
+								else
+								{
+									sprintf(argformat, "%%%d.%d",
+										atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
+										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
+								}
+							}
+		
+							ptt = argformat;
+							ptn = pts;
+		
+							while (*ptt)
+							{
+								*ptn++ = *ptt++;
+							}
+		
+							*ptn = 0;
 						}
-						else
-						{
-							sprintf(argformat, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
-						}
-					}
-					else
-					{
-						ptt = arg2;
-						ptn = ptn + 1;
-
-						while (*ptn)
-						{
-							*ptt++ = *ptn++;
-						}
-
-						*ptt = 0;
-
-						if (atoi(arg1) < 0)
-						{
-							sprintf(argformat, "%%%d.%d",
-								atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
-								string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
-						}
-						else
-						{
-							sprintf(argformat, "%%%d.%d",
-								atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
-								string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
-						}
-					}
-
-					ptt = argformat;
-					ptn = pts;
-
-					while (*ptt)
-					{
-						*ptn++ = *ptt++;
-					}
-
-					*ptn = 0;
 				}
 
 				switch (*ptf)
@@ -1230,6 +1359,11 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 					case 'a':
 						numbertocharacter(ses, arglist[i]);
 //						sprintf(arglist[i], "%c", (char) get_number(ses, arglist[i]));
+						break;
+
+					case 'b':
+						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
+						stringtobase(arglist[i], argformat);
 						break;
 
 					case 'c':
@@ -1294,8 +1428,18 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						hexstring(arglist[i]);
 						break;
 
+					case 'z':
+						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
+						stringtobasez(arglist[i], argformat);
+						break;
+
 					case 'A':
 						charactertonumber(ses, arglist[i]);
+						break;
+
+					case 'B':
+						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
+						basetostring(arglist[i], argformat);
 						break;
 
 					case 'C':
@@ -1307,12 +1451,6 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 						break;
 
-/*					case 'D':
-						timeval_t  = (time_t) *arglist[i] ? atoll(arglist[i]) : gtd->time;
-						timeval_tm = *localtime(&timeval_t);
-						strftime(arglist[i], BUFFER_SIZE, "%d", &timeval_tm);
-						break;
-*/
 					case 'G':
 						thousandgroupingstring(ses, arglist[i]);
 						break;
@@ -1357,6 +1495,11 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						timeval_t  = (time_t) *arglist[i] ? atoll(arglist[i]) : gtd->time;
 						timeval_tm = *localtime(&timeval_t);
 						strftime(arglist[i], BUFFER_SIZE, "%Y", &timeval_tm);
+						break;
+
+					case 'Z':
+						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
+						basetostringz(arglist[i], argformat);
 						break;
 
 					default:

@@ -162,7 +162,9 @@ void write_html_header(struct session *ses, FILE *fp)
 {
 	char header[BUFFER_SIZE];
 	
-		sprintf(header, "<html>\n"
+		sprintf(header,
+		"<!DOCTYPE html>\n"
+		"<html>\n"
 		"<head>\n"
 		"<meta http-equiv='content-type' content='text/html; charset=%s'>\n"
 		"<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n"

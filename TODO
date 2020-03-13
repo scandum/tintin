@@ -2,33 +2,34 @@
 
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - provide the coordinate of the X on the vtmap.
+  - #message all log?
 
-  - screen move, negative arg handling.
+  - Work on VT2020 protocol (mouse click)
+
+  - $var[%*][%*] support.
+
+  - #line convert utf-8 support.
+
+  - better #draw font support
 
   - case insensitive tabbing (partial start with rewrite)
 
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
-  - #map legend support for unicode graphics.
+  ! #map legend support for unicode graphics.
   - add step count for #map list and rename distance to weight
   - multi-line room symbols
   - pancake mode to display rooms at all levels and annotations
   - there might be a terrain density bug
-
-  - #math idea: 4 === 2+2 === 8-4
-  - #math true/false handling?
-
-  - highlight file being read with verbose
+  - provide the coordinate of the X on the vtmap.
+  - add maze flag for maze handling.
 
   - #draw table {1;2;3;4} {a;b;c;d} 
+    #draw scrollbar
     #draw graph
-    #draw rain
     #draw button
     #draw titanic
-
-  - %b %B mode. (compress + base mode)
 
   - proper vt100 skip detection for improper color codes.
 
@@ -37,8 +38,6 @@
   - Add VT100 filter to make outside sources respect terminal size constraints, also needed to run bash in vsplit mode.
 
   - Remote script loading
-
-  - Work on VT2020 protocol (mouse click)
 
   - make #path load bi-directional.
 
@@ -51,17 +50,7 @@
 
   - look into discord api / arachnos
 
-  - add maze flag for maze handling.
-
-
-
-  - make #split static and fix wrapping of split line on horizontal shrink.
-
-  - look into utf-8 text obfuscation.
-
   - better color syntax highlighting configuration.
-
-  - split up list data flag.
 
   - Add #log delete option.
   - Fix #log helpfile and look into #log {remove} option for wintin++
@@ -69,9 +58,6 @@
   - See about filling COMMAND_LIST table.
 
   - See about adding SESSIONS to the list table.
-
-  - disable packet patch in echo off mode / PACKET PATCH AUTO mode.
-  - set packet patch on EOR and GA detection. #config packet patch auto ?
 
   - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
 
@@ -86,33 +72,18 @@
 
   - fix readmud in net.c to not move the cursor on inactive sessions.
 
-  - add #con packet patch auto split mode / prompt telnet codes
-
   - add packets patched counter
-
-  - https://tintin.sourceforge.io/forum/viewtopic.php?f=2&t=2624
-    Check if telnet ECHO has proper loop protection.
-
-  - Check socket code for odd behavior on mass connect
 
   - Fix arrow key up history recall overwriting the prompt (partial redesign)
     Auto prompt fixing on overwrite.
 
   - reportable_sounds
 
-  - #default smaller equal greater options
-
-  - #buffer end after #split ?
-
   - https://tintin.sourceforge.io/forum/viewtopic.php?f=4&t=2597 #add #screen support
 
   - TELNET documentation.
 
   - Add JSON support to #scan
-
-  - add form feed \x0C
-
-  - look into \x7F not backspacing.
 
   - fix \x00 showme
 
@@ -121,8 +92,6 @@
   - see if #break 2 is possible, maybe #continue 2 as well.
 
   - Add options to #cursor to implement custom behaviour.
-
-  - multiline gag
 
   - toggle global flags with #message all on, #debug all on, etc.
 
@@ -321,4 +290,3 @@
 - map sharing
 - cursor extension for vim
 - interactive script tutorial
-

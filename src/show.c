@@ -49,11 +49,11 @@ DO_COMMAND(do_showme)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_GAG);
 
-		gtd->level->ignore++;
+//		gtd->level->ignore++;
 
-		show_info(ses, LIST_GAG, "#INFO GAG {%s}", arg1);
+		show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", arg1);
 
-		gtd->level->ignore--;
+//		gtd->level->ignore--;
 
 		return ses;
 	}
@@ -108,7 +108,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 	root = ses->list[index];
 
-	if (gtd->level->verbose || gtd->level->debug )
+	if (gtd->level->verbose || gtd->level->debug)
 	{
 		goto display;
 	}
@@ -441,10 +441,7 @@ void tintin_puts(struct session *ses, char *string)
 
 		gtd->level->ignore++;
 
-		if (HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_INFO))
-		{
-			show_info(ses, LIST_GAG, "#INFO GAG {%s}", string);
-		}
+		show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", string);
 
 		gtd->level->ignore--;
 	}
@@ -505,7 +502,7 @@ void tintin_puts3(struct session *ses, char *string)
 		}
 	}
 
-	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_VERBOSE) && gtd->level->quiet && gtd->level->verbose == 0)
+	if (gtd->level->quiet && gtd->level->verbose == 0)
 	{
 		pop_call();
 		return;

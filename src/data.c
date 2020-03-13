@@ -25,6 +25,7 @@
 
 #include "tintin.h"
 
+#include <limits.h>
 
 struct listroot *init_list(struct session *ses, int type, int size)
 {

@@ -24,6 +24,7 @@
 ******************************************************************************/
 
 #include "tintin.h"
+#include "telnet.h"
 
 void screen_osc(char *arg1, char *arg2);
 void screen_csi(char *cmd, char *arg1, char *arg2, char *arg3, char *tc);
@@ -171,16 +172,16 @@ DO_SCREEN(screen_clear)
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
-		top_row = get_row_index(ses, arg1);
-		top_col = get_col_index(ses, arg2);
+		top_row = get_row_index_arg(ses, arg1);
+		top_col = get_col_index_arg(ses, arg2);
 
 //		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, top_row, top_col);
 
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
-		bot_row = get_row_index(ses, arg1);
-		bot_col = get_col_index(ses, arg2);
+		bot_row = get_row_index_arg(ses, arg1);
+		bot_col = get_col_index_arg(ses, arg2);
 
 //		tintin_printf2(ses, "debug: (%s) (%s) %d %d", arg1, arg2, bot_row, bot_col);
 
@@ -218,39 +219,44 @@ DO_SCREEN(screen_fill)
 		{
 			if (ses->split->sav_top_row == 1)
 			{
-				sprintf(buf, "LINE %d %d %d %d", 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+				sprintf(buf, "%s LINE %d %d %d %d", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
 			}
 			else
 			{
-				sprintf(buf, "BOX %d %d %d %d {}", 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+				sprintf(buf, "%s BOX %d %d %d %d {}", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
 			}
 			do_draw(ses, buf);
 		}
 
+		// bottom split
+
 		if (ses->split->sav_bot_row)
 		{
-			if (ses->split->sav_bot_row == 1)
+			if (ses->split->sav_bot_row - inputline_max_row() >= 0)
 			{
-				sprintf(buf, "LINE %d %d %d %d", ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
+				if (ses->split->sav_bot_row - inputline_max_row() == 0)
+				{
+					sprintf(buf, "%s LINE %d %d %d %d", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
+				}
+				else
+				{
+					sprintf(buf, "%s BOX %d %d %d %d {}", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - inputline_max_row(), gtd->screen->cols);
+				}
+				do_draw(ses, buf);
 			}
-			else
-			{
-				sprintf(buf, "BOX %d %d %d %d {}", ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
-			}
-			do_draw(ses, buf);
 		}
 
 		if (ses->split->sav_top_row > 0)
 		{
 			if (ses->split->sav_top_col)
 			{
-				sprintf(buf, "TEED VERTICAL LINE %d %d %d %d", ses->split->top_row - 1, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
+				sprintf(buf, "%s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
 				do_draw(ses, buf);
 			}
 
 			if (ses->split->sav_bot_col)
 			{
-				sprintf(buf, "TEED VERTICAL LINE %d %d %d %d", ses->split->top_row - 1, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
+				sprintf(buf, "%s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
 				do_draw(ses, buf);
 			}
 		}
@@ -258,13 +264,13 @@ DO_SCREEN(screen_fill)
 		{
 			if (ses->split->sav_top_col)
 			{
-				sprintf(buf, "VERTICAL LINE %d %d %d %d", ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
+				sprintf(buf, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
 				do_draw(ses, buf);
 			}
 
 			if (ses->split->sav_bot_col)
 			{
-				sprintf(buf, "VERTICAL LINE %d %d %d %d", ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
+				sprintf(buf, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
 				do_draw(ses, buf);
 			}
 		}
@@ -472,11 +478,35 @@ DO_SCREEN(screen_move)
 
 	if (height < 0)
 	{
+		if (gtd->screen->desk_height == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #SCREEN MOVE %d %d: USE #SCREEN RAISE DESKTOP DIMENSIONS FIRST.", height, width);
+
+			return;
+		}
+		if (gtd->screen->tot_height == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #SCREEN MOVE %d %d: USE #SCREEN RAISE SCREEN DIMENSIONS FIRST.", height, width);
+
+			return;
+		}
 		sprintf(arg1, "%d", 1 + gtd->screen->desk_height - gtd->screen->tot_height + height);
 	}
 
 	if (width < 0)
 	{
+		if (gtd->screen->desk_width == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #SCREEN MOVE %d %d: USE #SCREEN RAISE DESKTOP DIMENSIONS FIRST.", height, width);
+
+			return;
+		}
+		if (gtd->screen->tot_width == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #SCREEN MOVE %d %d: USE #SCREEN RAISE SCREEN DIMENSIONS FIRST.", height, width);
+
+			return;
+		}
 		sprintf(arg2, "%d", 1 + gtd->screen->desk_width - gtd->screen->tot_width + width);
 	}
 
@@ -595,6 +625,66 @@ DO_SCREEN(screen_scrollregion)
 	SET_BIT(ses->flags, SES_FLAG_SCROLLSPLIT);
 
 	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
+
+	return;
+}
+
+void init_inputregion(struct session *ses, int top_row, int top_col, int bot_row, int bot_col)
+{
+	ses->input->sav_top_row = top_row;
+	ses->input->sav_top_col = top_col;
+	ses->input->sav_bot_row = bot_row;
+	ses->input->sav_bot_col = bot_col;
+
+	top_row = get_row_index(ses, top_row);
+	top_col = get_col_index(ses, top_col);
+	bot_row = get_row_index(ses, bot_row);
+	bot_col = get_col_index(ses, bot_col);
+
+	if ((top_row|top_col|bot_row|bot_col) == 0)
+	{
+		top_row = gtd->screen->rows;
+		top_col = 1;
+		bot_row = gtd->screen->rows;
+		bot_col = gtd->screen->cols;
+	}
+
+	ses->input->top_row = top_row;
+	ses->input->top_col = top_col;
+	ses->input->bot_row = bot_row;
+	ses->input->bot_col = bot_col;
+}
+
+DO_SCREEN(screen_inputregion)
+{
+	int top_row, top_col, bot_row, bot_col;
+
+	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUT {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+
+		return;
+	}
+
+	top_row = get_row_index_arg(ses, arg1);
+	top_col = get_col_index_arg(ses, arg2);
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUT {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+
+		return;
+	}
+
+	bot_row = get_row_index_arg(ses, arg1);
+	bot_col = get_col_index_arg(ses, arg2);
+
+	init_inputregion(ses, top_row, top_col, bot_row, bot_col);
+
+//	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
 
 	return;
 }
@@ -778,7 +868,7 @@ DO_SCREEN(screen_raise)
 	}
 }
 
-int get_row_index(struct session *ses, char *arg)
+int get_row_index_arg(struct session *ses, char *arg)
 {
 	int val;
 
@@ -791,6 +881,11 @@ int get_row_index(struct session *ses, char *arg)
 		val = 0;
 	}
 
+	return get_row_index(ses, val);
+}
+
+int get_row_index(struct session *ses, int val)
+{
 	if (val < 0)
 	{
 		val = 1 + gtd->screen->rows + val;
@@ -804,7 +899,8 @@ int get_row_index(struct session *ses, char *arg)
 	return val;
 }
 
-int get_col_index(struct session *ses, char *arg)
+
+int get_col_index_arg(struct session *ses, char *arg)
 {
 	int val;
 
@@ -816,7 +912,11 @@ int get_col_index(struct session *ses, char *arg)
 	{
 		val = 0;
 	}
+	return get_col_index(ses, val);
+}
 
+int get_col_index(struct session *ses, int val)
+{
 	if (val < 0)
 	{
 		val = 1 + gtd->screen->cols + val;
@@ -994,257 +1094,8 @@ void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
 }
 
 
-DO_SCREEN(screen_info)
-{
-	int lvl;
 
-	tintin_printf2(ses, "gtd->ses->split->sav_top_row: %4d", gtd->ses->split->sav_top_row);
-	tintin_printf2(ses, "gtd->ses->split->sav_top_col: %4d", gtd->ses->split->sav_top_col);
-	tintin_printf2(ses, "gtd->ses->split->sav_bot_row: %4d", gtd->ses->split->sav_bot_row);
-	tintin_printf2(ses, "gtd->ses->split->sav_bot_col: %4d", gtd->ses->split->sav_bot_col);
 
-	tintin_printf2(ses, "gtd->ses->split->top_row:     %4d", gtd->ses->split->top_row);
-	tintin_printf2(ses, "gtd->ses->split->top_col:     %4d", gtd->ses->split->top_col);
-	tintin_printf2(ses, "gtd->ses->split->bot_row:     %4d", gtd->ses->split->bot_row);
-	tintin_printf2(ses, "gtd->ses->split->bot_col:     %4d", gtd->ses->split->bot_col);
-
-	tintin_printf2(ses, "");
-
-	tintin_printf2(ses, "gtd->ses->wrap:           %4d", gtd->ses->wrap);
-	tintin_printf2(ses, "gtd->ses->cur_row:        %4d", gtd->ses->cur_row);
-	tintin_printf2(ses, "gtd->ses->cur_col:        %4d", gtd->ses->cur_col);
-
-	for (lvl = 0 ; lvl < gtd->screen->sav_lev ; lvl++)
-	{
-		tintin_printf2(ses, "gtd->screen->sav_row[%2d]: %4d", lvl, gtd->screen->sav_row[lvl]);
-		tintin_printf2(ses, "gtd->screen->sav_col[%2d]: %4d", lvl, gtd->screen->sav_col[lvl]);
-	}
-
-	tintin_printf2(ses, "");
-
-	tintin_printf2(ses, "gtd->screen->rows:        %4d", gtd->screen->rows);
-	tintin_printf2(ses, "gtd->screen->cols:        %4d", gtd->screen->cols);
-	tintin_printf2(ses, "gtd->screen->height:      %4d", gtd->screen->height);
-	tintin_printf2(ses, "gtd->screen->width:       %4d", gtd->screen->width);
-	tintin_printf2(ses, "gtd->screen->tot_height:  %4d", gtd->screen->tot_height);
-	tintin_printf2(ses, "gtd->screen->tot_width:   %4d", gtd->screen->tot_width);
-
-	tintin_printf2(ses, "");
-
-	tintin_printf2(ses, "gtd->screen->top_row:     %4d", gtd->screen->top_row);
-	tintin_printf2(ses, "gtd->screen->bot_row:     %4d", gtd->screen->bot_row);
-	tintin_printf2(ses, "gtd->screen->cur_row:     %4d", gtd->screen->cur_row);
-	tintin_printf2(ses, "gtd->screen->cur_col:     %4d", gtd->screen->cur_col);
-	tintin_printf2(ses, "gtd->screen->max_row:     %4d", gtd->screen->max_row);
-
-	tintin_printf2(ses, "");
-
-	tintin_printf2(ses, "gtd->screen->desk_rows:   %4d", gtd->screen->desk_rows);
-	tintin_printf2(ses, "gtd->screen->desk_cols:   %4d", gtd->screen->desk_cols);
-	tintin_printf2(ses, "gtd->screen->desk_height: %4d", gtd->screen->desk_height);
-	tintin_printf2(ses, "gtd->screen->desk_width:  %4d", gtd->screen->desk_width);
-
-	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-	{
-		tintin_printf2(ses, "SPLIT mode detected.");
-	}
-}
-
-/*
-
-	if (gtd->screen == NULL)
-	{
-		tintin_printf2(ses, "gtd->screen: NULL");
-
-		return ses;
-	}
-
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-
-
-	print_screen(gts);
-
-	return ses;
-}
-*/
-
-void add_row_screen(int index)
-{
-	gtd->screen->lines[index] = (struct row_data *) calloc(1, sizeof(struct row_data));
-	gtd->screen->lines[index]->str = strdup("");
-}
-
-void del_row_screen(int index)
-{
-	free(gtd->screen->lines[index]->str);
-	free(gtd->screen->lines[index]);
-}
-
-void init_screen(int rows, int cols, int height, int width)
-{
-	int cnt;
-
-	gtd->screen->rows        = UMAX(1, rows);
-	gtd->screen->cols        = UMAX(1, cols);
-	gtd->screen->height      = UMAX(1, height);
-	gtd->screen->width       = UMAX(1, width);
-	gtd->screen->char_height = UMAX(1, gtd->screen->height / gtd->screen->rows);
-	gtd->screen->char_width  = UMAX(1, gtd->screen->width / gtd->screen->cols);
-
-	gtd->screen->focus  = 1;
-
-	return;
-
-//	disabled for now
-
-	push_call("init_screen(%d,%d)",rows,cols);
-
-	if (gtd->screen)
-	{
-		if (gtd->screen->max_row < rows)
-		{
-			gtd->screen->lines = (struct row_data **) realloc(gtd->screen->lines, rows * sizeof(struct row_data *));
-			
-			memset(gtd->screen->lines + gtd->screen->max_row * sizeof(struct row_data *), 0, (rows - gtd->screen->max_row) * sizeof(struct row_data *));
-
-			gtd->screen->max_row = rows;
-		}
-	}
-	else
-	{
-		gtd->screen = calloc(1, sizeof(struct screen_data));
-		gtd->screen->lines = (struct row_data **) calloc(rows, sizeof(struct row_data *));
-
-		gtd->screen->top_row = 1;
-		gtd->screen->bot_row = rows;
-
-		gtd->screen->max_row = rows;
-	}
-
-	gtd->screen->rows = rows;
-	gtd->screen->cols = cols;
-
-	gtd->screen->sav_lev = 0;
-	gtd->screen->sav_row[0] = gtd->screen->cur_row = rows;
-	gtd->screen->sav_col[0] = gtd->screen->cur_col = 0;
-
-	for (cnt = 0 ; cnt < gtd->screen->max_row ; cnt++)
-	{
-		if (gtd->screen->lines[cnt] == NULL)
-		{
-			add_row_screen(cnt);
-		}
-	}
-	pop_call();
-	return;
-}
-
-void destroy_screen()
-{
-	int cnt;
-
-//	disabled for now
-
-	return;
-
-	for (cnt = 0 ; cnt < gtd->screen->max_row ; cnt++)
-	{
-		del_row_screen(cnt);
-	}
-	free(gtd->screen->lines);
-	free(gtd->screen);
-
-	gtd->screen = NULL;
-}
-
-void print_screen()
-{
-	int cnt;
-
-	for (cnt = 0 ; cnt < gtd->screen->rows ; cnt++)
-	{
-		print_stdout("%2d %s\n", cnt, gtd->screen->lines[cnt]->str);
-	}
-}
-
-
-void add_line_screen(char *str)
-{
-	char *ptr;
-	int cnt;
-
-	// disabled for now
-
-	return;
-
-	push_call("add_line_screen(%p)",str);
-
-	if (gtd->screen == NULL)
-	{
-		print_stdout("screen == NULL!\n");
-
-		pop_call();
-		return;
-	}
-
-	while (str)
-	{
-		cnt = gtd->ses->split->top_row - 1;
-
-		free(gtd->screen->lines[cnt]->str);
-
-		while (cnt < gtd->ses->split->bot_row - 2)
-		{
-			gtd->screen->lines[cnt]->str = gtd->screen->lines[cnt + 1]->str;
-
-			cnt++;
-		}
-
-		ptr = strchr(str, '\n');
-
-		if (ptr)
-		{
-			gtd->screen->lines[cnt]->str = strndup(str, ptr - str);
-
-			str = ptr + 1;
-		}
-		else
-		{
-			gtd->screen->lines[cnt]->str = strdup(str);
-
-			str = NULL;
-		}
-//		gtd->screen->lines[cnt]->raw_len = strlen(gtd->screen->lines[cnt]->str);
-//		gtd->screen->lines[cnt]->str_len = strip_vt102_strlen(gts, gtd->screen->lines[cnt]->str);
-	}
-
-	pop_call();
-	return;
-}
-
-
-
-void set_line_screen(char *str, int row, int col)
-{
-	char buf[BUFFER_SIZE];
-
-	// disabled for now
-	
-	return;
-
-	push_call("set_line_screen(%p,%d)",str,row,col);
-
-	strcpy(buf, gtd->screen->lines[row]->str);
-
-	free(gtd->screen->lines[row]->str);
-
-	strcpy(&buf[col], str);
-
-	gtd->screen->lines[row]->str = strdup(buf);
-
-	pop_call();
-	return;
-}
 
 /*
 	save cursor, goto top row, delete (bot - top) rows, restore cursor
@@ -1482,6 +1333,151 @@ void fill_split_region(struct session *ses, char *arg)
 	fill_right_region(ses, arg);
 }
 
+// VT SCREEN TECH
+
+DO_SCREEN(screen_info)
+{
+	int lvl;
+
+	tintin_printf2(ses, "gtd->ses->split->sav_top_row: %4d", gtd->ses->split->sav_top_row);
+	tintin_printf2(ses, "gtd->ses->split->sav_top_col: %4d", gtd->ses->split->sav_top_col);
+	tintin_printf2(ses, "gtd->ses->split->sav_bot_row: %4d", gtd->ses->split->sav_bot_row);
+	tintin_printf2(ses, "gtd->ses->split->sav_bot_col: %4d", gtd->ses->split->sav_bot_col);
+
+	tintin_printf2(ses, "gtd->ses->split->top_row:     %4d", gtd->ses->split->top_row);
+	tintin_printf2(ses, "gtd->ses->split->top_col:     %4d", gtd->ses->split->top_col);
+	tintin_printf2(ses, "gtd->ses->split->bot_row:     %4d", gtd->ses->split->bot_row);
+	tintin_printf2(ses, "gtd->ses->split->bot_col:     %4d", gtd->ses->split->bot_col);
+
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->ses->wrap:           %4d", gtd->ses->wrap);
+	tintin_printf2(ses, "gtd->ses->cur_row:        %4d", gtd->ses->cur_row);
+	tintin_printf2(ses, "gtd->ses->cur_col:        %4d", gtd->ses->cur_col);
+
+	for (lvl = 0 ; lvl < gtd->screen->sav_lev ; lvl++)
+	{
+		tintin_printf2(ses, "gtd->screen->sav_row[%2d]: %4d", lvl, gtd->screen->sav_row[lvl]);
+		tintin_printf2(ses, "gtd->screen->sav_col[%2d]: %4d", lvl, gtd->screen->sav_col[lvl]);
+	}
+
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->screen->rows:        %4d", gtd->screen->rows);
+	tintin_printf2(ses, "gtd->screen->cols:        %4d", gtd->screen->cols);
+	tintin_printf2(ses, "gtd->screen->height:      %4d", gtd->screen->height);
+	tintin_printf2(ses, "gtd->screen->width:       %4d", gtd->screen->width);
+	tintin_printf2(ses, "gtd->screen->tot_height:  %4d", gtd->screen->tot_height);
+	tintin_printf2(ses, "gtd->screen->tot_width:   %4d", gtd->screen->tot_width);
+
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->screen->top_row:     %4d", gtd->screen->top_row);
+	tintin_printf2(ses, "gtd->screen->bot_row:     %4d", gtd->screen->bot_row);
+	tintin_printf2(ses, "gtd->screen->cur_row:     %4d", gtd->screen->cur_row);
+	tintin_printf2(ses, "gtd->screen->cur_col:     %4d", gtd->screen->cur_col);
+	tintin_printf2(ses, "gtd->screen->max_row:     %4d", gtd->screen->max_row);
+
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->screen->desk_rows:   %4d", gtd->screen->desk_rows);
+	tintin_printf2(ses, "gtd->screen->desk_cols:   %4d", gtd->screen->desk_cols);
+	tintin_printf2(ses, "gtd->screen->desk_height: %4d", gtd->screen->desk_height);
+	tintin_printf2(ses, "gtd->screen->desk_width:  %4d", gtd->screen->desk_width);
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
+	{
+		tintin_printf2(ses, "SPLIT mode detected.");
+	}
+
+	if (*arg1)
+	{
+		tintin_printf2(ses, "PRINTING SCREEN");
+
+		print_screen();
+	}
+
+	return;
+}
+
+DO_SCREEN(screen_print)
+{
+	print_screen();
+}
+
+int inside_scroll_region(struct session *ses, int row, int col)
+{
+	if (row < ses->split->top_row)
+	{
+		return 0;
+	}
+	if (row > ses->split->bot_row)
+	{
+		return 0;
+	}
+	if (col < ses->split->top_col)
+	{
+		return 0;
+	}
+	if (col > ses->split->bot_col)
+	{
+		return 0;
+	}
+	return 1;
+}
+
+void add_row_screen(int index)
+{
+	gtd->screen->lines[index] = (struct row_data *) calloc(1, sizeof(struct row_data));
+	gtd->screen->lines[index]->str = strdup("");
+}
+
+void del_row_screen(int index)
+{
+	free(gtd->screen->lines[index]->str);
+	free(gtd->screen->lines[index]);
+}
+
+void init_screen(int rows, int cols, int height, int width)
+{
+	int cnt;
+
+	gtd->screen->rows        = UMAX(1, rows);
+	gtd->screen->cols        = UMAX(1, cols);
+	gtd->screen->height      = UMAX(1, height);
+	gtd->screen->width       = UMAX(1, width);
+	gtd->screen->char_height = UMAX(1, gtd->screen->height / gtd->screen->rows);
+	gtd->screen->char_width  = UMAX(1, gtd->screen->width / gtd->screen->cols);
+
+	gtd->screen->focus  = 1;
+
+	gts->input->top_row = rows;
+	gts->input->top_col = 1;
+	gts->input->bot_row = rows;
+	gts->input->bot_col = cols;
+
+	gtd->screen->sav_lev    = 0;
+	gtd->screen->sav_row[0] = gtd->screen->cur_row = rows;
+	gtd->screen->sav_col[0] = gtd->screen->cur_col = 1;
+
+	push_call("init_screen(%d,%d)",rows,cols);
+
+	if (gtd->screen->max_row < rows)
+	{
+		gtd->screen->lines = (struct row_data **) realloc(gtd->screen->lines, rows * sizeof(struct row_data *));
+
+		for (cnt = gtd->screen->max_row ; cnt < rows ; cnt++)
+		{
+			add_row_screen(cnt);
+		}
+		gtd->screen->max_row = rows;
+	}
+
+	pop_call();
+	return;
+}
+
+
 void get_line_screen(char *result, int row)
 {
 	strcpy(result, gtd->screen->lines[row]->str);
@@ -1523,4 +1519,425 @@ void get_word_screen(char *result, int row, int col)
 	strncpy(result, &ptr[i], j - i);
 
 	result[j - i] = 0;
+}
+
+int get_link_screen(struct session *ses, char *result, int flags, int row, int col)
+{
+	char *pts, *ptl, *ptw;
+	int skip, width, len, start, opt;
+
+	ptl     = NULL;
+	len     = 0;
+	opt     = 0;
+	*result = 0;
+
+	if (inside_scroll_region(ses, row, col))
+	{
+		col -= ses->split->top_col;
+		pts = gtd->screen->lines[row - 1]->str;
+		ptw = pts;
+	}
+	else
+	{
+//		tintin_printf2(ses, "debug: scroll region only for now.");
+
+		return 0;
+	}
+
+	while (*pts)
+	{
+		start:
+
+		if (*pts == ASCII_ESC)
+		{
+//			tintin_printf2(gtd->ses, "link debug: %3d %c %c", *pts, pts[1], pts[2]);
+
+			if (pts[1] == ']' && pts[2] == '6' && pts[3] == '8' && pts[4] == ';')
+			{
+				char var[BUFFER_SIZE], val[BUFFER_SIZE], *pto;
+				int nest, state[100], last;
+
+				result[0] = var[0] = val[0] = state[0] = nest = last = opt = 0;
+
+				pts += 5;
+
+				opt = 0;
+
+				while (isdigit(*pts))
+				{
+					opt = opt * 10 + (*pts++ - '0');
+				}
+
+				if (*pts == ';')
+				{
+					pts++;
+				}
+
+				pto = var;
+
+				while (*pts)
+				{
+					switch (*pts)
+					{
+						case MSDP_TABLE_OPEN:
+							if (last != MSDP_VAL)
+							{
+								if (nest)
+								{
+									if (last == MSDP_VAR || last == MSDP_VAL)
+									{
+										*pto++ = '}';
+									}
+									if (state[nest])
+									{
+										pto += sprintf(pto, "{%d}", state[nest]++);
+									}
+									*pto++ = '{';
+								}
+								else
+								{
+									*pto = 0;
+
+									if (last != MSDP_VAR)
+									{
+										if (!is_number(var) || (int) tintoi(var) == flags)
+										{
+											cat_sprintf(result, "{%s}{%s}",var,val);
+										}
+									}
+									pto = val;
+								}
+							}
+							nest++;
+							state[nest] = 0;
+							last = MSDP_TABLE_OPEN;
+							break;
+
+						case MSDP_TABLE_CLOSE:
+							if (nest)
+							{
+								if (last == MSDP_VAL || last == MSDP_VAR)
+								{
+									*pto++ = '}';
+								}
+								nest--;
+							}
+							if (nest)
+							{
+								*pto++ = '}';
+							}
+							last = MSDP_TABLE_CLOSE;
+							break;
+
+						case MSDP_ARRAY_OPEN:
+							if (last != MSDP_VAL)
+							{
+								if (nest)
+								{
+									if (last == MSDP_VAR || last == MSDP_VAL)
+									{
+										*pto++ = '}';
+									}
+									if (state[nest])
+									{
+										pto += sprintf(pto, "{%d}", state[nest]++);
+									}
+									*pto++ = '{';
+								}
+								else
+								{
+									*pto = 0;
+
+									if (last != MSDP_VAR)
+									{
+										if (!is_number(var) || (int) tintoi(var) == flags)
+										{
+											cat_sprintf(result, "{%s}{%s}",var,val);
+										}
+									}
+									pto = val;
+								}
+							}
+							nest++;
+							state[nest] = 1;
+							last = MSDP_ARRAY_OPEN;
+							break;
+
+						case MSDP_ARRAY_CLOSE:
+							if (nest)
+							{
+								if (last == MSDP_VAL)
+								{
+									*pto++ = '}';
+								}
+								nest--;
+							}
+							if (nest)
+							{
+								*pto++ = '}';
+							}
+							last = MSDP_ARRAY_CLOSE;
+							break;
+
+						case MSDP_VAR:
+							if (nest)
+							{
+								if (last == MSDP_VAL)
+								{
+									*pto++ = '}';
+								}
+								*pto++ = '{';
+							}
+							else
+							{
+								*pto = 0;
+
+								if (last)
+								{
+									if (!is_number(var) || (int) tintoi(var) == flags)
+									{
+										cat_sprintf(result, "{%s}{%s}",var,val);
+									}
+								}
+								pto = var;
+							}
+							last = MSDP_VAR;
+							break;
+
+						case MSDP_VAL:
+							if (nest)
+							{
+								if (last == MSDP_VAR || last == MSDP_VAL)
+								{
+									*pto++ = '}';
+								}
+								if (state[nest])
+								{
+									pto += sprintf(pto, "{%d}", state[nest]++);
+								}
+								*pto++ = '{';
+							}
+							else
+							{
+								*pto = 0;
+
+								if (last != MSDP_VAR)
+								{
+									if (!is_number(var) || (int) tintoi(var) == flags)
+									{
+										cat_sprintf(result, "{%s}{%s}",var,val);
+									}
+								}
+								pto = val;
+							}
+							last = MSDP_VAL;
+							break;
+
+						case ASCII_BEL:
+							*pto = 0;
+
+							if (last)
+							{
+								if (!is_number(var) || (int) tintoi(var) == flags)
+								{
+									cat_sprintf(result, "{%s}{%s}", var, val);
+								}
+							}
+							else
+							{
+								strcpy(result, var);
+							}
+							pts++;
+//							tintin_printf2(gtd->ses, "link debug: %s", result);
+							goto start;
+							break;
+
+						case '\r':
+							break;
+
+						case '\\':
+							*pto++ = '\\';
+							*pto++ = '\\';
+							break;
+
+						case '{':
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'B';
+							break;
+
+						case '}':
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'D';
+							break;
+
+						case COMMAND_SEPARATOR:
+							*pto++ = '\\';
+							*pto++ = COMMAND_SEPARATOR;
+							break;
+
+						default:
+							*pto++ = *pts;
+							break;
+					}
+					pts++;
+				}
+			}
+			else if (pts[1] == '[' && pts[2] == '4')
+			{
+				if (pts[3] == 'm')
+				{
+					ptl   = &pts[4];
+					start = len;
+				}
+				else if (pts[3] == ';' && pts[4] == '2' && pts[5] == '4' && pts[6] == 'm')
+				{
+					ptl   = &pts[7];
+					start = len;
+				}
+			}
+			else if (pts[1] == '[' && pts[2] == '2' && pts[3] == '4' && pts[4] == 'm')
+			{
+				if (ptl && col >= start && col < len)
+				{
+					if (*result == 0)
+					{
+						sprintf(result, "%.*s", (int) (pts - ptl), ptl);
+					}
+
+//					tintin_printf2(gtd->ses, "\e[1;32mfound link: (%d,%d) [%s]", col, len, result);
+
+					return opt ? opt : TRUE;
+				}
+				else
+				{
+					ptl = NULL;
+					*result = 0;
+				}
+			}
+		}
+		else if (*pts == ' ')
+		{
+			if (ptl == NULL && len >= col)
+			{
+				break;
+			}
+			ptw = pts;
+		}
+
+		skip = skip_one_char(gtd->ses, pts, &width);
+
+		len += width;
+		pts += skip;
+	}
+
+	sprintf(result, "%.*s", (int) (pts - ptw), ptw);
+
+	return FALSE;
+}
+
+void set_line_screen(char *str, int row, int col)
+{
+	char buf[BUFFER_SIZE];
+
+	push_call("set_line_screen(%p,%d)",str,row,col);
+
+	strcpy(buf, gtd->screen->lines[row]->str);
+
+	free(gtd->screen->lines[row]->str);
+
+	strcpy(&buf[col], str);
+
+	gtd->screen->lines[row]->str = strdup(buf);
+
+	pop_call();
+	return;
+}
+
+
+void destroy_screen()
+{
+	int cnt;
+
+//	disabled for now
+
+	return;
+
+	for (cnt = 0 ; cnt < gtd->screen->max_row ; cnt++)
+	{
+		del_row_screen(cnt);
+	}
+	free(gtd->screen->lines);
+	free(gtd->screen);
+
+	gtd->screen = NULL;
+}
+
+void print_screen()
+{
+	int cnt;
+
+	for (cnt = 0 ; cnt < gtd->screen->rows ; cnt++)
+	{
+		print_stdout("\e[%dH%02d%s", cnt + 1, cnt + 1, gtd->screen->lines[cnt]->str);
+	}
+}
+
+
+void add_line_screen(char *str)
+{
+	char *ptr;
+	int cnt;
+
+	push_call("add_line_screen(%p)",str);
+
+	if (gtd->screen == NULL)
+	{
+		print_stdout("screen == NULL!\n");
+
+		pop_call();
+		return;
+	}
+
+	while (str)
+	{
+		cnt = gtd->ses->split->top_row - 1;
+
+		if (cnt < 0 || cnt >= gtd->ses->split->bot_row)
+		{
+			tintin_printf2(gtd->ses, "add_line_screen debug: cnt = %d", cnt);
+		}
+
+		free(gtd->screen->lines[cnt]->str);
+
+		while (cnt < gtd->ses->split->bot_row - 2)
+		{
+			gtd->screen->lines[cnt]->str = gtd->screen->lines[cnt + 1]->str;
+
+			cnt++;
+		}
+
+		ptr = strchr(str, '\n');
+
+		if (ptr)
+		{
+			gtd->screen->lines[cnt]->str = strndup(str, ptr - str);
+
+			str = ptr + 1;
+		}
+		else
+		{
+			gtd->screen->lines[cnt]->str = strdup(str);
+
+			str = NULL;
+		}
+//		gtd->screen->lines[cnt]->raw_len = strlen(gtd->screen->lines[cnt]->str);
+//		gtd->screen->lines[cnt]->str_len = strip_vt102_strlen(gts, gtd->screen->lines[cnt]->str);
+	}
+
+	pop_call();
+	return;
 }

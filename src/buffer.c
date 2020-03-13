@@ -93,11 +93,11 @@ void check_buffer(struct session *ses)
 
 	wrap = get_scroll_cols(ses);
 
-	for (index = ses->scroll->used - 1 ; index > 0 ; index--)
+	for (index = ses->scroll->used - 1 ; index >= 0 ; index--)
 	{
 		buffer = ses->scroll->buffer[index];
 
-		if (buffer->width < wrap)
+		if (buffer->width < wrap && buffer->width < ses->scroll->wrap)
 		{
 			buffer->height = buffer->lines;
 		}
@@ -121,7 +121,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	char temp[STRING_SIZE];
 	char *pti, *pto;
 	int cnt, purge;
-	int cur_row, cur_col, top_row, bot_row;
+	int skip, cur_row, cur_col, top_row, bot_row;
 	struct buffer_data *buffer;
 
 	push_call("add_line_buffer(%p,%s,%d)",ses,line,prompt);
@@ -167,25 +167,43 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 
 	while (*pti != 0)
 	{
-		while (skip_vt102_codes_non_graph(pti))
+		skip = skip_vt102_codes_non_graph(pti);
+
+		if (skip)
 		{
 			interpret_vt102_codes(ses, pti, FALSE);
 
-			pti += skip_vt102_codes_non_graph(pti);
+			pti += skip;
+
+			continue;
 		}
 
-		if (*pti == 0)
-		{
-			break;
-		}
+		skip = skip_vt102_codes(pti);
 
 		if (SCROLL(ses))
 		{
-			*pto++ = *pti++;
+			if (skip)
+			{
+				while (skip--)
+				{
+					*pto++ = *pti++;
+				}
+			}
+			else
+			{
+				*pto++ = *pti++;
+			}
 		}
 		else
 		{
-			pti++;
+			if (skip)
+			{
+				pti += skip;
+			}
+			else
+			{
+				pti++;
+			}
 		}
 	}
 	*pto = 0;
@@ -202,6 +220,8 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	buffer->lines = word_wrap_split(ses, ses->scroll->input, temp, ses->wrap, 0, 0, FLAG_NONE, &buffer->height, &buffer->width);
 	buffer->time  = gtd->time;
 	buffer->str   = strdup(ses->scroll->input);
+
+	add_line_screen(temp);
 
 	if (gtd->level->grep || prompt == -1)
 	{
@@ -887,7 +907,7 @@ DO_BUFFER(buffer_get)
 	{
 		min = ses->scroll->used + min;
 	}
-	min = URANGE(1, min, ses->scroll->used - 1);
+	min = URANGE(0, min, ses->scroll->used - 1);
 
 	if (*arg3 == 0)
 	{
@@ -902,7 +922,7 @@ DO_BUFFER(buffer_get)
 	{
 		max = ses->scroll->used + max;
 	}
-	max = URANGE(1, max, ses->scroll->used - 1);
+	max = URANGE(0, max, ses->scroll->used - 1);
 
 	if (min > max)
 	{

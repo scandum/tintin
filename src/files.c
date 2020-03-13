@@ -52,7 +52,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 {
 	struct stat filedata;
 	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
-	int lvl, cnt, com, lnc, fix, ok;
+	int lvl, cnt, com, lnc, fix, ok, verbose;
 	int counter[LIST_MAX];
 
 	temp[0] = getc(fp);
@@ -90,6 +90,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		return ses;
 	}
+
 
 	fread(bufi, 1, filedata.st_size, fp);
 
@@ -276,6 +277,8 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	*pto++ = '\n';
 	*pto   = '\0';
 
+
+
 	if (lvl)
 	{
 		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
@@ -317,9 +320,17 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		gtd->level->verbose--;
 	}
 
+	verbose = HAS_BIT(ses->flags, SES_FLAG_VERBOSE) ? 1 : 0;
+
+	gtd->level->input++;
+
+	gtd->level->verbose += verbose;
+
 	gtd->level->quiet++;
 
 	do_configure(ses, temp);
+
+	gtd->level->quiet--;
 
 	lvl = 0;
 	lnc = 0;
@@ -349,7 +360,9 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		pti++;
 	}
 
-	gtd->level->quiet--;
+	gtd->level->verbose -= verbose;
+
+	gtd->level->input--;
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_VERBOSE))
 	{

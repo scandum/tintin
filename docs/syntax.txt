@@ -19,8 +19,7 @@ CHARACTERS
 
 " "       Quote characters are used for strings in the #math, #if, #switch,
           and #case commands. It is however suggested to use an extra
-          set of braces { } to define strings. Quote support will be
-          phased out eventually since TT++ is typeless.
+          set of braces { } to define strings.
 
 !         The exclamation sign is used to repeat commands, see #help history.
           The character can be redefined using #config.
@@ -53,6 +52,11 @@ $         The dollar sign is used to retrieve the value of a variable.
 &0- &99   The ampersand sign followed by a number is used for arguments in the
           regex command.
 
+%0- %99   The percent sign followed by a number is used for arguments by the
+          following triggers:
+
+          alias, action, button, delay, event, function, substitute, and tick.
+
 <000>     Three alphanumeric characters encapsulated by the less- and greater-
           than signs are used for 4 and 8 bit color codes.
 
@@ -66,24 +70,55 @@ $         The dollar sign is used to retrieve the value of a variable.
 
           More information is available at #help color.
 
-\         The back slash is used to escape a character. Available options
+\         The back slash is used to escape a character. All available options
           are listed at #help escape. Escapes are typically escaped when text
           leaves the client, by being send to a server, the shell, or being
           displayed on the screen.
+
+\t        08  horizontal tab character.
+\n        10  line feed character.
+\v        11  vertical tab character.
+\r        13  carriage return character.
+\e        27  escape character.
+\c            6 bit control character, \ca for ctrl-a.
+\x            8 bit character using 2 hexadecimal numbers.
+\u            16 bit unicode character, \uFFFD for example.
 
           All variables and functions can be escaped by doubling the sign,
           like $$variable_name or @@function_name. To escape a variable
           twice use $$$var_name. One escape is removed each time tintin
           needs to substitute a variable or function.
 
+          All command arguments can be escaped by doubling the ampersand,
+          like &&1. One escape is removed each time tintin substitutes
+          command arguments.
 
+          All trigger arguments can be escaped by double the ampersand,
+          like %%1. One escape is removed each time tintin substitutes
+          trigger arguments.
 
 COORDINATES
 -----------
 
           When the 0,0 coordinate is in the upper left corner TinTin++ uses
-          a y,x / rows,cols notation. When the 0,0 coordinate is in the
-          bottom left corner tintin uses a x,y / cols/rows notation.
+          a y,x / rows,cols notation, starting at 1,1. Subsequently -1,-1
+          will indicate the bottom right corner.
+
+          When the 0,0 coordinate is in the bottom left corner tintin uses
+          a standard x,y notation.
+
+SQUARES
+-------
+
+          A square argument takes 4 coordinates. The first two coordinates
+          define the upper left corner, the last two coordinates define the
+          bottom right corner.
+
+PANES
+-----
+          A panes argument takes 4 size values, which are: top pane, bottom
+          pane, left pane, right pane. When a negative value is provided the
+          size is the maximum size, minus the value.
 
 MATH
 ----
@@ -107,6 +142,8 @@ MATH
           <=              4            logical less than or equal
           ==              5            logical equal (can use regex)
           !=              5            logical not equal (can use regex)
+          ===             5            string equal
+          !==             5            string not equal
            &              6            bitwise and
            ^              7            bitwise xor
            |              8            bitwise or
@@ -119,6 +156,8 @@ MATH
 2:1:30    This means 2 hours, 1 minute and 30 seconds.
 6:2:1:30  This means 6 days, 2 hours, 1 minute and 30 seconds.
           #math time 6:2:1:30 equals 525690
+
+M,K,m,u   These four metric suffixes are allowed for numbers.
 
 { }       Braces can be used in #math to perform string operations.
 {a} > {b} This checks if the string "a" is greater than "b".

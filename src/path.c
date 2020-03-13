@@ -446,7 +446,7 @@ DO_PATH(path_run)
 		if (*arg1)
 		{
 		
-			delay = (long long) get_number(ses, arg1) * 1000000LL;
+			delay = (long long) (get_number(ses, arg1) * 1000000.0);
 			total = 0;
 
 			DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
@@ -481,7 +481,7 @@ DO_PATH(path_walk)
 
 	DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
-	if (is_abbrev(arg1, "BACKWARDS"))
+	if (is_abbrev(arg1, "BACKWARDS") || is_abbrev(arg1, "-1"))
 	{
 		if (root->update == 0)
 		{
@@ -497,7 +497,7 @@ DO_PATH(path_walk)
 			}
 		}
 	}
-	else if (*arg1 == 0 || is_abbrev(arg1, "FORWARDS"))
+	else if (*arg1 == 0 || is_abbrev(arg1, "FORWARDS") || is_abbrev(arg1, "+1"))
 	{
 		if (root->update == root->used)
 		{
@@ -773,33 +773,35 @@ DO_PATH(path_move)
 	{
 		if (root->update == 0)
 		{
-			show_message(ses, LIST_COMMAND, "#PATH GOTO: ALREADY AT START OF PATH.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH GOTO: ALREADY AT START OF PATH.");
 		}
 		else
 		{
 			root->update--;
 
-			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update + 1);
 		}
 	}
 	else if (is_abbrev(arg1, "FORWARD"))
 	{
 		if (root->update == root->used)
 		{
-			show_message(ses, LIST_COMMAND, "#PATH MOVE: ALREADY AT END OF PATH.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: ALREADY AT END OF PATH.");
 		}
 		else
 		{
 			root->update++;
 
-			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
+			show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update + 1);
 		}
 	}
 	else if (is_math(ses, arg1))
 	{
+		int last = root->update;
+
 		root->update = URANGE(0, root->update + get_number(ses, arg1), root->used);
 
-		show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update + 1);
+		show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION MOVED FROM %d TO %d.", last + 1, root->update + 1);
 	}
 }
 
@@ -912,9 +914,11 @@ DO_COMMAND(do_pathdir)
 			}
 			get_number_string(ses, arg3, arg3);
 		}
-		update_node_list(ses->list[LIST_PATHDIR], arg1, arg2, arg3, "");
+		node = update_node_list(ses->list[LIST_PATHDIR], arg1, arg2, arg3, "");
 
-		show_message(ses, LIST_PATHDIR, "#OK: DIRECTION {%s} WILL BE REVERSED AS {%s} @ {%s}.", arg1, arg2, arg3);
+		node->val32[0] = atoi(arg3);
+
+		show_message(ses, LIST_PATHDIR, "#OK: DIRECTION {%s} WILL BE REVERSED AS {%s} @ {%d}.", arg1, arg2, atoi(arg3));
 	}
 	return ses;
 }
@@ -940,6 +944,49 @@ DO_COMMAND(do_unpathdir)
 	while (*arg1);
 
 	return ses;
+}
+
+int exit_to_dir(struct session *ses, char *name)
+{
+	struct listnode *node;
+
+	node = search_node_list(ses->list[LIST_PATHDIR], name);
+
+	if (node)
+	{
+		return atoi(node->arg3);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+char *dir_to_exit(struct session *ses, int dir)
+{
+	struct listroot *root;
+	struct listnode *node;
+
+	if (dir <= 0 || dir >= 64)
+	{
+		return "";
+	}
+
+	root = ses->list[LIST_PATHDIR];
+
+	root->update = 0;
+
+	while (root->update < root->used)
+	{
+		node = root->list[root->update];
+
+		if (node->val32[0] == dir)
+		{
+			return node->arg1;
+		}
+		root->update++;
+	}
+	return "";
 }
 
 // Old commands, left for backward compatibility

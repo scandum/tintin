@@ -409,6 +409,13 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 		}
 	}
 
+	if (*line == '!')
+	{
+		show_error(ses, LIST_COMMAND, "#!%s %s", line + 1, input);
+
+		return ses;
+	}
+
 	tintin_printf2(ses, "#ERROR: #UNKNOWN TINTIN-COMMAND '%s'.", line);
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "UNKNOWN COMMAND", line);
@@ -1048,7 +1055,7 @@ void do_one_line(char *line, struct session *ses)
 
 	if (!HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_prompts(ses, line, strip);
+		check_all_prompts(ses, line, strip, TRUE);
 	}
 
 	if (!HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))

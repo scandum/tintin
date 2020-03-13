@@ -405,6 +405,50 @@ DO_ARRAY(array_insert)
 	return ses;
 }
 
+DO_ARRAY(array_order)
+{
+	int cnt;
+	char **buffer;
+
+	array_add(ses, list, arg, var);
+
+	buffer = malloc(list->root->used * sizeof(char *));
+
+	for (cnt = 0 ; cnt < list->root->used ; cnt++)
+	{
+		buffer[cnt] = list->root->list[cnt]->arg2;
+	}
+
+	quadsort(buffer, list->root->used, sizeof(char *), cmp_num);
+
+	for (cnt = 0 ; cnt < list->root->used ; cnt++)
+	{
+		list->root->list[cnt]->arg2 = buffer[cnt];
+	}
+
+	free(buffer);
+
+	return ses;
+}
+
+DO_ARRAY(array_reverse)
+{
+	char *swap;
+	int cnt, rev;
+
+	array_add(ses, list, arg, var);
+
+	for (cnt = 0 ; cnt < list->root->used / 2 ; cnt++)
+	{
+		rev = list->root->used - 1 - cnt;
+
+		swap = list->root->list[cnt]->arg2;
+		list->root->list[cnt]->arg2 = list->root->list[rev]->arg2;
+		list->root->list[rev]->arg2 = swap;
+	}
+	return ses;
+}
+
 DO_ARRAY(array_simplify)
 {
 	char arg1[BUFFER_SIZE], *str;
@@ -495,9 +539,9 @@ DO_ARRAY(array_set)
 			return ses;
 		}
 
-		set_nest_node(list->root, ntos(index + 1), "%s", arg2);
+//		set_nest_node(list->root, ntos(index + 1), "%s", arg2);
 
-//		RESTRING(list->root->list[index]->arg2, arg2);
+		str_cpy(&list->root->list[index]->arg2, arg2);
 
 		return ses;
 	}
@@ -512,10 +556,7 @@ DO_ARRAY(array_shuffle)
 	char *swap;
 	int cnt, rnd;
 
-	if (!list->root)
-	{
-		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
-	}
+	array_add(ses, list, arg, var);
 
 	for (cnt = 0 ; cnt < list->root->used ; cnt++)
 	{
@@ -530,53 +571,27 @@ DO_ARRAY(array_shuffle)
 
 DO_ARRAY(array_sort)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], *str;
 	int cnt;
+	char **buffer;
 
-	if (!list->root)
+	array_add(ses, list, arg, var);
+
+	buffer = malloc(list->root->used * sizeof(char *));
+
+	for (cnt = 0 ; cnt < list->root->used ; cnt++)
 	{
-		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
+		buffer[cnt] = list->root->list[cnt]->arg2;
 	}
 
-	while (*arg)
+	quadsort(buffer, list->root->used, sizeof(char *), cmp_str);
+
+	for (cnt = 0 ; cnt < list->root->used ; cnt++)
 	{
-		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
-
-		str = arg1;
-
-		while (*str)
-		{
-			str = get_arg_in_braces(ses, str, arg2, GET_ALL);
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				if (strcmp(arg2, list->root->list[cnt]->arg2) <= 0)
-				{
-					break;
-				}
-			}
-
-			if (cnt == list->root->used)
-			{
-				sprintf(arg3, "{%d} {%s}", -1, arg2);
-			}
-			else
-			{
-				sprintf(arg3, "{%d} {%s}", cnt + 1, arg2);
-			}
-
-			array_insert(ses, list, arg3, var);
-
-			if (*str == COMMAND_SEPARATOR)
-			{
-				str++;
-			}
-		}
-		if (*arg == COMMAND_SEPARATOR)
-		{
-			arg++;
-		}
+		list->root->list[cnt]->arg2 = buffer[cnt];
 	}
+
+	free(buffer);
+
 	return ses;
 }
 

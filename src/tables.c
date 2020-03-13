@@ -464,13 +464,15 @@ struct color_type color_table[] =
 	{    "faint",         "<288>",  5 },
 	{    "dim",           "<288>",  3 },
 	{    "dark",          "<288>",  4 },
+	{    "italic",        "<388>",  6 },
 	{    "underscore",    "<488>", 10 },
 	{    "blink",         "<588>",  5 },
 	{    "reverse",       "<788>",  7 },
 
-	{    "ununderscore", "\e[24m",13 },
-	{    "unblink",      "\e[25m", 8 },
-	{    "unreverse",    "\e[27m",10 },
+	{    "unitalic",     "\e[23m",  8 },
+	{    "ununderscore", "\e[24m", 13 },
+	{    "unblink",      "\e[25m",  8 },
+	{    "unreverse",    "\e[27m", 10 },
 
 	{    "black",         "<aaa>",  5 },
 	{    "red",           "<daa>",  4 },
@@ -535,6 +537,7 @@ struct color_type map_color_table[] =
 	{     "BACKGROUND",       ""      },
 	{     "BLOCK",            "<218>" },
 	{     "EXITS",            "<278>" },
+	{     "FOG",              "<148>" },
 	{     "HIDE",             "<168>" },
 	{     "INVISIBLE",        "<208>" },
 	{     "PATHS",            "<138>" },
@@ -644,9 +647,11 @@ struct array_type array_table[] =
 	{     "FND",              array_find,        NULL                                      },
 	{     "GET",              array_get,         "Retrieve a list item with given index"   },
 	{     "INSERT",           array_insert,      "Insert a list item at given index"       },
+	{     "ORDER",            array_order,       "Sort a list table numerically"           },
 	{     "LENGTH",           array_size,        NULL                                      },
+	{     "REVERSE",          array_reverse,     "Sort a list table in reverse order"      },
 	{     "SET",              array_set,         "Change a list item at given index"       },
-	{     "SHUFFLE",          array_shuffle,     "Sort a list table randomly"              },
+	{     "SHUFFLE",          array_shuffle,     "Sort a list table in random order"       },
 	{     "SIMPLIFY",         array_simplify,    "Turn a list table into a simple list"    },
 	{     "SIZE",             array_size,        NULL                                      },
 	{     "SORT",             array_sort,        "Sort a list table alphabetically"        },
@@ -817,7 +822,7 @@ struct cursor_type cursor_table[] =
 	{
 		"DELETE WORD RIGHT",
 		"Delete forwards till next space",
-		"",
+		"\e[3;5~",
 		CURSOR_FLAG_GET_ALL,
 		cursor_delete_word_right
 	},
@@ -1015,79 +1020,88 @@ struct cursor_type cursor_table[] =
 	},
 */
 	{
-		"", "", "\e[5~",   0, cursor_buffer_up
+		"", "", "\e[5~",     0, cursor_buffer_up
 	},
 	{
-		"", "", "\e[6~",   0, cursor_buffer_down
+		"", "", "\e[6~",     0, cursor_buffer_down
 	},
 	{
-		"", "", "",       0, cursor_buffer_lock
+		"", "", "",         0, cursor_buffer_lock
 	},
 	{
-		"","", "\e[13;2u", 0, cursor_enter
+		"","", "\e[13;2u",   0, cursor_enter
 	},
 	{
-		"", "", "\eOM",    0, cursor_enter
+		"", "", "\eOM",      0, cursor_enter
 	},
 	{
-		"", "", "\e[7~",   0, cursor_home
+		"", "", "\e[7~",     0, cursor_home
 	},
 	{
-		"", "", "\e[1~",   0, cursor_home
+		"", "", "\e[1~",     0, cursor_home
 	},
 	{
-		"", "", "\eOH",    0, cursor_home
+		"", "", "\eOH",      0, cursor_home
 	},
 	{
-		"", "", "\e[H",    0, cursor_home
+		"", "", "\e[H",      0, cursor_home
 	},
 	{
-		"", "", "\eOD",    0, cursor_left
+		"", "", "\eOD",      0, cursor_left
 	},
 	{
-		"", "", "\e[D",    0, cursor_left
+		"", "", "\e[D",      0, cursor_left
 	},
 	{
-		"", "", "\e[8~",   0, cursor_end
+		"", "", "\e[8~",     0, cursor_end
 	},
 	{
-		"", "", "\e[4~",   0, cursor_end
+		"", "", "\e[4~",     0, cursor_end
 	},
 	{
-		"", "", "\eOF",    0, cursor_end
+		"", "", "\eOF",      0, cursor_end
 	},
 	{
-		"", "", "\e[F",    0, cursor_end
+		"", "", "\e[F",      0, cursor_end
 	},
 	{
-		"", "", "\eOC",    0, cursor_right
+		"", "", "\eOC",      0, cursor_right
 	},
 	{
-		"", "", "\e[C",    0, cursor_right
+		"", "", "\e[C",      0, cursor_right
 	},
 	{
-		"", "", "\x7F",    0, cursor_backspace
+		"", "", "\x7F",      0, cursor_backspace
 	},
 	{
-		"", "", "\eOB",    0, cursor_history_next
+		"", "", "\eOB",      0, cursor_history_next
 	},
 	{
-		"", "", "\e[B",    0, cursor_history_next
+		"", "", "\e[B",      0, cursor_history_next
 	},
 	{
-		"", "", "\eOA",    0, cursor_history_prev
+		"", "", "\eOA",      0, cursor_history_prev
 	},
 	{
-		"", "", "\e[A",    0, cursor_history_prev
+		"", "", "\e[A",      0, cursor_history_prev
 	},
 	{
-		"", "", "\e\x7F",  0, cursor_delete_word_left
+		"", "", "\e[1;5D",   0, cursor_left_word
 	},
 	{
-		"", "", "\ed",     0, cursor_delete_word_right
+		"", "", "\e[1;5C",   0, cursor_right_word
 	},
 	{
-		"", "", "",        0, NULL
+		"", "", "\e[127;5u", 0, cursor_clear_line
+	},
+	{
+		"", "", "\e\x7F",    0, cursor_delete_word_left
+	},
+	{
+		"", "", "\ed",       0, cursor_delete_word_right
+	},
+	{
+		"", "", "",          0, NULL
 	}
 };
 
@@ -1218,6 +1232,15 @@ struct screen_type screen_table[] =
 		screen_info
 	},
 	{
+		"INPUT",
+		"Set the input region to {square}.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_inputregion
+	},
+
+	{
 		"LOAD",
 		"Load screen information from memory.",
 		SCREEN_FLAG_GET_ONE,
@@ -1249,6 +1272,14 @@ struct screen_type screen_table[] =
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_CSIP,
 		screen_move
+	},
+	{
+		"PRINT",
+		"Print the screen dump to the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_print
 	},
 	{
 		"RAISE",
@@ -1352,9 +1383,12 @@ struct event_type event_table[] =
 	{    "DAY",                                    EVENT_FLAG_TIME,     "Triggers each day or given day."         },
 	{    "DOUBLE-CLICKED ",                        EVENT_FLAG_MOUSE,    "Triggers when mouse is double-clicked"   },
 	{    "END OF PATH",                            EVENT_FLAG_MAP,      "Triggers when walking the last room."    },
+	{    "GAG ",                                   EVENT_FLAG_GAG,      "Triggers on gag events."                 },
 	{    "HOUR",                                   EVENT_FLAG_TIME,     "Triggers each hour or given hour."       },
 	{    "IAC ",                                   EVENT_FLAG_TELNET,   "Triggers on telopt negotiation."         },
 	{    "LONG-CLICKED ",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is long-clicked."    },
+	{    "MAP CREATE ROOM",                        EVENT_FLAG_MAP,      "Triggers when a room is created."        },
+	{    "MAP DELETE ROOM",                        EVENT_FLAG_MAP,      "Triggers when a room is deleted."        },
 	{    "MAP DOUBLE-CLICKED ",                    EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
 	{    "MAP ENTER MAP",                          EVENT_FLAG_MAP,      "Triggers when entering the map."         },
 	{    "MAP ENTER ROOM",                         EVENT_FLAG_MAP,      "Triggers when entering a map room."      },
@@ -1466,6 +1500,7 @@ struct line_type line_table[] =
 	{    "BACKGROUND",        line_background,     "Execute line without stealing session focus."   },
 	{    "BENCHMARK",         line_benchmark,      "Execute line and provide timing information."   },
 	{    "CAPTURE",           line_capture,        "Capture output in the given variable."          },
+	{    "CONVERT",           line_convert,        "Execute line in convert meta data mode."        },
 	{    "DEBUG",             line_debug,          "Execute line in debug mode."                    },
 	{    "GAG",               line_gag,            "Gag the next line."                             },
 	{    "IGNORE",            line_ignore,         "Execute line with triggers ignored."            },
@@ -2066,8 +2101,14 @@ struct stamp_type huge_stamp_table[] =
 	{ "&",  59, "  ████╗  \n ██╔═██╗ \n ╚████╔╝ \n██╔══██═╗\n╚█████╔█║\n ╚════╝╚╝" },
 	{ "%",  47, "██╗ ██╗\n╚═╝██╔╝\n  ██╔╝ \n ██╔╝  \n██╔╝██╗\n╚═╝ ╚═╝" },
 	{ "'",  23, "╗██╗\n██║\n╚═╝\n   \n   \n   " },
-
+	{ "(",  29, " ██╗\n██╔╝\n██║ \n██║ \n╚██╗\n ╚═╝" },
+	{ ")",  29, "██╗ \n╚██╗\n ██║\n ██║\n██╔╝\n╚═╝ " },
+	{ "*",  47, "▄  █  ▄\n █▄█▄█ \n  ▐█▌  \n █▀█▀█ \n▀  █  ▀\n       " },
 	{ "+",  59, "   ██╗   \n   ██║   \n████████╗\n╚══██╔══╝\n   ██║   \n   ╚═╝   " },
+// ,
+// -
+// .
+// /
 
 	{ "0",  53, " █████╗ \n██╔══██╗\n██║  ██║\n██║  ██║\n╚█████╔╝\n ╚════╝ " },
 	{ "1",  53, "  ▄██╗  \n ████║  \n ╚═██║  \n   ██║  \n ██████╗\n ╚═════╝" },
@@ -2081,7 +2122,14 @@ struct stamp_type huge_stamp_table[] =
 	{ "9",  53, " █████╗ \n██╔══██╗\n╚██████║\n ╚═══██║\n █████╔╝\n ╚════╝ " },
 
 	{ ":",  53, "        \n   ██╗  \n   ╚═╝  \n        \n   ██╗  \n   ╚═╝  " },
+// ;
+// <
+// =
+// >
+// ?
 
+
+	{ "@",  59, " ██████╗ \n██╔═══██╗\n██║██╗██║\n██║██║██║\n╚█║████╔╝\n ╚╝╚═══╝ " },
 	{ "A",  53, " █████╗ \n██╔══██╗\n███████║\n██╔══██║\n██║  ██║\n╚═╝  ╚═╝" },
 	{ "B",  53, "██████╗ \n██╔══██╗\n██████╔╝\n██╔══██╗\n██████╔╝\n╚═════╝ " },
 	{ "C",  53, " ██████╗\n██╔════╝\n██║     \n██║     \n╚██████╗\n ╚═════╝" },
@@ -2109,8 +2157,20 @@ struct stamp_type huge_stamp_table[] =
 	{ "Y",  59, "██╗   ██╗\n╚██╗ ██╔╝\n ╚████╔╝ \n  ╚██╔╝  \n   ██║   \n   ╚═╝   " },
 	{ "Z",  53, "███████╗\n╚══███╔╝\n  ███╔╝ \n ███╔╝  \n███████╗\n╚══════╝" },
 
+// [
+
+// ]
+	{ "^",  41, " ███╗ \n██╔██╗\n╚═╝╚═╝\n      \n      \n" },
+	{ "_",  53, "        \n        \n        \n        \n███████╗\n╚══════╝" },
+// `
+
 	{ "i",  23, "██╗\n╚═╝\n██╗\n██║\n██║\n╚═╝" },
 	{ "n",  47, "       \n       \n██▟███╗\n██║ ██║\n██║ ██║\n╚═╝ ╚═╝" },
+
+// {
+// }
+// ~
+// DEL
 
 	{ NULL, 0, NULL }
 };

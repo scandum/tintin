@@ -147,6 +147,28 @@ DO_LINE(line_capture)
 	return ses;
 }
 
+DO_LINE(line_convert)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {CONVERT} {command}.");
+
+		return ses;
+	}
+
+	gtd->level->convert++;
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->level->convert--;
+
+	return ses;
+}
+
 DO_LINE(line_debug)
 {
 	char arg1[BUFFER_SIZE];

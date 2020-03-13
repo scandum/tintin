@@ -307,7 +307,7 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 	{
 		gtd->args[next_arg(*var)] = next_arg(*arg);
 	}
-	strcpy(out, in[2] == 0 ? "(.+)" : "(.+?)");
+	strcpy(out, *pti ? "(.+?)" : "(.+)");
 
 	return 0;
 }

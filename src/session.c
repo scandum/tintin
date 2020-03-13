@@ -306,7 +306,10 @@ struct session *activate_session(struct session *ses)
 
 	dirty_screen(ses);
 
-	show_message(ses, LIST_COMMAND, "#SESSION '%s' ACTIVATED.", ses->name);
+	if (!check_all_events(ses, SUB_ARG, 0, 1, "GAG SESSION ACTIVATED", ses->name))
+	{
+		show_message(ses, LIST_COMMAND, "#SESSION '%s' ACTIVATED.", ses->name);
+	}
 
 	check_all_events(ses, SUB_ARG, 0, 1, "SESSION ACTIVATED", ses->name);
 
@@ -347,10 +350,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 		if (*port == 0)
 		{
-			tintin_puts(ses, "#HEY! SPECIFY A PORT NUMBER WILL YOU?");
-
-			pop_call();
-			return ses;
+			strcpy(port, "23");
 		}
 	}
 
@@ -389,7 +389,6 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	newses->logline_name  = strdup("");
 	newses->rand          = utime();
 
-
 	LINK(newses, gts->next, gts->prev);
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_INHERITANCE))
@@ -414,25 +413,51 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		}
 	}
 
-	newses->event_flags = gts->event_flags;
+	newses->event_flags   = gts->event_flags;
 
-	newses->split   = calloc(1, sizeof(struct split_data));
+	newses->split         = calloc(1, sizeof(struct split_data));
 
 	memcpy(newses->split, gts->split, sizeof(struct split_data));
 
-	newses->cur_row = gts->cur_row;
-	newses->cur_col = gts->cur_col;
+	newses->cur_row       = gts->cur_row;
+	newses->cur_col       = gts->cur_col;
 
-	newses->wrap    = gts->wrap;
+	newses->wrap          = gts->wrap;
 
-        newses->scroll = calloc(1, sizeof(struct scroll_data));
+        newses->scroll        = calloc(1, sizeof(struct scroll_data));
 	init_buffer(newses, gts->scroll->size);
+
+	newses->input         = calloc(1, sizeof(struct input_data));
+
+	memcpy(newses->input, gts->input, sizeof(struct input_data));
+
+	newses->input->buf    = str_alloc(BUFFER_SIZE);
+	newses->input->tmp    = str_alloc(BUFFER_SIZE);
+/*
+	newses->input->sav_top_row = gts->input->sav_top_row;
+	newses->input->sav_top_col = gts->input->sav_top_col;
+	newses->input->sav_bot_row = gts->input->sav_bot_row;
+	newses->input->sav_bot_col = gts->input->sav_bot_col;
+
+	newses->input->top_row = gts->input->top_row;
+	newses->input->top_col = gts->input->top_col;
+	newses->input->bot_row = gts->input->bot_row;
+	newses->input->bot_col = gts->input->bot_col;
+*/
+	// may need to set additional values.
+
+	newses->input->off = gts->input->off;
+	newses->input->pos = gts->input->pos;
+	newses->input->hid = gts->input->hid;
 
 	memcpy(&newses->cur_terminal, &gts->cur_terminal, sizeof(gts->cur_terminal));
 
 	if (desc == 0)
 	{
-		tintin_printf(ses, "#TRYING TO CONNECT '%s' TO '%s' PORT '%s'.", newses->name, newses->session_host, newses->session_port);
+		if (!check_all_events(newses, SUB_ARG, 0, 4, "GAG SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port))
+		{
+			tintin_printf(ses, "#TRYING TO CONNECT '%s' TO '%s' PORT '%s'.", newses->name, newses->session_host, newses->session_port);
+		}
 	}
 	else if (desc == -1)
 	{
@@ -440,7 +465,10 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	}
 	else
 	{
-		tintin_printf(ses, "#TRYING TO LAUNCH '%s' RUNNING '%s'.", newses->name, newses->session_host);
+		if (!check_all_events(newses, SUB_ARG, 0, 4, "GAG SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port))
+		{
+			tintin_printf(ses, "#TRYING TO LAUNCH '%s' RUNNING '%s'.", newses->name, newses->session_host);
+		}
 	}
 
 	dirty_screen(newses);
@@ -541,9 +569,10 @@ struct session *connect_session(struct session *ses)
 
 		SET_BIT(ses->flags, SES_FLAG_CONNECTED);
 
-		tintin_printf2(ses, "");
-
-		tintin_printf(ses, "#SESSION '%s' CONNECTED TO '%s' PORT '%s'", ses->name, ses->session_host, ses->session_port);
+		if (!check_all_events(ses, SUB_ARG, 0, 4, "GAG SESSION CONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port))
+		{
+			tintin_printf(ses, "\n#SESSION '%s' CONNECTED TO '%s' PORT '%s'", ses->name, ses->session_host, ses->session_port);
+		}
 
 		check_all_events(ses, SUB_ARG, 0, 4, "SESSION CONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port);
 
@@ -646,15 +675,23 @@ void cleanup_session(struct session *ses)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_CONNECTED);
 
+		if (!check_all_events(ses, SUB_ARG, 0, 4, "GAG SESSION DISCONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port))
+		{
+			tintin_printf(gtd->ses, "#SESSION '%s' DIED.", ses->name);
+		}
+
 		check_all_events(ses, SUB_ARG, 0, 4, "SESSION DISCONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port);
 
-		tintin_printf(gtd->ses, "#SESSION '%s' DIED.", ses->name);
+
 	}
 	else
 	{
-		check_all_events(ses, SUB_ARG, 0, 4, "SESSION TIMED OUT", ses->name, ses->session_host, ses->session_ip, ses->session_port);
+		if (!check_all_events(ses, SUB_ARG, 0, 4, "GAG SESSION TIMED OUT", ses->name, ses->session_host, ses->session_ip, ses->session_port))
+		{
+			tintin_printf(gtd->ses, "#SESSION '%s' TIMED OUT.", ses->name);
+		}
 
-		tintin_printf(gtd->ses, "#SESSION '%s' TIMED OUT.", ses->name);
+		check_all_events(ses, SUB_ARG, 0, 4, "SESSION TIMED OUT", ses->name, ses->session_host, ses->session_ip, ses->session_port);
 	}
 
 	if (ses == gtd->ses)
