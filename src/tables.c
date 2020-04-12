@@ -2087,7 +2087,7 @@ struct map_group_type map_group_table[] =
 	{ "MUDFONT CURVED",		"MUDFONT CURVED",	1, 2,	1, 2,	0, 0,	"" },
 	{ "MUDFONT CURVED BRAILLE",	"MUDFONT CURVED",	1, 2,	1, 2,	0, 0,	"{\\u2818} {\\u28A0} {\\u2844} {\\u2803} {} {} {} {}" },
 
-	{ "UNICODE GRAPHICS",           "UNICODE GRAPHICS",     2, 5,   2, 5,   0, 0,   "{ } {\\u2E0C} {\\u2E1D} {>} {\\u2E0D} {\\u2E0C\\u2E0D} {\\uFF0F} {>\\u2E0D} {\\u2E1C} {\\uFF3C} {\\u2E1D\\u2E1C} {>\\u2E1C} {<} {\\u2E0C<} {\\u2E1D<} {><} {-} {\\u2191} {\\u2193} {\\u2502} {+} {\\U01F806} {\\U01F804} {\\u2500} {[} {(} {]} {)}" },
+	{ "UNICODE GRAPHICS",           "UNICODE GRAPHICS",     2, 5,   2, 5,   0, 0,   "{ } {\\u2E0C} {\\u2E1D} {>} {\\u2E0D} {\\u2E0C\\u2E0D} {\\uFF0F} {>\\u2E0D} {\\u2E1C} {\\uFF3C} {\\u2E1D\\u2E1C} {>\\u2E1C} {<} {\\u2E0C<} {\\u2E1D<} {><} {-} {\\u2191} {\\u2193} {\\u2502} {+} {\\u2192} {\\u2190} {\\u2500} {[} {(} {]} {)}" },
 
 	{ NULL,				NULL,			0, 0,	0, 0,	0, 0,	"" }
 };
