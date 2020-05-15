@@ -375,7 +375,6 @@ struct session *scan_txt_file(struct session *ses, FILE *fp, char *filename)
 DO_COMMAND(do_scan)
 {
 	FILE *fp;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);

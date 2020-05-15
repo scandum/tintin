@@ -27,13 +27,12 @@
 
 DO_COMMAND(do_cursor)
 {
-	char all[BUFFER_SIZE], arg1[BUFFER_SIZE], temp[BUFFER_SIZE];
+	char all[BUFFER_SIZE], temp[BUFFER_SIZE];
 	int cnt;
 
 	get_arg_in_braces(ses, arg, all, GET_ALL);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-//	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
@@ -45,7 +44,7 @@ DO_COMMAND(do_cursor)
 			{
 				convert_meta(cursor_table[cnt].code, temp, FALSE);
 
-				tintin_printf2(ses, "  [%-18s] [%-6s] %s", cursor_table[cnt].name, temp, cursor_table[cnt].desc);
+				tintin_printf2(ses, "  [%-18s] [%-7s] %s", cursor_table[cnt].name, temp, cursor_table[cnt].desc);
 			}
 		}
 		tintin_header(ses, "");
@@ -81,6 +80,8 @@ DO_COMMAND(do_cursor)
 	}
 	return ses;
 }
+
+// strlen with offset.
 
 int inputline_str_str_len(int start, int end)
 {
@@ -325,27 +326,27 @@ DO_CURSOR(cursor_brace_close)
 
 DO_CURSOR(cursor_buffer_down)
 {
-	do_buffer(ses, "DOWN");
+	buffer_down(ses, "");
 }
 
 DO_CURSOR(cursor_buffer_end)
 {
-	do_buffer(ses, "END");
+	buffer_end(ses, "");
 }
 
 DO_CURSOR(cursor_buffer_home)
 {
-	do_buffer(ses, "HOME");
+	buffer_home(ses, "");
 }
 
 DO_CURSOR(cursor_buffer_lock)
 {
-	do_buffer(ses, "LOCK");
+	buffer_lock(ses, "");
 }
 
 DO_CURSOR(cursor_buffer_up)
 {
-	do_buffer(ses, "UP");
+	buffer_up(ses, "");
 }
 
 
@@ -687,7 +688,7 @@ DO_CURSOR(cursor_exit)
 {
 	if (ses == gts)
 	{
-		do_end(ses, "");
+		execute(ses, "#END");
 	}
 	else
 	{
@@ -1095,6 +1096,15 @@ DO_CURSOR(cursor_paste_buffer)
 	modified_input();
 }
 
+DO_CURSOR(cursor_preserve_macro)
+{
+	SET_BIT(gtd->flags, TINTIN_FLAG_PRESERVEMACRO);
+}
+
+DO_CURSOR(cursor_reset_macro)
+{
+	gtd->macro_buf[0] = 0;
+}
 
 DO_CURSOR(cursor_redraw_input)
 {
@@ -1276,7 +1286,10 @@ DO_CURSOR(cursor_set)
 
 DO_CURSOR(cursor_suspend)
 {
-	do_suspend(ses, "");
+	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))
+	{
+		do_suspend(ses, arg, NULL, NULL, NULL, NULL);
+	}
 }
 
 DO_CURSOR(cursor_info)
@@ -1321,9 +1334,9 @@ int cursor_tab_add(int input_now, int stop_after_first)
 				{
 					continue;
 				}
-				insert_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
+				create_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
 
-				if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+				if (node->shots && --node->shots == 0)
 				{
 					delete_node_list(gtd->ses, LIST_TAB, node);
 				}
@@ -1383,7 +1396,7 @@ int cursor_auto_tab_add(int input_now, int stop_after_first)
 				{
 					continue;
 				}
-				insert_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
+				create_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
 
 				if (stop_after_first)
 				{
@@ -1529,7 +1542,7 @@ DO_CURSOR(cursor_tab)
 	{
 		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> FORWARD");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST|SCROLLBACK} FORWARD");
 		}
 		else
 		{
@@ -1552,7 +1565,7 @@ DO_CURSOR(cursor_tab)
 	{
 		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> BACKWARD");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST|SCROLLBACK} BACKWARD");
 		}
 		else
 		{
@@ -1573,7 +1586,7 @@ DO_CURSOR(cursor_tab)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB <LIST|SCROLLBACK> <BACKWARD|FORWARD>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST|SCROLLBACK} <BACKWARD|FORWARD>");
 	}
 }
 
@@ -1596,7 +1609,7 @@ DO_CURSOR(cursor_tab_forward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 	}
 	tab_found = cursor_tab_add(gtd->ses->input->tab, TRUE);
 
@@ -1626,7 +1639,7 @@ DO_CURSOR(cursor_tab_backward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 
 		cursor_tab_add(gtd->ses->input->tab, FALSE);
 	}
@@ -1652,7 +1665,7 @@ DO_CURSOR(cursor_auto_tab_forward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 	}
 
 	tab_found = cursor_auto_tab_add(gtd->ses->input->tab, TRUE);
@@ -1683,7 +1696,7 @@ DO_CURSOR(cursor_auto_tab_backward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 
 		cursor_auto_tab_add(gtd->ses->input->tab, FALSE);
 	}
@@ -1711,7 +1724,7 @@ DO_CURSOR(cursor_mixed_tab_forward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 	}
 	tab_found = cursor_tab_add(gtd->ses->input->tab, TRUE) || cursor_auto_tab_add(gtd->ses->input->tab, TRUE);
 
@@ -1741,7 +1754,7 @@ DO_CURSOR(cursor_mixed_tab_backward)
 
 	if (!root->list[0])
 	{
-		insert_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
+		create_node_list(root, &gtd->ses->input->buf[gtd->ses->input->tab], "", "", "");
 
 		cursor_tab_add(gtd->ses->input->tab, FALSE);
 		cursor_auto_tab_add(gtd->ses->input->tab, FALSE);

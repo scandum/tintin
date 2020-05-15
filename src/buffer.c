@@ -132,6 +132,44 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		return;
 	}
 
+	SET_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
+
+/*
+	strip_vt102_codes(line, temp);
+
+	check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "ADD LINE BUFFER", line, temp);
+
+	if (check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "CATCH ADD LINE BUFFER", line, temp))
+	{
+		pop_call();
+		return;
+	}
+
+	if (prompt)
+	{
+		check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "ADD PROMPT BUFFER", line, temp);
+		
+		if (check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "CATCH ADD PROMPT BUFFER", line, temp))
+		{
+			pop_call();
+			return;
+		}
+	}
+*/
+	if (ses->line_capturefile)
+	{
+		sprintf(temp, "{%d}{%s}", ses->line_captureindex++, line);
+
+		if (ses->line_captureindex == 1)
+		{
+			set_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
+		}
+		else
+		{
+			add_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
+		}
+	}
+
 	if (HAS_BIT(ses->flags, SES_FLAG_CONVERTMETA))
 	{
 		convert_meta(line, temp, TRUE);
@@ -595,7 +633,6 @@ int show_buffer(struct session *ses)
 
 DO_COMMAND(do_buffer)
 {
-	char arg1[BUFFER_SIZE];
 	int cnt;
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
@@ -605,6 +642,8 @@ DO_COMMAND(do_buffer)
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " BUFFER OPTIONS ");
 
 		for (cnt = 0 ; *buffer_table[cnt].name != 0 ; cnt++)
@@ -628,7 +667,7 @@ DO_COMMAND(do_buffer)
 		return ses;
 	}
 
-	do_buffer(ses, "");
+	goto info;
 
 	return ses;
 }
@@ -884,7 +923,7 @@ DO_BUFFER(buffer_find)
 
 DO_BUFFER(buffer_get)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE], arg2[STRING_SIZE], arg3[BUFFER_SIZE];
 	int cnt, min, max;
 
 	check_buffer(ses);
@@ -1024,7 +1063,6 @@ DO_BUFFER(buffer_info)
 
 DO_COMMAND(do_grep)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int scroll_cnt, grep_cnt, grep_min, grep_max, grep_add, page;
 
 	check_buffer(ses);

@@ -30,7 +30,7 @@ static int  draw_cnt;
 
 DO_COMMAND(do_draw)
 {
-	char *sub_arg, arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], color[BUFFER_SIZE], code[BUFFER_SIZE], arg3[BUFFER_SIZE], input[BUFFER_SIZE];
+	char color[BUFFER_SIZE], code[BUFFER_SIZE], input[BUFFER_SIZE];
 	long long flags;
 	int index, top_row, top_col, bot_row, bot_col, rows, cols;
 
@@ -69,11 +69,11 @@ DO_COMMAND(do_draw)
 
 				SET_BIT(flags, DRAW_FLAG_COLOR);
 			}
-			else if (!HAS_BIT(flags, DRAW_FLAG_COLOR) && strip_vt102_strlen(ses, arg1) == 0)
+/*			else if (!HAS_BIT(flags, DRAW_FLAG_COLOR) && strip_vt102_strlen(ses, arg1) == 0)
 			{
 				strcpy(color, arg1);
 				SET_BIT(flags, DRAW_FLAG_COLOR);
-			}
+			}*/
 			else if (is_abbrev(arg1, "ASCII"))
 			{
 				DEL_BIT(flags, DRAW_FLAG_UTF8);
@@ -85,6 +85,10 @@ DO_COMMAND(do_draw)
 			else if (is_abbrev(arg1, "BOTTOM"))
 			{
 				SET_BIT(flags, DRAW_FLAG_BOT);
+			}
+			else if (!strcasecmp(arg1, "BOXED"))
+			{
+				SET_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT);
 			}
 			else if (is_abbrev(arg1, "BUMPED"))
 			{
@@ -202,32 +206,14 @@ DO_COMMAND(do_draw)
 			if (is_abbrev(arg1, draw_table[index].name))
 			{
 				arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-				sub_arg = get_arg_in_braces(ses, arg1, arg3, GET_ONE);
-
-				if (*sub_arg)
-				{
-					strcpy(arg1, arg3);
-					sub_arg = get_arg_in_braces(ses, sub_arg, arg2, GET_ONE);
-				}
-				else
-				{
-					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
-				}
+				arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 				top_row = get_row_index_arg(ses, arg1);
 				top_col = get_col_index_arg(ses, arg2);
 
-				if (*sub_arg)
-				{
-					sub_arg = get_arg_in_braces(ses, sub_arg, arg1, GET_ONE);
-					sub_arg = get_arg_in_braces(ses, sub_arg, arg2, GET_ONE);
-				}
-				else
-				{
-					arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-					arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
-				}
+				arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+				arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+
 				bot_row = get_row_index_arg(ses, arg1);
 				bot_col = get_col_index_arg(ses, arg2);
 
@@ -248,7 +234,7 @@ DO_COMMAND(do_draw)
 				{
 					if (ses != gtd->ses)
 					{
-						show_error(ses, LIST_COMMAND, "#ERROR: #DRAW %s %d %d %d %d: SESSION IS IN THE BACKGROUND.", draw_table[index].name, top_row, top_col, bot_row, bot_col);
+						show_message(ses, LIST_COMMAND, "#WARNING: #DRAW %s %d %d %d %d: SESSION IS IN THE BACKGROUND.", draw_table[index].name, top_row, top_col, bot_row, bot_col);
 
 						return ses;
 					}
@@ -1024,6 +1010,29 @@ DO_DRAW(draw_bot_side)
 	}
 }
 
+DO_DRAW(draw_arg)
+{
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	top_row = get_row_index_arg(ses, arg1);
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	top_col = get_col_index_arg(ses, arg1);
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	bot_row = get_row_index_arg(ses, arg1);
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	bot_col = get_col_index_arg(ses, arg1);
+
+	rows = URANGE(1, 1 + bot_row - top_row, gtd->screen->rows);
+	cols = URANGE(1, 1 + bot_col - top_col, gtd->screen->cols);
+
+	save_pos(ses);
+
+	draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg2, arg1, arg);
+
+	restore_pos(ses);
+}
 
 DO_DRAW(draw_box)
 {
@@ -1107,27 +1116,50 @@ DO_DRAW(draw_line)
 
 DO_DRAW(draw_map)
 {
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	top_row = get_row_index_arg(ses, arg1);
+	int map_rows = rows;
+	int map_cols = cols;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	top_col = get_col_index_arg(ses, arg1);
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_TOP|DRAW_FLAG_PRUNED))
+	{
+		map_rows--;
+	}
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	bot_row = get_row_index_arg(ses, arg1);
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_BOT|DRAW_FLAG_PRUNED))
+	{
+		map_rows--;
+	}
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	bot_col = get_col_index_arg(ses, arg1);
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_PRUNED))
+	{
+		map_cols--;
+	}
 
-	rows = URANGE(1, 1 + bot_row - top_row, gtd->screen->rows);
-	cols = URANGE(1, 1 + bot_col - top_col, gtd->screen->cols);
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_RIGHT|DRAW_FLAG_PRUNED))
+	{
+		map_cols--;
+	}
 
-	save_pos(ses);
+	if (ses->map && ses->map->in_room)
+	{
+		sprintf(arg, "{%d} {%d} {SAVE}", map_rows, map_cols);
 
-	draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, arg2, arg1, arg);
+		map_map(ses, arg, arg1, arg2);
+	}
+	else
+	{
+		str_cpy(&gtd->buf, "{}");
+	}
 
-	restore_pos(ses);
+	if (HAS_BIT(flags, DRAW_FLAG_TOP|DRAW_FLAG_BOT))
+	{
+		draw_box(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, gtd->buf, arg1, arg2);
+	}
+	else
+	{
+		draw_text(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, color, gtd->buf, arg1, arg2);
+	}
 }
+
 char *rain_symbols = "ﾛｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ01SԐ45789Z=*+-¦|_ʺ╌";
 char *braille_symbols = "⠁⠂⠃⠄⠅⠆⠇⠈⠊⠌⠎⠐⠑⠔⠕⠘⠜⠠⠡⠢⠣⠨⠪⠰⠱⠸⡀⡁⡂⡃⡄⡅⡆⡇⡈⡊⡌⡎⡐⡑⡔⡕⡘⡜⡠⡡⡢⡣⡨⡪⡰⡱⡸⢀⢁⢂⢃⢄⢅⢆⢇⢈⢉⢊⢌⢎⢐⢑⢔⢕⢘⢜⢠⢡⢢⢣⢨⢪⢰⢱";
 
@@ -1643,7 +1675,7 @@ DO_DRAW(draw_text)
 	{
 		while (*arg)
 		{
-			arg = sub_arg_in_braces(ses, arg, buf1, GET_ALL, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
+			arg = sub_arg_in_braces(ses, arg, buf1, GET_ALL, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN|SUB_LIT);
 
 			txt += sprintf(txt, "%s\n", buf1);
 
@@ -1655,25 +1687,25 @@ DO_DRAW(draw_text)
 		string_to_font(ses, flags, buf2, buf2);
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED) /*|| HAS_BIT(flags, DRAW_FLAG_LINED)*/ || HAS_BIT(flags, DRAW_FLAG_TOP) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_TOP|DRAW_FLAG_PRUNED))
 	{
 		top_row++;
 		rows--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED) /*|| HAS_BIT(flags, DRAW_FLAG_LINED)*/ || HAS_BIT(flags, DRAW_FLAG_BOT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_BOT|DRAW_FLAG_PRUNED))
 	{
 		bot_row--;
 		rows--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_LEFT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_PRUNED))
 	{
 		strcpy(side1, " ");
 		cols--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED) || HAS_BIT(flags, DRAW_FLAG_RIGHT) || HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_RIGHT|DRAW_FLAG_PRUNED))
 	{
 		if (!HAS_BIT(flags, DRAW_FLAG_GRID) || HAS_BIT(flags, DRAW_FLAG_RIGHT))
 		{

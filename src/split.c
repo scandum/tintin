@@ -29,8 +29,6 @@
 
 DO_COMMAND(do_split)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -168,13 +166,21 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 		SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
 	}
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_SCROLLSPLIT))
+
+	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN SPLIT FILL", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
+
+	if (!check_all_events(ses, SUB_ARG, 0, 4, "CATCH SCREEN SPLIT FILL", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col)))
 	{
-		if (HAS_BIT(ses->flags, SES_FLAG_VERBOSE) || gtd->level->verbose || gtd->level->quiet == 0)
+		if (!HAS_BIT(ses->flags, SES_FLAG_SCROLLSPLIT))
 		{
-			do_screen(ses, "FILL DEFAULT");
+			if (HAS_BIT(ses->flags, SES_FLAG_VERBOSE) || gtd->level->verbose || gtd->level->quiet == 0)
+			{
+				execute(ses, "#SCREEN FILL DEFAULT");
+			}
 		}
+
 	}
+
 	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN SPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));
 
 	pop_call();
@@ -272,13 +278,11 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		return;
 	}
 
-	if (row > ses->split->top_row && row <= ses->split->bot_row)
+	if (inside_scroll_region(ses, row, col))
 	{
-		if (col >= ses->split->top_col && col <= ses->split->bot_col)
-		{
-			show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%d}.", prompt, original_row);
-			return;
-		}
+		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%d}.", prompt, original_row);
+
+		return;
 	}
 
 	if (ses != gtd->ses)
@@ -286,13 +290,15 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		return;
 	}
 
-	len = strip_vt102_strlen(ses, prompt);
+	len = strip_color_strlen(ses, prompt);
 
-	if (len == 0)
+/*	if (len == 0)
 	{
 		sprintf(buf1, "%.*s", gtd->screen->cols + 4, "\e[0m--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 	}
-	else if (col - 1 + len <= gtd->screen->cols)
+	else */
+
+	if (col - 1 + len <= gtd->screen->cols)
 	{
 		sprintf(buf1, "%s", prompt);
 	}
@@ -300,7 +306,9 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 	{
 		show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", prompt);
 
-		sprintf(buf1, "#PROMPT SIZE (%d) LONGER THAN ROW SIZE (%d)", len, gtd->screen->cols);
+		show_debug(ses, LIST_PROMPT, "#PROMPT SIZE %d WITH OFFSET %d LONGER THAN ROW SIZE %d.", len, col, gtd->screen->cols);
+
+		sprintf(buf1, "#PROMPT SIZE %d WITH OFFSET %d LONGER THAN ROW SIZE %d.", len, col, gtd->screen->cols);
 	}
 
 	save_pos(ses);
@@ -325,7 +333,7 @@ void split_show(struct session *ses, char *prompt, int row, int col)
 		print_stdout("%s%s", clear ? "\e[2K" : "", buf1);
 	}
 
-//	set_line_screen(buf1, row - 1, col - 1);
+	set_line_screen(ses, buf1, row - 1, col - 1);
 
 	restore_pos(ses);
 }

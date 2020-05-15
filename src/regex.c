@@ -59,14 +59,12 @@ int find(struct session *ses, char *str, char *exp, int sub, int flag)
 
 DO_COMMAND(do_regexp)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], is_t[BUFFER_SIZE], is_f[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = get_arg_in_braces(ses, arg, is_t, GET_ALL);
-	arg = get_arg_in_braces(ses, arg, is_f, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg4, GET_ALL);
 
-	if (*is_t == 0)
+	if (*arg3 == 0)
 	{
 		show_error(ses, LIST_COMMAND, "SYNTAX: #REGEXP {string} {expression} {true} {false}.");
 	}
@@ -74,13 +72,13 @@ DO_COMMAND(do_regexp)
 	{
 		if (tintin_regexp(ses, NULL, arg1, arg2, 0, REGEX_FLAG_CMD))
 		{
-			substitute(ses, is_t, is_t, SUB_CMD);
+			substitute(ses, arg3, arg3, SUB_CMD);
 
-			ses = script_driver(ses, LIST_COMMAND, is_t);
+			ses = script_driver(ses, LIST_COMMAND, arg3);
 		}
-		else if (*is_f)
+		else if (*arg4)
 		{
-			ses = script_driver(ses, LIST_COMMAND, is_f);
+			ses = script_driver(ses, LIST_COMMAND, arg4);
 		}
 	}
 	return ses;
@@ -1164,6 +1162,11 @@ void tintin_macro_compile(char *input, char *output)
 						pti    += 2;
 						break;
 
+					case 'n':
+						*pto++ = ASCII_LF;
+						*pti += 2;
+						break;
+
 					case 'r':
 						*pto++ = ASCII_CR;
 						pti   += 2;
@@ -1185,6 +1188,36 @@ void tintin_macro_compile(char *input, char *output)
 							*pto++ = *pti++;
 						}
 						break;
+
+					case 'u':
+						if (pti[2] && pti[3] && pti[4] && pti[5])
+						{
+							pto += unicode_16_bit(&pti[2], pto);
+							pti += 6;
+						}
+						else
+						{
+							*pto++ = *pti++;
+						}
+						break;
+
+					case 'U':
+						if (pti[2] && pti[3] && pti[4] && pti[5] && pti[6] && pti[7])
+						{
+							pto += unicode_21_bit(&pti[2], pto);
+							pti += 8;
+						}
+						else
+						{
+							*pto++ = *pti++;
+						}
+						break;
+
+					case 'v':
+						*pto++ = ASCII_VTAB;
+						pti   += 2;
+						break;
+
 					default:
 						*pto++ = *pti++;
 						break;

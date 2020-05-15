@@ -30,31 +30,33 @@
 
 DO_COMMAND(do_showme)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], temp[STRING_SIZE], *output;
+	char *out, *tmp;
 	int lnf;
+
+	push_call("do_showme(%p,%p)",ses,arg);
+
+	out = str_alloc_stack();
+	tmp = str_alloc_stack();
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	lnf = !str_suffix(arg1, "\\");
 
-	substitute(ses, arg1, temp, SUB_VAR|SUB_FUN);
-	substitute(ses, temp, arg1, SUB_COL|SUB_ESC);
+	substitute(ses, arg1, tmp, SUB_VAR|SUB_FUN);
+	substitute(ses, tmp, arg1, SUB_COL|SUB_ESC);
 
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 
 	do_one_line(arg1, ses);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_GAG))
+	if (ses->gagline > 0)
 	{
-		DEL_BIT(ses->flags, SES_FLAG_GAG);
+		ses->gagline--;
 
-//		gtd->level->ignore++;
+		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, arg1);
 
-		show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", arg1);
-
-//		gtd->level->ignore--;
-
+		pop_call();
 		return ses;
 	}
 
@@ -62,19 +64,20 @@ DO_COMMAND(do_showme)
 	{
 		split_show(ses, arg1, (int) get_number(ses, arg2), (int) get_number(ses, arg3));
 
+		pop_call();
 		return ses;
 	}
 
 	if (strip_vt102_strlen(ses, ses->more_output) != 0)
 	{
-		output = str_dup_printf("\n%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
+		str_cpy_printf(&out, "\n%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
 	}
 	else
 	{
-		output = str_dup_printf("%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
+		str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
 	}
 
-	add_line_buffer(ses, output, lnf);
+	add_line_buffer(ses, out, lnf);
 
 	if (ses == gtd->ses)
 	{
@@ -85,7 +88,7 @@ DO_COMMAND(do_showme)
 			goto_pos(ses, ses->split->bot_row, ses->split->top_col);
 		}
 
-		print_line(ses, &output, lnf);
+		print_line(ses, &out, lnf);
 
 		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 		{
@@ -93,8 +96,7 @@ DO_COMMAND(do_showme)
 		}
 	}
 
-	str_free(output);
-
+	pop_call();
 	return ses;
 }
 
@@ -435,13 +437,13 @@ void tintin_puts(struct session *ses, char *string)
 
 	do_one_line(string, ses);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_GAG))
+	if (ses->gagline)
 	{
-		DEL_BIT(ses->flags, SES_FLAG_GAG);
+		ses->gagline--;
 
 		gtd->level->ignore++;
 
-		show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", string);
+		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, string);
 
 		gtd->level->ignore--;
 	}
@@ -479,27 +481,13 @@ void tintin_puts2(struct session *ses, char *string)
 
 void tintin_puts3(struct session *ses, char *string)
 {
-	char *output, temp[STRING_SIZE];
+	char *output;
 
 	push_call("tintin_puts3(%p,%p)",ses,string);
 
 	if (ses == NULL)
 	{
 		ses = gtd->ses;
-	}
-
-	if (ses->line_capturefile)
-	{
-		sprintf(temp, "{%d}{%s}", ses->line_captureindex++, string);
-
-		if (ses->line_captureindex == 1)
-		{
-			set_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
-		}
-		else
-		{
-			add_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
-		}
 	}
 
 	if (gtd->level->quiet && gtd->level->verbose == 0)

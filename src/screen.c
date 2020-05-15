@@ -32,7 +32,6 @@ void screen_csit(struct session *ses, char *arg1, char *arg2, char *tc);
 
 DO_COMMAND(do_screen)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int cnt;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -202,30 +201,41 @@ DO_SCREEN(screen_clear)
 	}
 }
 
+DO_SCREEN(screen_dump)
+{
+	int cnt;
+
+	for (cnt = 0 ; cnt < gtd->screen->max_row ; cnt++)
+	{
+		save_pos(ses);
+
+		goto_pos(ses, cnt + 1, 1);
+
+		printf("[%02d] %s", cnt + 1, gtd->screen->grid[cnt]->str);
+
+		restore_pos(ses);
+	}
+}
+
 DO_SCREEN(screen_fill)
 {
-	char buf[BUFFER_SIZE];
-
 	if (is_abbrev(arg1, "DEFAULT"))
 	{
 		if (ses->split->sav_top_col || ses->split->sav_bot_col)
 		{
-			sprintf(buf, "CLEAR SPLIT");
-
-			do_screen(ses, buf);
+			execute(ses, "#SCREEN CLEAR SPLIT");
 		}
 
 		if (ses->split->sav_top_row > 0)
 		{
 			if (ses->split->sav_top_row == 1)
 			{
-				sprintf(buf, "%s LINE %d %d %d %d", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+				execute(ses, "#DRAW %s LINE %d %d %d %d", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
 			}
 			else
 			{
-				sprintf(buf, "%s BOX %d %d %d %d {}", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
+				execute(ses, "#DRAW %s BOX %d %d %d %d {}", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
 			}
-			do_draw(ses, buf);
 		}
 
 		// bottom split
@@ -236,13 +246,12 @@ DO_SCREEN(screen_fill)
 			{
 				if (ses->split->sav_bot_row - inputline_max_row() == 0)
 				{
-					sprintf(buf, "%s LINE %d %d %d %d", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
+					execute(ses, "#DRAW %s LINE %d %d %d %d", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - 1, gtd->screen->cols);
 				}
 				else
 				{
-					sprintf(buf, "%s BOX %d %d %d %d {}", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - inputline_max_row(), gtd->screen->cols);
+					execute(ses, "#DRAW %s BOX %d %d %d %d {}", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - inputline_max_row(), gtd->screen->cols);
 				}
-				do_draw(ses, buf);
 			}
 		}
 
@@ -250,28 +259,24 @@ DO_SCREEN(screen_fill)
 		{
 			if (ses->split->sav_top_col)
 			{
-				sprintf(buf, "%s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
-				do_draw(ses, buf);
+				execute(ses, "#DRAW %s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
 			}
 
 			if (ses->split->sav_bot_col)
 			{
-				sprintf(buf, "%s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
-				do_draw(ses, buf);
+				execute(ses, "#DRAW %s TEED VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row - 1, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
 			}
 		}
 		else
 		{
 			if (ses->split->sav_top_col)
 			{
-				sprintf(buf, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
-				do_draw(ses, buf);
+				execute(ses, "#DRAW %s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
 			}
 
 			if (ses->split->sav_bot_col)
 			{
-				sprintf(buf, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
-				do_draw(ses, buf);
+				execute(ses, "#DRAW %s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
 			}
 		}
 	}
@@ -611,7 +616,7 @@ DO_SCREEN(screen_scrollregion)
 
 	if ((top_row|top_col|bot_row|bot_col) == 0)
 	{
-		do_unsplit(ses, "");
+		execute(ses, "#UNSPLIT");
 
 		return;
 	}
@@ -939,15 +944,15 @@ void csit_handler(int ind, int var1, int var2)
 	switch (ind)
 	{
 		case 1:
-			gtd->screen->minimized = 1;
-			check_all_events(NULL, SUB_ARG, 0, 1, "SCREEN MINIMIZED", "1");
-			msdp_update_all("SCREEN_MINIMIZED", "1");
-			break;
-
-		case 2:
 			gtd->screen->minimized = 0;
 			check_all_events(NULL, SUB_ARG, 0, 1, "SCREEN MINIMIZED", "0");
 			msdp_update_all("SCREEN_MINIMIZED", "0");
+			break;
+
+		case 2:
+			gtd->screen->minimized = 1;
+			check_all_events(NULL, SUB_ARG, 0, 1, "SCREEN MINIMIZED", "1");
+			msdp_update_all("SCREEN_MINIMIZED", "1");
 			break;
 
 		case 3:
@@ -1030,7 +1035,7 @@ void rqlp_handler(int event, int button, int height, int width)
 
 	check_all_events(gtd->ses, SUB_ARG, 0, 9, "SCREEN MOUSE LOCATION", ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), ntos(char_height), ntos(char_width), ntos(rev_char_height), ntos(rev_char_width), grid[grid_val]);
 
-	map_mouse_handler(gtd->ses, NULL, NULL, col, row, char_height, char_width);
+	map_mouse_handler(gtd->ses, NULL, NULL, row, col, -1 - (gtd->screen->rows - row), -1 - (gtd->screen->cols - col), char_height, char_width);
 
 	gtd->level->debug -= debug;
 	gtd->level->info  -= info;
@@ -1057,8 +1062,6 @@ void screen_csi(char *cmd, char *num1, char *num2, char *num3, char *tc)
 		*num2 ? XT_S : XT_V, *num2 && *num2 != ' ' ? num2 : "",
 		num3,
 		tc);
-
-	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
@@ -1088,9 +1091,6 @@ void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
 //	convert_meta(buf, debug, FALSE);
 
 //	tintin_printf2(gtd->ses, "\e[1;32m[%s] num1 (%s) num2 (%s) %s %s", num1, num2, debug, buf);
-
-
-	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 
@@ -1385,6 +1385,10 @@ DO_SCREEN(screen_info)
 	tintin_printf2(ses, "gtd->screen->desk_height: %4d", gtd->screen->desk_height);
 	tintin_printf2(ses, "gtd->screen->desk_width:  %4d", gtd->screen->desk_width);
 
+	tintin_printf2(ses, "");
+
+	tintin_printf2(ses, "gtd->screen->minimized:   %4d", gtd->screen->minimized);
+
 	if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 	{
 		tintin_printf2(ses, "SPLIT mode detected.");
@@ -1429,18 +1433,20 @@ int inside_scroll_region(struct session *ses, int row, int col)
 void add_row_screen(int index)
 {
 	gtd->screen->lines[index] = (struct row_data *) calloc(1, sizeof(struct row_data));
-	gtd->screen->lines[index]->str = strdup("");
+	gtd->screen->lines[index]->str = str_dup("");
 }
 
 void del_row_screen(int index)
 {
-	free(gtd->screen->lines[index]->str);
+	str_free(gtd->screen->lines[index]->str);
 	free(gtd->screen->lines[index]);
 }
 
 void init_screen(int rows, int cols, int height, int width)
 {
 	int cnt;
+
+	push_call("init_screen(%d,%d)",rows,cols);
 
 	gtd->screen->rows        = UMAX(1, rows);
 	gtd->screen->cols        = UMAX(1, cols);
@@ -1460,15 +1466,18 @@ void init_screen(int rows, int cols, int height, int width)
 	gtd->screen->sav_row[0] = gtd->screen->cur_row = rows;
 	gtd->screen->sav_col[0] = gtd->screen->cur_col = 1;
 
-	push_call("init_screen(%d,%d)",rows,cols);
-
 	if (gtd->screen->max_row < rows)
 	{
 		gtd->screen->lines = (struct row_data **) realloc(gtd->screen->lines, rows * sizeof(struct row_data *));
+		gtd->screen->grid  = (struct row_data **) realloc(gtd->screen->grid,  rows * sizeof(struct row_data *));
 
 		for (cnt = gtd->screen->max_row ; cnt < rows ; cnt++)
 		{
-			add_row_screen(cnt);
+			gtd->screen->lines[cnt]      = (struct row_data *) calloc(1, sizeof(struct row_data));
+			gtd->screen->lines[cnt]->str = str_dup("");
+
+			gtd->screen->grid[cnt]       = (struct row_data *) calloc(1, sizeof(struct row_data));
+			gtd->screen->grid[cnt]->str  = str_dup("");
 		}
 		gtd->screen->max_row = rows;
 	}
@@ -1527,6 +1536,7 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 	int skip, width, len, start, opt;
 
 	ptl     = NULL;
+	start   = 0;
 	len     = 0;
 	opt     = 0;
 	*result = 0;
@@ -1539,9 +1549,10 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 	}
 	else
 	{
-//		tintin_printf2(ses, "debug: scroll region only for now.");
-
-		return 0;
+		col -= 1;
+		pts = gtd->screen->grid[row - 1]->str;
+		ptw = pts;
+//		tintin_printf2(ses, "split: (%s)", pts);
 	}
 
 	while (*pts)
@@ -1563,7 +1574,7 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 
 				opt = 0;
 
-				while (isdigit(*pts))
+				while (isdigit((int) *pts))
 				{
 					opt = opt * 10 + (*pts++ - '0');
 				}
@@ -1748,7 +1759,7 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 								strcpy(result, var);
 							}
 							pts++;
-//							tintin_printf2(gtd->ses, "link debug: %s", result);
+//							tintin_printf2(gtd->ses, "link osc: %s opt: %d", result, opt);
 							goto start;
 							break;
 
@@ -1801,16 +1812,15 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 			}
 			else if (pts[1] == '[' && pts[2] == '2' && pts[3] == '4' && pts[4] == 'm')
 			{
+//				tintin_printf2(gtd->ses, "\e[1;32mfound link: (%d,%d,%d) [%s]", start,col, len, result);
+
 				if (ptl && col >= start && col < len)
 				{
 					if (*result == 0)
 					{
 						sprintf(result, "%.*s", (int) (pts - ptl), ptl);
 					}
-
-//					tintin_printf2(gtd->ses, "\e[1;32mfound link: (%d,%d) [%s]", col, len, result);
-
-					return opt ? opt : TRUE;
+					return opt ? opt : 1;
 				}
 				else
 				{
@@ -1839,19 +1849,13 @@ int get_link_screen(struct session *ses, char *result, int flags, int row, int c
 	return FALSE;
 }
 
-void set_line_screen(char *str, int row, int col)
+void set_line_screen(struct session *ses, char *ins, int row, int col)
 {
-	char buf[BUFFER_SIZE];
+	push_call("set_line_screen(%p,%d,%d)",ins,row,col);
 
-	push_call("set_line_screen(%p,%d)",str,row,col);
+//	tintin_printf2(ses, "set_line_screen(%s,%d,%d,%d)",ins,row,col,strip_vt102_strlen(ses, ins));
 
-	strcpy(buf, gtd->screen->lines[row]->str);
-
-	free(gtd->screen->lines[row]->str);
-
-	strcpy(&buf[col], str);
-
-	gtd->screen->lines[row]->str = strdup(buf);
+	str_ins_str(ses, &gtd->screen->grid[row]->str, ins, col, col + strip_vt102_strlen(ses, ins));
 
 	pop_call();
 	return;
@@ -1889,7 +1893,7 @@ void print_screen()
 
 void add_line_screen(char *str)
 {
-	char *ptr;
+	char *ptr, *tmp;
 	int cnt;
 
 	push_call("add_line_screen(%p)",str);
@@ -1911,7 +1915,7 @@ void add_line_screen(char *str)
 			tintin_printf2(gtd->ses, "add_line_screen debug: cnt = %d", cnt);
 		}
 
-		free(gtd->screen->lines[cnt]->str);
+		tmp = gtd->screen->lines[cnt]->str;
 
 		while (cnt < gtd->ses->split->bot_row - 2)
 		{
@@ -1920,17 +1924,19 @@ void add_line_screen(char *str)
 			cnt++;
 		}
 
+		gtd->screen->lines[cnt]->str = tmp;
+
 		ptr = strchr(str, '\n');
 
 		if (ptr)
 		{
-			gtd->screen->lines[cnt]->str = strndup(str, ptr - str);
+			str_ncpy(&gtd->screen->lines[cnt]->str, str, ptr - str);
 
 			str = ptr + 1;
 		}
 		else
 		{
-			gtd->screen->lines[cnt]->str = strdup(str);
+			str_cpy(&gtd->screen->lines[cnt]->str, str);
 
 			str = NULL;
 		}

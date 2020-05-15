@@ -20,7 +20,7 @@
 
 DEFINES = -D_GNU_SOURCE @DEFS@
 
-CC = @CC@ -g
+CC = @CC@ -g -Wall
 MAKE = @MAKE@
 
 prefix = @prefix@
@@ -64,7 +64,7 @@ system.o mapper.o tables.o buffer.o event.o tokenize.o chat.o utf8.o \
 advertise.o list.o forkpty.o utils.o line.o data.o variable.o msdp.o \
 port.o scan.o telopt_client.o screen.o cursor.o nest.o show.o mccp.o \
 telopt_server.o draw.o log.o path.o session.o class.o config.o ssl.o \
-regex.o substitute.o daemon.o dict.o sort.o base.o
+regex.o substitute.o daemon.o dict.o sort.o base.o string.o
 
 default: all
 

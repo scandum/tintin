@@ -113,6 +113,46 @@ int is_suffix(char *str1, char *str2)
 	return FALSE;
 }
 
+int is_vowel(char *str)
+{
+	switch (case_table[(int) *str])
+	{
+		case 'a':
+		case 'e':
+		case 'i':
+		case 'o':
+		case 'u':
+			return TRUE;
+	}
+	return FALSE;
+}
+
+struct session *execute(struct session *ses, char *format, ...)
+{
+	char *buffer;
+	va_list args;
+
+	va_start(args, format);
+	vasprintf(&buffer, format, args);
+	va_end(args);
+
+	if (*buffer)
+	{
+		if (*buffer != gtd->tintin_char)
+		{
+			*buffer = gtd->tintin_char;
+		}
+		get_arg_all(ses, buffer, buffer, FALSE);
+	}
+
+	ses = script_driver(ses, LIST_COMMAND, buffer);
+
+	free(buffer);
+
+	return ses;
+}
+
+
 struct session *parse_input(struct session *ses, char *input)
 {
 	char *line;
@@ -131,11 +171,15 @@ struct session *parse_input(struct session *ses, char *input)
 	{
 		line = (char *) malloc(BUFFER_SIZE);
 
-		strcpy(line, input);
+		sub_arg_all(ses, input, line, 1, SUB_SEC);
 
 		if (check_all_aliases(ses, line))
 		{
 			ses = script_driver(ses, LIST_ALIAS, line);
+		}
+		else if (HAS_BIT(ses->flags, SES_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
+		{
+			process_speedwalk(ses, line);
 		}
 		else
 		{
@@ -162,7 +206,7 @@ struct session *parse_input(struct session *ses, char *input)
 	{
 		input = space_out(input);
 
-		input = get_arg_all(ses, input, line, GET_ONE);
+		input = get_arg_all(ses, input, line, 0);
 
 		if (parse_command(ses, line))
 		{
@@ -232,16 +276,16 @@ char *substitute_speedwalk(struct session *ses, char *input, char *output)
 
 	while (*pti && pto - output < INPUT_SIZE)
 	{
-		while (isspace(*pti))
+		while (isspace((int) *pti))
 		{
 			pti++;
 		}
 
-		if (isdigit(*pti))
+		if (isdigit((int) *pti))
 		{
 			ptn = num;
 
-			while (isdigit(*pti))
+			while (isdigit((int) *pti))
 			{
 				if (ptn - num < 4)
 				{
@@ -286,7 +330,7 @@ char *substitute_speedwalk(struct session *ses, char *input, char *output)
 
 	return output;
 }
-	
+
 int is_speedwalk(struct session *ses, char *input)
 {
 	int digit = 0, flag = FALSE;
@@ -450,7 +494,6 @@ int cnt_arg_all(struct session *ses, char *string, int flag)
 	get all arguments - only check for unescaped command separators
 */
 
-
 char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 {
 	char *pto, *pti;
@@ -522,6 +565,18 @@ char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 	return pti;
 }
 
+char *sub_arg_all(struct session *ses, char *string, char *result, int verbatim, int sub)
+{
+	char *buffer = str_alloc(UMAX(strlen(string), BUFFER_SIZE));
+
+	string = get_arg_all(ses, string, buffer, verbatim);
+
+	substitute(ses, buffer, result, sub);
+
+	str_free(buffer);
+
+	return string;
+}
 
 /*
 	Braces are stripped in braced arguments leaving all else as is.
@@ -601,7 +656,7 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 
 char *sub_arg_in_braces(struct session *ses, char *string, char *result, int flag, int sub)
 {
-	char *buffer = str_alloc(UMAX(strlen(string), BUFFER_SIZE));
+	char *buffer = str_alloc(strlen(string) + BUFFER_SIZE);
 
 	string = get_arg_in_braces(ses, string, buffer, flag);
 
@@ -765,7 +820,6 @@ char *get_arg_stop_digits(struct session *ses, char *string, char *result, int f
 		}
 		else if (isdigit((int) *pti) && nest == 0)
 		{
-			pti++;
 			break;
 		}
 		else if (*pti == DEFAULT_OPEN)
@@ -1010,7 +1064,7 @@ void write_mud(struct session *ses, char *command, int flags)
 
 	size = substitute(ses, command, output, flags);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
+	if (gtd->level->ignore == 0 && HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
 		if (ses->map == NULL || ses->map->nofollow == 0)
 		{
@@ -1018,7 +1072,7 @@ void write_mud(struct session *ses, char *command, int flags)
 		}
 	}
 
-	if (ses->map && ses->map->in_room && ses->map->nofollow == 0)
+	if (gtd->level->ignore == 0 && ses->map && ses->map->in_room && ses->map->nofollow == 0)
 	{
 		if (follow_map(ses, command))
 		{
@@ -1036,15 +1090,17 @@ void write_mud(struct session *ses, char *command, int flags)
 
 void do_one_line(char *line, struct session *ses)
 {
-	char strip[BUFFER_SIZE];
+	char *strip;
 
-	push_call("[%s] do_one_line(%s)",ses->name,line);
+	push_call("do_one_line(%s,%p)",ses->name,line);
 
 	if (gtd->level->ignore)
 	{
 		pop_call();
 		return;
 	}
+
+	strip = str_alloc_stack();
 
 	strip_vt102_codes(line, strip);
 
@@ -1079,6 +1135,7 @@ void do_one_line(char *line, struct session *ses)
 
 		DEL_BIT(ses->logmode, LOG_FLAG_NEXT);
 	}
+
 	pop_call();
 	return;
 }

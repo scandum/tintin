@@ -154,7 +154,7 @@ void process_input(void)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))
 	{
-		write_mud(gtd->ses, gtd->ses->input->buf, SUB_EOL);
+		parse_input(gtd->ses, gtd->ses->input->buf);
 	}
 	else
 	{
@@ -193,10 +193,7 @@ void read_line(char *input, int len)
 		strcat(gtd->macro_buf, input);
 	}
 
-	if (check_key(input, len))
-	{
-		return;
-	}
+	get_utf8_index(input, &index);
 
 	if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(gtd->macro_buf))
 	{
@@ -206,21 +203,23 @@ void read_line(char *input, int len)
 		}
 	}
 
+	check_all_events(gtd->ses, SUB_ARG|SUB_SIL, 0, 2, "RECEIVED KEYPRESS", input, ntos(index));
+
+	if (check_all_events(gtd->ses, SUB_ARG|SUB_SIL, 0, 2, "CATCH RECEIVED KEYPRESS", input, ntos(index)) == 1)
+	{
+		return;
+	}
+
+	if (check_key(input, len))
+	{
+		return;
+	}
+
 	if (gtd->macro_buf[0] == ASCII_ESC)
 	{
 		strcpy(input, gtd->macro_buf);
 
 		convert_meta(input, gtd->macro_buf, FALSE);
-	}
-
-	get_utf8_index(gtd->macro_buf, &index);
-
-	check_all_events(gtd->ses, SUB_ARG, 0, 2, "RECEIVED KEYPRESS", gtd->macro_buf, ntos(index));
-
-	if (check_all_events(gtd->ses, SUB_ARG, 0, 2, "CATCH RECEIVED KEYPRESS", gtd->macro_buf, ntos(index)) == 1)
-	{
-		gtd->macro_buf[0] = 0;
-		return;
 	}
 
 	while (gtd->macro_buf[0])
@@ -390,7 +389,7 @@ int check_key(char *input, int len)
 	char buf[BUFFER_SIZE];
 	struct listroot *root;
 	struct listnode *node;
-	int cnt, val[5];
+	int cnt, val[5], partial;
 
 	push_call("check_key(%p,%d)",input,len);
 
@@ -398,10 +397,12 @@ int check_key(char *input, int len)
 
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_CONVERTMETA))
 	{
-		root  = gtd->ses->list[LIST_MACRO];
+		root = gtd->ses->list[LIST_MACRO];
 
 		if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 		{
+			partial = 0;
+
 			for (root->update = 0 ; root->update < root->used ; root->update++)
 			{
 				node = root->list[root->update];
@@ -410,27 +411,40 @@ int check_key(char *input, int len)
 				{
 					continue;
 				}
-				else if (!strcmp(gtd->macro_buf, node->arg3))
+				else if (!strcmp(gtd->macro_buf, node->arg4))
 				{
 					strcpy(buf, node->arg2);
 
-					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					if (node->shots && --node->shots == 0)
 					{
 						delete_node_list(gtd->ses, LIST_MACRO, node);
 					}
 
 					script_driver(gtd->ses, LIST_MACRO, buf);
 
-					gtd->macro_buf[0] = 0;
+					if (HAS_BIT(gtd->flags, TINTIN_FLAG_PRESERVEMACRO))
+					{
+						DEL_BIT(gtd->flags, TINTIN_FLAG_PRESERVEMACRO);
+					}
+					else
+					{
+						gtd->macro_buf[0] = 0;
+					}
+
 					pop_call();
 					return TRUE;
 				}
-				else if (!strncmp(gtd->macro_buf, node->arg3, strlen(gtd->macro_buf)))
+				else if (!strncmp(gtd->macro_buf, node->arg4, strlen(gtd->macro_buf)))
 				{
-					pop_call();
-					return TRUE;
+					partial = TRUE;
 				}
 			}
+		}
+
+		if (partial)
+		{
+			pop_call();
+			return TRUE;
 		}
 
 		if (!HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) || HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO) || gtd->ses->input->buf[0] == gtd->tintin_char)
@@ -466,7 +480,7 @@ int check_key(char *input, int len)
 
 					for (len = 3 ; gtd->macro_buf[len] ; len++)
 					{
-						if (isdigit(gtd->macro_buf[len]))
+						if (isdigit((int) gtd->macro_buf[len]))
 						{
 							cat_sprintf(input, "%c", gtd->macro_buf[len]);
 						}
@@ -514,7 +528,7 @@ int check_key(char *input, int len)
 							return FALSE;
 						}
 
-						if (isdigit(gtd->macro_buf[len]))
+						if (isdigit((int) gtd->macro_buf[len]))
 						{
 							cat_sprintf(input, "%c", gtd->macro_buf[len]);
 						}
@@ -794,7 +808,7 @@ void echo_command(struct session *ses, char *line)
 		sprintf(buffer, "\e[0m");
 	}
 
-	if (ses->wrap == gtd->screen->cols)
+//	if (ses->wrap == gtd->screen->cols)
 	{
 		gtd->level->scroll++;
 

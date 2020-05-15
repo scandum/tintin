@@ -31,28 +31,26 @@
 
 DO_COMMAND(do_read)
 {
-	char filename[BUFFER_SIZE];
 	FILE *fp;
 
-	sub_arg_in_braces(ses, arg, filename, GET_ONE, SUB_VAR|SUB_FUN);
+	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if ((fp = fopen(filename, "r")) == NULL)
+	if ((fp = fopen(arg1, "r")) == NULL)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "FILE NOT FOUND.");
+		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", arg1, "FILE NOT FOUND.");
 
-		tintin_printf(ses, "#READ {%s} - FILE NOT FOUND.", filename);
+		tintin_printf(ses, "#READ {%s} - FILE NOT FOUND.", arg1);
 
 		return ses;
 	}
 
-	return read_file(ses, fp, filename);
+	return read_file(ses, fp, arg1);
 }
 
 struct session *read_file(struct session *ses, FILE *fp, char *filename)
 {
-	struct stat filedata;
 	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
-	int lvl, cnt, com, lnc, fix, ok, verbose;
+	int lvl, cnt, com, lnc, fix, ok, verbose, size;
 	int counter[LIST_MAX];
 
 	temp[0] = getc(fp);
@@ -78,13 +76,17 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		}
 	}
 
-	stat(filename, &filedata);
+	fseek(fp, 0, SEEK_END);
 
-	if ((bufi = (char *) calloc(1, filedata.st_size + 2)) == NULL || (bufo = (char *) calloc(1, filedata.st_size + 2)) == NULL)
+	size = ftell(fp);
+
+	fseek(fp, 0, SEEK_SET);
+
+	if ((bufi = (char *) calloc(1, size + 2)) == NULL || (bufo = (char *) calloc(1, size + 2)) == NULL)
 	{
 		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE MEMORY.", filename);
+		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
 		fclose(fp);
 
@@ -92,7 +94,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	}
 
 
-	fread(bufi, 1, filedata.st_size, fp);
+	fread(bufi, 1, size, fp);
 
 	pti = bufi;
 	pto = bufo;
@@ -197,6 +199,14 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 						}
 
+						if (last == 0)
+						{
+							if (*pti != DEFAULT_OPEN && *pti != DEFAULT_CLOSE)
+							{
+								show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s} MISSING SEMICOLON ON LINE %d.", filename, lnc - 1);
+							}
+						}
+
 						if (*pti != DEFAULT_CLOSE && last == 0)
 						{
 							*pto++ = ' ';
@@ -278,7 +288,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	*pto   = '\0';
 
 
-
 	if (lvl)
 	{
 		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
@@ -307,9 +316,9 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		return ses;
 	}
 
-	sprintf(temp, "{TINTIN CHAR} {%c}", bufo[0]);
+	sprintf(temp, "#CONFIG {TINTIN CHAR} {%c}", bufo[0]);
 
-	if (bufo[0] != '#')
+	if (bufo[0] != gtd->tintin_char)
 	{
 		gtd->level->verbose++;
 		gtd->level->debug++;
@@ -318,6 +327,12 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		gtd->level->debug--;
 		gtd->level->verbose--;
+
+		gtd->level->quiet++;
+
+		script_driver(ses, LIST_COMMAND, temp);
+
+		gtd->level->quiet--;
 	}
 
 	verbose = HAS_BIT(ses->flags, SES_FLAG_VERBOSE) ? 1 : 0;
@@ -325,12 +340,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	gtd->level->input++;
 
 	gtd->level->verbose += verbose;
-
-	gtd->level->quiet++;
-
-	do_configure(ses, temp);
-
-	gtd->level->quiet--;
 
 	lvl = 0;
 	lnc = 0;
@@ -347,9 +356,9 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		lnc++;
 		*pto = 0;
 
-		if (strlen(bufi) >= BUFFER_SIZE)
+		if (pto - bufi >= BUFFER_SIZE)
 		{
-			tintin_printf(ses, "#ERROR: #READ {%s} - BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
+			show_debug(ses, LIST_COMMAND, "#WARNING: #READ {%s} - POSSIBLE BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
 		}
 
 		if (bufi[0])
@@ -398,37 +407,36 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 DO_COMMAND(do_write)
 {
 	FILE *file;
-	char filename[BUFFER_SIZE], forceful[BUFFER_SIZE];
 	struct listroot *root;
 	struct listnode *node;
 
 	int i, j, fix, cnt = 0;
 
-	arg = get_arg_in_braces(ses, arg, filename, GET_ONE);
-	arg = get_arg_in_braces(ses, arg, forceful, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 
-	if (*filename == 0)
+	if (*arg1 == 0)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "INVALID FILE NAME");
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "INVALID FILE NAME");
 
 		tintin_printf2(ses, "#SYNTAX: #WRITE {<filename>} {[FORCE]}");
 
 		return ses;
 	}
 	
-	if (!str_suffix(filename, ".map") && !is_abbrev(forceful, "FORCE"))
+	if (!str_suffix(arg1, ".map") && !is_abbrev(arg2, "FORCE"))
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "INVALID FILE EXTENSION");
-		tintin_printf2(ses, "#WRITE {%s}: USE {FORCE} TO OVERWRITE .map FILES.", filename);
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "INVALID FILE EXTENSION");
+		tintin_printf2(ses, "#WRITE {%s}: USE {FORCE} TO OVERWRITE .map FILES.", arg1);
 
 		return ses;
 	}
 
-	if ((file = fopen(filename, "w")) == NULL)
+	if ((file = fopen(arg1, "w")) == NULL)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", filename, "FAILED TO OPEN");
+		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "FAILED TO OPEN");
 
-		tintin_printf(ses, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", filename);
+		tintin_printf(ses, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", arg1);
 
 		return ses;
 	}
@@ -448,7 +456,7 @@ DO_COMMAND(do_write)
 		{
 			node = root->list[j];
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots)//HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
 			{
 				continue;
 			}
@@ -470,7 +478,7 @@ DO_COMMAND(do_write)
 
 	fclose(file);
 
-	show_message(ses, LIST_COMMAND, "#WRITE: %d COMMANDS WRITTEN TO {%s}.", cnt, filename);
+	show_message(ses, LIST_COMMAND, "#WRITE: %d COMMANDS WRITTEN TO {%s}.", cnt, arg1);
 
 	return ses;
 }

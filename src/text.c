@@ -83,8 +83,6 @@ void print_line(struct session *ses, char **str, int prompt)
 
 	str_free(out);
 
-	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
-
 	pop_call();
 	return;
 }
@@ -108,12 +106,11 @@ void print_stdout(char *format, ...)
 	}
 	else
 	{
-		SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+		SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 
-		printf("%s", buffer);
-
-//		fwrite(buffer, len, 1, stdout);
-//		write(STDIN_FILENO, buffer, len); slooow
+		fputs(buffer, stdout);
+	
+//		printf("%s", buffer);
 	}
 	free(buffer);
 }

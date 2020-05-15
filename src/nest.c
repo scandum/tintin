@@ -671,7 +671,7 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 	{
 		str_cpy_printf(result, "%s", node->arg1);
 
-		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		if (node->shots && --node->shots == 0)
 		{
 			delete_nest_node(root, variable);
 		}
@@ -691,8 +691,6 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 	return NULL;
 }
 
-// Has ONESHOT check
-
 struct listnode *get_nest_node_val(struct listroot *root, char *variable, char **result, int def)
 {
 	struct listnode *node;
@@ -711,7 +709,7 @@ struct listnode *get_nest_node_val(struct listroot *root, char *variable, char *
 	{
 		show_nest_node(node, result, TRUE);
 
-		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		if (node->shots && --node->shots == 0)
 		{
 			delete_nest_node(root, variable);
 		}
@@ -753,7 +751,7 @@ int get_nest_index(struct listroot *root, char *variable, char **result, int def
 	{
 		str_cpy_printf(result, "%d", index + 1);
 
-		if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+		if (node->shots && --node->shots == 0)
 		{
 			delete_index_list(root, index);
 		}
@@ -884,7 +882,14 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (root == NULL)
 	{
-		root = ses->list[LIST_VARIABLE];
+		if (gtd->level->local)
+		{
+			root = local_list(ses);
+		}
+		else
+		{
+			root = ses->list[LIST_VARIABLE];
+		}
 		node = NULL;
 	}
 	else
@@ -926,9 +931,9 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 		node = update_node_list(root, name, arg2, "", "");
 	}
 
-	if (gtd->level->oneshot)
+	if (gtd->level->shots)
 	{
-		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+		node->shots = gtd->level->mshot;
 	}
 
 	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
@@ -1006,9 +1011,9 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 		node = update_node_list(root, name, arg2, "", "");
 	}
 
-	if (gtd->level->oneshot)
+	if (gtd->level->shots)
 	{
-		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+		node->shots = gtd->level->mshot;
 	}
 
 	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
@@ -1081,9 +1086,9 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 		node = update_node_list(root, name, arg2, "", "");
 	}
 
-	if (gtd->level->oneshot)
+	if (gtd->level->shots)
 	{
-		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+		node->shots = gtd->level->mshot;
 	}
 
 	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
@@ -1160,9 +1165,9 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 		node = update_node_list(root, name, arg2, "", "");
 	}
 
-	if (gtd->level->oneshot)
+	if (gtd->level->shots)
 	{
-		SET_BIT(node->flags, NODE_FLAG_ONESHOT);
+		node->shots = gtd->level->mshot;
 	}
 
 	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
@@ -1187,7 +1192,7 @@ void copy_nest_node(struct listroot *dst_root, struct listnode *dst, struct list
 
 	for (index = 0 ; index < src->root->used ; index++)
 	{
-		dst = insert_node_list(dst_root, src->root->list[index]->arg1, src->root->list[index]->arg2, src->root->list[index]->arg3, src->root->list[index]->arg4);
+		dst = create_node_list(dst_root, src->root->list[index]->arg1, src->root->list[index]->arg2, src->root->list[index]->arg3, src->root->list[index]->arg4);
 
 		if (src->root->list[index]->root)
 		{

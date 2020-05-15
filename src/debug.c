@@ -26,27 +26,33 @@
 
 #include "tintin.h"
 
-#define MAX_STACK_SIZE     100
-#define MAX_DEBUG_SIZE     400
-
-char debug_stack[MAX_STACK_SIZE][MAX_DEBUG_SIZE];
-
-int debug_index = 0;
-
-int push_call(char *f, ...)
+int push_call(char *format, ...)
 {
+	int len;
 	va_list ap;
 
-	if (debug_index < MAX_STACK_SIZE)
+	len = gtd->memory->debug_len;
+
+	if (len == gtd->memory->debug_max)
 	{
-		va_start(ap, f);
+		gtd->memory->debug_max++;
 
-		vsnprintf(debug_stack[debug_index], MAX_DEBUG_SIZE - 1, f, ap);
+		gtd->memory->debug = (struct stack_data **) realloc(gtd->memory->debug, sizeof(struct str_data *) * gtd->memory->debug_max);
 
-		va_end(ap);
+		gtd->memory->debug[len] = calloc(1, sizeof(struct stack_data));
+
+		gtd->memory->debug[len]->name = str_alloc(NAME_SIZE);
 	}
 
-	if (++debug_index == 10000)
+	va_start(ap, format);
+
+	vsnprintf(gtd->memory->debug[len]->name, NAME_SIZE - 1, format, ap);
+
+	va_end(ap);
+
+	gtd->memory->debug[len]->index = gtd->memory->stack_len;
+
+	if (gtd->memory->debug_len++ == 1000)
 	{
 		dump_stack();
 
@@ -58,59 +64,40 @@ int push_call(char *f, ...)
 
 void pop_call(void)
 {
-	if (debug_index > 0)
+	if (gtd->memory->debug_len > 0)
 	{
-		debug_index--;
+		gtd->memory->debug_len--;
+		gtd->memory->stack_len = gtd->memory->debug[gtd->memory->debug_len]->index;
 	}
 	else
 	{
 		tintin_printf2(gtd->ses, "pop_call: index is zero.");
-		dump_full_stack();
+
+		unsigned char i;
+
+		tintin_header(gtd->ses, " DEBUG STACK ");
+
+		for (i = 0 ; i < 100 ; i++)
+		{
+			if (i < gtd->memory->debug_max)
+			{
+				tintin_printf2(gtd->ses, "\e[1;31mDEBUG_STACK[%03d] = %s", i, gtd->memory->debug[i]->name);
+			}
+		}
+		tintin_header(gtd->ses, "");
 	}
 }
 
 void dump_stack(void)
 {
-	unsigned char i;
+	unsigned int i;
 
-	if (gtd && gtd->ses)
+	if (gtd)
 	{
-		for (i = 0 ; i < debug_index && i < MAX_STACK_SIZE ; i++)
+		for (i = 0 ; i < gtd->memory->debug_len ; i++)
 		{
-			tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m", i, debug_stack[i]);
-		}
-	}
-	else
-	{
-		for (i = 0 ; i < debug_index && i < MAX_STACK_SIZE ; i++)
-		{
-			tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m\n", i, debug_stack[i]);
+			tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] [%03d] = \e[1;31m%s\e[0m", i, gtd->memory->debug[i]->index, gtd->memory->debug[i]->name);
 		}
 	}
 }
 
-void dump_stack_fatal(void)
-{
-	unsigned char i;
-
-	for (i = 0 ; i < debug_index && i < MAX_STACK_SIZE ; i++)
-	{
-		print_stdout("\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] = \e[1;31m%s\e[0m\n", i, debug_stack[i]);
-	}
-}
-
-void dump_full_stack(void)
-{
-	unsigned char i;
-
-	tintin_header(gtd->ses, " FULL DEBUG STACK ");
-
-	for (i = 0 ; i < MAX_STACK_SIZE ; i++)
-	{
-		if (*debug_stack[i])
-		{
-			tintin_printf2(gtd->ses, "\e[1;31mDEBUG_STACK[%03d] = %s", i, debug_stack[i]);
-		}
-	}
-	tintin_header(gtd->ses, "");
-}

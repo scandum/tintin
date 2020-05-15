@@ -29,8 +29,6 @@
 
 DO_COMMAND(do_action)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
@@ -80,7 +78,7 @@ void check_all_actions(struct session *ses, char *original, char *line)
 
 			substitute(ses, node->arg2, buf, SUB_ARG|SUB_SEC);
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_ACTION, node);
 			}
@@ -101,8 +99,6 @@ void check_all_actions(struct session *ses, char *original, char *line)
 
 DO_COMMAND(do_alias)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
@@ -144,7 +140,7 @@ int check_all_aliases(struct session *ses, char *input)
 
 	root = ses->list[LIST_ALIAS];
 
-	if (HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+	if (gtd->level->ignore || HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 	{
 		return FALSE;
 	}
@@ -210,7 +206,7 @@ int check_all_aliases(struct session *ses, char *input)
 
 			show_debug(ses, LIST_ALIAS, "#DEBUG ALIAS {%s} {%s}", node->arg1, gtd->vars[0]);
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_ALIAS, node);
 			}
@@ -231,7 +227,6 @@ int check_all_aliases(struct session *ses, char *input)
 DO_COMMAND(do_button)
 {
 	struct listnode *node;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
 	int index;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
@@ -344,7 +339,7 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 
 			substitute(ses, node->arg2, buf, SUB_ARG|SUB_SEC);
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_BUTTON, node);
 			}
@@ -364,7 +359,7 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 
 DO_COMMAND(do_delay)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], time[BUFFER_SIZE];
+	char time[NUMBER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
@@ -395,14 +390,14 @@ DO_COMMAND(do_delay)
 		}
 		else
 		{
+			struct listnode *node;
+
 			get_number_string(ses, arg3, time);
 
-			gtd->level->oneshot++;
+			node = update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, "");
 
-			update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, "");
+			node->shots = 1;
 
-			gtd->level->oneshot--;
-			
 			show_message(ses, LIST_TICKER, "#OK. #TICK {%s} WILL EXECUTE {%s} IN {%s} SECONDS.", arg1, arg2, time);
 		}
 	}
@@ -411,7 +406,9 @@ DO_COMMAND(do_delay)
 
 DO_COMMAND(do_undelay)
 {
-	if (isalpha(*arg))
+	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (isalpha((int) *arg1))
 	{
 		delete_node_with_wild(ses, LIST_TICKER, arg);
 	}
@@ -435,8 +432,6 @@ DO_COMMAND(do_undelay)
 
 DO_COMMAND(do_function)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
@@ -456,7 +451,7 @@ DO_COMMAND(do_function)
 	{
 		update_node_list(ses->list[LIST_FUNCTION], arg1, arg2, "", "");
 
-		show_message(ses, LIST_FUNCTION, "#OK. FUNCTION {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
+		show_message(ses, LIST_FUNCTION, "#OK. FUNCTION {%s} NOW TRIGGERS {%s}.", arg1, arg2);
 	}
 	return ses;
 }
@@ -480,8 +475,6 @@ DO_COMMAND(do_unfunction)
 
 DO_COMMAND(do_gag)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
@@ -518,11 +511,11 @@ void check_all_gags(struct session *ses, char *original, char *line)
 		{
 //			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_GAG, node);
 			}
-			SET_BIT(ses->flags, SES_FLAG_GAG);
+			ses->gagline++;
 
 			return;
 		}
@@ -540,8 +533,6 @@ void check_all_gags(struct session *ses, char *original, char *line)
 
 DO_COMMAND(do_highlight)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], temp[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
@@ -559,7 +550,7 @@ DO_COMMAND(do_highlight)
 	}
 	else
 	{
-		if (get_color_names(ses, arg2, temp) == FALSE)
+		if (!is_color_name(arg2))
 		{
 			tintin_printf2(ses, "#HIGHLIGHT: VALID COLORS ARE:\n");
 			tintin_printf2(ses, "reset, bold, light, faint, dim, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white, azure, ebony, jade, lime, orange, pink, silver, tan, violet.");
@@ -641,7 +632,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 			}
 			while (check_one_regexp(ses, node, ptl, pto, 0));
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_HIGHLIGHT, node);
 			}
@@ -664,10 +655,9 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 DO_COMMAND(do_macro)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+//	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
 	if (*arg1 == 0)
 	{
@@ -682,11 +672,11 @@ DO_COMMAND(do_macro)
 	}
 	else
 	{
-		tintin_macro_compile(arg1, arg3);
+		tintin_macro_compile(arg1, arg4);
 
-		update_node_list(ses->list[LIST_MACRO], arg1, arg2, arg3, "");
+		update_node_list(ses->list[LIST_MACRO], arg1, arg2, "", arg4);
 
-		show_message(ses, LIST_MACRO, "#OK. MACRO {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
+		show_message(ses, LIST_MACRO, "#OK. MACRO {%s} NOW TRIGGERS {%s}.", arg1, arg2);
 	}
 	return ses;
 }
@@ -711,8 +701,6 @@ DO_COMMAND(do_unmacro)
 
 DO_COMMAND(do_prompt)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
@@ -773,18 +761,19 @@ int check_all_prompts(struct session *ses, char *original, char *line, int check
 			{
 				substitute(ses, node->arg2, original, SUB_ARG);
 				substitute(ses, original, original, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+
+				strip_vt102_codes(original, line);
 			}
 
 			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
-//			show_debug(ses, LIST_GAG, "#DEBUG GAG {%s}", node->arg1);
 
 			split_show(ses, original, atoi(node->arg3), atoi(node->arg4));
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
-				delete_node_list(ses, LIST_GAG, node);
+				delete_node_list(ses, LIST_PROMPT, node);
 			}
-			SET_BIT(ses->flags, SES_FLAG_GAG);
+			ses->gagline = 1;
 		}
 	}
 	return 0;
@@ -801,7 +790,7 @@ int check_all_prompts(struct session *ses, char *original, char *line, int check
 
 DO_COMMAND(do_substitute)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], *str;
+	char *str;
 
 	str = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, str, arg2, GET_ALL);
@@ -886,9 +875,9 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 
 				show_debug(ses, LIST_SUBSTITUTE, "#DEBUG SUBSTITUTE {%s} {%s}", node->arg1, match);
 			}
-			while (check_one_regexp(ses, node, ptl, pto, 0));
+			while (*pto && check_one_regexp(ses, node, ptl, pto, 0));
 
-			if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_SUBSTITUTE, node);
 			}
@@ -911,8 +900,6 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 
 DO_COMMAND(do_tab)
 {
-	char arg1[BUFFER_SIZE];
-
 	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
@@ -949,19 +936,19 @@ DO_COMMAND(do_untab)
 
 DO_COMMAND(do_tick)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char time[NUMBER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
-	arg = get_arg_in_braces(ses, arg, arg4, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
-	if (*arg4 == 0)
+	if (*arg3 == 0)
 	{
-		strcpy(arg3, "60");
+		strcpy(time, "60");
 	}
 	else
 	{
-		get_number_string(ses, arg4, arg3);
+		get_number_string(ses, arg3, time);
 	}
 
 	if (*arg1 == 0)
@@ -977,9 +964,9 @@ DO_COMMAND(do_tick)
 	}
 	else
 	{
-		update_node_list(ses->list[LIST_TICKER], arg1, arg2, arg3, "");
+		update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, "");
 
-		show_message(ses, LIST_TICKER, "#OK. #TICK {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, arg3);
+		show_message(ses, LIST_TICKER, "#OK. #TICK {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, time);
 	}
 	return ses;
 }

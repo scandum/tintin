@@ -808,8 +808,8 @@ int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char 
 	msdp_update_varf(ses, buddy, "SCREEN_HEIGHT",   "%d", gtd->screen->height);
 	msdp_update_varf(ses, buddy, "SCREEN_WIDTH",    "%d", gtd->screen->width);
 
-	msdp_update_varf(ses, buddy, "SCREEN_POSITION_HEIGHT", "%d", gtd->screen->pos_height);
-	msdp_update_varf(ses, buddy, "SCREEN_POSITION_WIDTH",  "%d", gtd->screen->pos_width);
+	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_HEIGHT", "%d", gtd->screen->pos_height);
+	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_WIDTH",  "%d", gtd->screen->pos_width);
 
 	msdp_update_varf(ses, buddy, "SCREEN_FOCUS",     "%d", gtd->screen->focus);
 	msdp_update_varf(ses, buddy, "SCREEN_MINIMIZED", "%d", gtd->screen->minimized);

@@ -418,7 +418,7 @@ int find_command(char *command)
 		return -1;
 	}
 
-	if (isalpha((int) *command))
+	if (isalpha((int) *command) && command[1] != 0)
 	{
 		for (cmd = gtd->command_ref[tolower((int) *command) - 'a'] ; *command_table[cmd].name ; cmd++)
 		{
@@ -743,7 +743,24 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 			case TOKEN_TYPE_COMMAND:
 				push_call("do_%s(%p,%p)", command_table[token->cmd].name, root->ses, token->str);
 
-				root->ses = (*command_table[token->cmd].command) (root->ses, token->str);
+				switch (command_table[token->cmd].args)
+				{
+					case 0:
+						root->ses = (*command_table[token->cmd].command) (root->ses, token->str, NULL, NULL, NULL, NULL);
+						break;
+					case 1:
+						root->ses = (*command_table[token->cmd].command) (root->ses, token->str, str_alloc_stack(), NULL, NULL, NULL);
+						break;
+					case 2:
+						root->ses = (*command_table[token->cmd].command) (root->ses, token->str, str_alloc_stack(), str_alloc_stack(), NULL, NULL);
+						break;
+					case 3:
+						root->ses = (*command_table[token->cmd].command) (root->ses, token->str, str_alloc_stack(), str_alloc_stack(), str_alloc_stack(), NULL);
+						break;
+					case 4:
+						root->ses = (*command_table[token->cmd].command) (root->ses, token->str, str_alloc_stack(), str_alloc_stack(), str_alloc_stack(), str_alloc_stack());
+						break;
+				}
 
 				pop_call();
 /*
@@ -1178,6 +1195,8 @@ struct session *script_driver(struct session *ses, int list, char *str)
 	if (--gtd->script_index == 0)
 	{
 		DEL_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
+
+//		gtd->memory_index->len = 0;
 	}
 
 	gtd->level->input -= list != LIST_COMMAND;
@@ -1190,8 +1209,6 @@ struct session *script_driver(struct session *ses, int list, char *str)
 	free_list(root->local);
 	free(root);
 
-
-	
 	if (HAS_BIT(ses->flags, SES_FLAG_CLOSED))
 	{
 		pop_call();

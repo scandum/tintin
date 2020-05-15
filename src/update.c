@@ -76,6 +76,12 @@ void mainloop(void)
 		gtd->total_io_exec  += span_time_val;
 		gtd->total_io_delay += wait_time_val;
 
+		if (gtd->memory->stack_len > 1000)
+		{
+			tintin_printf2(NULL, "debug: memory_stack leak detected.\n");
+			gtd->memory->stack_len = 0;
+		}
+
 		if (--pulse.update_delays == 0)
 		{
 			pulse.update_delays = PULSE_UPDATE_DELAYS;
@@ -256,7 +262,7 @@ void update_input(void)
 
 		process_input();
 
-		SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+		SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 
 		if (gtd->detach_port)
 		{
@@ -373,12 +379,19 @@ void update_sessions(void)
 
 			DEL_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
 		}
+		if (HAS_BIT(ses->flags, SES_FLAG_BUFFERUPDATE))
+		{
+			check_all_events(ses, SUB_ARG|SUB_SIL, 0, 0, "BUFFER UPDATE");
+
+			DEL_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
+		}
 	}
 
-
-	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FLUSH))
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE))
 	{
-		DEL_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
+		check_all_events(gtd->ses, SUB_ARG|SUB_SIL, 0, 0, "DISPLAY UPDATE");
+
+		DEL_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 
 //		if (gtd->detach_port == 0)
 		{
@@ -735,7 +748,8 @@ void tick_update(void)
 
 	utime();
 
-	for (ses = gts->next ; ses ; ses = gtd->update)
+//	for (ses = gts->next ; ses ; ses = gtd->update)
+	for (ses = gts ; ses ; ses = gtd->update)
 	{
 		gtd->update = ses->next;
 
@@ -762,7 +776,7 @@ void tick_update(void)
 				{
 					show_debug(ses, LIST_TICKER, "#DEBUG TICKER {%s}", node->arg2);
 
-					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					if (node->shots && --node->shots == 0)
 					{
 						strcpy(buf, node->arg2);
 
@@ -922,8 +936,6 @@ void terminal_update(void)
 			show_vtmap(ses);
 
 			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "MAP UPDATED VTMAP");
-
-			SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 		}
 	}
 
@@ -982,7 +994,7 @@ void time_update(void)
 		goto time_event_end;
 	}
 
-	strftime(str_min, 9, "%S", &gtd->calendar);
+	strftime(str_sec, 9, "%S", &gtd->calendar);
 	old_calendar.tm_sec = gtd->calendar.tm_sec;
 
 	if (gtd->calendar.tm_min == old_calendar.tm_min)
@@ -1069,10 +1081,10 @@ void time_update(void)
 
 	old_calendar.tm_sec = gtd->calendar.tm_sec;
 
-	check_all_events(NULL, SUB_ARG, 3, 7, "TIME %s:%s:%s", str_hour, str_min, str_sec, str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
+	check_all_events(NULL, SUB_ARG|SUB_SIL, 3, 7, "TIME %s:%s:%s", str_hour, str_min, str_sec, str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
 
-	check_all_events(NULL, SUB_ARG, 0, 7, "SECOND", str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
-	check_all_events(NULL, SUB_ARG, 1, 7, "SECOND %s", str_sec, str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
+	check_all_events(NULL, SUB_ARG|SUB_SIL, 0, 7, "SECOND", str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
+	check_all_events(NULL, SUB_ARG|SUB_SIL, 1, 7, "SECOND %s", str_sec, str_year, str_mon, str_wday, str_mday, str_hour, str_min, str_sec);
 
 	time_event_end:
 

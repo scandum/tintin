@@ -27,14 +27,17 @@
 
 DO_COMMAND(do_history)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int cnt;
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg4, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " HISTORY COMMANDS ");
 
 		for (cnt = 0 ; *history_table[cnt].name != 0 ; cnt++)
@@ -53,12 +56,12 @@ DO_COMMAND(do_history)
 			continue;
 		}
 
-		history_table[cnt].fun(ses, arg2);
+		history_table[cnt].fun(ses, arg2, arg3, arg4);
 
 		return ses;
 	}
 
-	do_history(ses, "");
+	goto info;
 
 	return ses;
 }
@@ -120,7 +123,7 @@ void search_line_history(struct session *ses, char *line)
 
 DO_HISTORY(history_character)
 {
-	gtd->repeat_char = *arg;
+	gtd->repeat_char = *arg1;
 
 	show_message(ses, LIST_HISTORY, "#HISTORY CHARACTER SET TO {%c}.", gtd->repeat_char);
 }
@@ -137,19 +140,77 @@ DO_HISTORY(history_delete)
 
 DO_HISTORY(history_insert)
 {
-	add_line_history(ses, arg);
+	add_line_history(ses, arg1);
+}
+
+DO_HISTORY(history_get)
+{
+	struct listroot *root = ses->list[LIST_HISTORY];
+	int cnt, min, max;
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #HISTORY GET <VARIABLE> [LOWER BOUND] [UPPER BOUND]");
+
+		return;
+	}
+
+	min = get_number(ses, arg2);
+
+	if (min < 0)
+	{
+		min = root->used + min;
+	}
+
+	min = URANGE(0, min, root->used - 1);
+
+	if (*arg3 == 0)
+	{
+		set_nest_node_ses(ses, arg1, "%s", root->list[min]->arg1);
+
+		return;
+	}
+
+	max = get_number(ses, arg3);
+
+	if (max < 0)
+	{
+		max = root->used + max;
+	}
+	max = URANGE(0, max, root->used - 1);
+
+	if (min > max)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY GET {%s} {%d} {%d} LOWER BOUND EXCEEDS UPPER BOUND.", arg1, min, max);
+
+		return;
+	}
+
+	cnt = 0;
+
+	set_nest_node_ses(ses, arg1, "");
+
+	while (min <= max)
+	{
+		sprintf(arg2, "%s[%d]", arg1, ++cnt);
+
+		set_nest_node_ses(ses, arg2, "%s", root->list[min++]->arg1);
+	}
+
+	show_message(ses, LIST_COMMAND, "#HISTORY GET: %d LINES SAVED TO {%s}.", cnt, arg1);
+
+	return;
 }
 
 DO_HISTORY(history_list)
 {
-	struct listroot *root;
-	int i, cnt = 1;
-
-	root = ses->list[LIST_HISTORY];
-
-	for (i = 0 ; i < root->used ; i++)
+	if (*arg1 == 0)
 	{
-		tintin_printf2(ses, "%6d - %s", cnt++, root->list[i]->arg1);
+		show_list(ses->list[LIST_HISTORY], 0);
+	}
+	else
+	{
+		show_node_with_wild(ses, arg1, ses->list[LIST_HISTORY]);
 	}
 	return;
 }
@@ -159,11 +220,11 @@ DO_HISTORY(history_read)
 	FILE *file;
 	char *cptr, buffer[BUFFER_SIZE];
 
-	file = fopen(arg, "r");
+	file = fopen(arg1, "r");
 
 	if (file == NULL)
 	{
-		show_message(ses, LIST_HISTORY, "#HISTORY: COULDN'T OPEN FILE {%s} TO READ.", arg);
+		show_message(ses, LIST_HISTORY, "#HISTORY: COULDN'T OPEN FILE {%s} TO READ.", arg1);
 		return;
 	}
 
@@ -179,21 +240,17 @@ DO_HISTORY(history_read)
 
 			if (*buffer)
 			{
-				insert_node_list(ses->list[LIST_HISTORY], buffer, "", "", "");
+				create_node_list(ses->list[LIST_HISTORY], buffer, "", "", "");
 			}
 		}
 	}
-	insert_node_list(ses->list[LIST_HISTORY], "", "", "", "");
+	create_node_list(ses->list[LIST_HISTORY], "", "", "", "");
 
 	fclose(file);
 
 	if (ses->list[LIST_HISTORY]->used > gtd->history_size) 
 	{
-		char buf[BUFFER_SIZE];
-
-		sprintf(buf, "{HISTORY SIZE} {%d}", UMIN(ses->list[LIST_HISTORY]->used, 9999));
-
-		do_configure(gts, buf);
+		execute(gts, "#CONFIG {HISTORY SIZE} {%d}", UMIN(ses->list[LIST_HISTORY]->used, 9999));
 	}
 
 	return;
@@ -201,13 +258,13 @@ DO_HISTORY(history_read)
 
 DO_HISTORY(history_size)
 {
-	if (atoi(arg) < 1 || atoi(arg) > 100000)
+	if (atoi(arg1) < 1 || atoi(arg1) > 100000)
 	{
 		show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY SIZE: PROVIDE A NUMBER BETWEEN 1 and 100,000");
 	}
 	else
 	{
-		gtd->history_size = atoi(arg);
+		gtd->history_size = atoi(arg1);
 	}
 	return;
 }
@@ -218,11 +275,11 @@ DO_HISTORY(history_write)
 	FILE *file;
 	int i;
 
-	file = fopen(arg, "w");
+	file = fopen(arg1, "w");
 
 	if (file == NULL)
 	{
-		tintin_printf2(ses, "#HISTORY: COULDN'T OPEN FILE {%s} TO WRITE.", arg);
+		tintin_printf2(ses, "#HISTORY: COULDN'T OPEN FILE {%s} TO WRITE.", arg1);
 
 		return;
 	}

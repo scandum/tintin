@@ -28,7 +28,6 @@
 
 DO_COMMAND(do_all)
 {
-	char arg1[BUFFER_SIZE];
 	struct session *sesptr;
 
 	if (gts->next)
@@ -55,7 +54,7 @@ DO_COMMAND(do_all)
 
 DO_COMMAND(do_session)
 {
-	char temp[BUFFER_SIZE], arg1[BUFFER_SIZE];
+	char temp[BUFFER_SIZE];
 	struct session *sesptr;
 	int cnt;
 
@@ -138,7 +137,6 @@ DO_COMMAND(do_session)
 DO_COMMAND(do_snoop)
 {
 	struct session *sesptr = ses;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
@@ -194,7 +192,6 @@ DO_COMMAND(do_snoop)
 DO_COMMAND(do_zap)
 {
 	struct session *sesptr;
-	char arg1[BUFFER_SIZE];
 
 	push_call("do_zap(%p,%p)",ses,arg);
 
@@ -224,7 +221,8 @@ DO_COMMAND(do_zap)
 	if (sesptr == gts)
 	{
 		pop_call();
-		return do_end(NULL, "");
+		return execute(ses, "#END");
+//		do_end(NULL, "");
 	}
 
 	if (ses == sesptr)
@@ -519,7 +517,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 	if (*file)
 	{
-		newses = do_read(newses, file);
+		newses = execute(newses, "#READ %s", file);
 	}
 	check_all_events(newses, SUB_ARG, 0, 4, "SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port);
 
@@ -671,6 +669,9 @@ void cleanup_session(struct session *ses)
 
 	SET_BIT(ses->flags, SES_FLAG_CLOSED);
 
+	client_end_mccp2(ses);
+	client_end_mccp3(ses);
+
 	if (HAS_BIT(ses->flags, SES_FLAG_PORT) || HAS_BIT(ses->flags, SES_FLAG_CONNECTED))
 	{
 		DEL_BIT(ses->flags, SES_FLAG_CONNECTED);
@@ -747,9 +748,6 @@ void dispose_session(struct session *ses)
 		free_list(ses->list[index]);
 	}
 
-	client_end_mccp2(ses);
-	client_end_mccp3(ses);
-
 	init_buffer(ses, 0);
 
 	free(ses->name);
@@ -762,6 +760,9 @@ void dispose_session(struct session *ses)
 	free(ses->lognext_name);
 	free(ses->logline_name);
 	free(ses->split);
+	str_free(ses->input->buf);
+	str_free(ses->input->tmp);
+	free(ses->input);
 
 	free(ses);
 

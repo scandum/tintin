@@ -28,7 +28,6 @@
 
 DO_COMMAND(do_event)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	struct listnode *node;
 	int cnt;
 
@@ -113,7 +112,10 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 	{
 		if (!HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_IGNORE))
 		{
-			show_info(ses_ptr, LIST_EVENT, "#INFO EVENT {%s}", name);
+			if (!HAS_BIT(flags, SUB_SIL))
+			{
+				show_info(ses_ptr, LIST_EVENT, "#INFO EVENT {%s} ARGUMENTS {%d}", name, vars);
+			}
 
 			node = search_node_list(ses_ptr->list[LIST_EVENT], name);
 
@@ -137,17 +139,21 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 
 				substitute(ses_ptr, node->arg2, buf, flags);
 
-				if (HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_DEBUG))
+				if (!HAS_BIT(flags, SUB_SIL) && HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_DEBUG))
 				{
 					show_debug(ses_ptr, LIST_EVENT, "#DEBUG EVENT {%s} (%s}", node->arg1, node->arg2);
 				}
 
-				if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+				if (node->shots && --node->shots == 0)
 				{
 					delete_node_list(ses, LIST_EVENT, node);
 				}
 
+				gtd->level->quiet += HAS_BIT(flags, SUB_SIL) ? 1 : 0;
+
 				script_driver(ses_ptr, LIST_EVENT, buf);
+
+				gtd->level->quiet -= HAS_BIT(flags, SUB_SIL) ? 1 : 0;
 
 				if (ses)
 				{
@@ -175,7 +181,7 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 
 void mouse_handler(struct session *ses, int flags, int row, int col)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], line[BUFFER_SIZE];
+	char *arg1, *arg2, line[BUFFER_SIZE];
 	static char word[BUFFER_SIZE];
 	static char last[100], dir[10];
 	static long long click[3];
@@ -183,11 +189,16 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 	int debug, info, rev_row, rev_col, link;
 
 	push_call("mouse_handler(%p,%d,%d,%d,%c)",ses,flags,row,col);
+
+	arg1 = str_alloc_stack();
+	arg2 = str_alloc_stack();
+
 /*
 	if (!HAS_BIT(ses->event_flags, EVENT_FLAG_MOUSE))
 	{
 		if (!HAS_BIT(ses->flags, SES_FLAG_MOUSEINFO) && !HAS_BIT(ses->list[LIST_EVENT]->flags, LIST_FLAG_INFO))
 		{
+			pop_call();
 			return;
 		}
 	}
@@ -308,12 +319,13 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 		case 1:
 			check_all_events(ses, SUB_ARG, 2, 6, "%s LINK %s", arg1, arg2, ntos(row), ntos(col), ntos(rev_row), ntos(-1 - (gtd->screen->cols - col)), word, line);
 			break;
+
 		case 2:
 			if (flags == 0)
 			{
 				tintin_printf2(ses, "\e[1;32m         %s\n", capitalize(word));
-				
-				do_help(ses, word);
+
+				execute(ses, "#HELP {%s}", word);
 			}
 			break;
 	}
@@ -324,7 +336,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 	check_all_events(ses, SUB_ARG, 3, 6, "%s %s %d", arg1, arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
-	map_mouse_handler(ses, arg1, arg2, col, row, 0, 0);
+	map_mouse_handler(ses, arg1, arg2, row, col, rev_row, rev_col, 0, 0);
 
 	if (!strcmp(arg1, "PRESSED"))
 	{
@@ -361,7 +373,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 					check_all_events(ses, SUB_ARG, 2, 6, "TRIPLE-CLICKED %s %d", arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
-					map_mouse_handler(ses, "TRIPPLE-CLICKED", arg2, col, row, 0, 0);
+					map_mouse_handler(ses, "TRIPPLE-CLICKED", arg2, row, col, rev_row, rev_col, 0, 0);
 
 					strcpy(last, "");
 				}
@@ -383,7 +395,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 					check_all_events(ses, SUB_ARG, 2, 6, "DOUBLE-CLICKED %s %d", arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
-					map_mouse_handler(ses, "DOUBLE-CLICKED", arg2, col, row, 0, 0);
+					map_mouse_handler(ses, "DOUBLE-CLICKED", arg2, row, col, rev_row, rev_col, 0, 0);
 				}
 			}
 		}
@@ -443,7 +455,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 			check_all_events(ses, SUB_ARG, 2, 6, "LONG-CLICKED %s %d", arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
-			map_mouse_handler(ses, "LONG-CLICKED", arg2, col, row, 0, 0);
+			map_mouse_handler(ses, "LONG-CLICKED", arg2, row, col, rev_row, rev_col, 0, 0);
 		}
 		else if (click[0] - click[1] >= 500000)
 		{
@@ -464,7 +476,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 				check_all_events(ses, SUB_ARG, 2, 6, "SHORT-CLICKED %s %d", arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line);
 
-				map_mouse_handler(ses, "SHORT-CLICKED", arg2, col, row, 0, 0);
+				map_mouse_handler(ses, "SHORT-CLICKED", arg2, row, col, rev_row, rev_col, 0, 0);
 			}
 		}
 	}

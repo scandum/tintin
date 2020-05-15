@@ -90,8 +90,6 @@ void restore_pos(struct session *ses)
 	{
 		print_stdout("\e[?25h");
 	}
-
-	SET_BIT(gtd->flags, TINTIN_FLAG_FLUSH);
 }
 
 void goto_pos(struct session *ses, int row, int col)
@@ -215,9 +213,11 @@ int skip_vt102_codes(char *str)
 			{
 				if (str[skip] == 30) // HTML_CLOSE
 				{
+					pop_call();
 					return skip + 1;
 				}
 			}
+			pop_call();
 			return 0;
 
 		case 127:   /* DEL */
@@ -269,6 +269,7 @@ int skip_vt102_codes(char *str)
 					{
 						if (str[skip] == '\a' || (str[skip] == '\e' && str[skip+1] == '\\'))
 						{
+							pop_call();
 							return skip + 1;
 						}
 					}
@@ -342,7 +343,7 @@ int find_color_code(char *str)
 
 	switch (str[0])
 	{
-		case  27:   /* ESC */
+		case  ASCII_ESC:
 			break;
 
 		default:
@@ -378,13 +379,63 @@ int find_color_code(char *str)
 	return 0;
 }
 
+int find_escaped_color_code(char *str)
+{
+	int skip;
+
+	switch (str[0])
+	{
+		case  '\\':
+			break;
+
+		default:
+			return 0;
+	}
+
+	switch (str[1])
+	{
+		case 'e':
+			break;
+		default:
+			return 0;
+	}
+
+	switch (str[2])
+	{
+		case '[':
+			break;
+
+		default:
+			return 0;
+	}
+
+	for (skip = 3 ; str[skip] != 0 ; skip++)
+	{
+		switch (str[skip])
+		{
+			case 'm':
+				return skip + 1;
+			case '@':
+			case '`':
+			case ']':
+				return 0;
+		}
+
+		if (isalpha((int) str[skip]))
+		{
+			return 0;
+		}
+	}
+	return 0;
+}
+
 int find_secure_color_code(char *str)
 {
 	int skip, valid = 1;
 
 	switch (str[0])
 	{
-		case  27:   /* ESC */
+		case  ASCII_ESC:   /* ESC */
 			break;
 
 		default:
@@ -532,7 +583,7 @@ int skip_vt102_codes_non_graph(char *str)
 	return 0;
 }
 
-void strip_vt102_codes(char *str, char *buf)
+int strip_vt102_codes(char *str, char *buf)
 {
 	char *pti, *pto;
 
@@ -552,6 +603,8 @@ void strip_vt102_codes(char *str, char *buf)
 		}
 	}
 	*pto = 0;
+
+	return pto - buf;
 }
 
 
@@ -718,7 +771,7 @@ void get_color_codes(char *old, char *str, char *buf, int flags)
 	{
 		switch (*pti)
 		{
-			case 27:
+			case ASCII_ESC:
 				pti += 2;
 
 				if (pti[-1] == 'm')

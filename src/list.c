@@ -30,7 +30,6 @@
 
 DO_COMMAND(do_list)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	struct listnode *node;
 	int index, cnt;
 
@@ -39,6 +38,8 @@ DO_COMMAND(do_list)
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " LIST OPTIONS ");
 
 		for (index = 0 ; *array_table[index].fun ; index++)
@@ -66,7 +67,7 @@ DO_COMMAND(do_list)
 
 		if (*array_table[cnt].name == 0)
 		{
-			return do_list(ses, "");
+			goto info;
 		}
 		else
 		{
@@ -399,8 +400,6 @@ DO_ARRAY(array_insert)
 	}
 
 	set_nest_node(list->root, ntos(index + 1), "%s", arg2);
-
-//	insert_node_list(list->root, ntos(index + 1), arg2, "");
 
 	return ses;
 }

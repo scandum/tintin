@@ -218,6 +218,9 @@ char *get_charset(struct session *ses)
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8:
 			return "BIG5TOUTF8";
 
+	        case CHARSET_FLAG_UTF8|CHARSET_FLAG_CP1251TOUTF8:
+	        	return "CP1251TOUTF8";
+
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8:
 			return "FANSI";
 		

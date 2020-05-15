@@ -27,13 +27,16 @@
 
 DO_COMMAND(do_line)
 {
-	char arg1[BUFFER_SIZE];
 	int cnt;
+
+	push_call("do_line(%p,%p)",ses,arg);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " LINE OPTIONS ");
 
 		for (cnt = 0 ; *line_table[cnt].fun != NULL ; cnt++)
@@ -45,6 +48,7 @@ DO_COMMAND(do_line)
 		}
 		tintin_header(ses, "");
 
+		pop_call();
 		return ses;
 	}
 	else
@@ -59,13 +63,14 @@ DO_COMMAND(do_line)
 
 		if (*line_table[cnt].name == 0)
 		{
-			do_line(ses, "");
+			goto info;
 		}
 		else
 		{
 			ses = line_table[cnt].fun(ses, arg);
 		}
 	}
+	pop_call();
 	return ses;
 }
 
@@ -197,9 +202,25 @@ DO_LINE(line_gag)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG");
+	switch (*arg1)
+	{
+		case '-':
+			ses->gagline -= get_number(ses, arg1+1);
+			break;
+		case '+':
+			ses->gagline += get_number(ses, arg1+1);
+			break;
+		case 0:
+			ses->gagline = 1;
+			break;
+		default:
+			ses->gagline = get_number(ses, arg1);
+			break;
+	}
 
-	SET_BIT(ses->flags, SES_FLAG_GAG);
+	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG {%s}", arg1);
+
+//	SET_BIT(ses->flags, SES_FLAG_GAG);
 
 	return ses;
 }
@@ -222,6 +243,30 @@ DO_LINE(line_ignore)
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
 	gtd->level->ignore--;
+
+	return ses;
+}
+
+DO_LINE(line_local)
+{
+	char arg1[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOCAL} {command}.");
+
+		return ses;
+	}
+
+	gtd->level->local++;
+
+	SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
+
+	ses = script_driver(ses, LIST_COMMAND, arg1);
+
+	gtd->level->local--;
 
 	return ses;
 }
@@ -428,6 +473,36 @@ DO_LINE(line_logverbatim)
 	return ses;
 }
 
+DO_LINE(line_multishot)
+{
+	unsigned int shots;
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	shots = (unsigned int) get_number(ses, arg1);
+
+	if (!is_math(ses, arg1) || *arg2 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MULTISHOT} {number} {command}.");
+		
+		return ses;
+	}
+
+	gtd->level->shots++;
+
+	gtd->level->mshot = shots;
+
+	ses = script_driver(ses, LIST_COMMAND, arg2);
+
+	gtd->level->mshot = 1;
+
+	gtd->level->shots--;
+
+	return ses;
+}
+
 DO_LINE(line_oneshot)
 {
 	char arg1[BUFFER_SIZE];
@@ -441,11 +516,13 @@ DO_LINE(line_oneshot)
 		return ses;
 	}
 
-	gtd->level->oneshot++;
+	gtd->level->shots++;
+
+	gtd->level->mshot = 1;
 
 	ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	gtd->level->oneshot--;
+	gtd->level->shots--;
 
 	return ses;
 }

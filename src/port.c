@@ -36,13 +36,15 @@
 
 DO_COMMAND(do_port)
 {
-	char cmd[BUFFER_SIZE], arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	char cmd[BUFFER_SIZE];
 	int cnt;
 
 	arg = get_arg_in_braces(ses, arg, cmd, GET_ONE);
 
 	if (*cmd == 0)
 	{
+		info:
+
 		tintin_header(ses, " PORT OPTIONS ");
 
 		for (cnt = 0 ; *port_table[cnt].name != 0 ; cnt++)
@@ -77,7 +79,7 @@ DO_COMMAND(do_port)
 		return ses;
 	}
 
-	do_port(ses, "");
+	goto info;
 
 	return ses;
 }
@@ -115,7 +117,7 @@ DO_PORT(port_initialize)
 
 	tintin_printf(ses, "#TRYING TO LAUNCH '%s' ON PORT '%s'.", arg1, arg2);
 
-	sprintf(temp, "{localport} {%d} {%s}", atoi(arg2), file);
+	sprintf(temp, "{localport} {%d} {%.*s}", atoi(arg2), PATH_SIZE, file);
 
 	port = atoi(arg2);
 
@@ -184,7 +186,12 @@ DO_PORT(port_initialize)
 	ses->port->ip       = strdup("<Unknown>");
 	ses->port->prefix   = strdup("<PORT> ");
 
-	tintin_printf(ses, "#PORT INITIALIZE: SESSION {%s} IS LISTENING ON PORT %d.", ses->name, ses->port->port);
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "PORT INITIALIZED", ses->name, ntos(ses->port->port));
+
+	if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "GAG PORT INITIALIZED", ses->name, ntos(ses->port->port)))
+	{
+		tintin_printf(ses, "#PORT INITIALIZE: SESSION {%s} IS LISTENING ON PORT %d.", ses->name, ses->port->port);
+	}
 
 	return ses;
 }
@@ -202,7 +209,12 @@ DO_PORT(port_uninitialize)
 
 	ses->port = NULL;
 
-	tintin_printf(ses, "#PORT UNINITIALIZE: CLOSED PORT {%d}.", port);
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "PORT UNINITIALIZED", ses->name, ntos(port));
+
+	if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "GAG PORT UNINITIALIZED", ses->name, ntos(port)))
+	{
+		tintin_printf(ses, "#PORT UNINITIALIZE: CLOSED PORT {%d}.", port);
+	}
 
 	return ses;
 }
@@ -408,12 +420,13 @@ void port_socket_printf(struct session *ses, struct port_data *buddy, char *form
 {
 	char buf[BUFFER_SIZE];
 	va_list args;
+	int len;
 
 	va_start(args, format);
-	vsnprintf(buf, BUFFER_SIZE / 3, format, args);
+	len = vsnprintf(buf, BUFFER_SIZE / 3, format, args);
 	va_end(args);
 
-	port_socket_write(ses, buddy, buf, strlen(buf));
+	port_socket_write(ses, buddy, buf, len);
 }
 
 void port_telnet_printf(struct session *ses, struct port_data *buddy, size_t length, char *format, ...)
@@ -441,14 +454,14 @@ void port_printf(struct session *ses, char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vsnprintf(buf, BUFFER_SIZE / 3, format, args);
+	vsnprintf(buf, BUFFER_SIZE, format, args);
 	va_end(args);
 
-	sprintf(tmp, "%s%s", ses->port->prefix, buf);
+	sprintf(tmp, "%s%.*s", ses->port->prefix, BUFFER_SIZE, buf);
 
 	strip_vt102_codes_non_graph(tmp, buf);
 
-	sprintf(tmp, "%s%s%s", ses->port->color, buf, "\e[0m");
+	sprintf(tmp, "%s%.*s%s", ses->port->color, BUFFER_SIZE, buf, "\e[0m");
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "PORT MESSAGE", tmp, buf);
 
@@ -464,14 +477,14 @@ void port_log_printf(struct session *ses, struct port_data *buddy, char *format,
 	va_list args;
 
 	va_start(args, format);
-	vsnprintf(buf, BUFFER_SIZE / 3, format, args);
+	vsnprintf(buf, BUFFER_SIZE, format, args);
 	va_end(args);
 
-	sprintf(tmp, "%s%s@%s %s", ses->port->prefix, buddy->name, buddy->ip, buf);
+	sprintf(tmp, "%s%s@%s %.*s", ses->port->prefix, buddy->name, buddy->ip, BUFFER_SIZE, buf);
 
 	strip_vt102_codes_non_graph(tmp, buf);
 
-	sprintf(tmp, "%s%s\e[0m", ses->port->color, buf);
+	sprintf(tmp, "%s%.*s\e[0m", ses->port->color, BUFFER_SIZE, buf);
 
 	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 5, "PORT LOG MESSAGE", buddy->name, buddy->ip, ntos(buddy->fd), tmp, buf);
 
@@ -592,12 +605,12 @@ void get_port_commands(struct session *ses, struct port_data *buddy, char *buf, 
 
 	strip_vt102_codes(buf, txt);
 
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 5, "PORT RECEIVED MESSAGE", buddy->name, buddy->ip, ntos(buddy->port), buf, txt);
+
 	if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 5, "CATCH PORT RECEIVED MESSAGE", buddy->name, buddy->ip, ntos(buddy->port), buf, txt))
 	{
 		port_receive_message(ses, buddy, buf);
 	}
-
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 5, "PORT RECEIVED MESSAGE", buddy->name, buddy->ip, ntos(buddy->port), buf, txt);
 
 	pop_call();
 	return;
@@ -917,12 +930,14 @@ DO_PORT(port_zap)
 
 DO_PORT(port_color)
 {
-	if (*arg1 == 0 || get_color_names(gtd->ses, arg1, arg2) == FALSE)
+	if (*arg1 == 0 || !is_color_name(arg1))
 	{
 		port_printf(ses, "Valid colors are:\n\nreset, bold, dim, light, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white");
 
 		return ses;
 	}
+	get_color_names(gtd->ses, arg1, arg2);
+
 	RESTRING(ses->port->color, arg2);
 
 	port_printf(ses, "Color has been set to %s", arg1);

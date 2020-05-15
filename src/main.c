@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 
 		if (access(filename, F_OK ) != -1)
 		{
-			history_read(gts, filename);
+			history_read(gts, filename, "", "");
 		}
 	}
 
@@ -319,12 +319,12 @@ int main(int argc, char **argv)
 					break;
 
 				case 'M':
-					do_test(gts, optarg ? optarg : "");
+					execute(gts, "#TEST %s", optarg ? optarg : "");
 					break;
 
 				case 'r':
 //					gtd->level->input++;
-					gtd->ses = do_read(gtd->ses, optarg);
+					gtd->ses = execute(gtd->ses, "#READ %s", optarg);
 //					gtd->level->input--;
 					break;
 
@@ -358,9 +358,9 @@ int main(int argc, char **argv)
 
 	if (!HAS_BIT(greeting, STARTUP_FLAG_NOTITLE))
 	{
-		do_screen(gts, "LOAD BOTH");
-		do_screen(gts, "SAVE BOTH");
-		do_screen(gts, "SET BOTH TinTin++");
+		execute(gts, "#SCREEN LOAD BOTH");
+		execute(gts, "#SCREEN SAVE BOTH");
+		execute(gts, "#SCREEN SET BOTH TinTin++");
 	}
 
 	gtd->exec = strdup(argv[0]);
@@ -400,13 +400,13 @@ int main(int argc, char **argv)
 	{
 		if (!strncasecmp(argv[optind], "telnet://", 9))
 		{
-			do_session(gts, argv[optind]);
+			gtd->ses = execute(gts, "#SESSION %s", argv[optind]);
 		}
 		else
 		{
 			gtd->level->input++;
 
-			gtd->ses = do_read(gtd->ses, argv[optind]);
+			gtd->ses = execute(gtd->ses, "#READ %s", argv[optind]);
 
 			gtd->level->input--;
 		}
@@ -423,16 +423,19 @@ void init_tintin(int greeting)
 {
 	int ref, index;
 
+	gtd                    = (struct tintin_data *) calloc(1, sizeof(struct tintin_data));
+
+	gtd->memory            = calloc(1, sizeof(struct memory_data));
+	gtd->memory->debug     = calloc(1, sizeof(struct stack_data *));
+	gtd->memory->stack     = calloc(1, sizeof(struct str_data *));
+	gtd->memory->alloc     = calloc(1, sizeof(struct str_data));
+
 	push_call("init_tintin(%d)",greeting);
 
-	gtd                 = (struct tintin_data *) calloc(1, sizeof(struct tintin_data));
+	gtd->level             = (struct level_data *) calloc(1, sizeof(struct level_data));
 
-	gtd->level          = (struct level_data *) calloc(1, sizeof(struct level_data));
-
-	gtd->memory         = calloc(1, sizeof(struct str_data));
-
-	gtd->buf            = str_alloc(STRING_SIZE);
-	gtd->out            = str_alloc(STRING_SIZE);
+	gtd->buf               = str_alloc(STRING_SIZE);
+	gtd->out               = str_alloc(STRING_SIZE);
 
 	gtd->flags          = TINTIN_FLAG_INHERITANCE;
 
@@ -442,8 +445,6 @@ void init_tintin(int greeting)
 	gtd->mud_output_max = 16384;
 	gtd->mud_output_buf = (char *) calloc(1, gtd->mud_output_max);
 
-
-
 	gtd->os             = strdup(getenv("OS")   ? getenv("OS")   : "UNKNOWN");
 	gtd->home           = strdup(getenv("HOME") ? getenv("HOME") : "~/");
 	gtd->lang           = strdup(getenv("LANG") ? getenv("LANG") : "UNKNOWN");
@@ -451,6 +452,8 @@ void init_tintin(int greeting)
 
 	gtd->detach_file    = strdup("");
 	gtd->attach_file    = strdup("");
+
+	gtd->tintin_char    = '#';
 
 	gtd->time           = time(NULL);
 	gtd->calendar       = *localtime(&gtd->time);
@@ -509,6 +512,7 @@ void init_tintin(int greeting)
 
 	gts = (struct session *) calloc(1, sizeof(struct session));
 
+	gts->created        = gtd->time;
 	gts->name           = strdup("gts");
 	gts->group          = strdup("");
 	gts->session_host   = strdup("");
@@ -549,42 +553,42 @@ void init_tintin(int greeting)
 
 	gtd->level->input++;
 
-	do_configure(gts, "{AUTO TAB}         {5000}");
-	do_configure(gts, "{BUFFER SIZE}     {10000}");
-	do_configure(gts, "{COLOR MODE}         {ON}");
-	do_configure(gts, "{COLOR PATCH}       {OFF}");
-	do_configure(gts, "{COMMAND COLOR}   {<078>}");
-	do_configure(gts, "{COMMAND ECHO}       {ON}");
-	do_configure(gts, "{CONNECT RETRY}       {0}");
-	do_configure(gts, "{CHARSET}          {AUTO}");
-	do_configure(gts, "{HISTORY SIZE}     {1000}");
-	do_configure(gts, "{LOG MODE}          {RAW}");
-	do_configure(gts, "{MOUSE TRACKING}    {OFF}");
-	do_configure(gts, "{PACKET PATCH}     {AUTO}");
-	do_configure(gts, "{RANDOM SEED}      {AUTO}");
-	do_configure(gts, "{REPEAT CHAR}         {!}");
-	do_configure(gts, "{REPEAT ENTER}      {OFF}");
-	do_configure(gts, HAS_BIT(greeting, STARTUP_FLAG_SCREENREADER) ? "{SCREEN READER} {ON}" : "{SCREEN READER} {OFF}");
-	do_configure(gts, "{SCROLL LOCK}        {ON}");
-	do_configure(gts, "{SPEEDWALK}         {OFF}");
-	do_configure(gts, "{TAB WIDTH}        {AUTO}");
-	do_configure(gts, "{TELNET}             {ON}");
-	do_configure(gts, "{TINTIN CHAR}         {#}");
-	do_configure(gts, "{VERBATIM}          {OFF}");
-	do_configure(gts, "{VERBATIM CHAR}      {\\}");
-	do_configure(gts, HAS_BIT(greeting, STARTUP_FLAG_VERBOSE) ? "{VERBOSE} {ON}" : "{VERBOSE} {OFF}");
-	do_configure(gts, "{WORDWRAP}           {ON}");
+	execute(gts, "#CONFIG {AUTO TAB}         {5000}");
+	execute(gts, "#CONFIG {BUFFER SIZE}     {10000}");
+	execute(gts, "#CONFIG {COLOR MODE}         {ON}");
+	execute(gts, "#CONFIG {COLOR PATCH}       {OFF}");
+	execute(gts, "#CONFIG {COMMAND COLOR}   {<078>}");
+	execute(gts, "#CONFIG {COMMAND ECHO}       {ON}");
+	execute(gts, "#CONFIG {CONNECT RETRY}       {0}");
+	execute(gts, "#CONFIG {CHARSET}          {AUTO}");
+	execute(gts, "#CONFIG {HISTORY SIZE}     {1000}");
+	execute(gts, "#CONFIG {LOG MODE}          {RAW}");
+	execute(gts, "#CONFIG {MOUSE TRACKING}    {OFF}");
+	execute(gts, "#CONFIG {PACKET PATCH}     {AUTO}");
+	execute(gts, "#CONFIG {RANDOM SEED}      {AUTO}");
+	execute(gts, "#CONFIG {REPEAT CHAR}         {!}");
+	execute(gts, "#CONFIG {REPEAT ENTER}      {OFF}");
+	execute(gts, "#CONFIG {SCREEN READER}      {%s}", HAS_BIT(greeting, STARTUP_FLAG_SCREENREADER) ? "ON" : "OFF");
+	execute(gts, "#CONFIG {SCROLL LOCK}        {ON}");
+	execute(gts, "#CONFIG {SPEEDWALK}         {OFF}");
+	execute(gts, "#CONFIG {TAB WIDTH}        {AUTO}");
+	execute(gts, "#CONFIG {TELNET}             {ON}");
+	execute(gts, "#CONFIG {TINTIN CHAR}         {#}");
+	execute(gts, "#CONFIG {VERBATIM}          {OFF}");
+	execute(gts, "#CONFIG {VERBATIM CHAR}      {\\}");
+	execute(gts, "#CONFIG {VERBOSE}            {%s}", HAS_BIT(greeting, STARTUP_FLAG_VERBOSE) ? "ON" : "OFF");
+	execute(gts, "#CONFIG {WORDWRAP}           {ON}");
 
-	do_pathdir(gts, " n  s  1");
-	do_pathdir(gts, " e  w  2");
-	do_pathdir(gts, " s  n  4");
-	do_pathdir(gts, " w  e  8");
-	do_pathdir(gts, " u  d 16");
-	do_pathdir(gts, " d  u 32");
-	do_pathdir(gts, "ne sw  3");
-	do_pathdir(gts, "nw se  9");
-	do_pathdir(gts, "se nw  6");
-	do_pathdir(gts, "sw ne 12");
+	execute(gts, "#PATHDIR  n  s  1");
+	execute(gts, "#PATHDIR  e  w  2");
+	execute(gts, "#PATHDIR  s  n  4");
+	execute(gts, "#PATHDIR  w  e  8");
+	execute(gts, "#PATHDIR  u  d 16");
+	execute(gts, "#PATHDIR  d  u 32");
+	execute(gts, "#PATHDIR ne sw  3");
+	execute(gts, "#PATHDIR nw se  9");
+	execute(gts, "#PATHDIR se nw  6");
+	execute(gts, "#PATHDIR sw ne 12");
 
 	gtd->level->input--;
 
@@ -603,7 +607,7 @@ void init_tintin(int greeting)
 		{
 			tintin_printf2(gts, "Welcome to TinTin Plus Plus. Don't know which MUD to play? How about the following MUD.");
 
-			do_advertise(gts, "");
+			execute(gts, "ADVERTISE");
 
 			tintin_printf2(gts, "You're using TinTin Plus Plus written by Peter Unold, Bill Reis, and Igor van den Hoven.", CLIENT_VERSION);
 
@@ -611,11 +615,11 @@ void init_tintin(int greeting)
 		}
 		else
 		{
-			do_advertise(gts, "");
+			execute(gts, "#ADVERTISE");
 
 			if (gtd->screen->cols >= 80)
 			{
-				do_help(gts, "GREETING");
+				execute(gts, "#HELP GREETING");
 			}
 			else
 			{
@@ -666,7 +670,7 @@ void quitmsg(char *message)
 
 		sprintf(filename, "%s/%s/%s", gtd->home, TINTIN_DIR, HISTORY_FILE);
 
-		history_write(gts, filename);
+		history_write(gts, filename, "", "");
 	}
 
 	reset_daemon();
@@ -737,7 +741,7 @@ void syserr_signal(int signal, char *msg)
 
 	if (crashed++)
 	{
-		print_stdout("\ecsyserr_signal(crashed)\n");
+		print_stdout("syserr_signal(crashed)\n");
 
 		fflush(NULL);
 
@@ -750,7 +754,7 @@ void syserr_signal(int signal, char *msg)
 
 	fflush(NULL);
 
-	dump_stack_fatal();
+	dump_stack();
 
 	sprintf(buf, "\e[1;31mFATAL SIGNAL FROM (%s): %s\e[0m\n", msg, strsignal(signal));
 
@@ -758,7 +762,7 @@ void syserr_signal(int signal, char *msg)
 
 	fflush(NULL);
 
-	exit(0);
+	abort();
 }
 
 void syserr_fatal(int signal, char *msg)
@@ -768,7 +772,7 @@ void syserr_fatal(int signal, char *msg)
 
 	if (crashed++)
 	{
-		print_stdout("\ecsyserr_fatal(crashed)");
+		print_stdout("syserr_fatal(crashed)");
 
 		fflush(NULL);
 
@@ -795,7 +799,7 @@ void syserr_fatal(int signal, char *msg)
 
 	print_stdout("\e[r");
 
-	dump_stack_fatal();
+	dump_stack();
 
 	sprintf(buf, "\n\e[1;31mFATAL ERROR \e[1;32m%s %s\e[0m\n", msg, errstr);
 
@@ -805,5 +809,5 @@ void syserr_fatal(int signal, char *msg)
 
 	fflush(NULL);
 
-	exit(0);
+	abort();
 }

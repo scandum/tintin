@@ -267,6 +267,33 @@ char *c32_fg_bold[26] =
 	"", "<ff80>", "<ff08>", "", "<ff00>", "<fddd>", "<fdb0>", "", "<f80f>", "<ffff>", "", "<fff0>", ""
 };
 
+int valid_escape(struct session *ses, char *str)
+{
+	switch (*str)
+	{
+		case '0':
+		case 'a':
+		case 'c':
+		case 'e':
+		case 'f':
+		case 'n':
+		case 'r':
+		case 't':
+		case 'x':
+		case 'u':
+		case 'U':
+		case 'v':
+		case ';':
+		case '$':
+		case '@':
+		case '*':
+		case '&':
+		case '\\':
+			return TRUE;
+	}
+	return FALSE;
+}
+
 int is_variable(struct session *ses, char *str)
 {
 	struct listroot *root;
@@ -354,84 +381,6 @@ int is_function(struct session *ses, char *str)
 	return TRUE;
 }
 
-int is_color_code(char *pti)
-{
-	if (pti[0] == '<')
-	{
-		if (pti[1] == 0 || pti[2] == 0 || pti[3] == 0 || pti[4] == 0)
-		{
-			return 0;
-		}
-
-		if (pti[4] == '>')
-		{
-
-			if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
-			{
-				return 5;
-			}
-			if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f')
-			{
-				return 5;
-			}
-			if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F')
-			{
-				return 5;
-			}
-
-			if (pti[1] == 'g' || pti[1] == 'G')
-			{
-				if (isdigit((int) pti[2]) && isdigit((int) pti[3]))
-				{
-					return 5;
-				}
-				return 0;
-			}
-
-			return 0;
-		}
-
-		if (pti[5] == 0)
-		{
-			return 0;
-		}
-
-		if (toupper((int) pti[1]) == 'F')
-		{
-			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
-			{
-				return 6;
-			}
-			else if (pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
-			{
-				return 6;
-			}
-			else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
-			{
-				return 9;
-			}
-			return 0;
-		}
-
-		if (toupper(pti[1]) == 'B')
-		{
-			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
-			{
-				return 6;
-			}
-			if (toupper(pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
-			{
-				return 6;
-			}
-			if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
-			{
-				return 9;
-			}
-			return 0;
-		}
-	}
-	return 0;
-}
 
 
 char *fuzzy_char(struct session *ses, char val1, char val2, int mode)
@@ -515,7 +464,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 			if (pti[4] == '>')
 			{
-				if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
+				if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
 				{
 					pto += sprintf(pto, "<%c%c%c>", pti[1], pti[2], pti[3]);
 				}
@@ -541,7 +490,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 			}
 			else if (toupper((int) pti[1]) == 'F')
 			{
-				if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", fuzzy_char(ses, 0, pti[2], 12), fuzzy_char(ses, 0, pti[3], 12), fuzzy_char(ses, 0, pti[4], 12));
 
@@ -555,7 +504,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 					pti += 6;
 				}
-				else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", fuzzy_char(ses, pti[3], pti[4], 24), fuzzy_char(ses, pti[4], pti[5], 24), fuzzy_char(ses, pti[7], pti[7], 24));
 
@@ -566,9 +515,9 @@ char *fuzzy_color_code(struct session *ses, char *in)
 					return out[cnt];
 				}
 			}
-			else if (toupper(pti[1]) == 'B')
+			else if (toupper((int) pti[1]) == 'B')
 			{
-				if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", fuzzy_char(ses, 0, pti[2], 12), fuzzy_char(ses, 0, pti[3], 12), fuzzy_char(ses, 0, pti[4], 12));
 
@@ -582,7 +531,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 					pti += 6;
 				}
-				else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", fuzzy_char(ses, pti[2], pti[3], 24), fuzzy_char(ses, pti[4], pti[5], 24), fuzzy_char(ses, pti[6], pti[7], 24));
 
@@ -696,7 +645,7 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 
 			if (pti[4] == '>')
 			{
-				if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
+				if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
 				{
 					pto += sprintf(pto, "<%c%c%c>", pti[1], pti[2], pti[3]);
 				}
@@ -727,13 +676,13 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 					c4096_rnd(ses, &pti[2]);
 				}
 
-				if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", dim_char(ses, 0, pti[2], mod, 12), dim_char(ses, 0, pti[3], mod, 12), dim_char(ses, 0, pti[4], mod, 12));
 
 					pti += 6;
 				}
-				else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", dim_char(ses, pti[2], pti[3], mod, 24), dim_char(ses, pti[4], pti[5], mod, 24), dim_char(ses, mod, pti[6], pti[7], 24));
 
@@ -744,20 +693,20 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 					return out[cnt];
 				}
 			}
-			else if (toupper(pti[1]) == 'B')
+			else if (toupper((int) pti[1]) == 'B')
 			{
 				if (pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 				{
 					c4096_rnd(ses, &pti[2]);
 				}
 
-				if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", dim_char(ses, 0, pti[2], mod, 12), dim_char(ses, 0, pti[3], mod, 12), dim_char(ses, 0, pti[4], mod, 12));
 
 					pti += 6;
 				}
-				else if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+				else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", dim_char(ses, pti[2], pti[3], mod, 24), dim_char(ses, pti[4], pti[5], mod, 24), dim_char(ses, pti[6], pti[7], mod, 24));
 
@@ -816,7 +765,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 		if (pti[4] == '>')
 		{
-			if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
+			if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
 			{
 				sprintf(fuzzy[cnt], "<%c%c%c>%.9s", pti[1], pti[2], pti[3], &pti[5]);
 
@@ -862,7 +811,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 		if (toupper((int) pti[1]) == 'F')
 		{
-			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 			{
 				sprintf(fuzzy[cnt], "<F%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[3], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), &pti[6]);
 
@@ -876,7 +825,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 				return dim_color_code(ses, fuzzy[cnt], mod);
 			}
-			else if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+			else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 			{
 				sprintf(fuzzy[cnt], "<F%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), lit_char(ses, mod, pti[6], 'F', 12), &pti[9]);
 
@@ -885,15 +834,15 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 			return "";
 		}
 
-		if (toupper(pti[1]) == 'B')
+		if (toupper((int) pti[1]) == 'B')
 		{
-			if (isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 			{
 				sprintf(fuzzy[cnt], "<B%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[3], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), &pti[6]);
 
 				return fuzzy[cnt];
 			}
-			if (toupper(pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+			if (toupper((int) pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 			{
 				sprintf(fuzzy[cnt], "<B??%c>%.9s", '?', &pti[6]);
 
@@ -901,7 +850,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 				return dim_color_code(ses, fuzzy[cnt], mod);
 			}
-			if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+			if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 			{
 				sprintf(fuzzy[cnt], "<B%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), lit_char(ses, mod, pti[6], 'F', 12), &pti[9]);
 
@@ -1079,7 +1028,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					substitute(ses, node->arg2, buf, SUB_ARG);
 
-					if (HAS_BIT(node->flags, NODE_FLAG_ONESHOT))
+					if (node->shots && --node->shots == 0)
 					{
 						delete_node_list(ses, LIST_FUNCTION, node);
 					}
@@ -1559,7 +1508,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else if (pti[1] && pti[2] && pti[3] && pti[4] == '>')
 					{
-						if (isdigit(pti[1]) && isdigit(pti[2]) && isdigit(pti[3]))
+						if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
 						{
 							if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
 							{
@@ -1665,7 +1614,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							*pto++ = *pti++;
 						}
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1681,7 +1630,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper(pti[1]) == 'F' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'F' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 					{
 						c4096_rnd(ses, &pti[2]);
 
@@ -1699,7 +1648,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1715,7 +1664,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c%c%c%c>", pti[2], pti[3], pti[4], pti[5], pti[6], pti[7]);
 					}
-					else if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1731,7 +1680,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<B%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper(pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
 					{
 						c4096_rnd(ses, &pti[2]);
 
@@ -1749,7 +1698,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper(pti[1]) == 'B' && isxdigit(pti[2]) && isxdigit(pti[3]) && isxdigit(pti[4]) && isxdigit(pti[5]) && isxdigit(pti[6]) && isxdigit(pti[7]) && pti[8] == '>')
+					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1837,6 +1786,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 								pti += 4;
 							}
 							break;
+
 						case 'U':
 							if (pti[1] && pti[2] && pti[3] && pti[4] && pti[5] && pti[6])
 							{
@@ -1952,4 +1902,360 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 	}
 	pop_call();
 	return 0;
+}
+
+int is_color_code(char *pti)
+{
+	if (pti[0] == '<')
+	{
+		if (pti[1] == 0 || pti[2] == 0 || pti[3] == 0 || pti[4] == 0)
+		{
+			return 0;
+		}
+
+		if (pti[4] == '>')
+		{
+
+			if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+			{
+				return 5;
+			}
+			if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f')
+			{
+				return 5;
+			}
+			if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F')
+			{
+				return 5;
+			}
+
+			if (pti[1] == 'g' || pti[1] == 'G')
+			{
+				if (isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				{
+					return 5;
+				}
+				return 0;
+			}
+
+			return 0;
+		}
+
+		if (pti[5] == 0)
+		{
+			return 0;
+		}
+
+		if (toupper((int) pti[1]) == 'F')
+		{
+			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			{
+				return 6;
+			}
+			else if (pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+			{
+				return 6;
+			}
+			else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			{
+				return 9;
+			}
+			return 0;
+		}
+
+		if (toupper((int) pti[1]) == 'B')
+		{
+			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			{
+				return 6;
+			}
+			if (toupper((int) pti[1]) == 'B' && pti[2] == '?' && pti[3] == '?' && pti[4] == '?' && pti[5] == '>')
+			{
+				return 6;
+			}
+			if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			{
+				return 9;
+			}
+			return 0;
+		}
+	}
+	return 0;
+}
+
+int is_color_name(char *string)
+{
+	int cnt, skip;
+
+	while (*string)
+	{
+		switch (*string)
+		{
+			case ' ':
+			case ';':
+			case ',':
+				string++;
+				continue;
+
+			case '<':
+				skip = is_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				string += skip;
+				continue;
+
+			case '\\':
+				skip = find_escaped_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				string += skip;
+				continue;
+
+			case '\e':
+				skip = find_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				string += skip;
+				continue;
+		}
+
+		if (isalpha((int) *string))
+		{
+			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+			{
+				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
+				{
+					break;
+				}
+			}
+
+			if (*color_table[cnt].name == 0)
+			{
+				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+				{
+					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
+					{
+						break;
+					}
+				}
+
+				if (*color_table[cnt].name == 0)
+				{
+					return FALSE;
+				}
+			}
+			string += strlen(color_table[cnt].name);
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+int translate_color_names(struct session *ses, char *string, char *result)
+{
+	int cnt, skip;
+
+	*result = 0;
+
+	while (*string)
+	{
+		switch (*string)
+		{
+			case ' ':
+			case ';':
+			case ',':
+				string++;
+				continue;
+
+			case '<':
+				skip = is_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				result += sprintf(result, "%.*s", skip, string);
+
+				string += skip;
+				continue;
+
+			case '\\':
+				skip = find_escaped_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				result += sprintf(result, "%.*s", skip, string);
+
+				string += skip;
+				continue;
+
+			case '\e':
+				skip = find_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				result += sprintf(result, "%.*s", skip, string);
+
+				string += skip;
+				continue;
+		}
+
+		if (isalpha((int) *string))
+		{
+			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+			{
+				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
+				{
+					result += sprintf(result, "%s", color_table[cnt].code);
+
+					break;
+				}
+			}
+
+			if (*color_table[cnt].name == 0)
+			{
+				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+				{
+					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
+					{
+						result += sprintf(result, "%s", color_table[cnt].code);
+
+						break;
+					}
+				}
+
+				if (*color_table[cnt].name == 0)
+				{
+					return FALSE;
+				}
+			}
+			string += strlen(color_table[cnt].name);
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+int get_color_names(struct session *ses, char *string, char *result)
+{
+	int cnt, skip;
+
+	*result = 0;
+
+	while (*string)
+	{
+		switch (*string)
+		{
+			case ' ':
+			case ';':
+			case ',':
+				string++;
+				continue;
+
+			case '<':
+				skip = is_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				string += sprintf(result, "%.*s", skip, string);
+
+				result += substitute(ses, result, result, SUB_COL);
+
+				continue;
+			
+			case '\\':
+				skip = find_escaped_color_code(string);
+
+				if (skip == 0)
+				{
+					string++;
+					if (*string)
+					{
+						*result++ = *string++;
+					}
+				}
+				string += sprintf(result, "%.*s", skip, string);
+
+				result += substitute(ses, result, result, SUB_ESC);
+
+				continue;
+
+			case '\e':
+				skip = find_color_code(string);
+
+				if (skip == 0)
+				{
+					return FALSE;
+				}
+				result += sprintf(result, "%.*s", skip, string);
+
+				string += skip;
+
+				continue;
+		}
+
+		if (isalpha((int) *string))
+		{
+			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+			{
+				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
+				{
+					substitute(ses, color_table[cnt].code, result, SUB_COL);
+
+					result += strlen(result);
+
+					break;
+				}
+			}
+
+			if (*color_table[cnt].name == 0)
+			{
+				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
+				{
+					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
+					{
+						substitute(ses, color_table[cnt].code, result, SUB_COL);
+
+						result += strlen(result);
+
+						break;
+					}
+				}
+
+				if (*color_table[cnt].name == 0)
+				{
+					return FALSE;
+				}
+			}
+			string += strlen(color_table[cnt].name);
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+	*result = 0;
+
+	return TRUE;
 }

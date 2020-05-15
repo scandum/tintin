@@ -35,7 +35,7 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t sslses);
 
 DO_COMMAND(do_ssl)
 {
-	char temp[BUFFER_SIZE], arg1[BUFFER_SIZE];
+	char temp[BUFFER_SIZE];
 
 	substitute(ses, arg, temp, SUB_VAR|SUB_FUN);
 

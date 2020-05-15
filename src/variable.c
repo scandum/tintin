@@ -29,7 +29,7 @@
 
 DO_COMMAND(do_variable)
 {
-	char arg1[BUFFER_SIZE], *str;
+	char *str;
 	struct listroot *root = ses->list[LIST_VARIABLE];
 	struct listnode *node;
 
@@ -101,7 +101,7 @@ DO_COMMAND(do_variable)
 
 DO_COMMAND(do_local)
 {
-	char arg1[BUFFER_SIZE], *str;
+	char *str;
 	struct listroot *root;
 	struct listnode *node;
 
@@ -169,8 +169,6 @@ DO_COMMAND(do_local)
 
 DO_COMMAND(do_unvariable)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	do
@@ -192,7 +190,7 @@ DO_COMMAND(do_unvariable)
 
 DO_COMMAND(do_cat)
 {
-	char arg1[BUFFER_SIZE], *str;
+	char *str;
 	struct listnode *node;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
@@ -235,7 +233,7 @@ DO_COMMAND(do_cat)
 
 DO_COMMAND(do_replace)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE], tmp[BUFFER_SIZE], *pti, *ptm, *str;
+	char tmp[BUFFER_SIZE], *pti, *ptm, *str;
 	struct listnode *node;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
@@ -522,166 +520,14 @@ void colorstring(struct session *ses, char *str)
 	strcpy(str, result);
 }
 
-int translate_color_names(struct session *ses, char *string, char *result)
-{
-	int cnt;
-
-	*result = 0;
-
-	if (*string == '<')
-	{
-		strcpy(result, string);
-
-		return TRUE;
-	}
-
-	if (*string == '\\')
-	{
-		strcpy(result, string);
-
-		return TRUE;
-	}
-
-	while (*string)
-	{
-
-		if (isalpha(*string))
-		{
-			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
-			{
-				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
-				{
-					result += sprintf(result, "%s", color_table[cnt].code);
-
-					break;
-				}
-			}
-
-			if (*color_table[cnt].name == 0)
-			{
-				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
-				{
-					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
-					{
-						result += sprintf(result, "%s", color_table[cnt].code);
-
-						break;
-					}
-				}
-
-				if (*color_table[cnt].name == 0)
-				{
-					return FALSE;
-				}
-			}
-			string += strlen(color_table[cnt].name);
-		}
-
-		switch (*string)
-		{
-			case ' ':
-			case ';':
-			case ',':
-			case '{':
-			case '}':
-				string++;
-				break;
-
-			case 0:
-				return TRUE;
-
-			default:
-				return FALSE;
-		}
-	}
-	return TRUE;
-}
-
-int get_color_names(struct session *ses, char *string, char *result)
-{
-	int cnt;
-
-	*result = 0;
-
-	if (*string == '<')
-	{
-		substitute(ses, string, result, SUB_COL);
-
-		return TRUE;
-	}
-
-	if (*string == '\\')
-	{
-		substitute(ses, string, result, SUB_ESC);
-
-		return TRUE;
-	}
-
-	while (*string)
-	{
-		if (isalpha(*string))
-		{
-			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
-			{
-				if (!strncmp(color_table[cnt].name, string, color_table[cnt].len))
-				{
-					substitute(ses, color_table[cnt].code, result, SUB_COL);
-
-					result += strlen(result);
-
-					break;
-				}
-			}
-
-			if (*color_table[cnt].name == 0)
-			{
-				for (cnt = 0 ; *color_table[cnt].name ; cnt++)
-				{
-					if (!strncasecmp(color_table[cnt].name, string, color_table[cnt].len))
-					{
-						substitute(ses, color_table[cnt].code, result, SUB_COL);
-
-						result += strlen(result);
-
-						break;
-					}
-				}
-
-				if (*color_table[cnt].name == 0)
-				{
-					return FALSE;
-				}
-			}
-			string += strlen(color_table[cnt].name);
-		}
-
-		switch (*string)
-		{
-			case ' ':
-			case ';':
-			case ',':
-			case '{':
-			case '}':
-				string++;
-				break;
-
-			case 0:
-				return TRUE;
-
-			default:
-				return FALSE;
-		}
-	}
-	return TRUE;
-}
-
-void headerstring(struct session *ses, char *str)
+void headerstring(struct session *ses, char *str, char *columns)
 {
 	char buf[BUFFER_SIZE], fill[BUFFER_SIZE];
 	int len, max;
 
 	len = string_raw_str_len(ses, str, 0, BUFFER_SIZE);
-	max =  get_scroll_cols(ses);
+
+	max = *columns ? atoi(columns) : get_scroll_cols(ses);
 
 	if (len > max - 2)
 	{
@@ -1135,9 +981,13 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 		{
 			raw_cnt++;
 
-			if (str[raw_cnt] == '\\')
+			if (valid_escape(ses, &str[raw_cnt]))
 			{
 				raw_cnt++;
+				ret_cnt++;
+			}
+			else
+			{
 				ret_cnt++;
 			}
 			continue;
@@ -1211,14 +1061,26 @@ void justify_string(struct session *ses, char *in, char *out, int align, int cut
 
 void format_string(struct session *ses, char *format, char *arg, char *out)
 {
-	char argformat[BUFFER_SIZE], newformat[BUFFER_SIZE], arglist[30][20000], *ptf, *ptt, *pts, *ptn;
+	char *arglist[30];
+	char argformat[BUFFER_SIZE], newformat[BUFFER_SIZE], *ptf, *ptt, *pts, *ptn;
 	struct tm timeval_tm;
 	time_t    timeval_t;
-	int i;
+	int i, max;
 
-	for (i = 0 ; i < 30 ; i++)
+	push_call("format_string(%p,%p,%p,%p)",ses,format,arg,out);
+
+	for (max = 0 ; max < 4 ; max++)
 	{
-		arg = sub_arg_in_braces(ses, arg, arglist[i], GET_ONE, SUB_VAR|SUB_FUN);
+		arglist[max] = str_alloc_stack();
+
+		arg = sub_arg_in_braces(ses, arg, arglist[max], GET_ONE, SUB_VAR|SUB_FUN);
+	}
+
+	for (max = 4 ; *arg && max < 30 ; max++)
+	{
+		arglist[max] = str_alloc_stack();
+
+		arg = sub_arg_in_braces(ses, arg, arglist[max], GET_ONE, SUB_VAR|SUB_FUN);
 	}
 
 	i = 0;
@@ -1228,13 +1090,15 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 	while (*ptf)
 	{
-		if (i == 30)
-		{
-			break;
-		}
-
 		if (*ptf == '%')
 		{
+			if (i >= max)
+			{
+				*ptn++ = *ptf++;
+				*ptn++ = '%';
+				i++;
+				continue;
+			}
 			pts = ptn;
 
 			*ptn++ = *ptf++;
@@ -1280,9 +1144,10 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						*ptn = 0;
 						break;
 
-					case 'w':
 					case 'b':
 					case 'B':
+					case 'h':
+					case 'w':
 					case 'z':
 					case 'Z':
 						strcpy(argformat, pts+1);
@@ -1327,7 +1192,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 								}
 		
 								*ptt = 0;
-		
+
 								if (atoi(arg1) < 0)
 								{
 									sprintf(argformat, "%%%d.%d",
@@ -1385,7 +1250,8 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'h':
-						headerstring(ses, arglist[i]);
+						substitute(ses, arglist[i], arglist[i], SUB_VAR|SUB_FUN);
+						headerstring(ses, arglist[i], argformat);
 						break;
 
 					case 'l':
@@ -1520,6 +1386,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 	snprintf(out, BUFFER_SIZE - 1, newformat, arglist[0], arglist[1], arglist[2], arglist[3], arglist[4], arglist[5], arglist[6], arglist[7], arglist[8], arglist[9], arglist[10], arglist[11], arglist[12], arglist[13], arglist[14], arglist[15], arglist[16], arglist[17], arglist[18], arglist[19], arglist[20], arglist[21], arglist[22], arglist[23], arglist[24], arglist[25], arglist[26], arglist[27], arglist[28], arglist[29]);
 
+	pop_call();
 	return;
 }
 

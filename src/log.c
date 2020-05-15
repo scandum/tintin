@@ -25,6 +25,112 @@
 
 #include "tintin.h"
 
+DO_COMMAND(do_log)
+{
+	int cnt;
+
+	push_call("do_log(%p,%p)",ses,arg);
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN|SUB_ESC);
+
+	if (*arg1 == 0)
+	{
+		info:
+
+		tintin_header(ses, " LOG OPTIONS ");
+
+		for (cnt = 0 ; *log_table[cnt].fun != NULL ; cnt++)
+		{
+			if (*log_table[cnt].desc)
+			{
+				tintin_printf2(ses, "  [%-13s] %s", log_table[cnt].name, log_table[cnt].desc);
+			}
+		}
+		pop_call();
+		return ses;
+	}
+	else
+	{
+		for (cnt = 0 ; *log_table[cnt].name ; cnt++)
+		{
+			if (is_abbrev(arg1, log_table[cnt].name))
+			{
+				break;
+			}
+		}
+
+		if (*log_table[cnt].name == 0)
+		{
+			goto info;
+		}
+		else
+		{
+			log_table[cnt].fun(ses, arg, arg1, arg2);
+		}
+	}
+	pop_call();
+	return ses;
+}
+
+DO_LOG(log_append)
+{
+	if (ses->logfile)
+	{
+		fclose(ses->logfile);
+	}
+
+	if ((ses->logfile = fopen(arg2, "a")))
+	{
+		SET_BIT(ses->logmode, LOG_FLAG_APPEND);
+
+		loginit(ses, ses->logfile, ses->logmode);
+
+		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
+	}
+}
+
+DO_LOG(log_overwrite)
+{
+	if (ses->logfile)
+	{
+		fclose(ses->logfile);
+	}
+
+	if ((ses->logfile = fopen(arg2, "w")))
+	{
+		SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
+
+		loginit(ses, ses->logfile, ses->logmode);
+
+		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", arg2);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
+	}
+}
+
+DO_LOG(log_off)
+{
+	if (ses->logfile)
+	{
+		DEL_BIT(ses->logmode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+
+		fclose(ses->logfile);
+		ses->logfile = NULL;
+
+		show_message(ses, LIST_COMMAND, "#LOG {OFF}: LOGGING TURNED OFF.");
+	}
+	else
+	{
+		show_message(ses, LIST_COMMAND, "#LOG: LOGGING ALREADY TURNED OFF.");
+	}
+}
 
 void logit(struct session *ses, char *txt, FILE *file, int flags)
 {
@@ -82,80 +188,6 @@ void loginit(struct session *ses, FILE *file, int flags)
 	}
 	pop_call();
 	return;
-}
-
-DO_COMMAND(do_log)
-{
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN|SUB_ESC);
-
-	if (*arg1 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LOG {APPEND|OVERWRITE|OFF} {<FILENAME>}");
-	}
-	else if (is_abbrev(arg1, "APPEND") && *arg2 != 0)
-	{
-		if (ses->logfile)
-		{
-			fclose(ses->logfile);
-		}
-
-		if ((ses->logfile = fopen(arg2, "a")))
-		{
-			SET_BIT(ses->logmode, LOG_FLAG_APPEND);
-
-			loginit(ses, ses->logfile, ses->logmode);
-
-			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
-		}
-	}
-	else if (is_abbrev(arg1, "OVERWRITE") && *arg2)
-	{
-		if (ses->logfile)
-		{
-			fclose(ses->logfile);
-		}
-
-		if ((ses->logfile = fopen(arg2, "w")))
-		{
-			SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
-
-			loginit(ses, ses->logfile, ses->logmode);
-
-			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", arg2);
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
-		}
-	}
-	else if (is_abbrev(arg1, "OFF"))
-	{
-		if (ses->logfile)
-		{
-			DEL_BIT(ses->logmode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
-
-			fclose(ses->logfile);
-			ses->logfile = NULL;
-			show_message(ses, LIST_COMMAND, "#LOG: LOGGING TURNED OFF.");
-		}
-		else
-		{
-			show_message(ses, LIST_COMMAND, "#LOG: LOGGING ALREADY TURNED OFF.");
-		}
-	}
-	else
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LOG {APPEND|OVERWRITE|OFF} {<FILENAME>}");
-	}
-	return ses;
 }
 
 void write_html_header(struct session *ses, FILE *fp)

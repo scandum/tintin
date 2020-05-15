@@ -193,6 +193,37 @@ struct advertisement_type advertisement_table[] =
                 "<178>To connect to New Worlds Ateraan enter: #session nwa ateraan.com 4002\n"
                 "\n"
 	},
+
+	{
+		1400000000,
+ 		1800000000,
+		100,
+
+		"\n"
+		"<138>              Realm of Utopian Dreams (RUD)  -  http://rudmud.com\n"
+		"\n"
+		"<078>RUD is a unique ROM-based high-fantasy MUD with character choices for many play\n"
+		"<078>styles from hack-n-slash to roleplay. Each of the races and classes offer\n"
+		"<078>unique spells and skills, unlocked through a tiered remort system with\n"
+		"<078>customization through religion memberships and epic advancements. RUD started\n"
+		"<078>in 1996, always seeking new adventurers to become the next hero, build a home,\n"
+		"<078>start a shop, and eventually become Nobles of the Realm! New players to RUD can\n"
+		"<078>be just as successful as 20+ year veterans. We run quests, plots, and annual\n"
+		"<078>festivals in an ever evolving world. Come build Lantarea with us!\n"
+		"\n"
+		"<178>To connect to Realm of Utopian Dreams enter: #session rud rudmud.com 1701\n"
+		"\n",
+
+		"\n"
+		"<138>Realms of Utopian Dreams (RUD)\n"
+		"<168>http://rudmud.com\n"
+		"\n"
+		"<078>RUD is a unique ROM-based high-fantasy MUD with character choices for many play styles from hack-n-slash to roleplay. Each of the races and classes offer unique spells and skills, unlocked through a tiered remort system with customization through religion memberships and epic advancements. RUD started in 1996, always seeking new adventurers to become the next hero, build a home, start a shop, and eventually become Nobles of the Realm! New players to RUD can be just as successful as 20+ year veterans. We run quests, plots, and annual festivals in an ever evolving world. Come build Lantarea with us!\n"
+		"\n"
+		"<178>To connect to Realm of Utopian Dreams enter: #session rud rudmud.com 1701\n"
+		"\n"
+	},
+
 /*
 	{
 		1400000000,  // 2014
@@ -254,37 +285,7 @@ struct advertisement_type advertisement_table[] =
 	},
 */
 
-/*
-	{
-		1400000000,
- 		1800000000,
-		100,
 
-		"\n"
-		"<138>              Realm of Utopian Dreams (RUD)  -  http://rudmud.com\n"
-		"\n"
-		"<078>RUD is a custom hack'n'slash MUD, with character choices for a range of combat\n"
-		"<078>and roleplay. Every race and class has many unique spells and skills, and many\n"
-		"<078>advanced remort options. We're a fantasy MUD started in 1996 seeking new\n"
-		"<078>adventurers to become the next hero, buy a home, start a shop, and eventually\n"
-		"<078>become Nobles of the Realm! Experience a classic game showcasing the content and\n"
-		"<078>features we've built up. The Immortals are ready to help build quests and new\n"
-		"<078>features for the curious. Come visit Lantarea and explore your dream world. We\n"
-		"<078>have an OLC, auction house, and noble system! Explore class-only areas and more!\n"
-		"\n"
-		"<178>To connect to Realm of Utopian Dreams enter: #session rud rudmud.com 1701\n"
-		"\n",
-
-		"\n"
-		"<138>Realms of Utopian Dreams (RUD)\n"
-		"<168>http://rudmud.com\n"
-		"\n"
-		"<078>RUD is a custom hack'n'slash MUD, with character choices for a range of combat and roleplay. Every race and class has many unique spells and skills, and many advanced remort options. We're a fantasy MUD started in 1996 seeking new adventurers to become the next hero, buy a home, start a shop, and eventually become Nobles of the Realm! Experience a classic game showcasing the content and features we've built up. The Immortals are ready to help build quests and new features for the curious. Come visit Lantarea and explore your dream world. We have an OLC, auction house, and noble system! Explore class-only areas and more!\n"
-		"\n"
-		"<178>To connect to Realm of Utopian Dreams enter: #session rud rudmud.com 1701\n"
-		"\n"
-	},
-*/
 /*
 	{
 		1400000000,

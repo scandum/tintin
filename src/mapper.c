@@ -77,7 +77,6 @@ extern void update_terrain(struct session *ses);
 DO_COMMAND(do_map)
 {
 	int cnt;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
 	push_call("do_map(%p,%p)",ses,arg);
 
@@ -85,6 +84,8 @@ DO_COMMAND(do_map)
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " MAP OPTIONS ");
 
 		for (cnt = 0 ; *map_table[cnt].fun != NULL ; cnt++)
@@ -129,10 +130,6 @@ DO_COMMAND(do_map)
 						SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
 					}
 				}
-				pop_call();
-
-				push_call("MAP_%s(%p,%p,%p,%p,%p)",map_table[cnt].name,ses,arg,arg1,arg2);
-
 				map_table[cnt].fun (ses, arg, arg1, arg2);
 
 				pop_call();
@@ -140,7 +137,7 @@ DO_COMMAND(do_map)
 			}
 		}
 
-		do_map(ses, "");
+		goto info;
 	}
 	pop_call();
 	return ses;
@@ -184,12 +181,12 @@ void create_map(struct session *ses, char *arg)
 		ses->map->global_exit->weight = 1;
 		ses->map->global_exit->color  = strdup("");
 
-	do_map(ses, "{COLOR} {RESET}");
+	execute(ses, "#MAP {COLOR} {RESET}");
 
 	ses->map->display_stamp = 1;
 	ses->map->search->stamp = 1;
 
-	do_map(ses, "TERRAIN {} { }");
+	execute(ses, "#MAP TERRAIN {} { }");
 /*
 	do_map(ses, "TERRAIN BEACH        <eea>~");
 	do_map(ses, "TERRAIN CITY         <ebf>-");
@@ -240,7 +237,7 @@ void create_map(struct session *ses, char *arg)
 	}
 
 	gtd->level->quiet++;
-	do_map(ses, "LEGEND RESET");
+	execute(ses, "#MAP LEGEND RESET");
 	gtd->level->quiet--;
 
 	pop_call();
@@ -267,10 +264,17 @@ int delete_map(struct session *ses)
 		del_undo(ses, ses->map->undo_head);
 	}
 
+//	delete_exit(ses, 0, ses->map->global_exit);
+
 	free(ses->map->global_exit->name);
 	free(ses->map->global_exit->cmd);
 	free(ses->map->global_exit->data);
+	free(ses->map->global_exit->color);
+
+	free(ses->map->grid_rooms);
+	free(ses->map->grid_vnums);
 	free(ses->map->global_exit);
+	free(ses->map->search);
 
 	free(ses->map);
 
@@ -357,6 +361,21 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 	return newroom;
 }
 
+void delete_room_data(struct room_data *room)
+{
+	free(room->area);
+	free(room->color);
+	free(room->id);
+	free(room->name);
+	free(room->symbol);
+	free(room->desc);
+	free(room->note);
+	free(room->terrain);
+	free(room->data); 
+
+	return;
+}
+	
 void delete_room(struct session *ses, int room, int exits)
 {
 	struct exit_data *exit, *exit_next;
@@ -369,15 +388,7 @@ void delete_room(struct session *ses, int room, int exits)
 		delete_exit(ses, room, ses->map->room_list[room]->f_exit);
 	}
 
-	free(ses->map->room_list[room]->area);
-	free(ses->map->room_list[room]->color);
-	free(ses->map->room_list[room]->id);
-	free(ses->map->room_list[room]->name);
-	free(ses->map->room_list[room]->symbol);
-	free(ses->map->room_list[room]->desc);
-	free(ses->map->room_list[room]->note);
-	free(ses->map->room_list[room]->terrain);
-	free(ses->map->room_list[room]->data); 
+	delete_room_data(ses->map->room_list[room]);
 
 	free(ses->map->room_list[room]);
 
@@ -429,6 +440,7 @@ struct exit_data *create_exit(struct session *ses, int vnum, char *format, ...)
 	{
 		free(newexit);
 
+		pop_call();
 		return find_exit(ses, vnum, buf);
 	}
 	newexit->name = strdup(buf);
@@ -465,12 +477,16 @@ struct exit_data *create_exit(struct session *ses, int vnum, char *format, ...)
 
 	show_message(ses, LIST_COMMAND, "#MAP CREATE EXIT {%s} {%s} TO ROOM %d.", newexit->name, newexit->cmd, newexit->vnum);
 
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "MAP CREATE EXIT", ntos(room->vnum), newexit->name,newexit->cmd, ntos(newexit->vnum));
+
 	pop_call();
 	return newexit;
 }
 
 void delete_exit(struct session *ses, int room, struct exit_data *exit)
 {
+	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "MAP DELETE EXIT", ntos(room), exit->name, exit->cmd, ntos(exit->vnum));
+
 	free(exit->name);
 	free(exit->cmd);
 	free(exit->data);
@@ -552,11 +568,8 @@ char *get_exit_color(struct session *ses, int room, struct exit_data *exit)
 		pop_call();
 		return ses->map->color[MAP_COLOR_EXIT];
 	}
-	else
-	{
-		pop_call();
-		return "";
-	}
+	pop_call();
+	return "";
 }
 
 int revdir_to_grid(int dir)
@@ -1774,7 +1787,7 @@ int follow_map(struct session *ses, char *argument)
 
 			vnum = tunnel_void(ses, in_room, exit->vnum, exit->dir);
 
-			check_all_events(ses, SUB_ARG, 0, 5, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name);
+			check_all_events(ses, SUB_ARG, 0, 4, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
 		}
 		pop_call();
 		return 0;
@@ -1815,7 +1828,7 @@ int follow_map(struct session *ses, char *argument)
 			}
 		}
 
-		check_all_events(ses, SUB_ARG, 0, 5, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name);
+		check_all_events(ses, SUB_ARG, 0, 4, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
 
 		add_undo(ses, "%d %d %d", vnum, in_room, MAP_UNDO_MOVE);
 
@@ -3735,7 +3748,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 		ptb = buf;
 
-		while (*buf)
+		while (*ptb)
 		{
 			ptb = sub_arg_in_braces(ses, ptb, flags, GET_ONE, SUB_NONE);
 
@@ -4826,20 +4839,20 @@ void explore_path(struct session *ses, int run, char *arg1, char *arg2)
 	}
 }
 
-void map_mouse_handler(struct session *ses, char *arg1, char *arg2, int x, int y, int height, int width)
+void map_mouse_handler(struct session *ses, char *arg1, char *arg2, int row, int col, int rev_row, int rev_col, int height, int width)
 {
 	char exit[10];
-	int max_x, max_y;
-	int top_row, top_col, bot_row, bot_col, rows, cols, char_height;
+	int x, y, max_x, max_y;
+	int top_row, top_col, bot_row, bot_col, rows, cols, char_height, vnum = 0;
 
-	push_call("map_mouse_handler(%p,%p,%p,%d,%d)",ses,arg1,arg2,x,y);
+	push_call("map_mouse_handler(%p,%p,%p,%d,%d)",ses,arg1,arg2,row,col);
 
 	if (ses->map == NULL || !HAS_BIT(ses->map->flags, MAP_FLAG_VTMAP) || ses->map->room_list[ses->map->in_room] == NULL)
 	{
 		pop_call();
 		return;
 	}
-
+/*
 	if (!HAS_BIT(ses->map->flags, MAP_FLAG_ASCIIGRAPHICS))
 	{
 		if (arg1 && arg2)
@@ -4847,6 +4860,10 @@ void map_mouse_handler(struct session *ses, char *arg1, char *arg2, int x, int y
 //			do_screen(ses, "{RAISE} {SCREEN MOUSE LOCATION}");
 		}
 	}
+*/
+
+	x = col;
+	y = row;
 
 	exit[0] = 0;
 
@@ -4975,17 +4992,26 @@ void map_mouse_handler(struct session *ses, char *arg1, char *arg2, int x, int y
 		return;
 	}
 
-	if (ses->map->grid_rooms[x + 1 + max_x * (y - 1)])
+	vnum = ses->map->grid_rooms[x + 1 + max_x * (y - 1)] ? ses->map->grid_rooms[x + 1 + max_x * (y - 1)]->vnum : 0;
+
+	if (arg1 && arg2)
+	{
+		check_all_events(ses, SUB_ARG, 2, 6, "MAP REGION %s %s", arg1, arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), ntos(vnum), exit);
+	}
+
+	if (vnum)
 	{
 		if (arg1 && arg2)
 		{
-			check_all_events(ses, SUB_ARG, 2, 2, "MAP %s %s", arg1, arg2, ntos(ses->map->grid_rooms[x + 1 + max_x * (y - 1)]->vnum), exit);
+			check_all_events(ses, SUB_ARG, 2, 6, "MAP %s %s", arg1, arg2, ntos(vnum), exit, ntos(rev_row), ntos(rev_col), ntos(vnum), exit);
+			check_all_events(ses, SUB_ARG, 2, 6, "MAP ROOM %s %s", arg1, arg2, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), ntos(vnum), exit);
 		}
 		else
 		{
-			check_all_events(ses, SUB_ARG, 0, 2, "MAP MOUSE LOCATION", ntos(ses->map->grid_rooms[x + 1 + max_x * (y - 1)]->vnum), exit);
+			check_all_events(ses, SUB_ARG, 0, 2, "MAP MOUSE LOCATION", ntos(vnum), exit, ntos(rev_row), ntos(rev_col), ntos(vnum), exit);
 		}
 	}
+		
 	pop_call();
 	return;
 }
@@ -5026,7 +5052,10 @@ DO_MAP(map_at)
 
 	if (new_room == 0)
 	{
-		new_room = find_location(ses, arg1);
+		if (ses->map->in_room)
+		{
+			new_room = find_location(ses, arg1);
+		}
 
 		if (new_room == 0)
 		{
@@ -5043,6 +5072,7 @@ DO_MAP(map_at)
 	if (ses->map)
 	{
 		ses->map->in_room = ses->map->at_room;
+		ses->map->at_room = 0;
 	}
 }
 
@@ -5196,7 +5226,7 @@ DO_MAP(map_delete)
 			return;
 		}
 	}
-	else
+	else if (ses->map->in_room)
 	{
 		exit = find_exit(ses, ses->map->in_room, arg1);
 
@@ -5207,17 +5237,23 @@ DO_MAP(map_delete)
 
 		if (exit == NULL)
 		{
-			show_error(ses, LIST_COMMAND, "#MAP: No exit with that name found");
+			show_error(ses, LIST_COMMAND, "#MAP DELETE: No exit with that name found");
 			
 			return;
 		}
 
 		room = exit->vnum;
 	}
-
-	if (room == ses->map->in_room)
+	else
 	{
-		show_error(ses, LIST_COMMAND, "#MAP: You must first leave the room you're trying to delete");
+		show_error(ses, LIST_COMMAND, "#MAP DELETE: You must first enter the map");
+
+		return;
+	}
+
+	if (room == ses->map->in_room || room == ses->map->at_room)
+	{
+		show_error(ses, LIST_COMMAND, "#MAP DELETE: You must first leave the room you're trying to delete");
 		
 		return;
 	}
@@ -5427,17 +5463,19 @@ void exit_edit(struct session *ses, struct exit_data *exit, char *arg, char *arg
 	{
 		tintin_printf2(ses, "      color: %s", str_convert_meta(exit->color, TRUE));
 		tintin_printf2(ses, "    command: %s", exit->cmd);
+		tintin_printf2(ses, "       data: %s", exit->data);
 		tintin_printf2(ses, "destination: %d", tunnel_void(ses, ses->map->in_room, exit->vnum, exit->dir));
 		tintin_printf2(ses, "  direction: %d", exit->dir);
 		tintin_printf2(ses, "      flags: %d", exit->flags);
-		tintin_printf2(ses, "    get/set: %s", exit->data);
 		tintin_printf2(ses, "       name: %s", exit->name);
 		tintin_printf2(ses, "       vnum: %d", exit->vnum);
 		tintin_printf2(ses, "     weight: %.3f", exit->weight);
 	}
 	else if (is_abbrev(arg2, "COLOR"))
 	{
-		RESTRING(exit->color, arg3);
+		translate_color_names(ses, arg3, arg2);
+
+		RESTRING(exit->color, arg2);
 
 		show_message(ses, LIST_COMMAND, "#MAP %s {%s} : COLOR SET TO {%s}.", arg, arg1, exit->color);
 	}
@@ -5495,7 +5533,7 @@ void exit_edit(struct session *ses, struct exit_data *exit, char *arg, char *arg
 	{
 		if (*arg3)
 		{
-			set_nest_node_ses(ses, arg3, "{command}{%s}{destination}{%d}{dir}{%d}{flags}{%d}{name}{%s}{vnum}{%d}{weight}{%.3f}", exit->cmd, tunnel_void(ses, ses->map->in_room, exit->vnum, exit->dir), exit->dir, exit->flags, exit->name, exit->vnum, exit->weight);
+			set_nest_node_ses(ses, arg3, "{color}{%s}{command}{%s}{destination}{%d}{dir}{%d}{flags}{%d}{name}{%s}{vnum}{%d}{weight}{%.3f}", exit->color, exit->cmd, tunnel_void(ses, ses->map->in_room, exit->vnum, exit->dir), exit->dir, exit->flags, exit->name, exit->vnum, exit->weight);
 		}
 		else
 		{
@@ -6431,8 +6469,8 @@ void map_legend_index(struct session *ses, char *arg, int head, int tail)
 		{
 			numbertocharacter(ses, esc);
 		}
-		snprintf(ses->map->legend[cnt],     LEGEND_SIZE - 1, "%s", esc);
-		snprintf(ses->map->legend_raw[cnt], LEGEND_SIZE - 1, "%s", raw);
+		sprintf(ses->map->legend[cnt],     "%.*s", LEGEND_SIZE - 1, esc);
+		sprintf(ses->map->legend_raw[cnt], "%.*s", LEGEND_SIZE - 1, raw);
 
 		if (*arg == 0)
 		{
@@ -6786,8 +6824,16 @@ DO_MAP(map_map)
 
 				logfile = fopen(arg4, "a");
 
-				loginit(ses, logfile, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
-
+				if (logfile)
+				{
+					loginit(ses, logfile, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
+				}
+				else
+				{
+					show_error(ses, LIST_COMMAND, "#ERROR: #MAP MAP {%s} {%s} {%s} FAILED TO OPEN FILE {%s}", arg1, arg2, arg3, arg4);
+					pop_call();
+					return;
+				}
 				break;
 
 			case 'd':
@@ -6797,6 +6843,7 @@ DO_MAP(map_map)
 				if (*arg4 == 0)
 				{
 					show_error(ses, LIST_COMMAND, "#SYNTAX: #MAP MAP {%s} {%s} {%s} {square}", arg1, arg2, arg3);
+
 					pop_call();
 					return;
 				}
@@ -6808,13 +6855,27 @@ DO_MAP(map_map)
 
 				logfile = fopen(arg4, "w");
 
-				loginit(ses, logfile, LOG_FLAG_OVERWRITE | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
-
+				if (logfile)
+				{
+					loginit(ses, logfile, LOG_FLAG_OVERWRITE | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
+				}
+				else
+				{
+					show_error(ses, LIST_COMMAND, "#ERROR: #MAP MAP {%s} {%s} {%s} FAILED TO OPEN FILE {%s}", arg1, arg2, arg3, arg4);
+					pop_call();
+					return;
+				}
 				break;
 
 			case 'l':
 			case 'L':
 				strcpy(arg3, "LIST");
+				break;
+
+			case 's':
+			case 'S':
+				strcpy(arg3, "SAVE");
+				strcpy(arg4, "SAVE");
 				break;
 
 			case 'v':
@@ -6887,7 +6948,7 @@ DO_MAP(map_map)
 		{
 			for (line = 1 ; line <= 3 ; line++)
 			{
-				str_cpy(&gtd->buf, ses->map->color[MAP_COLOR_BACK]);
+				gtd->buf = str_cpy_printf(&gtd->buf, "\e[m%s", ses->map->color[MAP_COLOR_BACK]);
 
 				for (x = 1 ; x < map_grid_x - 1 ; x++)
 				{
@@ -6896,23 +6957,31 @@ DO_MAP(map_map)
 
 				str_clone(&gtd->out, gtd->buf);
 
-				substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_LIT);
+				substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_SEC);
 
-				if (logfile)
+				switch (*arg3)
 				{
-					logit(ses, gtd->out, logfile, LOG_FLAG_LINEFEED);
-				}
-				else if (*arg3 == 'L')
-				{
-					cat_sprintf(arg1, "{%02d}{%s}", ++row, gtd->out);
-				}
-				else if (*arg3 == 'V' || *arg3 == 'D')
-				{
-					cat_sprintf(arg1, "%s\n", gtd->out);
-				}
-				else
-				{
-					tintin_puts2(ses, gtd->out);
+					case 'A':
+					case 'O':
+						logit(ses, gtd->out, logfile, LOG_FLAG_LINEFEED);
+						break;
+					
+					case 'L':
+						cat_sprintf(arg1, "{%02d}{%s}", ++row, gtd->out);
+						break;
+
+					case 'S':
+						cat_sprintf(arg1, "\n%s", gtd->out);
+						break;
+
+					case 'D':
+					case 'V':
+						cat_sprintf(arg1, "%s\n", gtd->out);
+						break;
+
+					default:
+						tintin_puts2(ses, gtd->out);
+						break;
 				}
 			}
 		}
@@ -6923,7 +6992,7 @@ DO_MAP(map_map)
 		{
 			for (line = 1 ; line <= 2 ; line++)
 			{
-				str_cpy(&gtd->buf, ses->map->color[MAP_COLOR_BACK]);
+				str_cpy_printf(&gtd->buf, "\e[m%s", ses->map->color[MAP_COLOR_BACK]);
 
 				for (x = 1 ; x < map_grid_x - 1 ; x++)
 				{
@@ -6937,28 +7006,35 @@ DO_MAP(map_map)
 					{
 						str_cat(&gtd->buf, draw_room(ses, ses->map->grid_rooms[x + map_grid_x * y], line, x, y));
 					}
-//					str_cat(&gtd->buf, draw_room(ses, ses->map->grid_rooms[x + map_grid_x * y], line, x, y));
 				}
 
 				str_clone(&gtd->out, gtd->buf);
 
 				substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_LIT);
 
-				if (logfile)
+				switch (*arg3)
 				{
-					fprintf(logfile, "%s\n", gtd->out);
-				}
-				else if (*arg3 == 'L')
-				{
-					cat_sprintf(arg1, "{%02d}{%s\e[0m}", ++row, gtd->out);
-				}
-				else if (*arg3 == 'V' || *arg3 == 'D')
-				{
-					cat_sprintf(arg1, "%s\e[0m\n", gtd->out);
-				}
-				else
-				{
-					tintin_puts2(ses, gtd->out);
+					case 'A':
+					case 'O':
+						fprintf(logfile, "%s\n", gtd->out);
+						break;
+
+					case 'L':
+						cat_sprintf(arg1, "{%02d}{%s\e[0m}", ++row, gtd->out);
+						break;
+
+					case 'S':
+						cat_sprintf(arg1, "\n%s\e[0m", gtd->out);
+						break;
+
+					case 'D':
+					case 'V':
+						cat_sprintf(arg1, "%s\e[0m\n", gtd->out);
+						break;
+
+					default:
+						tintin_puts2(ses, gtd->out);
+						break;
 				}
 			}
 		}
@@ -6969,7 +7045,7 @@ DO_MAP(map_map)
 		{
 			for (line = 1 ; line <= 2 ; line++)
 			{
-				str_cpy(&gtd->buf, ses->map->color[MAP_COLOR_BACK]);
+				str_cpy_printf(&gtd->buf, "\e[m%s", ses->map->color[MAP_COLOR_BACK]);
 
 				for (x = 1 ; x < map_grid_x - 1 ; x++)
 				{
@@ -6980,21 +7056,29 @@ DO_MAP(map_map)
 
 				substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_LIT);
 
-				if (logfile)
+				switch (*arg3)
 				{
-					fprintf(logfile, "%s\n", gtd->out);
-				}
-				else if (*arg3 == 'L')
-				{
-					cat_sprintf(arg1, "{%02d}{%s\e[0m}", ++row, gtd->out);
-				}
-				else if (*arg3 == 'V' || *arg3 == 'D')
-				{
-					cat_sprintf(arg1, "%s\e[0m\n", gtd->out);
-				}
-				else
-				{
-					tintin_puts2(ses, gtd->out);
+					case 'A':
+					case 'O':
+						fprintf(logfile, "%s\n", gtd->out);
+						break;
+
+					case 'L':
+						cat_sprintf(arg1, "{%02d}{%s\e[0m}", ++row, gtd->out);
+						break;
+
+					case 'S':
+						cat_sprintf(arg1, "\n%s\e[0m", gtd->out);
+						break;
+
+					case 'D':
+					case 'V':
+						cat_sprintf(arg1, "%s\e[0m\n", gtd->out);
+						break;
+
+					default:
+						tintin_puts2(ses, gtd->out);
+						break;
 				}
 			}
 		}
@@ -7003,7 +7087,7 @@ DO_MAP(map_map)
 	{
 		for (y = map_grid_y - 2 ; y >= 1 ; y--)
 		{
-			str_cpy(&gtd->buf, ses->map->color[MAP_COLOR_BACK]);
+			str_cpy_printf(&gtd->buf, "\e[m%s", ses->map->color[MAP_COLOR_BACK]);
 
 			for (x = 1 ; x < map_grid_x - 1 ; x++)
 			{
@@ -7012,40 +7096,55 @@ DO_MAP(map_map)
 
 			substitute(ses, gtd->buf, gtd->out, SUB_COL|SUB_CMP|SUB_LIT);
 
-			if (logfile)
+			switch (*arg3)
 			{
-				fprintf(logfile, "%s\n", gtd->out);
-			}
-			else if (*arg3 == 'L')
-			{
-				cat_sprintf(arg1, "{%02d}{%s}", ++row, gtd->out);
-			}
-			else if (*arg3 == 'V' || *arg3 == 'D')
-			{
-				cat_sprintf(arg1, "%s\n", gtd->out);
-			}
-			else
-			{
-				tintin_puts2(ses, gtd->out);
+				case 'A':
+				case 'O':
+					fprintf(logfile, "%s\n", gtd->out);
+					break;
+				
+				case 'L':
+					cat_sprintf(arg1, "{%02d}{%s}", ++row, gtd->out);
+					break;
+
+				case 'S':
+					cat_sprintf(arg1, "\n%s", gtd->out);
+					break;
+
+				case 'D':
+				case 'V':
+					cat_sprintf(arg1, "%s\n", gtd->out);
+					break;
+				
+				default:
+					tintin_puts2(ses, gtd->out);
+					break;
 			}
 		}
 	}
 
-	if (logfile)
+	switch (*arg3)
 	{
-		fclose(logfile);
-	}
-	else if (*arg3 == 'D')
-	{
-		draw_map(ses, 1, 2, 3, 4, 5, 6, 7, "", arg4, arg2, arg1);
-	}
-	else if (*arg3 == 'L')
-	{
-		set_nest_node_ses(ses, arg4, "%s", arg1);
-	}
-	else if (*arg3 == 'V')
-	{
-		set_nest_node_ses(ses, arg4, "%s", arg1);
+		case 'A':
+		case 'O':
+			fclose(logfile);
+			break;
+
+		case 'D':
+			draw_arg(ses, 1, 2, 3, 4, 5, 6, 7, "", arg4, arg2, arg1);
+			break;
+
+		case 'S':
+			str_cpy(&gtd->buf, arg1);
+			break;
+
+		case 'L':
+			set_nest_node_ses(ses, arg4, "%s", arg1);
+			break;
+
+		case 'V':
+			set_nest_node_ses(ses, arg4, "%s", arg1);
+			break;
 	}
 
 	pop_call();
@@ -8171,6 +8270,8 @@ DO_MAP(map_unlink)
 
 DO_MAP(map_update)
 {
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
 	if (ses->map == NULL)
 	{
 		show_message(ses, LIST_COMMAND, "#MAP UPDATE: NO MAP DATA.");
@@ -8189,9 +8290,20 @@ DO_MAP(map_update)
 	}
 	else
 	{
-		show_message(ses, LIST_COMMAND, "#MAP UPDATE: OK.");
-		
-		SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
+		if (is_abbrev(arg1, "NOW"))
+		{
+			show_message(ses, LIST_COMMAND, "#MAP UPDATE: MAP UPDATING NOW.");
+
+			DEL_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
+
+			show_vtmap(ses);
+		}
+		else
+		{
+			show_message(ses, LIST_COMMAND, "#MAP UPDATE: MAP SCHEDULED FOR UPDATE.");
+
+			SET_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
+		}
 	}
 }
 

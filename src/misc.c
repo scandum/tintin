@@ -29,8 +29,6 @@
 
 DO_COMMAND(do_bell)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -109,7 +107,7 @@ DO_COMMAND(do_bell)
 
 DO_COMMAND(do_commands)
 {
-	char buf[BUFFER_SIZE] = { 0 }, add[BUFFER_SIZE];
+	char buf[BUFFER_SIZE] = { 0 };
 	int cmd;
 
 	tintin_header(ses, " %s ", "COMMANDS");
@@ -120,20 +118,25 @@ DO_COMMAND(do_commands)
 		{
 			continue;
 		}
-		if ((int) strlen(buf) + 20 > gtd->screen->cols)
+
+		if (strip_vt102_strlen(ses, buf) + 20 > gtd->screen->cols)
 		{
 			tintin_puts2(ses, buf);
 			buf[0] = 0;
 		}
-		sprintf(add, "%20s", command_table[cmd].name);
-		strcat(buf, add);
+		if (command_table[cmd].type == TOKEN_TYPE_COMMAND)
+		{
+			cat_sprintf(buf, "%s%20s", COLOR_COMMAND, command_table[cmd].name);
+		}
+		else
+		{
+			cat_sprintf(buf, "%s%20s", COLOR_STATEMENT, command_table[cmd].name);
+		}
 	}
 	if (buf[0])
 	{
 		tintin_puts2(ses, buf);
 	}
-	tintin_header(ses, "");
-
 	return ses;
 }
 
@@ -214,8 +217,6 @@ DO_COMMAND(do_echo)
 
 DO_COMMAND(do_end)
 {
-	char arg1[BUFFER_SIZE];
-
 	if (*arg)
 	{
 		sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC|SUB_LNF);
@@ -238,8 +239,6 @@ DO_COMMAND(do_nop)
 
 DO_COMMAND(do_send)
 {
-	char arg1[BUFFER_SIZE];
-
 	push_call("do_send(%p,%p)",ses,arg);
 
 	get_arg_in_braces(ses, arg, arg1, GET_ALL);
@@ -252,24 +251,34 @@ DO_COMMAND(do_send)
 
 
 
-
 DO_COMMAND(do_test)
 {
-	char arg1[BUFFER_SIZE], arg2[100], arg3[100], arg4[100];
+	if (!strcmp(arg, "string"))
+	{
+		char *test = str_dup("\e[32m0 2 4 6 8 A C E");
+
+		test = str_ins_str(ses, &test, "\e[33mbli bli", 4, 11);
+
+		printf("test: [%s]\n", test);
+
+		str_free(test);
+		
+		return ses;
+	}
 
 	strcpy(arg2, "9");
 	strcpy(arg3, "<f0b8>");
 	strcpy(arg4, "1 9");
 
-	if (isdigit(arg[0]))
+	if (isdigit((int) arg[0]))
 	{
 		sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
 
-		if ((isxdigit(arg[1]) && isxdigit(arg[2]) && isxdigit(arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
+		if ((isxdigit((int) arg[1]) && isxdigit((int) arg[2]) && isxdigit((int) arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
 		{
 			sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
 
-			if (isdigit(arg[4]) && isdigit(arg[5]))
+			if (isdigit((int) arg[4]) && isdigit((int) arg[5]))
 			{
 				sprintf(arg4, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
 

@@ -42,7 +42,7 @@
 
 DO_COMMAND(do_run)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], temp[BUFFER_SIZE], file[BUFFER_SIZE];
+	char temp[BUFFER_SIZE];
 	int desc, pid;
 	struct winsize size;
 
@@ -50,7 +50,7 @@ DO_COMMAND(do_run)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, file, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
@@ -79,7 +79,7 @@ DO_COMMAND(do_run)
 			break;
 
 		default:
-			sprintf(temp, "{%s} {%d} {%s}", arg2, pid, file);
+			sprintf(temp, "{%s} {%d} {%s}", arg2, pid, arg3);
 			ses = new_session(ses, arg1, temp, desc, 0);
 			break;
 	}
@@ -89,7 +89,7 @@ DO_COMMAND(do_run)
 
 DO_COMMAND(do_script)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], *cptr, buf[BUFFER_SIZE], var[BUFFER_SIZE], tmp[BUFFER_SIZE];
+	char *cptr, buf[BUFFER_SIZE], var[BUFFER_SIZE], tmp[BUFFER_SIZE];
 	FILE *script;
 	int index;
 
@@ -272,8 +272,6 @@ DO_COMMAND(do_system)
 
 DO_COMMAND(do_system)
 {
-	char arg1[BUFFER_SIZE];
-
 	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
@@ -308,7 +306,7 @@ DO_COMMAND(do_system)
 DO_COMMAND(do_textin)
 {
 	FILE *fp;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], buffer[BUFFER_SIZE], *cptr;
+	char buffer[BUFFER_SIZE], *cptr;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);

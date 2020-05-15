@@ -41,13 +41,14 @@ int get_daemon_dir(struct session *ses, char *filename);
 
 DO_COMMAND(do_daemon)
 {
-	char arg1[BUFFER_SIZE];
 	int cnt;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
+		info:
+
 		tintin_header(ses, " DAEMON OPTIONS ");
 
 		for (cnt = 0 ; *daemon_table[cnt].fun != NULL ; cnt++)
@@ -73,7 +74,7 @@ DO_COMMAND(do_daemon)
 
 		if (*daemon_table[cnt].name == 0)
 		{
-			do_daemon(ses, "");
+			goto info;
 		}
 		else
 		{
@@ -185,7 +186,7 @@ DO_DAEMON(daemon_attach)
 		return;
 	}
 
-	sprintf(sock_file, "%s/%s.s", filename, arg2);
+	sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
 
 	if (access(sock_file, F_OK) == -1)
 	{
@@ -537,7 +538,7 @@ DO_DAEMON(daemon_kill)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%s/%s.s", filename, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
 
 					show_message(ses, LIST_COMMAND, "#DAEMON {%s} KILLED.", sock_file, pid);
 
@@ -607,7 +608,7 @@ DO_DAEMON(daemon_list)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%s/%s.s", filename, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
 
 					tintin_printf2(ses, "%-40s [%6d]", sock_file, pid);
 				}
