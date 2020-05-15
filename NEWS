@@ -1,19 +1,6 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
-TinTin++ 2.02.02
-----------------
-01) Most commands in a command file are executed quietly when using #read,
-    which includes #split. Use #line verbose #split to have split lines
-    displayed when the command is executed through #read.
-
-
-TinTin++ 2.02.01
-----------------
-
-01) In order to save configs and pathdirs you must use #class CONFIG write
-    <filename> and #class PATHDIR write <filename>
-
 
 TinTin++ 2.02.00
 ----------------

@@ -1,3 +1,64 @@
+Mar 2020        2.02.03
+------------------------------------------------------------------------------
+
+data.c          Added SESSION_ACTIVE field to #info session save
+
+mapper.c        Added MAP CREATE EXIT and MAP DELETE EXIT events.
+
+history.c       Added #history get <variable> <start> <end> option.
+
+draw.c          Added #draw map <square> option.
+
+event.c         Added MAP ROOM and MAP REGION mouse events. MAP ROOM only
+                triggers when the mouse is above a room, MAP REGION triggers
+                anywhere in the map region, as defined by default or as
+                defined with #map offset.
+
+files.c         #read will now warn if there is a possibly missing semicolon.
+
+config.c        Can add non-colors in #config command_color by escaping the
+                characters. Example: #con command <178>\>\ <128>
+
+line.c          Added #line multishot {number} {argument} which should make
+                all created triggers fire the given number of times before
+                expiring.
+
+line.c          Added #line local {argument} which should make all indirectly
+                created variables local.
+
+variable.c      Updated %h to allow #echo %+40h {some text}
+
+update.c        Added the DISPLAY UPDATE event which is triggered right
+                before the final display update when new data has become
+                available.
+
+port.c          Added PORT INITIALIZED and PORT UNINITIALIZED events, both
+                can be prefixed with GAG to suppress the default system
+                message.
+
+path.c          Updated #path unzip to take the new speedwalk format.
+
+telopt_client.c Added IAC SB NAWS event, can be caught.
+
+split.c         Added SCREEN SPLIT FILL event, which triggers on the
+                split line drawing routine, can be caught.
+
+memory.c        Added a custom memory stack, still a work in progress.
+
+utf8.c          Added #config charset CP1251TOUTF8
+
+cursor.c        Added #cursor {preserve macro} which when called from within
+                a macro will preserve the macro state. Example:
+
+                #macro {\cg} {#showme e: end\nh: home;#cursor preserve macro}
+                #macro {\cge} {#showme end}
+                #macro {\cgh} {#showme home}
+
+cursor.c        Added #cursor {reset macro} which when called from within
+                a macro will reset the macro state.
+
+path.c          Added #path get {LENGTH|POSITION} <variable>
+
 Jan 2020        2.02.02
 ------------------------------------------------------------------------------
 
@@ -52,7 +113,7 @@ list.c          #list order sorts existing lists numerically.
 
 list.c          #list sort sorts existing lists alphabetically.
 
-sort.c          Added some fast sorting routines.
+sort.c          Added sorting routines utilizing quadsort.
 
 list.c          Added #list reverse option.
 

@@ -345,3 +345,158 @@
 		#1 {$paste}
 	}
 }
+
+#nop -------------------------------------------------------------------------
+#nop This macro allows pasting multi-line code fragments on pressing ctrl-v
+#nop followed by pressing ctrl-enter
+#nop -------------------------------------------------------------------------
+
+#macro {\e[13;5u}
+{
+	#cursor get tmp;
+	#cursor home;
+	#cursor set {#line sub esc };
+	#cursor enter
+}
+
+#nop -------------------------------------------------------------------------
+#nop This event will cause tintin to always report your screen width as 80
+#nop columns
+#nop -------------------------------------------------------------------------
+
+#event {CATCH IAC DO NAWS}
+{
+	#screen get rows ROWS;
+	#format ROWS %a $ROWS;
+
+	#send {\xFF\xFB\x1F\xFF\xFA\x1F\x50\x00${ROWS}\x00\xFF\xF0\}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Remove duplicate lines and add a counter. Does not work in gts because
+#nop it uses named delays.
+#nop -------------------------------------------------------------------------
+
+#var repeat[str] {}
+#var repeat[cnt] 1
+
+#act {~%+}
+{
+	#if {{%0} === {$repeat[str]}}
+	{
+		#math repeat[cnt] $repeat[cnt] + 1;
+		#delay {repeat} {repeat_show} {0}
+	};
+	#else
+	{
+		repeat_show;
+		#var repeat[str] {%0}
+	};
+	#line gag
+}
+
+#alias {repeat_check}
+{
+	#if {$repeat[cnt] <= 1}
+	{
+		#line ignore #showme {$repeat[str]}
+	};
+	#else
+	{
+		#line ignore #showme {($repeat[cnt]) %0}
+	};
+	#var repeat[str] {};
+	#var repeat[cnt] 1
+}
+
+#nop -------------------------------------------------------------------------
+#nop These macros will allow you to move around with the arrow keys while
+#nop holding down the control key. You can move ne by pressing arrow up +
+#nop right simultaniously. Move up by pressing arrow up + down simultaniously.
+#nop Move down by pressing arrow left + right simultaniously.
+#nop -------------------------------------------------------------------------
+
+#macro {\e[1;5A} {#cursor preserve;#delay {move} {#cursor reset_macro;n} {0.05}}
+#macro {\e[1;5C} {#cursor preserve;#delay {move} {#cursor reset_macro;e} {0.05}}
+#macro {\e[1;5B} {#cursor preserve;#delay {move} {#cursor reset_macro;s} {0.05}}
+#macro {\e[1;5D} {#cursor preserve;#delay {move} {#cursor reset_macro;w} {0.05}}
+
+#macro {\e[1;5A\e[1;5A} {#undelay {move};#cursor reset_macro;n;n}
+#macro {\e[1;5C\e[1;5C} {#undelay {move};#cursor reset_macro;e;e}
+#macro {\e[1;5B\e[1;5B} {#undelay {move};#cursor reset_macro;s;s}
+#macro {\e[1;5D\e[1;5D} {#undelay {move};#cursor reset_macro;w;w}
+
+#macro {\e[1;5A\e[1;5B} {#undelay {move};#cursor reset_macro;u}
+#macro {\e[1;5B\e[1;5A} {#undelay {move};#cursor reset_macro;u}
+
+#macro {\e[1;5C\e[1;5D} {#undelay {move};#cursor reset_macro;d}
+#macro {\e[1;5D\e[1;5C} {#undelay {move};#cursor reset_macro;d}
+
+#macro {\e[1;5A\e[1;5C} {#undelay {move};#cursor reset_macro;ne}
+#macro {\e[1;5C\e[1;5A} {#undelay {move};#cursor reset_macro;ne}
+
+#macro {\e[1;5B\e[1;5C} {#undelay {move};#cursor reset_macro;se}
+#macro {\e[1;5C\e[1;5B} {#undelay {move};#cursor reset_macro;se}
+
+#macro {\e[1;5D\e[1;5B} {#undelay {move};#cursor reset_macro;sw}
+#macro {\e[1;5B\e[1;5D} {#undelay {move};#cursor reset_macro;sw}
+
+#macro {\e[1;5D\e[1;5A} {#undelay {move};#cursor reset_macro;nw}
+#macro {\e[1;5A\e[1;5D} {#undelay {move};#cursor reset_macro;nw}
+
+#nop -------------------------------------------------------------------------
+#nop Place tells in the top 5 lines of the screen
+#nop -------------------------------------------------------------------------
+
+#VARIABLE {COMMS} {}
+
+#ACTION {~%1 tells you %2}
+{
+	addtowin %1 tells you %2
+}
+
+#ACTION {~%1 chats %2}
+{
+	addtowin %1 chats %2
+}
+
+#ALIAS {addtowin}
+{
+	#format temp {%w} {%0};
+
+	#loop {1} {&temp[]} {cnt}
+	{
+		#list COMMS ins -1 {$temp[$cnt]}
+	};
+	#while {&COMMS[] > 100}
+	{
+		#list COMMS del 1
+	};
+	showwin
+}
+
+#ALIAS {showwin}
+{
+	#screen clear square 1 1 5 -1;
+
+	#list temp create $COMMS[-5..-1];
+
+	#loop {1} {&temp[]} {cnt}
+	{
+		#regexp {$temp[$cnt]} {^$}
+		{
+			#nop
+		};
+		#else
+		{
+			#line ignore #showme {$temp[$cnt]} {$cnt} {1}
+		}
+	}
+}
+
+#ALIAS {test}
+{
+	#split 5 1;
+	#showme <138>Bubba tells you 'hello';
+	#showme <158>Pamela chats 'bye';
+}

@@ -285,37 +285,6 @@ HELP
 ----
     [ ]   Argument is optional.
     < >   Argument is required.
-    { }   Argument is literally the same.
+    { }   Argument is literal.
      |    Used to separate arguments with multiple options.
-
-CONFIGURATION DEFAULTS
-----------------------
-[AUTO TAB      ] [    5000] Scroll back buffer lines used for tab completion
-[BUFFER SIZE   ] [   20000] The size of the scroll back buffer
-[CHARSET       ] [    AUTO] The character set encoding used by TinTin++
-[CHILD LOCK    ] [     OFF] TinTin++ is not child locked.
-[COLOR MODE    ] [     256] The color code encoding used by TinTin++
-[COLOR PATCH   ] [     OFF] TinTin++ will leave color handling to the server
-[COMMAND COLOR ] [   <078>] The color of echoed commands
-[COMMAND ECHO  ] [      ON] Your commands are echoed in split mode
-[CONNECT RETRY ] [       0] Seconds TinTin++ sessions try to connect on failure
-[CONVERT META  ] [     OFF] TinTin++ doesn't convert meta prefixed characters
-[HISTORY SIZE  ] [    1000] The size of the command history
-[INHERITANCE   ] [      ON] The startup session is inherited
-[LOG           ] [     RAW] The data format of the log files
-[LOG LEVEL     ] [    HIGH] TinTin++ only logs high level mud data
-[MCCP          ] [      ON] MCCP is enabled.
-[MOUSE TRACKING] [     OFF] Your terminal does not generate mouse events.
-[PACKET PATCH  ] [    0.00] Seconds TinTin++ will try to patch broken packets
-[RANDOM SEED   ] [    AUTO] Seed value used for the random number engine
-[REPEAT ENTER  ] [     OFF] You send a carriage return on an enter
-[REPEAT CHAR   ] [       !] The character used for repeating commands
-[SCREEN READER ] [     OFF] You are not using a screen reader
-[SCROLL LOCK   ] [      ON] You do not see mud output while scrolling
-[SPEEDWALK     ] [     OFF] Your input is not scanned for speedwalk directions
-[TINTIN CHAR   ] [       #] The character used for TinTin++ commands
-[VERBATIM      ] [     OFF] Your keyboard input is parsed by TinTin++
-[VERBATIM CHAR ] [       \] The character used for unparsed text
-[VERBOSE       ] [     OFF] Messages while reading in a script file are gagged
-[WORDWRAP      ] [      ON] Mud output is word wrapped
 

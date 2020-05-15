@@ -1,18 +1,44 @@
 * BUGS
 
+  - Editor
+
+  - make #line quiet #line capture work.
+
+  - improve screen fill default
+
+  - Add screen and line clear VT events
+
+  - Add easy way to check if session is foreground.
+
+  - check that desktop dimensions are inherited by sessions
+
+  - example script for two sessions in one screen.
+
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - #message all log?
+  - if error pcre.h, need export C_INCLUDE_PATH= where it locate
+
+  - #write table variables a bit nicer.
+
+  - The #else command could follow a #foreach so as to create "for-else" loops
+    in case a loop is not broken.
+
+  - Add #line gag 2 +2 -2 support.
 
   - Work on VT2020 protocol (mouse click)
 
   - $var[%*][%*] support.
+  - make list sorting move nests as well
 
   - #line convert utf-8 support.
 
   - better #draw font support
 
   - case insensitive tabbing (partial start with rewrite)
+  - tabbing on directory structure.
+  - tabbing on dictionary
+
+  - Enhance #scan with a scan of the directory structure.
 
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
@@ -24,14 +50,28 @@
   - there might be a terrain density bug
   - provide the coordinate of the X on the vtmap.
   - add maze flag for maze handling.
+  - Request: aura around the character position. Something similar to terrain dense narrow. Could improve visibility of the character position on big resolutions. Furthermor config to allow modification of the character terrain. 
+  - vt map doesn't utilize all available space.
+  - Request: 'stop' #map center command, so i could see how the 'user' moves, rather map moves around him? 
+  - #map uninsert <vnum>
+  - make map spacing easier
+  - add configurable default symbol
+  - exit symbol?
+  - more data to #map list saving, and maybe easier sorting of tables.
+  - event for failed #map move.
+  - look into #send triggering follow map.
+  - truncate prompt longer than split.
 
-  - #draw table {1;2;3;4} {a;b;c;d} 
+  - Make actions with a priority of 0. trigger always
+
+  - #draw table {1;2;3;4} {a;b;c;d}
     #draw scrollbar
     #draw graph
     #draw button
     #draw titanic
 
   - proper vt100 skip detection for improper color codes.
+  - look into VT100 / #split hybrid mode.
 
   - I'll look and see if I can make { match both a { and \x7B as it's an annoying issue to debug.
 
@@ -43,17 +83,15 @@
 
   - class bla assign {stuff} feature?
   - add class specific debug
-  - allow #class save/load to memory.
   - better class event and class size handling ?
 
   - more potent long-click handling including held down ticks.
 
   - look into discord api / arachnos
-
+ 
   - better color syntax highlighting configuration.
 
-  - Add #log delete option.
-  - Fix #log helpfile and look into #log {remove} option for wintin++
+  - Add #log delete/remove option.
 
   - See about filling COMMAND_LIST table.
 
@@ -111,6 +149,16 @@
 
 --------------------------------------------------------------------------------
 
+* LOW PRIORITY
+
+  - multi-line buffer searches / captures / deletes
+
+  - add color based auto unwrap routine.
+
+  - Start of line anchors aren't working in #replace.
+
+--------------------------------------------------------------------------------
+
 * ROADMAP
 
   - dictionary +
@@ -132,6 +180,8 @@
   - GUI mode
 
   - Braille handling
+
+  - Allow converting tt++ scripts to C.
 
 --------------------------------------------------------------------------------
 
@@ -235,18 +285,6 @@
 
 - look into Launchpad PPA
 
-- Chat server script 'log' option to show last 15 messages.
-
-* Other stuff that's not overly interesting
-
-- look into getting rid of node->data
-
-- Look into old school automatic packet patching.
-
-- Add a ARG_LEN / ARG_MAX setting.
-
-- Add a #line skip option.
-
 --------------------------------------------------------------------------------
 
 * STUFF FOR A RAINY DAY
@@ -290,3 +328,11 @@
 - map sharing
 - cursor extension for vim
 - interactive script tutorial
+
+-------------------------------------------------------------------------------
+
+* ISSUES
+
+- TinTin++ only allows 1 action triggering per line.
+
+- TinTin++ probably should substitute escapes in if checks.
