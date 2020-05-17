@@ -56,6 +56,11 @@ DEFAULT_FILE_DIR = $(HOME)
 
 FFLAGS= $(F1) $(F6)
 
+HEADERS = \
+config.h \
+dict.h \
+telnet.h \
+tintin.h
 
 OFILES = \
 files.o help.o trigger.o input.o main.o misc.o net.o parse.o debug.o \
@@ -71,7 +76,7 @@ default: all
 all:	tt++
 
 
-tt++:	Makefile $(OFILES) tintin.h
+tt++:	Makefile $(OFILES)
 	@echo "---- Linking..."
 	$(CC) $(INCS) $(CFLAGS) $(FFLAGS) $(LDFLAGS) -o $@ $(OFILES) $(LIBS) ${LIBSOCKS}
 
@@ -89,7 +94,7 @@ install: tt++
 
 
 # Autocompile all .c files into .o files using this rule:
-.c.o:
+%.o: %.c $(HEADERS)
 	$(CC) $(PIPE) $(CFLAGS) $(FFLAGS) $(INCS) -c $<
 
 
