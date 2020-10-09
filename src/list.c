@@ -40,7 +40,7 @@ DO_COMMAND(do_list)
 	{
 		info:
 
-		tintin_header(ses, " LIST OPTIONS ");
+		tintin_header(ses, 80, " LIST OPTIONS ");
 
 		for (index = 0 ; *array_table[index].fun ; index++)
 		{
@@ -49,7 +49,7 @@ DO_COMMAND(do_list)
 				tintin_printf2(ses, "  [%-24s] %s", array_table[index].name, array_table[index].desc);
 			}
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 	}
 	else if (*arg2 == 0)
 	{
@@ -71,11 +71,18 @@ DO_COMMAND(do_list)
 		}
 		else
 		{
+			if (!valid_variable(ses, arg1))
+			{
+				show_error(ses, LIST_VARIABLE, "#LIST: INVALID VARIABLE NAME {%s}.", arg1);
+
+				return ses;
+			}
+
 			if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 			{
 				node = set_nest_node_ses(ses, arg1, "");
 			}
-			array_table[cnt].fun(ses, node, arg, arg1);
+			array_table[cnt].fun(ses, node, arg, arg1, arg2, arg3);
 		}
 	}
 	return ses;
@@ -83,7 +90,7 @@ DO_COMMAND(do_list)
 
 DO_ARRAY(array_add)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], *str;
+	char *str;
 	int index;
 
 	if (!list->root)
@@ -154,9 +161,10 @@ DO_ARRAY(array_collapse)
 
 DO_ARRAY(array_create)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], buf[BUFFER_SIZE], *str;
-
+	char *buf, *str;
 	int index = 1;
+
+	buf = str_alloc_stack(0);
 
 	substitute(ses, arg, buf, SUB_VAR|SUB_FUN);
 
@@ -197,7 +205,6 @@ DO_ARRAY(array_create)
 
 DO_ARRAY(array_delete)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int index, cnt, loop;
 
 	if (list->root)
@@ -235,12 +242,12 @@ DO_ARRAY(array_delete)
 
 DO_ARRAY(array_explode)
 {
-	char buf[BUFFER_SIZE], tmp[BUFFER_SIZE], *pti;
+	char *pti;
 	int index = 1;
 
 	if (list->root)
 	{
-		array_collapse(ses, list, "", "");
+		array_collapse(ses, list, arg, var, arg1, arg2);
 	}
 
 	list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
@@ -251,76 +258,123 @@ DO_ARRAY(array_explode)
 	{
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
-			pti += sprintf(tmp, "%.*s", get_euc_size(ses, pti), pti);
+			pti += sprintf(arg2, "%.*s", get_euc_size(ses, pti), pti);
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 		{
-			pti += sprintf(tmp, "%.*s", get_utf8_size(pti), pti);
+			pti += sprintf(arg2, "%.*s", get_utf8_size(pti), pti);
 		}
 		else
 		{
-			pti += sprintf(tmp, "%c", *pti);
+			pti += sprintf(arg2, "%c", *pti);
 		}
 
-		set_nest_node(list->root, ntos(index++), "%s", tmp);
+		set_nest_node(list->root, ntos(index++), "%s", arg2);
 	}
-	sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
+	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
-	pti = buf;
+	pti = arg1;
 
 	while (*pti)
 	{
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
 		{
-			pti += sprintf(tmp, "%.*s", get_euc_size(ses, pti), pti);
+			pti += sprintf(arg2, "%.*s", get_euc_size(ses, pti), pti);
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 		{
-			pti += sprintf(tmp, "%.*s", get_utf8_size(pti), pti);
+			pti += sprintf(arg2, "%.*s", get_utf8_size(pti), pti);
 		}
 		else
 		{
-			pti += sprintf(tmp, "%c", *pti);
+			pti += sprintf(arg2, "%c", *pti);
 		}
 
-		set_nest_node(list->root, ntos(index++), "%s", tmp);
+		set_nest_node(list->root, ntos(index++), "%s", arg2);
 	}
 	return ses;
 }
 
 DO_ARRAY(array_find)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-	int index;
+	char *arg3;
+	int cnt, index;
+
+	arg3 = str_alloc_stack(0);
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} FIND {string} {variable}");
-		
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} FIND [nest] {string} {variable}");
+
 		return ses;
 	}
 
 	if (list->root)
 	{
-		for (index = 0 ; index < list->root->used ; index++)
+		if (*arg3 == 0)
 		{
-			if (match(ses, list->root->list[index]->arg2, arg1, SUB_NONE))
+			for (index = 0 ; index < list->root->used ; index++)
 			{
-				break;
+				if (match(ses, list->root->list[index]->arg2, arg1, SUB_NONE))
+				{
+					break;
+				}
 			}
-		}
-		if (index < list->root->used)
-		{
-			set_nest_node_ses(ses, arg2, "%d", index + 1);
+			if (index < list->root->used)
+			{
+				set_nest_node_ses(ses, arg2, "%d", index + 1);
+			}
+			else
+			{
+				set_nest_node_ses(ses, arg2, "0");
+			}
+			return ses;
 		}
 		else
 		{
-			set_nest_node_ses(ses, arg2, "0");
+			if (list->root->list[0]->root == NULL)
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} FIND: NOT AN INDEXABLE LIST TABLE.");
+		
+				return ses;
+			}
+		
+			if (list->root->used > 1)
+			{
+				int index = search_index_list(list->root->list[0]->root, arg1, "");
+		
+				if (index == -1)
+				{
+					show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} FIND {%s}: FAILED TO FIND NEST.", var, arg1);
+		
+					return ses;
+				}
+		
+				for (cnt = 0 ; cnt < list->root->used ; cnt++)
+				{
+					if (list->root->list[cnt]->root && list->root->list[cnt]->root->used > index)
+					{
+						if (match(ses, list->root->list[cnt]->root->list[index]->arg2, arg2, SUB_NONE))
+						{
+							break;
+						}
+					}
+				}
+
+				if (cnt < list->root->used)
+				{
+					set_nest_node_ses(ses, arg3, "%d", cnt + 1);
+				}
+				else
+				{
+					set_nest_node_ses(ses, arg3, "%d", 0);
+				}
+			}
 		}
-		return ses;
 	}
 	else
 	{
@@ -333,8 +387,6 @@ DO_ARRAY(array_find)
 
 DO_ARRAY(array_get)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
@@ -367,9 +419,48 @@ DO_ARRAY(array_get)
 	return ses;
 }
 
+DO_ARRAY(array_index)
+{
+	int cnt;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (list->root == NULL || list->root->list[0]->root == NULL)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX: NOT AN INDEXABLE LIST TABLE.", var);
+
+		return ses;
+	}
+
+	if (list->root->used > 1)
+	{
+		int index = search_index_list(list->root->list[0]->root, arg1, "");
+
+		if (index == -1)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX {%s}: FAILED TO FIND NEST.", var, arg1);
+
+			return ses;
+		}
+
+		for (cnt = 0 ; cnt < list->root->used ; cnt++)
+		{
+			if (list->root->list[cnt]->root && list->root->list[cnt]->root->used > index)
+			{
+				str_cpy(&list->root->list[cnt]->arg2, list->root->list[cnt]->root->list[index]->arg2);
+			}
+			else
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
+				break;
+			}
+		}
+	}
+	return ses;
+}
+
 DO_ARRAY(array_insert)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int cnt, index;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -406,36 +497,81 @@ DO_ARRAY(array_insert)
 
 DO_ARRAY(array_order)
 {
-	int cnt;
-	char **buffer;
+	int cnt, val, len;
+	char **arg2_buffer;
 
-	array_add(ses, list, arg, var);
+	array_add(ses, list, arg, var, arg1, arg2);
 
-	buffer = malloc(list->root->used * sizeof(char *));
-
-	for (cnt = 0 ; cnt < list->root->used ; cnt++)
+	if (list->root->used > 1)
 	{
-		buffer[cnt] = list->root->list[cnt]->arg2;
+		if (*list->root->list[0]->arg2 == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ORDER: LIST IS NOT INDEXED.", var);
+
+			return ses;
+		}
+
+		if (list->root->list[0]->root)
+		{
+			struct listroot **root_buffer;
+
+			root_buffer = malloc(list->root->used * sizeof(struct listroot *));
+			arg2_buffer = malloc(list->root->used * sizeof(char *));
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				len = str_len(list->root->list[cnt]->arg2);
+
+				root_buffer[cnt] = list->root->list[cnt]->root;
+				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
+
+				str_resize(&arg2_buffer[cnt], 10);
+
+				sprintf(arg2_buffer[cnt] + len + 1, "%x", cnt);
+			}
+
+			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_num);
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				val = hex_number_32bit(arg2_buffer[cnt] + str_len(arg2_buffer[cnt]) + 1);
+
+				list->root->list[cnt]->root = root_buffer[val];
+				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
+			}
+
+			free(arg2_buffer);
+			free(root_buffer);
+		}
+		else
+		{
+			arg2_buffer = malloc(list->root->used * sizeof(char *));
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
+			}
+
+			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_num);
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
+			}
+
+			free(arg2_buffer);
+		}
 	}
-
-	quadsort(buffer, list->root->used, sizeof(char *), cmp_num);
-
-	for (cnt = 0 ; cnt < list->root->used ; cnt++)
-	{
-		list->root->list[cnt]->arg2 = buffer[cnt];
-	}
-
-	free(buffer);
-
 	return ses;
 }
 
 DO_ARRAY(array_reverse)
 {
+	struct listroot *toor;
 	char *swap;
 	int cnt, rev;
 
-	array_add(ses, list, arg, var);
+	array_add(ses, list, arg, var, arg1, arg2);
 
 	for (cnt = 0 ; cnt < list->root->used / 2 ; cnt++)
 	{
@@ -444,47 +580,36 @@ DO_ARRAY(array_reverse)
 		swap = list->root->list[cnt]->arg2;
 		list->root->list[cnt]->arg2 = list->root->list[rev]->arg2;
 		list->root->list[rev]->arg2 = swap;
+
+		toor = list->root->list[cnt]->root;
+		list->root->list[cnt]->root = list->root->list[rev]->root;
+		list->root->list[rev]->root = toor;
 	}
 	return ses;
 }
 
 DO_ARRAY(array_simplify)
 {
-	char arg1[BUFFER_SIZE], *str;
+	char *str;
 	int index;
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
-/*
-	if (*arg1 == 0)
-	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} SIMPLIFY {variable}");
-		
-		return ses;
-	}
-*/
+	array_add(ses, list, arg, var, arg1, arg2);
+
+	str = str_alloc_stack(0);
+
 	if (list->root)
 	{
-		for (index = 0 ; index < list->root->used ; index++)
+		if (list->root->used)
 		{
-			if (index == 0)
-			{
-				str = str_dup(list->root->list[index]->arg2);
-			}
-			else
-			{
-				str_cat_printf(&str, ";%s", list->root->list[index]->arg2);
-			}
-		}
-		if (*arg1 == 0)
-		{
-			set_nest_node_ses(ses, list->arg1, "%s", str);
-		}
-		else
-		{
-			set_nest_node_ses(ses, arg1, "%s", str);
+			str_cpy(&str, list->root->list[0]->arg2);
 		}
 
-		str_free(str);
+		for (index = 1 ; index < list->root->used ; index++)
+		{
+			str_cat_printf(&str, ";%s", list->root->list[index]->arg2);
+		}
+
+		set_nest_node_ses(ses, var, "%s", str);
 
 		return ses;
 	}
@@ -498,8 +623,6 @@ DO_ARRAY(array_simplify)
 
 DO_ARRAY(array_size)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
@@ -522,8 +645,6 @@ DO_ARRAY(array_size)
 
 DO_ARRAY(array_set)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
@@ -552,10 +673,11 @@ DO_ARRAY(array_set)
 
 DO_ARRAY(array_shuffle)
 {
+	struct listroot *toor;
 	char *swap;
 	int cnt, rnd;
 
-	array_add(ses, list, arg, var);
+	array_add(ses, list, arg, var, arg1, arg2);
 
 	for (cnt = 0 ; cnt < list->root->used ; cnt++)
 	{
@@ -564,42 +686,89 @@ DO_ARRAY(array_shuffle)
 		swap = list->root->list[cnt]->arg2;
 		list->root->list[cnt]->arg2 = list->root->list[rnd]->arg2;
 		list->root->list[rnd]->arg2 = swap;
+
+		toor = list->root->list[cnt]->root;
+		list->root->list[cnt]->root = list->root->list[rnd]->root;
+		list->root->list[rnd]->root = toor;
 	}
 	return ses;
 }
 
 DO_ARRAY(array_sort)
 {
-	int cnt;
-	char **buffer;
+	int cnt, val, len;
+	char **arg2_buffer;
 
-	array_add(ses, list, arg, var);
+	array_add(ses, list, arg, var, arg1, arg2);
 
-	buffer = malloc(list->root->used * sizeof(char *));
-
-	for (cnt = 0 ; cnt < list->root->used ; cnt++)
+	if (list->root->used > 1)
 	{
-		buffer[cnt] = list->root->list[cnt]->arg2;
+		if (*list->root->list[0]->arg2 == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ORDER: LIST IS NOT INDEXED.", var);
+
+			return ses;
+		}
+
+		if (list->root->list[0]->root)
+		{
+			struct listroot **root_buffer;
+
+			root_buffer = malloc(list->root->used * sizeof(struct listroot *));
+			arg2_buffer = malloc(list->root->used * sizeof(char *));
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				len = str_len(list->root->list[cnt]->arg2);
+
+				root_buffer[cnt] = list->root->list[cnt]->root;
+				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
+
+				str_resize(&arg2_buffer[cnt], 10);
+
+				sprintf(arg2_buffer[cnt] + len + 1, "%x", cnt);
+			}
+
+			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_str);
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				val = hex_number_32bit(arg2_buffer[cnt] + str_len(arg2_buffer[cnt]) + 1);
+
+				list->root->list[cnt]->root = root_buffer[val];
+				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
+			}
+
+			free(arg2_buffer);
+			free(root_buffer);
+		}
+		else
+		{
+			arg2_buffer = malloc(list->root->used * sizeof(char *));
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
+			}
+
+			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_str);
+
+			for (cnt = 0 ; cnt < list->root->used ; cnt++)
+			{
+				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
+			}
+
+			free(arg2_buffer);
+		}
 	}
-
-	quadsort(buffer, list->root->used, sizeof(char *), cmp_str);
-
-	for (cnt = 0 ; cnt < list->root->used ; cnt++)
-	{
-		list->root->list[cnt]->arg2 = buffer[cnt];
-	}
-
-	free(buffer);
-
 	return ses;
 }
 
 DO_ARRAY(array_tokenize)
 {
-	char buf[BUFFER_SIZE], tmp[BUFFER_SIZE];
 	int index = 1, i;
 
-	sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
+	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (list->root)
 	{
@@ -610,22 +779,22 @@ DO_ARRAY(array_tokenize)
 
 	i = 0;
 
-	while (buf[i] != 0)
+	while (arg1[i] != 0)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &buf[i]))
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &arg1[i]))
 		{
-			i += sprintf(tmp, "%.*s", get_euc_size(ses, &buf[i]), &buf[i]);
+			i += sprintf(arg2, "%.*s", get_euc_size(ses, &arg1[i]), &arg1[i]);
 		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&buf[i]))
+		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&arg1[i]))
 		{
-			i += sprintf(tmp, "%.*s", get_utf8_size(&buf[i]), &buf[i]);
+			i += sprintf(arg2, "%.*s", get_utf8_size(&arg1[i]), &arg1[i]);
 		}
 		else
 		{
-			i += sprintf(tmp, "%c", buf[i]);
+			i += sprintf(arg2, "%c", arg1[i]);
 		}
 
-		set_nest_node(list->root, ntos(index++), "%s", tmp);
+		set_nest_node(list->root, ntos(index++), "%s", arg2);
 	}
 	return ses;
 }

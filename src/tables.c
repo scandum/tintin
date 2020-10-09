@@ -28,118 +28,15 @@
 #include "tintin.h"
 #include "telnet.h"
 
-struct command_type command_table[] =
-{
-	{    "action",            do_action,            3, TOKEN_TYPE_COMMAND },
-	{    "advertise",         do_advertise,         0, TOKEN_TYPE_COMMAND },
-	{    "alias",             do_alias,             3, TOKEN_TYPE_COMMAND },
-	{    "all",               do_all,               1, TOKEN_TYPE_COMMAND },
-	{    "bell",              do_bell,              2, TOKEN_TYPE_COMMAND },
-	{    "break",             do_nop,               0, TOKEN_TYPE_BREAK   },
-	{    "buffer",            do_buffer,            1, TOKEN_TYPE_COMMAND },
-	{    "button",            do_button,            3, TOKEN_TYPE_COMMAND },
-	{    "case",              do_nop,               0, TOKEN_TYPE_CASE    },
-	{    "cat",               do_cat,               1, TOKEN_TYPE_COMMAND },
-	{    "chat",              do_chat,              2, TOKEN_TYPE_COMMAND },
-	{    "class",             do_class,             3, TOKEN_TYPE_COMMAND },
-	{    "commands",          do_commands,          0, TOKEN_TYPE_COMMAND },
-	{    "config",            do_configure,         2, TOKEN_TYPE_COMMAND },
-	{    "continue",          do_nop,               0, TOKEN_TYPE_CONTINUE},
-	{    "cr",                do_cr,                0, TOKEN_TYPE_COMMAND },
-	{    "cursor",            do_cursor,            1, TOKEN_TYPE_COMMAND },
-	{    "daemon",            do_daemon,            1, TOKEN_TYPE_COMMAND },
-	{    "debug",             do_debug,             2, TOKEN_TYPE_COMMAND },
-	{    "default",           do_nop,               0, TOKEN_TYPE_DEFAULT },
-	{    "delay",             do_delay,             3, TOKEN_TYPE_COMMAND },
-	{    "dictionary",        do_dictionary,        3, TOKEN_TYPE_COMMAND },
-	{    "draw",              do_draw,              3, TOKEN_TYPE_COMMAND },
-	{    "echo",              do_echo,              3, TOKEN_TYPE_COMMAND },
-	{    "else",              do_nop,               0, TOKEN_TYPE_ELSE    },
-	{    "elseif",            do_nop,               0, TOKEN_TYPE_ELSEIF  },
-	{    "end",               do_end,               1, TOKEN_TYPE_COMMAND },
-	{    "event",             do_event,             2, TOKEN_TYPE_COMMAND },
-	{    "foreach",           do_nop,               3, TOKEN_TYPE_FOREACH },
-	{    "format",            do_format,            3, TOKEN_TYPE_COMMAND },
-	{    "function",          do_function,          2, TOKEN_TYPE_COMMAND },
-	{    "gag",               do_gag,               1, TOKEN_TYPE_COMMAND },
-	{    "grep",              do_grep,              2, TOKEN_TYPE_COMMAND },
-	{    "help",              do_help,              1, TOKEN_TYPE_COMMAND },
-	{    "highlight",         do_highlight,         3, TOKEN_TYPE_COMMAND },
-	{    "history",           do_history,           4, TOKEN_TYPE_COMMAND },
-	{    "if",                do_nop,               0, TOKEN_TYPE_IF      },
-	{    "ignore",            do_ignore,            2, TOKEN_TYPE_COMMAND },
-	{    "info",              do_info,              2, TOKEN_TYPE_COMMAND },
-	{    "kill",              do_kill,              2, TOKEN_TYPE_COMMAND },
-	{    "killall",           do_killall,           2, TOKEN_TYPE_COMMAND },
-	{    "line",              do_line,              1, TOKEN_TYPE_COMMAND },
-	{    "list",              do_list,              2, TOKEN_TYPE_COMMAND },
-	{    "local",             do_local,             1, TOKEN_TYPE_COMMAND },
-	{    "log",               do_log,               2, TOKEN_TYPE_COMMAND },
-	{    "loop",              do_nop,               3, TOKEN_TYPE_LOOP    },
-	{    "macro",             do_macro,             4, TOKEN_TYPE_COMMAND },
-	{    "map",               do_map,               2, TOKEN_TYPE_COMMAND },
-	{    "math",              do_math,              2, TOKEN_TYPE_COMMAND },
-	{    "message",           do_message,           2, TOKEN_TYPE_COMMAND },
-	{    "nop",               do_nop,               0, TOKEN_TYPE_COMMAND },
-	{    "parse",             do_nop,               3, TOKEN_TYPE_PARSE   },
-	{    "path",              do_path,              1, TOKEN_TYPE_COMMAND },
-	{    "pathdir",           do_pathdir,           3, TOKEN_TYPE_COMMAND },
-	{    "port",              do_port,              2, TOKEN_TYPE_COMMAND },
-	{    "prompt",            do_prompt,            4, TOKEN_TYPE_COMMAND },
-	{    "read",              do_read,              1, TOKEN_TYPE_COMMAND },
-	{    "regexp",            do_regexp,            4, TOKEN_TYPE_REGEX   },
-	{    "replace",           do_replace,           3, TOKEN_TYPE_COMMAND },
-	{    "return",            do_nop,               0, TOKEN_TYPE_RETURN  },
-	{    "run",               do_run,               3, TOKEN_TYPE_COMMAND },
-	{    "scan",              do_scan,              2, TOKEN_TYPE_COMMAND },
-	{    "screen",            do_screen,            2, TOKEN_TYPE_COMMAND },
-	{    "script",            do_script,            2, TOKEN_TYPE_COMMAND },
-	{    "send",              do_send,              1, TOKEN_TYPE_COMMAND },
-	{    "session",           do_session,           1, TOKEN_TYPE_COMMAND },
-	{    "showme",            do_showme,            3, TOKEN_TYPE_COMMAND },
-	{    "snoop",             do_snoop,             2, TOKEN_TYPE_COMMAND },
-	{    "split",             do_split,             2, TOKEN_TYPE_COMMAND },
-	{    "ssl",               do_ssl,               3, TOKEN_TYPE_COMMAND },
-	{    "substitute",        do_substitute,        3, TOKEN_TYPE_COMMAND },
-	{    "switch",            do_nop,               0, TOKEN_TYPE_SWITCH  },
-	{    "system",            do_system,            1, TOKEN_TYPE_COMMAND },
-	{    "tab",               do_tab,               1, TOKEN_TYPE_COMMAND },
-	{    "test",              do_test,              4, TOKEN_TYPE_COMMAND },
-	{    "textin",            do_textin,            2, TOKEN_TYPE_COMMAND },
-	{    "ticker",            do_tick,              3, TOKEN_TYPE_COMMAND },
-	{    "unaction",          do_unaction,          0, TOKEN_TYPE_COMMAND },
-	{    "unalias",           do_unalias,           0, TOKEN_TYPE_COMMAND },
-	{    "unbutton",          do_unbutton,          0, TOKEN_TYPE_COMMAND },
-	{    "undelay",           do_undelay,           1, TOKEN_TYPE_COMMAND },
-	{    "unevent",           do_unevent,           0, TOKEN_TYPE_COMMAND },
-	{    "unfunction",        do_unfunction,        0, TOKEN_TYPE_COMMAND },
-	{    "ungag",             do_ungag,             0, TOKEN_TYPE_COMMAND },
-	{    "unhighlight",       do_unhighlight,       0, TOKEN_TYPE_COMMAND },
-	{    "unmacro",           do_unmacro,           0, TOKEN_TYPE_COMMAND },
-	{    "unpathdir",         do_unpathdir,         1, TOKEN_TYPE_COMMAND },
-	{    "unprompt",          do_unprompt,          0, TOKEN_TYPE_COMMAND },
-	{    "unsplit",           do_unsplit,           0, TOKEN_TYPE_COMMAND },
-	{    "unsubstitute",      do_unsubstitute,      0, TOKEN_TYPE_COMMAND },
-	{    "untab",             do_untab,             0, TOKEN_TYPE_COMMAND },
-	{    "unticker",          do_untick,            0, TOKEN_TYPE_COMMAND },
-	{    "unvariable",        do_unvariable,        1, TOKEN_TYPE_COMMAND },
-	{    "variable",          do_variable,          1, TOKEN_TYPE_COMMAND },
-	{    "while",             do_nop,               0, TOKEN_TYPE_WHILE   },
-	{    "write",             do_write,             2, TOKEN_TYPE_COMMAND },
-	{    "zap",               do_zap,               1, TOKEN_TYPE_COMMAND },
-	{    "",                  NULL,                 0, TOKEN_TYPE_COMMAND }
-};
-
-
 struct list_type list_table[LIST_MAX] =
 {
 	{    "ACTION",            "ACTIONS",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
 	{    "ALIAS",             "ALIASES",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
 	{    "BUTTON",            "BUTTONS",            SORT_PRIORITY,    3, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_PRIORITY },
 	{    "CLASS",             "CLASSES",            SORT_PRIORITY,    2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_INHERIT                                 },
-	{    "COMMAND",           "COMMANDS",           SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE                                                                  },
+	{    "COMMAND",           "COMMANDS",           SORT_APPEND,      1, 0, 0, LIST_FLAG_MESSAGE                                                                  },
 	{    "CONFIG",            "CONFIGS",            SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "DELAY",             "DELAYS",             SORT_DELAY,       3, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
+	{    "DELAY",             "DELAYS",             SORT_DELAY,       2, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
 	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "GAG",               "GAGS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
@@ -147,53 +44,51 @@ struct list_type list_table[LIST_MAX] =
 	{    "HISTORY",           "HISTORIES",          SORT_APPEND,      1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
 	{    "LANDMARK",          "LANDMARKS",          SORT_ALPHA,       4, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
 	{    "MACRO",             "MACROS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "PATH",              "PATHS",              SORT_APPEND,      2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
+	{    "PATH",              "PATHS",              SORT_APPEND,      2, 0, 0, LIST_FLAG_MESSAGE },
 	{    "PATHDIR",           "PATHDIRS",           SORT_ALPHA,       3, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "PROMPT",            "PROMPTS",            SORT_ALPHA,       4, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX },
 	{    "SUBSTITUTE",        "SUBSTITUTES",        SORT_PRIORITY,    3, 0, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
 	{    "TAB",               "TABS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "TERRAIN",           "TERRAINS",           SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_HIDE },
 	{    "TICKER",            "TICKERS",            SORT_ALPHA,       3, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "VARIABLE",          "VARIABLES",          SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_NEST }
+	{    "VARIABLE",          "VARIABLES",          SORT_ALNUM,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_NEST }
 };
 
 struct substitution_type substitution_table[] =
 {
-	{    "ARGUMENTS",            1  },
-	{    "VARIABLES",            2  },
-	{    "FUNCTIONS",            4  },
-	{    "COLORS",               8  },
-	{    "ESCAPES",             16  },
-//	{    "COMMANDS",            32  },
-	{    "SECURE",              64  },
-	{    "EOL",                128  },
-	{    "LNF",                256  },
-//	{    "FIX",                512  },
-        {    "COMPRESS",          1024  },
-        {    "LITERAL",           2048  },
-	{    "",                  0     }
+	{    "ARGUMENTS",            SUB_ARG },
+	{    "VARIABLES",            SUB_VAR },
+	{    "FUNCTIONS",            SUB_FUN },
+	{    "COLORS",               SUB_COL },
+	{    "ESCAPES",              SUB_ESC },
+//	{    "COMMANDS",             SUB_CMD },
+	{    "SECURE",               SUB_SEC },
+	{    "EOL",                  SUB_EOL },
+	{    "LNF",                  SUB_LNF },
+        {    "LITERAL",              SUB_LIT },
+	{    "",                     0       }
 };
 
 struct config_type config_table[] =
 {
 	{
 		"AUTO TAB",
-		"",
 		"Buffer lines used for tab completion",
+		"",
 		config_autotab
 	},
 
 	{
 		"BUFFER SIZE",
-		"",
 		"The size of the scrollback buffer",
+		"",
 		config_buffersize
 	},
 
 	{
 		"CHARSET",
-		"",
 		"The character set encoding used",
+		"",
 		config_charset
 	},
 
@@ -206,8 +101,8 @@ struct config_type config_table[] =
 
 	{
 		"COLOR MODE",
-		"",
 		"The color code encoding used",
+		"",
 		config_colormode
 	},
 
@@ -220,8 +115,8 @@ struct config_type config_table[] =
 
 	{
 		"COMMAND COLOR",
-		"",
 		"The color of echoed commands",
+		"",
 		config_commandcolor
 	},
 
@@ -234,8 +129,8 @@ struct config_type config_table[] =
 
 	{
 		"CONNECT RETRY",
-		"",
 		"Seconds sessions try to connect on failure",
+		"",
 		config_connectretry
 	},
 
@@ -255,8 +150,8 @@ struct config_type config_table[] =
 
 	{
 		"HISTORY SIZE",
-		"",
 		"The size of the command history",
+		"",
 		config_historysize
 	},
 
@@ -269,8 +164,8 @@ struct config_type config_table[] =
 
 	{
 		"LOG MODE",
-		"",
 		"The data type mode of log files",
+		"",
 		config_logmode
 	},
 
@@ -289,7 +184,7 @@ struct config_type config_table[] =
 	},
 
 	{
-		"MOUSE TRACKING",
+		"MOUSE",
 		"Generate mouse tracking events.",
 		"Do not generate mouse events.",
 		config_mousetracking
@@ -297,29 +192,22 @@ struct config_type config_table[] =
 
 	{
 		"PACKET PATCH",
-		"",
 		"Seconds to try to patch broken packets",
+		"",
 		config_packetpatch
 	},
 
 	{
-		"PID",
-		"",
-		"The PID of the master process.",
-		config_pid
-	},
-
-	{
 		"RANDOM SEED",
-		"",
 		"Seed value used for random numbers",
+		"",
 		config_randomseed
 	},
 
 	{
 		"REPEAT CHAR",
-		"",
 		"Character used for repeating commands",
+		"",
 		config_repeatchar
 	},
 
@@ -353,8 +241,8 @@ struct config_type config_table[] =
 
 	{
 		"TAB WIDTH",
-		"",
 		"Number of spaces used for a tab",
+		"",
 		config_tabwidth
 	},
 
@@ -367,8 +255,8 @@ struct config_type config_table[] =
 
 	{
 		"TINTIN CHAR",
-		"",
 		"Character used for TinTin++ commands",
+		"",
 		config_tintinchar
 	},
 
@@ -381,8 +269,8 @@ struct config_type config_table[] =
 
 	{
 		"VERBATIM CHAR",
-		"",
 		"Character used for verbatim lines",
+		"",
 		config_verbatimchar
 	},
 
@@ -409,6 +297,298 @@ struct config_type config_table[] =
 	}
 };
 
+char character_table[256] =
+{
+	0, // 0
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+
+	CHAR_FLAG_SPACE, // \t
+	CHAR_FLAG_SPACE, // \n
+	CHAR_FLAG_SPACE, // \v
+	CHAR_FLAG_SPACE, // \f
+	CHAR_FLAG_SPACE, // \r
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_SPACE, // 32 space
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT, // 40 (
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT, // 48 0
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT, // 56 8
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_HEX|CHAR_FLAG_DIGIT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_CSI, // 64 @
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX, // 65 A
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 72 H
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 80 P
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 88 X
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 90 Z
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_CSI, // 93 ]
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR, // 95 _
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_CSI, // 96 `
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX, // 97 a
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA|CHAR_FLAG_HEX,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 104 h
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, 
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 112 p
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 120 x
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA,
+	CHAR_FLAG_PRINT|CHAR_FLAG_VAR|CHAR_FLAG_CSI|CHAR_FLAG_ALPHA, // 122 z
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	0, // 127 del
+
+	CHAR_FLAG_PRINT, // 128
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT,
+	CHAR_FLAG_PRINT
+};
+
+	
 struct color_type color_table[] =
 {
 	{    "azure",         "<abd>",  5 },
@@ -550,12 +730,13 @@ struct color_type map_color_table[] =
 
 struct class_type class_table[] =
 {
-	{    "OPEN",              class_open             },
+	{    "ASSIGN",            class_assign           },
 	{    "CLEAR",             class_clear            },
 	{    "CLOSE",             class_close            },
 	{    "KILL",              class_kill             },
 	{    "LIST",              class_list             },
 	{    "LOAD",              class_load             },
+	{    "OPEN",              class_open             },
 	{    "READ",              class_read             },
 	{    "SAVE",              class_save             },
 	{    "SIZE",              class_size             },
@@ -622,6 +803,7 @@ struct port_type port_table[] =
 	{     "INFO",             port_info,           0, 0, "Display the port settings"                      },
 	{     "NAME",             port_name,           0, 0, "Change a socket name"                           },
 	{     "PREFIX",           port_prefix,         1, 0, "Prefix before each port message"                },
+	{     "PROXY",            port_proxy,          0, 0, "Assign a proxy session to a socket"             },
 	{     "RANK",             port_rank,           0, 0, "Assign a rank to a socket"                      },
 	{     "SEND",             port_send,           0, 1, "Send a message to a socket"                     },
 	{     "UNINITIALIZE",     port_uninitialize,   0, 0, "Uninitializes the port"                         },
@@ -648,6 +830,7 @@ struct array_type array_table[] =
 	{     "FIND",             array_find,        "Find a list item with given regex"       },
 	{     "FND",              array_find,        NULL                                      },
 	{     "GET",              array_get,         "Retrieve a list item with given index"   },
+	{     "INDEX",            array_index,       "Index a list table for sorting"          },
 	{     "INSERT",           array_insert,      "Insert a list item at given index"       },
 	{     "ORDER",            array_order,       "Sort a list table numerically"           },
 	{     "LENGTH",           array_size,        NULL                                      },
@@ -718,408 +901,82 @@ struct map_type map_table[] =
 
 struct cursor_type cursor_table[] =
 {
-/*
-	{
-		"AUTO TAB BACKWARD",
-		"Tab completion from scrollback buffer, backward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_auto_tab_backward
-	},
-	{
-		"AUTO TAB FORWARD",
-		"Tab completion from scrollback buffer, forward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_auto_tab_forward
-	},
-*/
-	{
-		"BACKSPACE",
-		"Delete backward character",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_backspace
-	},
-
-	{
-		"BRACE OPEN",
-		"Insert the { character",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_brace_open
-	},
-
-	{
-		"BRACE CLOSE",
-		"Insert the } character",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_brace_close
-	},
-
-	{
-		"BACKWARD",
-		"Move cursor backward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_left
-	},
-	{
-		"CLEAR",
-		"Delete the input line",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_clear_line
-	},
-	{
-		"CLEAR LEFT",
-		"Delete from cursor to start of input",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_clear_left
-	},
-	{
-		"CLEAR LINE", /* obsolete */
-		"Delete the input line",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_clear_line
-	},
-	{
-		"CLEAR RIGHT",
-		"Delete from cursor to end of input",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_clear_right
-	},
-	{
-		"CONVERT META",
-		"Meta convert the next character",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_convert_meta
-	},
-	{
-		"CTRL DELETE",
-		"Delete one character, exit on an empty line",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_delete_or_exit
-	},
-	{
-		"DELETE",
-		"Delete character at cursor",
-		"\e[3~",
-		CURSOR_FLAG_GET_ALL,
-		cursor_delete
-	},
-	{
-		"DELETE WORD LEFT",
-		"Delete backwards till next space",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_delete_word_left
-	},
-	{
-		"DELETE WORD RIGHT",
-		"Delete forwards till next space",
-		"\e[3;5~",
-		CURSOR_FLAG_GET_ALL,
-		cursor_delete_word_right
-	},
-	{
-		"ECHO",
-		"Turn local echoing on or off",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_echo
-	},
-	{
-		"END",
-		"Move cursor to end of input",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_end
-	},
-	{
-		"ENTER",
-		"Process the input line",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_enter
-	},
-	{
-		"EXIT",
-		"Exit current session",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_exit
-	},
-	{
-		"FORWARD",
-		"Move cursor forward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_right
-	},
-	{
-		"GET",
-		"Copy input line to given variable",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_get
-	},
-	{
-		"HISTORY NEXT",
-		"Select next command history entry",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_history_next
-	},
-	{
-		"HISTORY PREV",
-		"Select previous command history entry",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_history_prev
-	},
-	{
-		"HISTORY SEARCH",
-		"Search command history",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_history_search
-	},
-	{
-		"HOME",
-		"Move the cursor to start of input",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_home
-	},
-	{
-		"INFO",
-		"Print debugging information",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_info
-	},
-	{
-		"INSERT",
-		"Turn insert mode on or off",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_insert
-	},
-/*
-	{
-		"MIXED TAB BACKWARD",
-		"Tab completion on last word, search backward",
-		"\e[Z", // shift-tab
-		CURSOR_FLAG_GET_ALL,
-		cursor_mixed_tab_backward
-	},
-	{
-		"MIXED TAB FORWARD",
-		"Tab completion on last word, search forward",
-		"\t",
-		CURSOR_FLAG_GET_ALL,
-		cursor_mixed_tab_forward
-	},
-*/
-	{
-		"NEXT WORD",
-		"Move cursor to the next word",
-		"\ef",
-		CURSOR_FLAG_GET_ALL,
-		cursor_right_word
-	},
-	{
-		"PASTE BUFFER",
-		"Paste the previously deleted input text",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_paste_buffer
-	},
-	{
-		"PRESERVE MACRO",
-		"Preserve the current macro state",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_preserve_macro
-	},
-
-	{
-		"PREV WORD",
-		"Move cursor to the previous word",
-		"\eb",
-		CURSOR_FLAG_GET_ALL,
-		cursor_left_word
-	},
-	{
-		"REDRAW INPUT",
-		"Redraw the input line",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_redraw_input
-	},
-	{
-		"RESET MACRO",
-		"Reset the current macro state",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_reset_macro
-	},
-	{
-		"SCREEN FOCUS IN",
-		"Window is focussed in event",
-		"\e[I",
-		CURSOR_FLAG_GET_ALL|CURSOR_FLAG_ALWAYS,
-		cursor_screen_focus_in
-	},
-	{
-		"SCREEN FOCUS OUT",
-		"Window is focussed out event",
-		"\e[O",
-		CURSOR_FLAG_GET_ALL|CURSOR_FLAG_ALWAYS,
-		cursor_screen_focus_out
-	},
-	{
-		"SET",
-		"Copy given string to input line",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_set
-	},
-	{
-		"SUSPEND",
-		"Suspend program, return with fg",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_suspend
-	},
-	{
-		"TAB",
-		"<LIST|SCROLLBACK> <BACKWARD|FORWARD>",
-		"",
-		CURSOR_FLAG_GET_ONE,
-		cursor_tab
-	},
-	{
-		"TAB L S BACKWARD",
-		"Tab completion on last word, search backward",
-		"\e[Z", // shift-tab
-		CURSOR_FLAG_GET_ALL,
-		cursor_mixed_tab_backward
-	},
-	{
-		"TAB L S FORWARD",
-		"Tab completion on last word, search forward",
-		"\t",
-		CURSOR_FLAG_GET_ALL,
-		cursor_mixed_tab_forward
-	},
-/*
-	{
-		"TAB BACKWARD",
-		"Tab completion from tab list, backward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_tab_backward
-	},
-	{
-		"TAB FORWARD",
-		"Tab completion from tab list, forward",
-		"",
-		CURSOR_FLAG_GET_ALL,
-		cursor_tab_forward
-	},
-*/
-	{
-		"", "", "\e[5~",     0, cursor_buffer_up
-	},
-	{
-		"", "", "\e[6~",     0, cursor_buffer_down
-	},
-	{
-		"", "", "",         0, cursor_buffer_lock
-	},
-	{
-		"","", "\e[13;2u",   0, cursor_enter
-	},
-	{
-		"", "", "\eOM",      0, cursor_enter
-	},
-	{
-		"", "", "\e[7~",     0, cursor_home
-	},
-	{
-		"", "", "\e[1~",     0, cursor_home
-	},
-	{
-		"", "", "\eOH",      0, cursor_home
-	},
-	{
-		"", "", "\e[H",      0, cursor_home
-	},
-	{
-		"", "", "\eOD",      0, cursor_left
-	},
-	{
-		"", "", "\e[D",      0, cursor_left
-	},
-	{
-		"", "", "\e[8~",     0, cursor_end
-	},
-	{
-		"", "", "\e[4~",     0, cursor_end
-	},
-	{
-		"", "", "\eOF",      0, cursor_end
-	},
-	{
-		"", "", "\e[F",      0, cursor_end
-	},
-	{
-		"", "", "\eOC",      0, cursor_right
-	},
-	{
-		"", "", "\e[C",      0, cursor_right
-	},
-	{
-		"", "", "\x7F",      0, cursor_backspace
-	},
-	{
-		"", "", "\eOB",      0, cursor_history_next
-	},
-	{
-		"", "", "\e[B",      0, cursor_history_next
-	},
-	{
-		"", "", "\eOA",      0, cursor_history_prev
-	},
-	{
-		"", "", "\e[A",      0, cursor_history_prev
-	},
-	{
-		"", "", "\e[1;5D",   0, cursor_left_word
-	},
-	{
-		"", "", "\e[1;5C",   0, cursor_right_word
-	},
-	{
-		"", "", "\e[127;5u", 0, cursor_clear_line
-	},
-	{
-		"", "", "\e\x7F",    0, cursor_delete_word_left
-	},
-	{
-		"", "", "\ed",       0, cursor_delete_word_right
-	},
-	{
-		"", "", "",          0, NULL
-	}
+	{     "BACKSPACE",          "Delete backward character",                      "",           CURSOR_FLAG_GET_ONE,     cursor_backspace,             ""          },
+	{     "BRACE",              "<OPEN|CLOSE> Insert a bracing character.",       "",            CURSOR_FLAG_GET_ONE,     cursor_brace,                 ""          },
+	{     "BACKWARD",           "Move cursor backward",                           "",           CURSOR_FLAG_GET_ALL,     cursor_move_left,             ""          },
+	{     "CLEAR",              "Delete the input line",                          "",           CURSOR_FLAG_GET_ALL,     cursor_clear_line,            ""          },
+	{     "CLEAR LEFT",         "Delete from cursor to start of input",           "",           CURSOR_FLAG_GET_ALL,     cursor_clear_left,            ""          },
+	{     "CLEAR LINE",         "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_clear_line,            ""          }, // obsolete
+	{     "CLEAR RIGHT",        "Delete from cursor to end of input",             "",           CURSOR_FLAG_GET_ALL,     cursor_clear_right,           ""          },
+	{     "CONVERT META",       "Meta convert the next character",                "",           CURSOR_FLAG_GET_ALL,     cursor_convert_meta,          ""          },
+	{     "CTRL DELETE",        "Delete one character, exit on an empty line",    "",           CURSOR_FLAG_GET_ALL,     cursor_delete_or_exit,        ""          },
+	{     "DELETE",             "Delete character at cursor",                     "\e[3~",       CURSOR_FLAG_GET_ALL,     cursor_delete,                ""          },
+	{     "DELETE WORD LEFT",   "Delete backwards till next space",               "",           CURSOR_FLAG_GET_ALL,     cursor_delete_word_left,      ""          },
+	{     "DELETE WORD RIGHT",  "Delete forwards till next space",                "\e[3;5~",     CURSOR_FLAG_GET_ALL,     cursor_delete_word_right,     ""          },
+	{     "DOWN",               "Move cursor down",                               "\e[B",        CURSOR_FLAG_GET_ALL,     cursor_move_down,             ""          },
+	{     "ECHO",               "",                                               "",            CURSOR_FLAG_GET_ONE,     cursor_echo,                  ""          },
+//	{     "EDIT",               "",                                               "",            CURSOR_FLAG_GET_ONE,     cursor_edit,                  ""          },
+	{     "END",                "Move cursor to end of input",                    "",           CURSOR_FLAG_GET_ALL,     cursor_end,                   ""          },
+	{     "ENTER",              "Process the input line",                         "",            CURSOR_FLAG_GET_ALL,     cursor_enter,                 ""          },
+	{     "FLAG",               "Set input echo/insert flags",                    "",            CURSOR_FLAG_GET_ONE,     cursor_flag,                  ""          },
+	{     "FORWARD",            "Move cursor forward",                            "",           CURSOR_FLAG_GET_ALL,     cursor_move_right,            ""          },
+	{     "GET",                "Copy input line to given variable",              "",            CURSOR_FLAG_GET_ONE,     cursor_get,                   ""          },
+	{     "HISTORY NEXT",       "Select next command history entry",              "",           CURSOR_FLAG_GET_ALL,     cursor_history_next,          ""          },
+	{     "HISTORY PREV",       "Select previous command history entry",          "",           CURSOR_FLAG_GET_ALL,     cursor_history_prev,          ""          },
+	{     "HISTORY SEARCH",     "Search command history",                         "",           CURSOR_FLAG_GET_ALL,     cursor_history_search,        ""          },
+	{     "HOME",               "Move the cursor to start of input",              "",           CURSOR_FLAG_GET_ALL,     cursor_home,                  ""          },
+	{     "INFO",               "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_info,                  ""          },
+//	{     "INSERT",             "",                                               "",            CURSOR_FLAG_GET_ONE,     NULL,                         ""          },
+	{     "NEXT WORD",          "Move cursor to the next word",                   "\ef",         CURSOR_FLAG_GET_ALL,     cursor_move_right_word,       ""          },
+	{     "MACRO",              "<PRESERVE|RESET>",                               "",            CURSOR_FLAG_GET_ONE,     cursor_macro,                 ""          },
+	{     "PAGE",               "<DOWN|END|HOME|LOCK|UP>",                        "",                               0,    cursor_page,                  ""          },
+	{     "PASTE BUFFER",       "Paste the previously deleted input text",        "",           CURSOR_FLAG_GET_ALL,     cursor_paste_buffer,          ""          },
+	{     "POSITION",           "Move cursor position to given column.",          "",            CURSOR_FLAG_GET_ONE,     cursor_position,              ""          },
+	{     "PRESERVE MACRO",     "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_macro,                 "PRESERVE"  }, // obsolete
+	{     "PREV WORD",          "Move cursor to the previous word",               "\eb",         CURSOR_FLAG_GET_ALL,     cursor_move_left_word,        ""          },
+	{     "REDRAW INPUT",       "Redraw the input line",                          "",           CURSOR_FLAG_GET_ALL,     cursor_redraw_input,          ""          },
+	{     "RESET MACRO",        "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_macro,                 "RESET"     }, // obsolete
+	{     "SET",                "Copy given string to input line",                "",            CURSOR_FLAG_GET_ONE,     cursor_set,                   ""          },
+	{     "SOFT ENTER",         "Create a new line in edit mode.",                "\e[13;2u",    CURSOR_FLAG_GET_ALL,     cursor_soft_enter,            ""          },
+	{     "SUSPEND",            "Suspend program, return with fg",                "",           CURSOR_FLAG_GET_ALL,     cursor_suspend,               ""          },
+	{     "TAB",                "<LIST|SCROLLBACK> <BACKWARD|FORWARD>",           "",            CURSOR_FLAG_GET_ONE,     cursor_tab,                   ""          },
+	{     "TAB L S BACKWARD",   "",                                               "\e[Z",        CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L S B"     }, // shift tab
+	{     "TAB L S FORWARD",    "",                                               "\t",          CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L S F"     },
+	{     "UP",                 "Move cursor up",                                 "\e[A",        CURSOR_FLAG_GET_ALL,     cursor_move_up,               ""          },
+	{     "",                   "",                                               "\e[6~",                          0,    cursor_buffer_down,           ""          },
+	{     "",                   "",                                               "\e[1;5F",                        0,    cursor_buffer_end,            ""          },
+	{     "",                   "",                                               "\e[1;5H",                        0,    cursor_buffer_home,           ""          },
+	{     "",                   "",                                               "\e[5~",                          0,    cursor_buffer_up,             ""          },
+	{     "",                   "",                                               "\eOa",                           0,    cursor_buffer_up,             "1"         },
+	{     "",                   "",                                               "\eOb",                           0,    cursor_buffer_down,           "1"         },
+	{     "",                   "",                                               "\e[1;2a",                        0,    cursor_buffer_up,             ""          },
+	{     "",                   "",                                               "\e[1;2b",                        0,    cursor_buffer_down,           ""          },
+	{     "",                   "",                                               "",                              0,    cursor_buffer_lock,           ""          },
+//	{     "",                   "",                                               "\e[13;2u",                       0,    cursor_enter,                 ""          },
+	{     "",                   "",                                               "\eOM",                           0,    cursor_enter,                 ""          },
+	{     "",                   "",                                               "\e[7~",                          0,    cursor_home,                  ""          },
+	{     "",                   "",                                               "\e[1~",                          0,    cursor_home,                  ""          },
+	{     "",                   "",                                               "\eOH",                           0,    cursor_home,                  ""          },
+	{     "",                   "",                                               "\e[H",                           0,    cursor_home,                  ""          },
+	{     "",                   "",                                               "\eOD",                           0,    cursor_move_left,             ""          },
+	{     "",                   "",                                               "\e[D",                           0,    cursor_move_left,             ""          },
+	{     "",                   "",                                               "\e[8~",                          0,    cursor_end,                   ""          },
+	{     "",                   "",                                               "\e[4~",                          0,    cursor_end,                   ""          },
+	{     "",                   "",                                               "\eOF",                           0,    cursor_end,                   ""          },
+	{     "",                   "",                                               "\e[F",                           0,    cursor_end,                   ""          },
+	{     "",                   "",                                               "\eOC",                           0,    cursor_move_right,            ""          },
+	{     "",                   "",                                               "\e[C",                           0,    cursor_move_right,            ""          },
+	{     "",                   "",                                               "\x7F",                           0,    cursor_backspace,             ""          },
+	{     "",                   "",                                               "\eOB",                           0,    cursor_move_down,             ""          },
+	{     "",                   "",                                               "\eOA",                           0,    cursor_move_up,               ""          },
+	{     "",                   "",                                               "\e[1;5D",                        0,    cursor_move_left_word,        ""          },
+	{     "",                   "",                                               "\e[1;5C",                        0,    cursor_move_right_word,       ""          },
+	{     "",                   "",                                               "\e[1;5B",                        0,    cursor_move_page_down,        ""          },
+	{     "",                   "",                                               "\e[1;5A",                        0,    cursor_move_page_up,          ""          },
+	{     "",                   "",                                               "\e[127;5u",                      0,    cursor_clear_line,            ""          },
+	{     "",                   "",                                               "\e\x7F",                         0,    cursor_delete_word_left,      ""          },
+	{     "",                   "",                                               "\ed",                            0,    cursor_delete_word_right,     ""          },
+	{     "",                   "",                                               "",                               0,    NULL,                         ""          }
 };
 
 struct draw_type draw_table[] =
@@ -1129,6 +986,13 @@ struct draw_type draw_table[] =
 		"Draw four sides of a box.",
 		DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT,
 		draw_box
+	},
+
+	{
+		"BUFFER",
+		"Draw the scrollback buffer.",
+		0,
+		draw_buffer
 	},
 
 	{
@@ -1186,6 +1050,32 @@ struct draw_type draw_table[] =
 		0,
 		NULL
 	}
+};
+
+
+struct edit_type edit_table[] =
+{
+	{      "CREATE",            edit_create,         "Create an editor"                  },
+	{      "LOAD",              edit_load,           "Create an editor from a variable"  },
+	{      "READ",              edit_read,           "Create an editor from file"        },
+	{      "RESUME",            edit_resume,         "Resume editing after suspending"   },
+	{      "SAVE",              edit_save,           "Save editor to a list variable"    },
+	{      "SUSPEND",           edit_suspend,        "Suspend editing"                   },
+	{      "WRITE",             edit_write,          "Write editor to file"              },
+	{      "",                  NULL,                ""                                  },
+};
+
+
+struct scan_type scan_table[] =
+{
+	{       "ABORT",            scan_abort,   SCAN_FLAG_NONE,                "Abort a scan currently in progress."},
+	{       "CSV",              scan_csv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a comma separated value file." },
+	{       "DIR",              scan_dir,     SCAN_FLAG_FILE,                "Scan a directory to a variable."    },
+	{       "FILE",             scan_file,    SCAN_FLAG_FILE,                "Scan a file all at once."           },
+	{       "FORWARD",          scan_forward, SCAN_FLAG_FILE,                "Scan a file and send each line."    },
+	{       "TSV",              scan_tsv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a tab separated value file."   },
+	{       "TXT",              scan_txt,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a text file line by line."     },
+	{       "",                 NULL,         0,                             ""                                   }
 };
 
 struct screen_type screen_table[] =
@@ -1265,7 +1155,7 @@ struct screen_type screen_table[] =
 		screen_info
 	},
 	{
-		"INPUT",
+		"INPUTREGION",
 		"Set the input region to {square}.",
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_GET_ONE,
@@ -1356,7 +1246,7 @@ struct screen_type screen_table[] =
 	},
 
 	{
-		"SCROLL",
+		"SCROLLREGION",
 		"Set the scroll region to {square}.",
 		SCREEN_FLAG_GET_ONE,
 		SCREEN_FLAG_GET_ONE,
@@ -1383,6 +1273,14 @@ struct screen_type screen_table[] =
 		screen_set
 	},
 	{
+		"SWAP",
+		"Swap the input and scroll region.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_swap
+	},
+	{
 		"", "", 0, 0, 0, NULL
 	}
 };
@@ -1393,6 +1291,7 @@ struct timer_type timer_table[] =
 	{    "Update Input"                },
 	{    "Update Sessions"             },
 	{    "Update Delays"               },
+	{    "Update Daemon"               },
 	{    "Update Chat"                 },
 	{    "Update Port"                 },
 	{    "Update Tickers"              },
@@ -1406,113 +1305,123 @@ struct timer_type timer_table[] =
 
 struct event_type event_table[] =
 {
-//	{    "ADD LINE BUFFER",                        EVENT_FLAG_OUTPUT,   "Triggers when output is added to buffer."},
-//	{    "ADD PROMPT BUFFER",                      EVENT_FLAG_OUTPUT,   "Triggers when output is added to buffer."},
-	{    "BUFFER UPDATE",                          EVENT_FLAG_OUTPUT,   "Trigers when scroll buffer is updated."  },	
-	{    "CATCH ",                                 EVENT_FLAG_CATCH,    "Triggers on catch events."               },
-	{    "CHAT MESSAGE",                           EVENT_FLAG_PORT,     "Triggers on any chat related message."   },
-	{    "CLASS ACTIVATED",                        EVENT_FLAG_CLASS,    "Triggers on class activations."          },
-	{    "CLASS CREATED",                          EVENT_FLAG_CLASS,    "Triggers on class creation."             },
-	{    "CLASS DEACTIVATED",                      EVENT_FLAG_CLASS,    "Triggers on class deactivations."        },
-	{    "CLASS DESTROYED",                        EVENT_FLAG_CLASS,    "Triggers on class destruction."          },
-	{    "DATE",                                   EVENT_FLAG_TIME,     "Triggers on the given date."             },
-	{    "DAY",                                    EVENT_FLAG_TIME,     "Triggers each day or given day."         },
-	{    "DISPLAY UPDATE",                         EVENT_FLAG_OUTPUT,   "Trigers when display is updated."        },
-	{    "DOUBLE-CLICKED ",                        EVENT_FLAG_MOUSE,    "Triggers when mouse is double-clicked"   },
-	{    "END OF PATH",                            EVENT_FLAG_MAP,      "Triggers when walking the last room."    },
-	{    "GAG ",                                   EVENT_FLAG_GAG,      "Triggers on gag events."                 },
-	{    "HOUR",                                   EVENT_FLAG_TIME,     "Triggers each hour or given hour."       },
-	{    "IAC ",                                   EVENT_FLAG_TELNET,   "Triggers on telopt negotiation."         },
-	{    "LONG-CLICKED ",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is long-clicked."    },
-	{    "MAP CREATE ROOM",                        EVENT_FLAG_MAP,      "Triggers when a room is created."        },
-	{    "MAP DELETE ROOM",                        EVENT_FLAG_MAP,      "Triggers when a room is deleted."        },
-	{    "MAP DOUBLE-CLICKED ",                    EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP ENTER MAP",                          EVENT_FLAG_MAP,      "Triggers when entering the map."         },
-	{    "MAP ENTER ROOM",                         EVENT_FLAG_MAP,      "Triggers when entering a map room."      },
-	{    "MAP EXIT MAP",                           EVENT_FLAG_MAP,      "Triggers when exiting the map."          },
-	{    "MAP EXIT ROOM",                          EVENT_FLAG_MAP,      "Triggers when exiting a map room."       },
-	{    "MAP FOLLOW MAP",                         EVENT_FLAG_MAP,      "Triggers when moving to a map room."     },
-	{    "MAP LOCATION",                           EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP LONG-CLICKED ",                      EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP MOUSE LOCATION",                     EVENT_FLAG_MOUSE,    "Triggers when called by #screen raise."  }, 
-	{    "MAP MOVED ",                             EVENT_FLAG_MOUSE,    "Triggers on vt map mouse move."          },
-	{    "MAP PRESSED ",                           EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP REGION ",                            EVENT_FLAG_MOUSE,    "Triggers on vt map mouse events."        },
-	{    "MAP RELEASED ",                          EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP ROOM ",                              EVENT_FLAG_MOUSE,    "Triggers on vt map room mouse events."   },
-	{    "MAP SCROLLED ",                          EVENT_FLAG_MOUSE,    "Triggers on vt map scroll."              },
-	{    "MAP SHORT-CLICKED ",                     EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP TRIPLE-CLICKED ",                    EVENT_FLAG_MOUSE,    "Triggers on vt map click."               },
-	{    "MAP UPDATED VTMAP",                      EVENT_FLAG_MAP,      "Triggers on vt map update."              },
+	{    "BUFFER UPDATE",                          0, EVENT_FLAG_UPDATE,   "UPDATE",    "scrollback buffer update"   },	
+	{    "CATCH ",                                 0, EVENT_FLAG_CATCH,    "CATCH",     "prefix for catch events"    },
+	{    "CHAT MESSAGE",                           0, EVENT_FLAG_PORT,     "PORT",      "any chat related message"   },
+	{    "CLASS ACTIVATED",                        0, EVENT_FLAG_CLASS,    "CLASS",     "class activations"          },
+	{    "CLASS CREATED",                          0, EVENT_FLAG_CLASS,    "CLASS",     "class creation"             },
+	{    "CLASS DEACTIVATED",                      0, EVENT_FLAG_CLASS,    "CLASS",     "class deactivations"        },
+	{    "CLASS DESTROYED",                        0, EVENT_FLAG_CLASS,    "CLASS",     "class destruction"          },
+	{    "DAEMON ATTACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon attachment"          },
+	{    "DAEMON DETACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon detachment"          },
+	{    "DATE",                                   0, EVENT_FLAG_TIME,     "TIME",      "the given date"             },
+	{    "DAY",                                    0, EVENT_FLAG_TIME,     "TIME",      "each day or given day"      },
+	{    "DISPLAY UPDATE",                         0, EVENT_FLAG_UPDATE,   "UPDATE",    "when display is updated"    },
+	{    "DOUBLE-CLICKED ",                        0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is double-clicked"    },
+	{    "EDIT FINISHED",                          0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is finished"   },
+	{    "EDIT STARTED",                           0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is started"    },
+	{    "END OF PATH",                            0, EVENT_FLAG_MAP,      "MAP",       "walking the last room"      },
+	{    "END OF RUN",                             0, EVENT_FLAG_MAP,      "MAP",       "running the last room"      },
+	{    "GAG ",                                   0, EVENT_FLAG_GAG,      "GAG",       "prefix for gag events"      },
+	{    "HOUR",                                   0, EVENT_FLAG_TIME,     "TIME",      "every hour or given hour"   },
+	{    "IAC ",                                   0, EVENT_FLAG_TELNET,   "TELNET",    "prefix for telnet events"   },
+	{    "LONG-CLICKED ",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is long-clicked"      },
+	{    "MAP CREATE ROOM",                        0, EVENT_FLAG_MAP,      "MAP",       "a room is created"          },
+	{    "MAP DELETE ROOM",                        0, EVENT_FLAG_MAP,      "MAP",       "a room is deleted"          },
+	{    "MAP DOUBLE-CLICKED ",                    0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP ENTER MAP",                          0, EVENT_FLAG_MAP,      "MAP",       "entering the map"           },
+	{    "MAP ENTER ROOM",                         0, EVENT_FLAG_MAP,      "MAP",       "entering a map room"        },
+	{    "MAP EXIT MAP",                           0, EVENT_FLAG_MAP,      "MAP",       "exiting the map"            },
+	{    "MAP EXIT ROOM",                          0, EVENT_FLAG_MAP,      "MAP",       "exiting a map room"         },
+	{    "MAP FOLLOW MAP",                         0, EVENT_FLAG_MAP,      "MAP",       "moving to a map room"       },
+	{    "MAP LOCATION",                           0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP LONG-CLICKED ",                      0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP MOUSE LOCATION",                     0, EVENT_FLAG_MOUSE,    "MOUSE",     "called by #screen raise"    }, 
+	{    "MAP MOVED ",                             0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map mouse move"          },
+	{    "MAP PRESSED ",                           0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP REGION ",                            0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map mouse events"        },
+	{    "MAP RELEASED ",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP ROOM ",                              0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map room mouse events"   },
+	{    "MAP SCROLLED ",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map scroll"              },
+	{    "MAP SHORT-CLICKED ",                     0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP TRIPLE-CLICKED ",                    0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
+	{    "MAP UPDATED VTMAP",                      0, EVENT_FLAG_MAP,      "MAP",       "vt map update"              },
+	{    "MINUTE",                                 0, EVENT_FLAG_TIME,     "TIME",      "minute or given minute"     },
+	{    "MONTH",                                  0, EVENT_FLAG_TIME,     "TIME",      "month or given month"       },
+	{    "MOVED ",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is moved"             },
+	{    "PORT CONNECTION",                        0, EVENT_FLAG_PORT,     "PORT",      "socket connects"            },
+	{    "PORT DISCONNECTION",                     0, EVENT_FLAG_PORT,     "PORT",      "socket disconnects"         },
+	{    "PORT INITIALIZED",                       0, EVENT_FLAG_PORT,     "PORT",      "port is initialized"        },
+	{    "PORT LOG MESSAGE",                       0, EVENT_FLAG_PORT,     "PORT",      "local port log messages"    },
+	{    "PORT MESSAGE",                           0, EVENT_FLAG_PORT,     "PORT",      "local port messages"        },
+	{    "PORT RECEIVED MESSAGE",                  0, EVENT_FLAG_PORT,     "PORT",      "socket data is received"    },
+	{    "PORT UNINITIALIZED",                     0, EVENT_FLAG_PORT,     "PORT",      "port is uninitialized"      },
+	{    "PRESSED ",                               0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse button is pressed"    },
+	{    "PROCESSED KEYPRESS",                     0, EVENT_FLAG_INPUT,    "INPUT",     "after a regular keypress"   },
+	{    "PROGRAM START",                          0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "main session starts"        },
 
-	{    "MINUTE",                                 EVENT_FLAG_TIME,     "Triggers each minute or given minute."   },
-	{    "MONTH",                                  EVENT_FLAG_TIME,     "Triggers each month or given month."     },
-	{    "MOVED ",                                 EVENT_FLAG_MOUSE,    "Triggers when mouse is moved."           },
-	{    "PORT CONNECTION",                        EVENT_FLAG_PORT,     "Triggers when socket connects."          },
-	{    "PORT DISCONNECTION",                     EVENT_FLAG_PORT,     "Triggers when socket disconnects."       },
-	{    "PORT INITIALIZED",                       EVENT_FLAG_PORT,     "Triggers when port is initialized."      },
-	{    "PORT LOG MESSAGE",                       EVENT_FLAG_PORT,     "Triggers on local port log messages."    },
-	{    "PORT MESSAGE",                           EVENT_FLAG_PORT,     "Triggers on local port messages."        },
-	{    "PORT RECEIVED MESSAGE",                  EVENT_FLAG_PORT,     "Triggers when socket data is received."  },
-	{    "PORT UNINITIALIZED",                     EVENT_FLAG_PORT,     "Triggers when port is uninitialized."    },
-	{    "PRESSED ",                               EVENT_FLAG_MOUSE,    "Triggers when mouse button is pressed."  },
-	{    "PROGRAM START",                          EVENT_FLAG_SYSTEM,   "Triggers when main session starts."      },
-	{    "PROGRAM TERMINATION",                    EVENT_FLAG_SYSTEM,   "Triggers when main session exists."      },
-	{    "READ ERROR",                             EVENT_FLAG_SYSTEM,   "Triggers when the read command fails."   },
-	{    "RECEIVED INPUT",                         EVENT_FLAG_INPUT,    "Triggers when new input is received."    },
-	{    "RECEIVED KEYPRESS",                      EVENT_FLAG_INPUT,    "Triggers when a keypress is received."   },
-	{    "RECEIVED LINE",                          EVENT_FLAG_OUTPUT,   "Triggers when a new line is received."   },
-	{    "RECEIVED OUTPUT",                        EVENT_FLAG_OUTPUT,   "Triggers when new output is received."   },
-	{    "RECEIVED PROMPT",                        EVENT_FLAG_OUTPUT,   "Triggers when a prompt is received."     },
-	{    "RELEASED ",                              EVENT_FLAG_MOUSE,    "Triggers when mouse button is released." },
-	{    "SCAN CSV HEADER",                        EVENT_FLAG_SCAN,     "Triggers when scanning a csv file."      },
-	{    "SCAN CSV LINE",                          EVENT_FLAG_SCAN,     "Triggers when scanning a csv file."      },
-	{    "SCAN TSV HEADER",                        EVENT_FLAG_SCAN,     "Triggers when scanning a tsv file."      },
-	{    "SCAN TSV LINE",                          EVENT_FLAG_SCAN,     "Triggers when scanning a tsv file."      },
-	{    "SCREEN DESKTOP DIMENSIONS",              EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN DESKTOP SIZE",                    EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN DIMENSIONS",                      EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN FILL",                            EVENT_FLAG_SCREEN,   "Triggers when split bars are filled."    },
-	{    "SCREEN FOCUS",                           EVENT_FLAG_SCREEN,   "Triggers when focus changes.",           },
-	{    "SCREEN LOCATION",                        EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN MINIMIZED",                       EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN MOUSE LOCATION",                  EVENT_FLAG_MOUSE,    "Triggers when called by #screen raise."  },
-	{    "SCREEN REFRESH",                         EVENT_FLAG_SCREEN,   "Triggers when the screen is refreshed."  },
-	{    "SCREEN RESIZE",                          EVENT_FLAG_SCREEN,   "Triggers when the screen is resized."    },
-	{    "SCREEN ROTATE LANDSCAPE",                EVENT_FLAG_SCREEN,   "Triggers when the screen is rotated."    },
-	{    "SCREEN ROTATE PORTRAIT",                 EVENT_FLAG_SCREEN,   "Triggers when the screen is rotated."    },
-	{    "SCREEN SIZE",                            EVENT_FLAG_SCREEN,   "Triggers when called by #screen raise."  },
-	{    "SCREEN SPLIT",                           EVENT_FLAG_SCREEN,   "Triggers when the screen is split."      },
-	{    "SCREEN SPLIT FILL",                      EVENT_FLAG_SCREEN,   "Triggers when split region is filled."   },
-	{    "SCREEN UNSPLIT",                         EVENT_FLAG_SCREEN,   "Triggers when the screen is unsplit."    },
-	{    "SCROLLED ",                              EVENT_FLAG_MOUSE,    "Triggers when mouse wheel is scrolled."  },
-	{    "SECOND",                                 EVENT_FLAG_TIME,     "Triggers each second or given second."   },
-	{    "SEND OUTPUT",                            EVENT_FLAG_INPUT,    "Triggers before sending output."         },
-	{    "SENT OUTPUT",                            EVENT_FLAG_INPUT,    "Triggers after sending output."          },
-	{    "SESSION ACTIVATED",                      EVENT_FLAG_SESSION,  "Triggers when a session is activated."   },
-	{    "SESSION CONNECTED",                      EVENT_FLAG_SESSION,  "Triggers when a new session connects."   },
-	{    "SESSION CREATED",                        EVENT_FLAG_SESSION,  "Triggers when a new session is created." },
-	{    "SESSION DEACTIVATED",                    EVENT_FLAG_SESSION,  "Triggers when a session is deactivated." },
-	{    "SESSION DISCONNECTED",                   EVENT_FLAG_SESSION,  "Triggers when a session disconnects."    },
-	{    "SESSION TIMED OUT",                      EVENT_FLAG_SESSION,  "Triggers when a session doesn't connect."},
-	{    "SHORT-CLICKED",                          EVENT_FLAG_MOUSE,    "Triggers when mouse is short-clicked."   },
-	{    "SWIPED",                                 EVENT_FLAG_MOUSE,    "Triggers on mouse swipe."},
-	{    "SYSTEM ERROR",                           EVENT_FLAG_SYSTEM,   "Triggers on system errors."              },
-	{    "TIME",                                   EVENT_FLAG_TIME,     "Triggers on the given time."             },
-	{    "TRIPLE-CLICKED",                         EVENT_FLAG_MOUSE,    "Triggers when mouse is triple-clicked."  },
-	{    "UNKNOWN COMMAND",                        EVENT_FLAG_SYSTEM,   "Triggers on unknown tintin command."     },
-	{    "VARIABLE UPDATE ",                       EVENT_FLAG_SYSTEM,   "Triggers before a variable updates."     },
-	{    "VARIABLE UPDATED ",                      EVENT_FLAG_SYSTEM,   "Triggers after a variable update."       },
-	{    "VT100 CPR",                              EVENT_FLAG_VT100,    "Triggers on an ESC [ 6 n call."          },
-	{    "VT100 DA",                               EVENT_FLAG_VT100,    "Triggers on an ESC [ c call."            },
-	{    "VT100 DECID",                            EVENT_FLAG_VT100,    "Triggers on an ESC Z call."              },
-	{    "VT100 DSR",                              EVENT_FLAG_VT100,    "Triggers on an ESC [ 5 n call."          },
-	{    "VT100 ENQ",                              EVENT_FLAG_VT100,    "Triggers on an \\x05 call."              },
-	{    "VT100 SCROLL REGION",                    EVENT_FLAG_VT100,    "Triggers on vt100 scroll region change." },
-	{    "WEEK",                                   EVENT_FLAG_TIME,     "Triggers each week or given week."       },
-	{    "WRITE ERROR",                            EVENT_FLAG_SYSTEM,   "Triggers when the write command fails."  },
-	{    "YEAR",                                   EVENT_FLAG_TIME,     "Triggers each year or given year."       },
-	{    "",                                       0,                   ""                                        }
+	{    "PROGRAM TERMINATION",                    0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "main session exists"        },
+	{    "READ ERROR",                             0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "the read command fails"     },
+	{    "RECEIVED ERROR",                         0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "an error is received"       },
+	{    "RECEIVED INPUT",                         0, EVENT_FLAG_INPUT,    "INPUT",     "keyboard input is received" },
+	{    "RECEIVED KEYPRESS",                      0, EVENT_FLAG_INPUT,    "INPUT",     "a keypress is received"     },
+	{    "RECEIVED LINE",                          0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "a new line is received"     },
+	{    "RECEIVED OUTPUT",                        0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "bulk output is received"    },
+	{    "RECEIVED PROMPT",                        0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "a prompt is received"       },
+	{    "RELEASED ",                              0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse button is released"   },
+	{    "SCAN CSV HEADER",                        0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a csv file"        },
+	{    "SCAN CSV LINE",                          0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a csv file"        },
+	{    "SCAN TSV HEADER",                        0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a tsv file"        },
+	{    "SCAN TSV LINE",                          0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a tsv file"        },
+	{    "SCREEN DESKTOP DIMENSIONS",              0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN DESKTOP SIZE",                    0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN DIMENSIONS",                      0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN FILL",                            0, EVENT_FLAG_SCREEN,   "SCREEN",    "split bars are filled"      },
+	{    "SCREEN FOCUS",                           0, EVENT_FLAG_MOUSE,    "MOUSE",     "focus changes",             },
+	{    "SCREEN LOCATION",                        0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN MINIMIZED",                       0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN MOUSE LOCATION",                  0, EVENT_FLAG_MOUSE,    "MOUSE",     "called by #screen raise"    },
+	{    "SCREEN REFRESH",                         0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is refreshed"    },
+	{    "SCREEN RESIZE",                          0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is resized"      },
+	{    "SCREEN ROTATE LANDSCAPE",                0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is rotated"      },
+	{    "SCREEN ROTATE PORTRAIT",                 0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is rotated"      },
+	{    "SCREEN SIZE",                            0, EVENT_FLAG_SCREEN,   "SCREEN",    "called by #screen raise"    },
+	{    "SCREEN SPLIT",                           0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is split"        },
+	{    "SCREEN SPLIT FILL",                      0, EVENT_FLAG_SCREEN,   "SCREEN",    "split region is filled"     },
+	{    "SCREEN UNSPLIT",                         0, EVENT_FLAG_SCREEN,   "SCREEN",    "the screen is unsplit"      },
+	{    "SCROLLBAR MOVE",                         0, EVENT_FLAG_SCREEN,   "SCREEN",    "scrollbar movement"         },
+	{    "SCROLLBAR POSITION",                     0, EVENT_FLAG_SCREEN,   "SCREEN",    "scrollbar position"         },
+	{    "SCROLLBAR UPDATE",                       0, EVENT_FLAG_UPDATE,   "UPDATE",    "scrollbar update"           },
+	{    "SCROLLED ",                              0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse wheel is scrolled"    },
+	{    "SECOND",                                 0, EVENT_FLAG_TIME,     "TIME",      "second or given second"     },
+	{    "SEND OUTPUT",                            0, EVENT_FLAG_INPUT,    "INPUT",     "before sending output"      },
+	{    "SENT OUTPUT",                            0, EVENT_FLAG_INPUT,    "INPUT",     "after sending output"       },
+	{    "SESSION ACTIVATED",                      0, EVENT_FLAG_SESSION,  "SESSION",   "a session is activated"     },
+	{    "SESSION CONNECTED",                      0, EVENT_FLAG_SESSION,  "SESSION",   "a new session connects"     },
+	{    "SESSION CREATED",                        0, EVENT_FLAG_SESSION,  "SESSION",   "a new session is created"   },
+	{    "SESSION DEACTIVATED",                    0, EVENT_FLAG_SESSION,  "SESSION",   "a session is deactivated"   },
+	{    "SESSION DESTROYED",                      0, EVENT_FLAG_SESSION,  "SESSION",   "a session is destroyed"     },
+	{    "SESSION DISCONNECTED",                   0, EVENT_FLAG_SESSION,  "SESSION",   "a session disconnects"      },
+	{    "SESSION TIMED OUT",                      0, EVENT_FLAG_SESSION,  "SESSION",   "a session doesn't connect"  },
+	{    "SHORT-CLICKED",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is short-clicked"     },
+	{    "SWIPED",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse swipe"                },
+	{    "SYSTEM CRASH",                           0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "system crash"               },
+	{    "SYSTEM ERROR",                           0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "system errors"              },
+	{    "TIME",                                   0, EVENT_FLAG_TIME,     "TIME",      "the given time"             },
+	{    "TRIPLE-CLICKED",                         0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is triple-clicked"    },
+	{    "UNKNOWN COMMAND",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "unknown tintin command"     },
+	{    "VARIABLE UPDATE ",                       0, EVENT_FLAG_VARIABLE, "VARIABLE",  "before a variable updates"  },
+	{    "VARIABLE UPDATED ",                      0, EVENT_FLAG_VARIABLE, "VARIABLE",  "after a variable updates"   },
+	{    "VT100 CPR",                              0, EVENT_FLAG_VT100,    "VT100",     "an ESC [ 6 n call"          },
+	{    "VT100 DA",                               0, EVENT_FLAG_VT100,    "VT100",     "an ESC [ c call"            },
+	{    "VT100 DECID",                            0, EVENT_FLAG_VT100,    "VT100",     "an ESC Z call"              },
+	{    "VT100 DSR",                              0, EVENT_FLAG_VT100,    "VT100",     "an ESC [ 5 n call"          },
+	{    "VT100 ENQ",                              0, EVENT_FLAG_VT100,    "VT100",     "an \\x05 call"              },
+	{    "VT100 SCROLL REGION",                    0, EVENT_FLAG_VT100,    "VT100",     "vt100 scroll region change" },
+	{    "WEEK",                                   0, EVENT_FLAG_TIME,     "TIME",      "each week or given week"    },
+	{    "WRITE ERROR",                            0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "the write command fails"    },
+	{    "YEAR",                                   0, EVENT_FLAG_TIME,     "TIME",      "each year or given year"    },
+	{    "",                                       0, 0,                   "",          ""                           }
 };
 
 struct path_type path_table[] =
@@ -1555,6 +1464,7 @@ struct line_type line_table[] =
 	{    "LOG",               line_log,            "Log the next line or given line."               },
 	{    "LOGMODE",           line_logmode,        "Execute line with given log mode."              },
 	{    "LOGVERBATIM",       line_logverbatim,    "Log the line as plain text verbatim."           },
+	{    "MSDP",              line_msdp,           "Execute line with msdp conversion."             },
 	{    "MULTISHOT",         line_multishot,      "Execute line creating multishot triggers."      },
 	{    "ONESHOT",           line_oneshot,        "Execute line creating oneshot triggers."        },
 	{    "QUIET",             line_quiet,          "Execute line with all system messages off."     },
@@ -1567,7 +1477,8 @@ struct line_type line_table[] =
 
 struct log_type log_table[] =
 {
-	{    "APPEND",            log_append,          "Start logging, apending to give file."          },
+	{    "APPEND",            log_append,          "Start logging, appending to give file."         },
+	{    "INFO",              log_info,            "Some logging related info."                     },
 	{    "OFF",               log_off,             "Stop logging."                                  },
 	{    "OVERWRITE",         log_overwrite,       "Start logging, overwriting the given file."     },
 	{    "",                  NULL,                ""                                               }
@@ -1577,7 +1488,7 @@ struct history_type history_table[] =
 {
 //	{    "CHARACTER",         history_character,   "Set the character used for repeating commands." },
 	{    "DELETE",            history_delete,      "Delete last command history entry."             },
-	{    "GET",               history_get,         "Store in geven variable a given line or range." },
+	{    "GET",               history_get,         "Store in given variable a given index or range." },
 	{    "INSERT",            history_insert,      "Insert a new command history entry."            },
 	{    "LIST",              history_list,        "Display command history list."                  },
 	{    "READ",              history_read,        "Read a command history list from file."         },
@@ -1595,7 +1506,9 @@ struct buffer_type buffer_table[] =
 	{    "GET",               buffer_get,          "Store in given variable a given line or range." },
 	{    "HOME",              buffer_home,         "Scroll up to the start of the buffer."          },
 	{    "INFO",              buffer_info,         "Display statistics about the buffer."           },
+	{    "JUMP",              buffer_jump,         "Jump to given line."                            },
 	{    "LOCK",              buffer_lock,         "Toggle the locking state of the buffer."        },
+	{    "REFRESH",           buffer_refresh,      "Refresh the buffer display."                    },
 	{    "UP",                buffer_up,           "Scroll up one page."                            },
 	{    "WRITE",             buffer_write,        "Write the buffer to file."                      },
 	{    "",                  NULL,                ""                                               }
@@ -2113,7 +2026,7 @@ struct map_legend_type map_legend_table[] =
 	{ NULL,			NULL,			NULL,	NULL	}
 };
 
-struct map_group_type map_group_table[] =
+struct map_legend_group_type map_legend_group_table[] =
 {
 	{ "ALL",                        "",                     1, 1,   1, 2,   0, 0,   "" },
 

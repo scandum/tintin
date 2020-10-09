@@ -53,11 +53,13 @@ int case_table[256] =
 
 int is_abbrev(char *str1, char *str2)
 {
-	char *str3 = gtd->is_result;
+	char buf[NUMBER_SIZE], *str3;
+
+	str3 = buf;
 
 	if (*str1 == 0)
 	{
-		return false;
+		return FALSE;
 	}
 
 	if (*str2 == 0)
@@ -66,25 +68,78 @@ int is_abbrev(char *str1, char *str2)
 
 		dump_stack();
 
-		return false;
+		return FALSE;
 	}
 
-	while (true)
+	while (TRUE)
 	{
 		if (*str1 == 0)
 		{
-			strcpy(str3, str2);
+			*str3 = 0;
 
-			return true;
+			strcpy(gtd->is_result, buf);
+
+			return TRUE;
 		}
 
 		if (case_table[(int) *str1] != case_table[(int) *str2])
 		{
-			return false;
+			return FALSE;
 		}
 		str1++;
+
 		*str3++ = *str2++;
 	}
+}
+
+int is_member(char *str1, char *str2)
+{
+	char *pt1, *pt2;
+
+	if (*str1 == 0)
+	{
+		return FALSE;
+	}
+
+	if (*str2 == 0)
+	{
+		tintin_printf2(gtd->ses, "\e[1;31mis_member(%s,%s)", str1, str2);
+
+		dump_stack();
+
+		return FALSE;
+	}
+
+	while (*str1)
+	{
+		if (case_table[(int) *str1] == case_table[(int) *str2])
+		{
+			pt1 = str1;
+			pt2 = str2;
+
+			while (case_table[(int) *pt1] == case_table[(int) *pt2])
+			{
+				pt1++;
+				pt2++;
+
+				if (*pt1 == ' ' || *pt1 == 0)
+				{
+					return TRUE;
+				}
+			}
+		}
+
+		while (*str1 && *str1 != ' ')
+		{
+			str1++;
+		}
+
+		if (*str1)
+		{
+			str1++;
+		}
+	}
+	return FALSE;
 }
 
 void filename_string(char *input, char *output)
@@ -94,23 +149,6 @@ void filename_string(char *input, char *output)
 		*output++ = (char) case_table[(int) *input++];
 	}
 	*output = 0;
-}
-
-int is_suffix(char *str1, char *str2)
-{
-	int len1, len2;
-
-	len1 = strlen(str1);
-	len2 = strlen(str2);
-
-	if (len1 >= len2)
-	{
-		if (is_abbrev(str1 + len1 - len2, str2))
-		{
-			return TRUE;
-		}
-	}
-	return FALSE;
 }
 
 int is_vowel(char *str)
@@ -125,31 +163,6 @@ int is_vowel(char *str)
 			return TRUE;
 	}
 	return FALSE;
-}
-
-struct session *execute(struct session *ses, char *format, ...)
-{
-	char *buffer;
-	va_list args;
-
-	va_start(args, format);
-	vasprintf(&buffer, format, args);
-	va_end(args);
-
-	if (*buffer)
-	{
-		if (*buffer != gtd->tintin_char)
-		{
-			*buffer = gtd->tintin_char;
-		}
-		get_arg_all(ses, buffer, buffer, FALSE);
-	}
-
-	ses = script_driver(ses, LIST_COMMAND, buffer);
-
-	free(buffer);
-
-	return ses;
 }
 
 
@@ -167,26 +180,24 @@ struct session *parse_input(struct session *ses, char *input)
 		return ses;
 	}
 
+	line = str_alloc_stack(0);
+
 	if (VERBATIM(ses))
 	{
-		line = (char *) malloc(BUFFER_SIZE);
-
 		sub_arg_all(ses, input, line, 1, SUB_SEC);
 
 		if (check_all_aliases(ses, line))
 		{
 			ses = script_driver(ses, LIST_ALIAS, line);
 		}
-		else if (HAS_BIT(ses->flags, SES_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
+		else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
 		{
 			process_speedwalk(ses, line);
 		}
 		else
 		{
-			write_mud(ses, line, SUB_EOL);
+			write_mud(ses, line, SUB_EOL|SUB_ESC);
 		}
-
-		free(line);
 
 		pop_call();
 		return ses;
@@ -199,8 +210,6 @@ struct session *parse_input(struct session *ses, char *input)
 		pop_call();
 		return ses;
 	}
-
-	line = (char *) malloc(BUFFER_SIZE);
 
 	while (*input)
 	{
@@ -216,7 +225,7 @@ struct session *parse_input(struct session *ses, char *input)
 		{
 			ses = script_driver(ses, LIST_ALIAS, line);
 		}
-		else if (HAS_BIT(ses->flags, SES_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
+		else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
 		{
 			process_speedwalk(ses, line);
 		}
@@ -229,10 +238,7 @@ struct session *parse_input(struct session *ses, char *input)
 		{
 			input++;
 		}
-
 	}
-
-	free(line);
 
 	pop_call();
 	return ses;
@@ -244,23 +250,25 @@ struct session *parse_input(struct session *ses, char *input)
 
 struct session *parse_command(struct session *ses, char *input)
 {
-	char *arg, line[BUFFER_SIZE], cmd1[BUFFER_SIZE], cmd2[BUFFER_SIZE];
+	char *arg, *arg1;
 
 	push_call("parse_command(%p,%p)",ses,input);
 
-	arg = get_arg_stop_spaces(ses, input, cmd1, GET_ONE);
+	arg1 = str_alloc_stack(0);
 
-	substitute(ses, cmd1, cmd2, SUB_VAR|SUB_FUN);
+	arg = sub_arg_stop_spaces(ses, input, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if (!strcmp(cmd1, cmd2))
+	if (!strncmp(input, arg1, strlen(arg1)))
 	{
 		pop_call();
 		return NULL;
 	}
 
-	sprintf(line, "%s%s%s", cmd2, *arg ? " " : "", arg);
-
-	strcpy(input, line);
+	if (*arg)
+	{
+		cat_sprintf(arg1, " %s", arg);
+	}
+	strcpy(input, arg1);
 
 	pop_call();
 	return ses;
@@ -276,16 +284,16 @@ char *substitute_speedwalk(struct session *ses, char *input, char *output)
 
 	while (*pti && pto - output < INPUT_SIZE)
 	{
-		while (isspace((int) *pti))
+		if (is_space(*pti))
 		{
-			pti++;
+			return input;
 		}
 
-		if (isdigit((int) *pti))
+		if (is_digit(*pti))
 		{
 			ptn = num;
 
-			while (isdigit((int) *pti))
+			while (is_digit(*pti))
 			{
 				if (ptn - num < 4)
 				{
@@ -299,6 +307,11 @@ char *substitute_speedwalk(struct session *ses, char *input, char *output)
 			*ptn = 0;
 
 			max = atoi(num);
+
+			if (*pti == 0)
+			{
+				return input;
+			}
 		}
 		else
 		{
@@ -307,9 +320,9 @@ char *substitute_speedwalk(struct session *ses, char *input, char *output)
 
 		pti = get_arg_stop_digits(ses, pti, name, GET_ONE);
 
-		if (*name == 0)
+		if (*name == 0 || !is_pathdir(ses, name))
 		{
-			break;
+			return input;
 		}
 
 		for (cnt = 0 ; cnt < max ; cnt++)
@@ -383,7 +396,7 @@ void process_speedwalk(struct session *ses, char *input)
 
 	for (dir[1] = 0 ; *input ; input++)
 	{
-		if (isdigit((int) *input))
+		if (is_digit(*input))
 		{
 			sscanf(input, "%d%c", &cnt, dir);
 
@@ -416,9 +429,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 	char line[BUFFER_SIZE];
 	struct session *sesptr;
 
-	input = get_arg_stop_spaces(ses, input, line, GET_ONE);
-
-	substitute(ses, line, line, SUB_VAR|SUB_FUN);
+	input = sub_arg_in_braces(ses, input, line, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if (is_number(line))
 	{
@@ -462,7 +473,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 
 	tintin_printf2(ses, "#ERROR: #UNKNOWN TINTIN-COMMAND '%s'.", line);
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "UNKNOWN COMMAND", line);
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 1, "UNKNOWN COMMAND", line);
 
 	return ses;
 }
@@ -567,14 +578,24 @@ char *get_arg_all(struct session *ses, char *string, char *result, int verbatim)
 
 char *sub_arg_all(struct session *ses, char *string, char *result, int verbatim, int sub)
 {
-	char *buffer = str_alloc(UMAX(strlen(string), BUFFER_SIZE));
+	char *buffer;
+
+	if (*string == 0)
+	{
+		*result = 0;
+
+		return string;
+	}
+
+	push_call("sub_arg_all(%p,%p,%p,%d,%d)",ses,string,result,verbatim,sub);
+
+	buffer = str_alloc_stack(strlen(string));
 
 	string = get_arg_all(ses, string, buffer, verbatim);
 
 	substitute(ses, buffer, result, sub);
 
-	str_free(buffer);
-
+	pop_call();
 	return string;
 }
 
@@ -656,14 +677,24 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 
 char *sub_arg_in_braces(struct session *ses, char *string, char *result, int flag, int sub)
 {
-	char *buffer = str_alloc(strlen(string) + BUFFER_SIZE);
+	char *buffer;
+
+	if (*string == 0)
+	{
+		*result = 0;
+		
+		return string;
+	}
+
+	push_call("sub_arg_in_braces(%p,%p,%p,%d,%d)",ses,string,result,flag,sub);
+
+	buffer = str_alloc_stack(strlen(string) * 2);
 
 	string = get_arg_in_braces(ses, string, buffer, flag);
 
 	substitute(ses, buffer, result, sub);
 
-	str_free(buffer);
-
+	pop_call();
 	return string;
 }
 
@@ -763,7 +794,7 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 		{
 			break;
 		}
-		else if (isspace((int) *pti) && nest == 0)
+		else if (is_space(*pti) && nest == 0)
 		{
 			pti++;
 			break;
@@ -789,6 +820,29 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 	*pto = '\0';
 
 	return pti;
+}
+
+char *sub_arg_stop_spaces(struct session *ses, char *string, char *result, int flag, int sub)
+{
+	char *buffer;
+
+	if (*string == 0)
+	{
+		*result = 0;
+
+		return string;
+	}
+
+	push_call("sub_arg_stop_braces(%p,%p,%p,%d,%d)",ses,string,result,flag,sub);
+
+	buffer = str_alloc_stack(strlen(string) * 2);
+
+	string = get_arg_stop_spaces(ses, string, buffer, flag);
+
+	substitute(ses, buffer, result, sub);
+
+	pop_call();
+	return string;
 }
 
 // Get one arg, stop at numbers, used for speedwalks
@@ -818,7 +872,7 @@ char *get_arg_stop_digits(struct session *ses, char *string, char *result, int f
 		{
 			break;
 		}
-		else if (isdigit((int) *pti) && nest == 0)
+		else if (is_digit(*pti) && nest == 0)
 		{
 			break;
 		}
@@ -851,7 +905,7 @@ char *get_arg_stop_digits(struct session *ses, char *string, char *result, int f
 
 char *space_out(char *string)
 {
-	while (isspace((int) *string))
+	while (is_space(*string))
 	{
 		string++;
 	}
@@ -1068,13 +1122,23 @@ void write_mud(struct session *ses, char *command, int flags)
 	{
 		if (ses->map == NULL || ses->map->nofollow == 0)
 		{
-			check_append_path(ses, command, NULL, 1);
+			check_append_path(ses, command, NULL, 0.0, 1);
 		}
 	}
 
 	if (gtd->level->ignore == 0 && ses->map && ses->map->in_room && ses->map->nofollow == 0)
 	{
-		if (follow_map(ses, command))
+		int quiet, follow;
+
+		quiet = HAS_BIT(ses->map->flags, MAP_FLAG_QUIET);
+
+		gtd->level->input += quiet;
+
+		follow = follow_map(ses, command);
+
+		gtd->level->input -= quiet;
+
+		if (follow)
 		{
 			return;
 		}
@@ -1090,28 +1154,30 @@ void write_mud(struct session *ses, char *command, int flags)
 
 void do_one_line(char *line, struct session *ses)
 {
-	char *strip;
-
-	push_call("do_one_line(%s,%p)",ses->name,line);
+	char *strip, *buf;
 
 	if (gtd->level->ignore)
 	{
-		pop_call();
 		return;
 	}
 
-	strip = str_alloc_stack();
+	push_call("do_one_line(%s,%p)",ses->name,line);
+
+	push_script_stack(ses, LIST_VARIABLE);
+
+	strip = str_alloc_stack(0);
+	buf   = str_alloc_stack(0);
 
 	strip_vt102_codes(line, strip);
 
 	if (!HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_actions(ses, line, strip);
+		check_all_actions(ses, line, strip, buf);
 	}
 
 	if (!HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_prompts(ses, line, strip, TRUE);
+		check_all_prompts(ses, line, strip);
 	}
 
 	if (!HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))
@@ -1135,6 +1201,8 @@ void do_one_line(char *line, struct session *ses)
 
 		DEL_BIT(ses->logmode, LOG_FLAG_NEXT);
 	}
+
+	pop_script_stack();
 
 	pop_call();
 	return;

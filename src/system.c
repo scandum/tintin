@@ -37,8 +37,8 @@
 #include <dirent.h>
 #include <termios.h>
 #include <sys/un.h>
-
 #include <sys/wait.h>
+#include <signal.h>
 
 DO_COMMAND(do_run)
 {
@@ -79,6 +79,12 @@ DO_COMMAND(do_run)
 			break;
 
 		default:
+/*
+			if (fcntl(desc, F_SETFD, FD_CLOEXEC) == -1)
+			{
+				syserr_printf(ses, "do_run: fcntl");
+			}
+*/
 			sprintf(temp, "{%s} {%d} {%s}", arg2, pid, arg3);
 			ses = new_session(ses, arg1, temp, desc, 0);
 			break;
@@ -166,7 +172,7 @@ DO_COMMAND(do_script)
 
 DO_COMMAND(do_suspend)
 {
-	print_stdout("\e[r\e[%d;%dH", gtd->screen->rows, 1);
+	print_stdout(0, 0, "\e[?1049l\e[r\e[%d;%dH", gtd->screen->rows, 1);
 
 	fflush(NULL);
 
@@ -178,7 +184,7 @@ DO_COMMAND(do_suspend)
 
 	dirty_screen(gtd->ses);
 
-	tintin_puts(NULL, "#RETURNING BACK TO TINTIN++.");
+	tintin_printf(gtd->ses, "#RETURNING BACK TO TINTIN++.");
 
 	return ses;
 }
@@ -290,7 +296,10 @@ DO_COMMAND(do_system)
 		goto_pos(gtd->ses, gtd->ses->split->bot_row, 1);
 	}
 
-	system(arg1);
+	if (system(arg1) == -1)
+	{
+		syserr_printf(ses, "do_system: system:");
+	}
 
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_READMUD) && IS_SPLIT(gtd->ses))
 	{

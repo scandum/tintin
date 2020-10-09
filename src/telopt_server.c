@@ -553,7 +553,7 @@ int process_sb_ttype_is(struct session *ses, struct port_data *buddy, unsigned c
 				}
 				else
 				{
-					if (sscanf(val, "MTTS %lld", &buddy->mtts_flags) == 1)
+					if (sscanf(val, "MTTS %d", &buddy->mtts_flags) == 1)
 					{
 						if (HAS_BIT(buddy->mtts_flags, MTTS_FLAG_256COLORS))
 						{

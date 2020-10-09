@@ -64,6 +64,7 @@ void init_terminal(struct session *ses)
 	DEL_BIT(io.c_cflag, CSIZE|PARENB);
 */
 
+
 	DEL_BIT(io.c_lflag, ECHO|ECHONL|IEXTEN|ISIG);
 //	DEL_BIT(io.c_lflag, ECHO|ECHONL|IEXTEN|ISIG);
 
@@ -79,8 +80,7 @@ void init_terminal(struct session *ses)
 		syserr_fatal(-1, "init_terminal: tcgetattr 2");
 	}
 
-	print_stdout("\e=");
-	print_stdout("\e[>4;1m");
+	print_stdout(0, 0, "\e=\e[>4;1m");
 }
 
 void reset_terminal(struct session *ses)
@@ -95,11 +95,9 @@ void reset_terminal(struct session *ses)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
 	{
-		print_stdout("\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
+		print_stdout(0, 0, "\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
 	}
-	print_stdout("\e[?25h");
-	print_stdout("\e[23t");
-	print_stdout("\e[>4n");
+	print_stdout(0, 0, "\e[?25h\e[23t\e[>4n\e[?47l\e[r\e[0#t");
 }
 
 
@@ -155,7 +153,11 @@ void init_terminal_size(struct session *ses)
 			{
 				char buf[100];
 				sprintf(buf, "\e[8;%d;%dt\e[4;%d;%dt\e[7t", screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
-				write(gtd->attach_sock, buf, strlen(buf));
+
+				if (write(gtd->attach_sock, buf, strlen(buf)) == -1)
+				{
+					printf("error: init_terminal_size: write:\n");
+				}
 			}
 		}
 	}
@@ -172,15 +174,15 @@ void init_terminal_size(struct session *ses)
 
 	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
 
-	check_all_events(ses, SUB_ARG, 0, 4, "SCREEN RESIZE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+	check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN RESIZE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
 
 	if (old_rows <= old_cols / 2 && gtd->screen->rows > gtd->screen->cols / 2)
 	{
-		check_all_events(ses, SUB_ARG, 0, 4, "SCREEN ROTATE PORTRAIT", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE PORTRAIT", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
 	}
 	else if (old_rows >= old_cols / 2 && gtd->screen->rows < gtd->screen->cols / 2)
 	{
-		check_all_events(ses, SUB_ARG, 0, 4, "SCREEN ROTATE LANDSCAPE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE LANDSCAPE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
 	}
 
 	msdp_update_all("SCREEN_ROWS",   "%d", gtd->screen->rows);

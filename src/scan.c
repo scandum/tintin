@@ -26,12 +26,99 @@
 #include "tintin.h"
 
 #ifdef HAVE_PTY_H
-#include <pty.h>
+  #include <pty.h>
 #else
-#ifdef HAVE_UTIL_H
-#include <util.h>
+  #ifdef HAVE_UTIL_H
+    #include <util.h>
+  #endif
 #endif
-#endif
+#include <dirent.h>
+
+DO_COMMAND(do_scan)
+{
+	char cmd[BUFFER_SIZE];
+	FILE *fp = NULL;
+	int cnt;
+
+	arg = sub_arg_in_braces(ses, arg, cmd, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*cmd == 0)
+	{
+		tintin_header(ses, 80, " SCAN OPTIONS ");
+
+		for (cnt = 0 ; *scan_table[cnt].name != 0 ; cnt++)
+		{
+			tintin_printf2(ses, "  [%-13s] %s", scan_table[cnt].name, scan_table[cnt].desc);
+		}
+		tintin_header(ses, 80, "");
+
+		return ses;
+	}
+
+	for (cnt = 0 ; *scan_table[cnt].name != 0 ; cnt++)
+	{
+		if (!is_abbrev(cmd, scan_table[cnt].name))
+		{
+			continue;
+		}
+
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+		if (HAS_BIT(scan_table[cnt].flags, SCAN_FLAG_FILE))
+		{
+			if (*arg1 == 0)
+			{
+				show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {%s} {<FILENAME>}", scan_table[cnt].name);
+
+				return ses;
+			}
+
+			if ((fp = fopen(arg1, "r")) == NULL)
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #SCAN {%s} FILE {%s} NOT FOUND.", scan_table[cnt].name, arg1);
+
+				return ses;
+			}
+		}
+
+		if (HAS_BIT(scan_table[cnt].flags, SCAN_FLAG_SCAN))
+		{
+			gtd->level->scan++;
+		}
+
+		ses = scan_table[cnt].fun(ses, fp, arg, arg1, arg2);
+
+		if (HAS_BIT(scan_table[cnt].flags, SCAN_FLAG_SCAN))
+		{
+			gtd->level->scan--;
+		}
+
+		if (HAS_BIT(scan_table[cnt].flags, SCAN_FLAG_FILE))
+		{
+			fclose(fp);
+		}
+		return ses;
+	}
+
+	show_error(ses, LIST_COMMAND, "\e[1;31mTHE SCAN COMMAND HAS CHANGED, EXECUTING #SCAN {TXT} {%s} INSTEAD.", cmd);
+
+	ses = command(ses, do_scan, "{TXT} {%s}", cmd);
+
+	return ses;
+}
+
+DO_SCAN(scan_abort)
+{
+	if (gtd->level->scan)
+	{
+		SET_BIT(ses->flags, SES_FLAG_SCANABORT);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SCAN ABORT: NOT CURRENTLY SCANNING.");
+	}
+	return ses;
+}
 
 /* support routines for comma separated value files */
 
@@ -99,48 +186,11 @@ char *get_arg_in_quotes(struct session *ses, char *string, char *result, int fla
 	return pti;
 }
 
-struct session *scan_bulk_file(struct session *ses, FILE *fp, char *filename, char *arg)
+
+DO_SCAN(scan_csv)
 {
-	char line[STRING_SIZE], *str_out, *str_rip, *str_sub;
-	int cnt = 0;
-
-	str_out = str_dup("");
-
-	while (fgets(line, BUFFER_SIZE - 1, fp))
-	{
-		cnt++;
-		str_cat(&str_out, line);
-	}
-
-	str_rip = str_alloc(str_len(str_out));
-
-	strip_vt102_codes(str_out, str_rip);
-
-	RESTRING(gtd->cmds[0], str_out);
-	RESTRING(gtd->cmds[1], str_rip);
-	RESTRING(gtd->cmds[2], ntos(str_len(str_out)));
-	RESTRING(gtd->cmds[3], ntos(strlen(str_rip)));
-	RESTRING(gtd->cmds[4], ntos(cnt));
-
-	str_sub = str_alloc(strlen(arg) + STRING_SIZE);
-
-	substitute(ses, arg, str_sub, SUB_CMD);
-
-	show_message(ses, LIST_COMMAND, "#SCAN BULK: FILE {%s} SCANNED.", filename);
-
-	DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
-	ses = script_driver(ses, LIST_COMMAND, str_sub);
-
-	return ses;
-}
-
-struct session *scan_csv_file(struct session *ses, FILE *fp, char *filename)
-{
-	char line[STRING_SIZE], temp[BUFFER_SIZE], *arg;
+	char line[STRING_SIZE];
 	int i, header = FALSE;
-
-	SET_BIT(ses->flags, SES_FLAG_SCAN);
 
 	while (fgets(line, BUFFER_SIZE, fp))
 	{
@@ -167,9 +217,9 @@ struct session *scan_csv_file(struct session *ses, FILE *fp, char *filename)
 
 		for (i = 1 ; i < 100 ; i++)
 		{
-			arg = get_arg_in_quotes(ses, arg, temp, FALSE);
+			arg = get_arg_in_quotes(ses, arg, arg2, FALSE);
 
-			RESTRING(gtd->vars[i], temp);
+			RESTRING(gtd->vars[i], arg2);
 
 			if (*arg == 0)
 			{
@@ -188,11 +238,11 @@ struct session *scan_csv_file(struct session *ses, FILE *fp, char *filename)
 		{
 			header = TRUE;
 
-			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "SCAN CSV HEADER");
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_SCAN, 0, 0, "SCAN CSV HEADER");
 		}
 		else
 		{
-			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "SCAN CSV LINE");
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_SCAN, 0, 0, "SCAN CSV LINE");
 		}
 
 		if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
@@ -201,19 +251,168 @@ struct session *scan_csv_file(struct session *ses, FILE *fp, char *filename)
 		}
 	}
 
-	DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
 	if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
 	{
 		DEL_BIT(ses->flags, SES_FLAG_SCANABORT);
 
-		show_message(ses, LIST_COMMAND, "#SCAN CSV: FILE {%s} PARTIALLY SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN CSV: FILE {%s} PARTIALLY SCANNED.", arg1);
 	}
 	else
 	{
-		show_message(ses, LIST_COMMAND, "#SCAN CSV: FILE {%s} SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN CSV: FILE {%s} SCANNED.", arg1);
 	}
-	fclose(fp);
+
+	return ses;
+}
+
+DO_SCAN(scan_dir)
+{
+	char filename[PATH_SIZE];
+	struct dirent **dirlist;
+	struct stat info;
+	int size, index;
+
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg2 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "SYNTAX: #SCAN DIR {%s} <VARIABLE NAME>", arg1);
+
+		return ses;
+	}
+
+	set_nest_node_ses(ses, arg2, "");
+
+	size = scandir(arg1, &dirlist, 0, NULL);
+
+	if (size == -1)
+	{
+		if (stat(arg1, &info) == -1)
+		{
+			syserr_printf(ses, "scan_dir: stat:");
+			
+			return ses;
+		}
+
+		arg = arg1;
+
+		while (strchr(arg, '\\'))
+		{
+			arg = strchr(arg, '\\');
+		}
+
+		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%u}{TIME}{%lld}}",
+			arg,
+			!S_ISDIR(info.st_mode),
+			info.st_mode,
+			info.st_size,
+			info.st_mtime);
+
+		return ses;
+	}
+
+	for (index = 0 ; index < size ; index++)
+	{
+		sprintf(filename, "%s%s%s", arg1, is_suffix(arg1, "/") ? "" : "/", dirlist[index]->d_name);
+
+		if (stat(filename, &info) == -1)
+		{
+			syserr_printf(ses, "scan_dir: stat:");
+			
+			return ses;
+		}
+
+		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%u}{TIME}{%lld}}",
+			dirlist[index]->d_name,
+			!S_ISDIR(info.st_mode),
+			info.st_mode,
+			info.st_size,
+			info.st_mtime);
+	}
+
+	for (index = 0 ; index < size ; index++)
+	{
+		free(dirlist[index]);
+	}
+	free(dirlist);
+
+	show_message(ses, LIST_COMMAND, "#SCAN DIR: DIRECTORY {%s} SAVED TO {%s}.", arg1, arg2);
+
+	return ses;
+}
+
+DO_SCAN(scan_file)
+{
+	char line[STRING_SIZE], *str_out, *str_rip, *str_sub;
+	int cnt = 0;
+
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	str_out = str_alloc_stack(0);
+
+	while (fgets(line, BUFFER_SIZE - 1, fp))
+	{
+		cnt++;
+		str_cat(&str_out, line);
+	}
+
+	str_rip = str_alloc_stack(str_len(str_out));
+
+	strip_vt102_codes(str_out, str_rip);
+
+	RESTRING(gtd->cmds[0], str_out);
+	RESTRING(gtd->cmds[1], str_rip);
+	RESTRING(gtd->cmds[2], ntos(str_len(str_out)));
+	RESTRING(gtd->cmds[3], ntos(strlen(str_rip)));
+	RESTRING(gtd->cmds[4], ntos(cnt));
+
+	str_sub = str_alloc_stack(strlen(arg) * 2);
+
+	substitute(ses, arg2, str_sub, SUB_CMD);
+
+	show_message(ses, LIST_COMMAND, "#SCAN FILE: FILE {%s} SCANNED.", arg1);
+
+	ses = script_driver(ses, LIST_COMMAND, str_sub);
+
+	return ses;
+}
+
+DO_SCAN(scan_forward)
+{
+	char line[STRING_SIZE], *lnf;
+	float delay = 0;
+
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_CONNECTED))
+	{
+		show_error(ses, LIST_COMMAND, "#SCAN FORWARD: SESSION {%s} IS NOT CONNECTED.", ses->name);
+
+		return ses;
+	}
+
+	while (fgets(line, BUFFER_SIZE - 1, fp))
+	{
+		lnf = strchr(line, '\n');
+
+		if (lnf)
+		{
+			*lnf = 0;
+		}
+
+		if (*arg2)
+		{
+			delay += get_number(ses, arg2);
+
+			command(ses, do_delay, "%.3f #send {%s}", delay, line);
+		}
+		else
+		{
+			write_mud(ses, line, SUB_EOL);
+		}
+	}
+
+	show_message(ses, LIST_COMMAND, "#SCAN FORWARD: FILE {%s} FORWARDED.", arg1);
 
 	return ses;
 }
@@ -241,12 +440,12 @@ char *get_arg_stop_tabs(struct session *ses, char *string, char *result, int fla
 	return pti;
 }
 
-struct session *scan_tsv_file(struct session *ses, FILE *fp, char *filename)
+DO_SCAN(scan_tsv)
 {
-	char line[STRING_SIZE], temp[BUFFER_SIZE], *arg;
+	char line[STRING_SIZE];
 	int i, header = FALSE;
 
-	SET_BIT(ses->flags, SES_FLAG_SCAN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
 	while (fgets(line, BUFFER_SIZE, fp))
 	{
@@ -273,9 +472,9 @@ struct session *scan_tsv_file(struct session *ses, FILE *fp, char *filename)
 
 		for (i = 1 ; i < 100 ; i++)
 		{
-			arg = get_arg_stop_tabs(ses, arg, temp, FALSE);
+			arg = get_arg_stop_tabs(ses, arg, arg2, FALSE);
 
-			RESTRING(gtd->vars[i], temp);
+			RESTRING(gtd->vars[i], arg2);
 
 			if (*arg == 0)
 			{
@@ -294,11 +493,11 @@ struct session *scan_tsv_file(struct session *ses, FILE *fp, char *filename)
 		{
 			header = TRUE;
 
-			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "SCAN TSV HEADER");
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_SCAN, 0, 0, "SCAN TSV HEADER");
 		}
 		else
 		{
-			check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "SCAN TSV LINE");
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_SCAN, 0, 0, "SCAN TSV LINE");
 		}
 
 		if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
@@ -307,28 +506,24 @@ struct session *scan_tsv_file(struct session *ses, FILE *fp, char *filename)
 		}
 	}
 
-	DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
 	if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
 	{
 		DEL_BIT(ses->flags, SES_FLAG_SCANABORT);
 
-		show_message(ses, LIST_COMMAND, "#SCAN TSV: FILE {%s} PARTIALLY SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN TSV: FILE {%s} PARTIALLY SCANNED.", arg1);
 	}
 	else
 	{
-		show_message(ses, LIST_COMMAND, "#SCAN TSV: FILE {%s} SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN TSV: FILE {%s} SCANNED.", arg1);
 	}
 	return ses;
 }
 
 /* support routines for text files */
 
-struct session *scan_txt_file(struct session *ses, FILE *fp, char *filename)
+DO_SCAN(scan_txt)
 {
-	char line[STRING_SIZE], *arg;
-
-	SET_BIT(ses->flags, SES_FLAG_SCAN);
+	char line[STRING_SIZE];
 
 	while (fgets(line, BUFFER_SIZE - 1, fp))
 	{
@@ -357,90 +552,16 @@ struct session *scan_txt_file(struct session *ses, FILE *fp, char *filename)
 		}
 	}
 
-	DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
 	if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
 	{
 		DEL_BIT(ses->flags, SES_FLAG_SCANABORT);
 
-		show_message(ses, LIST_COMMAND, "#SCAN TXT: FILE {%s} PARTIALLY SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN TXT: FILE {%s} PARTIALLY SCANNED.", arg1);
 	}
 	else
 	{
-		show_message(ses, LIST_COMMAND, "#SCAN TXT: FILE {%s} SCANNED.", filename);
+		show_message(ses, LIST_COMMAND, "#SCAN TXT: FILE {%s} SCANNED.", arg1);
 	}
 	return ses;
 }
 
-DO_COMMAND(do_scan)
-{
-	FILE *fp;
-
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-
-	if (*arg1 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {ABORT|CSV|TXT} {<FILENAME>}");
-
-		return ses;
-	}
-
-	if (is_abbrev(arg1, "ABORT"))
-	{
-		if (!HAS_BIT(ses->flags, SES_FLAG_SCAN))
-		{
-			show_error(ses, LIST_COMMAND, "#SCAN ABORT: NOT CURRENTLY SCANNING.");
-		}
-		else
-		{
-			SET_BIT(ses->flags, SES_FLAG_SCANABORT);
-		}
-		return ses;
-	}
-
-	if (*arg2 == 0)
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {ABORT|CSV|TXT} {<FILENAME>}");
-
-		return ses;
-	}
-
-	if ((fp = fopen(arg2, "r")) == NULL)
-	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #SCAN - FILE {%s} NOT FOUND.", arg2);
-
-		return ses;
-	}
-
-	SET_BIT(ses->flags, SES_FLAG_SCAN);
-
-	if (is_abbrev(arg1, "FILE"))
-	{
-		ses = scan_bulk_file(ses, fp, arg2, arg);
-	}
-	else if (is_abbrev(arg1, "CSV"))
-	{
-		ses = scan_csv_file(ses, fp, arg2);
-	}
-	else if (is_abbrev(arg1, "TSV"))
-	{
-		ses = scan_tsv_file(ses, fp, arg2);
-	}
-	else if (is_abbrev(arg1, "TXT"))
-	{
-		ses = scan_txt_file(ses, fp, arg2);
-	}
-	else
-	{
-		DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN {ABORT|CSV|FILE|TSV|TXT} {<FILENAME>}");
-	}
-
-	DEL_BIT(ses->flags, SES_FLAG_SCAN);
-
-	fclose(fp);
-
-	return ses;
-}

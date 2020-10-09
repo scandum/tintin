@@ -95,13 +95,13 @@ int linear_search(struct interval_type *table, int size, int key)
 	{
 		if (table[i].head > table[i].tail)
 		{
-			print_stdout("table[%d].head < table[%d].tail\n", i, i);
+			print_stdout(0, 0, "table[%d].head < table[%d].tail\n", i, i);
 		}
 		if (i < size - 1)
 		{
 			if (table[i].head >= table[i+1].head)
 			{
-				print_stdout("table[%d].head >= table[%d].head\n", i, i+1);
+				print_stdout(0, 0, "table[%d].head >= table[%d].head\n", i, i+1);
 			}
 		}
 	}
@@ -254,13 +254,13 @@ int get_utf8_size(char *str)
 	};
 	unsigned char *ptu = (unsigned char *) str;
 
+	if (*ptu < 128)
+	{
+		return 1;
+	}
+
 	switch (utf8_size[*ptu])
 	{
-		case 0:
-			return 1;
-		case 1:
-			return 1;
-
 		case 2:
 			if (utf8_size[ptu[1]])
 			{
@@ -286,31 +286,41 @@ int get_utf8_size(char *str)
 	}
 }
 
+unsigned char utf8_width_table[256] =
+{
+	0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+	3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
+};
+
+int get_ascii_width(char *str, int *width)
+{
+	*width = utf8_width_table[(unsigned char) *str] ? 1 : 0;
+
+	return 1;
+}
+
 int get_utf8_width(char *str, int *width)
 {
-	static char utf8_width[256] =
-	{
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
-	};
 	int size, index;
-	unsigned char *ptu = (unsigned char *) str;
+	unsigned char *ptu;
 
-	index = (int) *ptu;
+	*width = size = utf8_width_table[(unsigned char) *str];
 
-	*width = size = utf8_width[index];
+	if (size <= 1)
+	{
+		return 1;
+	}
+
+	ptu = (unsigned char *) str;
 
 	switch (*width)
 	{
-		case 0:
-		case 1:
-			return 1;
 		case 2:
 			if (get_utf8_size(str) != 2)
 			{
@@ -343,29 +353,18 @@ int get_utf8_width(char *str, int *width)
 
 int get_utf8_index(char *str, int *index)
 {
-	static unsigned char utf8_width[256] =
-	{
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-		2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-		3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,1,1,1,1,1,1,1,1
-	};
 	int size, width;
 	unsigned char *ptu = (unsigned char *) str;
 
 	*index = (int) *ptu;
 
-	width = size = utf8_width[*index];
+	width = size = utf8_width_table[*index];
 
 	switch (width)
 	{
-		case 0:
-		case 1:
+		default:
 			return 1;
+
 		case 2:
 			if (get_utf8_size(str) != 2)
 			{
@@ -435,19 +434,21 @@ int unicode_to_utf8(int index, char *out)
 	}
 }
 
-int utf8_strlen(char *str)
+int utf8_strlen(char *str, int *str_len)
 {
-	int total, width;
+	int raw_len, size, width;
 
-	total = 0;
+	raw_len = *str_len = 0;
 
 	while (*str)
 	{
-		str += get_utf8_width(str, &width);
+		size = get_utf8_width(str, &width);
 
-		total += width;
+		*str_len += width;
+		raw_len += size;
 	}
-	return total;
+
+	return raw_len;
 }
 
 int utf8_to_all(struct session *ses, char *in, char *out)

@@ -224,24 +224,24 @@ int str_to_base252(char *in, char *out, size_t size)
 		switch ((unsigned char) in[cnt])
 		{
 			case 0:
-				*pto++ = 0xC0;
-				*pto++ = 0x80 + (unsigned char) in[cnt] % 64;
-				break;
-
-			case 0x10:
-			case 0x11:
 			case '{':
 			case '}':
-			case '\\':
-				*pto++ = 0xC0 + (unsigned char) in[cnt] / 64;
-				*pto++ = 0x80 + (unsigned char) in[cnt] % 64;
+				*pto++ = 245;
+				*pto++ = 128 + (unsigned char) in[cnt] % 64;
 				break;
 
-			case 0xC0:
-			case 0xC1:
-			case 0xFF:
-				*pto++ = 0x11;
-				*pto++ = 0x80 + (unsigned char) in[cnt] % 64;
+			case '\\':
+				*pto++ = 246 + (unsigned char) in[cnt] / 64;
+				*pto++ = 128 + (unsigned char) in[cnt] % 64;
+				break;
+
+			case 245:
+			case 246:
+			case 247:
+			case 248:
+			case 255:
+				*pto++ = 248;
+				*pto++ = 128 + (unsigned char) in[cnt] % 64;
 				break;
 
 			default:
@@ -267,22 +267,22 @@ int base252_to_str(char *in, char *out, size_t size)
 	{
 		switch ((unsigned char) in[cnt])
 		{
-			case 0xC0:
+			case 245:
 				cnt++;
 				*pto++ =   0 + (unsigned char) in[cnt] % 64;
 				break;
 
-			case 0xC1:
+			case 246:
 				cnt++;
 				*pto++ =  64 + (unsigned char) in[cnt] % 64;
 				break;
 
-			case 0x10:
+			case 247:
 				cnt++;
 				*pto++ = 128 + (unsigned char) in[cnt] % 64;
 				break;
 
-			case 0x11:
+			case 248:
 				cnt++;
 				*pto++ = 192 + (unsigned char) in[cnt] % 64;
 				break;

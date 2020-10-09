@@ -37,7 +37,7 @@ DO_COMMAND(do_read)
 
 	if ((fp = fopen(arg1, "r")) == NULL)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", arg1, "FILE NOT FOUND.");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", arg1, "FILE NOT FOUND.");
 
 		tintin_printf(ses, "#READ {%s} - FILE NOT FOUND.", arg1);
 
@@ -57,7 +57,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	if (!ispunct((int) temp[0]))
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "INVALID START OF FILE");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "INVALID START OF FILE");
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE '%c'.", filename, temp[0]);
 
@@ -84,7 +84,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	if ((bufi = (char *) calloc(1, size + 2)) == NULL || (bufo = (char *) calloc(1, size + 2)) == NULL)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
@@ -94,7 +94,15 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	}
 
 
-	fread(bufi, 1, size, fp);
+	if (fread(bufi, 1, size, fp) <= 0)
+	{
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FREAD FAILURE");
+		
+		tintin_printf(ses, "#ERROR: #READ {%s} - FREAD FAILURE.", filename);
+
+		fclose(fp);
+		return ses;
+	}
 
 	pti = bufi;
 	pto = bufo;
@@ -161,7 +169,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 					pto--;
 
-					while (isspace((int) *pto))
+					while (is_space(*pto))
 					{
 						pto--;
 					}
@@ -184,7 +192,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 					{
 						pti++;
 
-						while (isspace((int) *pti))
+						while (is_space(*pti))
 						{
 							if (*pti == '\n')
 							{
@@ -196,14 +204,13 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 								}
 							}
 							pti++;
-
 						}
 
-						if (last == 0)
+						if (last != COMMAND_SEPARATOR && last != DEFAULT_OPEN)
 						{
-							if (*pti != DEFAULT_OPEN && *pti != DEFAULT_CLOSE)
+							if (*pti == gtd->tintin_char)
 							{
-								show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s} MISSING SEMICOLON ON LINE %d.", filename, lnc - 1);
+								show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s} MISSING SEMICOLON ON LINE %d.", filename, lnc);
 							}
 						}
 
@@ -223,7 +230,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 						if (pti[cnt] == DEFAULT_OPEN)
 						{
 							pti++;
-							while (isspace((int) *pti))
+							while (is_space(*pti))
 							{
 								pti++;
 							}
@@ -231,7 +238,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 							break;
 						}
 
-						if (!isspace((int) pti[cnt]))
+						if (!is_space(pti[cnt]))
 						{
 							*pto++ = *pti++;
 							break;
@@ -290,7 +297,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	if (lvl)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
 
@@ -304,7 +311,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	if (com)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "READ ERROR", filename, "MISSING COMMENT OPEN OR CLOSE");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING COMMENT OPEN OR CLOSE");
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
 
@@ -315,6 +322,8 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		return ses;
 	}
+
+	check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 1, "READ FILE", filename);
 
 	sprintf(temp, "#CONFIG {TINTIN CHAR} {%c}", bufo[0]);
 
@@ -335,7 +344,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		gtd->level->quiet--;
 	}
 
-	verbose = HAS_BIT(ses->flags, SES_FLAG_VERBOSE) ? 1 : 0;
+	verbose = HAS_BIT(ses->config_flags, CONFIG_FLAG_VERBOSE) ? 1 : 0;
 
 	gtd->level->input++;
 
@@ -373,7 +382,7 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	gtd->level->input--;
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_VERBOSE))
+	if (!HAS_BIT(ses->config_flags, CONFIG_FLAG_VERBOSE))
 	{
 		for (cnt = 0 ; cnt < LIST_MAX ; cnt++)
 		{
@@ -417,16 +426,16 @@ DO_COMMAND(do_write)
 
 	if (*arg1 == 0)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "INVALID FILE NAME");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "INVALID FILE NAME");
 
 		tintin_printf2(ses, "#SYNTAX: #WRITE {<filename>} {[FORCE]}");
 
 		return ses;
 	}
 	
-	if (!str_suffix(arg1, ".map") && !is_abbrev(arg2, "FORCE"))
+	if (is_suffix(arg1, ".map") && !is_abbrev(arg2, "FORCE"))
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "INVALID FILE EXTENSION");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "INVALID FILE EXTENSION");
 		tintin_printf2(ses, "#WRITE {%s}: USE {FORCE} TO OVERWRITE .map FILES.", arg1);
 
 		return ses;
@@ -434,7 +443,7 @@ DO_COMMAND(do_write)
 
 	if ((file = fopen(arg1, "w")) == NULL)
 	{
-		check_all_events(ses, SUB_ARG, 0, 2, "WRITE ERROR", arg1, "FAILED TO OPEN");
+		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "FAILED TO OPEN");
 
 		tintin_printf(ses, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", arg1);
 
@@ -478,6 +487,8 @@ DO_COMMAND(do_write)
 
 	fclose(file);
 
+	check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 1, "WRITE FILE", arg1);
+
 	show_message(ses, LIST_COMMAND, "#WRITE: %d COMMANDS WRITTEN TO {%s}.", cnt, arg1);
 
 	return ses;
@@ -487,7 +498,7 @@ DO_COMMAND(do_write)
 void write_node(struct session *ses, int list, struct listnode *node, FILE *file)
 {
 	char *result, *str;
-
+	int val = 0;
 	int llen = UMAX(20, strlen(node->arg1));
 	int rlen = UMAX(25, strlen(node->arg2));
 
@@ -498,7 +509,7 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 		case LIST_EVENT:
 		case LIST_FUNCTION:
 		case LIST_MACRO:
-			asprintf(&result, "%c%s {%s}\n{\n%s\n}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2));
+			val = asprintf(&result, "%c%s {%s}\n{\n%s\n}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2));
 			break;
 
 		case LIST_ACTION:
@@ -506,22 +517,20 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 		case LIST_BUTTON:
 			if (!strcmp(node->arg3, "5"))
 			{
-				asprintf(&result, "%c%s {%s}\n{\n%s\n}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2));
+				val = asprintf(&result, "%c%s {%s}\n{\n%s\n}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2));
 			}
 			else
 			{
-				asprintf(&result, "%c%s {%s}\n{\n%s\n}\n{%s}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2), node->arg3);
+				val = asprintf(&result, "%c%s {%s}\n{\n%s\n}\n{%s}\n\n", gtd->tintin_char, list_table[list].name, node->arg1, script_writer(ses, node->arg2), node->arg3);
 			}
 			break;
 
 		case LIST_VARIABLE:
-			str = str_dup("");
+			str = str_alloc_stack(0);
 
 			show_nest_node(node, &str, 1);
 
-			asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", str);
-
-			str_free(str);
+			val = asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", str);
 
 			break;
 
@@ -532,25 +541,73 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 					result = strdup("");
 					break;
 				case 1:
-					asprintf(&result, "%c%-16s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1);
+					val = asprintf(&result, "%c%-16s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1);
 					break;
 				case 2:
-					asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2);
+					val = asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2);
 					break;
 				case 3:
-					asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3);
+					val = asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3);
 					break;
 				case 4:
-					asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3, node->arg4);
+					val = asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3, node->arg4);
 					break;
 			}
 			break;
 	}
-	fputs(result, file);
 
-	free(result);
+	if (val != -1)
+	{
+		fputs(result, file);
+
+		free(result);
+	}
+	else
+	{
+		syserr_printf(ses, "write_node: asprintf:");
+	}
 
 	pop_call();
 	return;
 }
 
+char *fread_one_line(char **str, FILE *fp)
+{
+	int byte;
+
+	str_cpy(str, "");
+
+	while (TRUE)
+	{
+		byte = getc(fp);
+
+		switch (byte)
+		{
+			case ASCII_LF:
+				return *str;
+
+			case EOF:
+				if (*(*str))
+				{
+					return *str;
+				}
+				return NULL;
+
+			case ASCII_NUL:
+				tintin_printf2(gtd->ses, "fread_one_line: encountered NULL character.");
+				break;
+
+			case ASCII_CR:
+				break;
+
+			case ASCII_HTAB:
+				str_cat_printf(str, "%*s", gtd->ses->tab_width, "");
+				break;
+
+			default:
+				str_cat_chr(str, byte);
+				break;
+		}
+	}
+	return *str;
+}

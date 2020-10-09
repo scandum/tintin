@@ -38,6 +38,65 @@
 	IPv6 compatible connect code.
 */
 
+int wait_on_connect(struct session *ses, int sock, int connect_error)
+{
+	static struct timeval timeout;
+	static fd_set rfd;
+	static fd_set wfd;
+	socklen_t len, val;
+
+	FD_SET(sock, &rfd);
+	FD_SET(sock, &wfd);
+
+	timeout.tv_sec = 4;
+
+	if (connect_error)
+	{
+		switch (select(FD_SETSIZE, &rfd, &wfd, NULL, &timeout))
+		{
+			case 0:
+				syserr_printf(ses, "wait_on_connect:");
+				return -1;
+
+			case -1:
+				syserr_printf(ses, "wait_on_connect: select");
+				return -1;
+		}
+	}
+	else
+	{
+		switch (select(sock+1, NULL, &wfd, NULL, &timeout))
+		{
+			case 0:
+				syserr_printf(ses, "wait_on_connect2:");
+				return -1;
+
+			case -1:
+				syserr_printf(ses, "wait_on_connect2: select");
+				return -1;
+		}
+	}
+
+	len = sizeof(val);
+
+	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &val, &len) == -1)
+	{
+		syserr_printf(ses, "wait_on_connect: getsockopt:");
+
+		return -1;
+	}
+
+	if (val)
+	{
+		errno = val;
+
+		syserr_printf(ses, "wait_on_connect: getsockopt:");
+
+		return -1;
+	}
+	return 0;
+}
+
 #ifdef HAVE_GETADDRINFO
 
 int connect_mud(struct session *ses, char *host, char *port)
@@ -49,7 +108,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 
 	if (!is_number(port))
 	{
-		tintin_puts(ses, "#THE PORT SHOULD BE A NUMBER.");
+		show_error(ses, LIST_COMMAND, "#CONNECT: THE PORT {%s} SHOULD BE A NUMBER.", port);
 		return -1;
 	}
 
@@ -85,20 +144,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
-//	fcntl(sock, F_SETFL, O_NDELAY);
-
-        ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
-
-        if (ses->connect_error)
-        {
-                syserr_printf(ses, "connect_mud: connect");
-
-                close(sock);
-
-                freeaddrinfo(address);
-
-                return -1;
-        }
+	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
 
 	if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
 	{
@@ -109,6 +155,22 @@ int connect_mud(struct session *ses, char *host, char *port)
 		freeaddrinfo(address);
 
 		return -1;
+	}
+
+	if (ses->connect_error)
+	{
+//		ses->connect_error = wait_on_connect(ses, sock, ses->connect_error);
+
+		if (ses->connect_error)
+		{
+			syserr_printf(ses, "connect_mud: connect");
+
+			close(sock);
+
+			freeaddrinfo(address);
+
+			return 0;
+		}
 	}
 
 	error = getnameinfo(address->ai_addr, address->ai_addrlen, ip, 100, NULL, 0, NI_NUMERICHOST);
@@ -134,8 +196,6 @@ int connect_mud(struct session *ses, char *host, char *port)
 	int sock, d;
 	struct sockaddr_in sockaddr;
 
-	print_stdout("debug: NO ADDRESS INFO?\n");
-
 	if (sscanf(host, "%d.%d.%d.%d", &d, &d, &d, &d) == 4)
 	{
 		sockaddr.sin_addr.s_addr = inet_addr(host);
@@ -159,7 +219,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 	}
 	else
 	{
-		tintin_puts(ses, "#THE PORT SHOULD BE A NUMBER.");
+		show_error(ses, "#CONNECT: THE PORT {%s} SHOULD BE A NUMBER.", port);
 		return -1;
 	}
 
@@ -201,9 +261,9 @@ void write_line_mud(struct session *ses, char *line, int size)
 
 	push_call("write_line_mud(%p,%p)",line,ses);
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "SEND OUTPUT", line, ntos(size));
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_INPUT, 0, 2, "SEND OUTPUT", line, ntos(size));
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "CATCH SEND OUTPUT", line, ntos(size)))
+	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH SEND OUTPUT", line, ntos(size)))
 	{
 		pop_call();
 		return;
@@ -213,7 +273,7 @@ void write_line_mud(struct session *ses, char *line, int size)
 	{
 		if (HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))
 		{
-			tintin_printf2(ses, "#THIS SESSION IS CHILD LOCKED, PRESS CTRL-D TO EXIT.");
+			tintin_printf2(ses, "#NO SESSION ACTIVE. TINTIN IS CHILD LOCKED, PRESS CTRL-D TO EXIT.");
 		}
 		else
 		{
@@ -278,7 +338,7 @@ void write_line_mud(struct session *ses, char *line, int size)
 		}
 	}
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "SENT OUTPUT", line, ntos(size));
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_INPUT, 0, 2, "SENT OUTPUT", line, ntos(size));
 
 	pop_call();
 	return;
@@ -310,12 +370,14 @@ int read_buffer_mud(struct session *ses)
 	else
 #endif
 	size = read(ses->socket, buffer, BUFFER_SIZE - 1);
-	
+
 	if (size <= 0)
 	{
 		pop_call();
 		return FALSE;
 	}
+	buffer[size] = 0;
+
 	ses->read_len = client_translate_telopts(ses, buffer, size);
 
 	pop_call();
@@ -362,9 +424,9 @@ void readmud(struct session *ses)
 
 	if (gtd->mud_output_len < BUFFER_SIZE)
 	{
-		check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "RECEIVED OUTPUT", gtd->mud_output_buf);
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 1, "RECEIVED OUTPUT", gtd->mud_output_buf);
 
-		if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH RECEIVED OUTPUT", gtd->mud_output_buf))
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 1, "CATCH RECEIVED OUTPUT", gtd->mud_output_buf))
 		{
 			pop_call();
 			return;
@@ -429,7 +491,7 @@ void readmud(struct session *ses)
 
 						break;
 					}
-					else if (HAS_BIT(ses->flags, SES_FLAG_AUTOPATCH))
+					else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPATCH))
 					{
 						if (ses->list[LIST_PROMPT]->list[0])
 						{
@@ -440,7 +502,7 @@ void readmud(struct session *ses)
 								break;
 							}
 						}
-						else if (HAS_BIT(ses->flags, SES_FLAG_AUTOPROMPT))
+						else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT))
 						{
 							strcat(ses->more_output, line);
 							ses->check_output = utime() + 500000ULL;
@@ -507,9 +569,9 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 	raw_len = strlen(linebuf);
 	str_len = strip_vt102_codes(linebuf, line);
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "RECEIVED LINE", linebuf, line);
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, line);
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "CATCH RECEIVED LINE", linebuf, line))
+	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED LINE", linebuf, line))
 	{
 		pop_call();
 		return;
@@ -517,16 +579,16 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (str_len && prompt)
 	{
-		check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len));
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 4, "RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len));
 
-		if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "CATCH RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len)))
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 4, "CATCH RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len)))
 		{
 			pop_call();
 			return;
 		}
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_COLORPATCH))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_COLORPATCH))
 	{
 		sprintf(line, "%s%s%s", ses->color_patch, linebuf, "\e[0m");
 
@@ -547,7 +609,7 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 		strip_non_vt102_codes(linebuf, line);
 
-		print_stdout("%s", line);
+		print_stdout(0, 0, "%s", line);
 
 		strip_vt102_codes(linebuf, line);
 
@@ -561,17 +623,36 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (ses == gtd->ses)
 	{
-		char *output = str_dup(linebuf);
+		char *output = str_alloc_stack(0);
+		
+		str_cpy(&output, linebuf);
 
 		print_line(ses, &output, prompt);
 
-		str_free(output);
-
-		if (prompt)
+		if (!IS_SPLIT(ses))
 		{
-			if (!IS_SPLIT(ses))
+			if (prompt)
 			{
-				ses->input->off = 1 + strip_vt102_strlen(ses, linebuf);
+				int height, width;
+
+				word_wrap_split(ses, linebuf, line, ses->wrap, 0, 0, FLAG_NONE, &height, &width);
+
+				if (height > 1)
+				{
+					word_wrap_split(ses, linebuf, line, ses->wrap, height, height, WRAP_FLAG_SPLIT, &height, &width);
+				}
+				ses->input->str_off = 1 + width;
+			}
+			else
+			{
+				ses->input->str_off = 1;
+			}
+		}
+		else
+		{
+			if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+			{
+				ses->input->str_off = 1;
 			}
 		}
 	}

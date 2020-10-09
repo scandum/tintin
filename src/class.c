@@ -37,11 +37,11 @@ DO_COMMAND(do_class)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " CLASSES ");
+		tintin_header(ses, 80, " CLASSES ");
 
 		for (root->update = 0 ; root->update < root->used ; root->update++)
 		{
@@ -76,7 +76,8 @@ DO_COMMAND(do_class)
 			{
 				show_info(ses, LIST_CLASS, "#INFO: CLASS {%s} CREATED", arg1);
 
-				check_all_events(ses, SUB_ARG, 0, 1, "CLASS CREATED", arg1);
+				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CREATED", arg1);
+				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CREATED %s", arg1, arg1);
 
 				node = update_node_list(ses->list[LIST_CLASS], arg1, "", arg3, "");
 			}
@@ -109,9 +110,27 @@ int count_class(struct session *ses, struct listnode *group)
 	return cnt;
 }
 
+DO_CLASS(class_assign)
+{
+	char *tmp = ses->group;
+
+	ses->group = strdup(arg1);
+
+	script_driver(ses, LIST_COMMAND, arg2);
+
+	free(ses->group);
+
+	ses->group = tmp;
+
+	return ses;
+}
+
 DO_CLASS(class_clear)
 {
 	int type, index;
+
+	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CLEAR", ses->group);
+	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CLEAR %s", ses->group, ses->group);
 
 	for (type = 0 ; type < LIST_MAX ; type++)
 	{
@@ -157,12 +176,12 @@ DO_CLASS(class_close)
 		{
 			show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
 
-			update_node_list(ses->list[LIST_CLASS], arg1, "", "0","");
+			update_node_list(ses->list[LIST_CLASS], arg1, "", "0", node->arg4);
 
 			if (!strcmp(ses->group, arg1))
 			{
-				check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
-				check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DEACTIVATED", ses->group);
+				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
 
 				node = ses->list[LIST_CLASS]->list[0];
 
@@ -172,8 +191,8 @@ DO_CLASS(class_close)
 
 					show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
 
-					check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", node->arg1);
-					check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+					check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS ACTIVATED", node->arg1);
+					check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
 				}
 				else
 				{
@@ -192,7 +211,7 @@ DO_CLASS(class_list)
 
 	if (search_node_list(ses->list[LIST_CLASS], arg1))
 	{
-		tintin_header(ses, " %s ", arg1);
+		tintin_header(ses, 80, " %s ", arg1);
 
 		for (i = 0 ; i < LIST_MAX ; i++)
 		{
@@ -233,8 +252,8 @@ DO_CLASS(class_kill)
 
 	delete_index_list(ses->list[LIST_CLASS], group);
 
-	check_all_events(ses, SUB_ARG, 0, 1, "CLASS DESTROYED", arg1);
-	check_all_events(ses, SUB_ARG, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
+	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", arg1);
+	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
 
 	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN KILLED.", arg1);
 
@@ -254,9 +273,12 @@ DO_CLASS(class_load)
 
 	file = fmemopen(node->data, (size_t) atoi(node->arg4), "r");
 
-	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN LOADED FROM MEMORY.", arg1);
-
 	read_file(ses, file, arg1);
+
+	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS LOAD", arg1);
+	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS LOAD %s", arg1, arg1);
+
+	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN LOADED FROM MEMORY.", arg1);
 
 	return ses;
 }
@@ -273,19 +295,19 @@ DO_CLASS(class_open)
 	{
 		if (*ses->group)
 		{
-			check_all_events(ses, SUB_ARG, 0, 1, "CLASS DEACTIVATED", ses->group);
-			check_all_events(ses, SUB_ARG, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+			check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DEACTIVATED", ses->group);
+			check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
 		}
 		RESTRING(ses->group, arg1);
 
 		count = atoi(ses->list[LIST_CLASS]->list[0]->arg3);
 
-		update_node_list(ses->list[LIST_CLASS], arg1, "", ntos(--count), "");
+		update_node_list(ses->list[LIST_CLASS], arg1, "", ntos(--count), node->arg4);
 
 		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN OPENED AND ACTIVATED.", arg1);
 
-		check_all_events(ses, SUB_ARG, 0, 1, "CLASS ACTIVATED", arg1);
-		check_all_events(ses, SUB_ARG, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+		check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS ACTIVATED", arg1);
+		check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
 	}
 
 	return ses;
@@ -296,7 +318,7 @@ DO_CLASS(class_read)
 {
 	class_open(ses, node, arg1, arg2);
 
-	execute(ses, "#READ {%s}", arg2);
+	command(ses, do_read, "{%s}", arg2);
 
 	class_close(ses, node, arg1, arg2);
 

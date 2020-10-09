@@ -33,13 +33,13 @@ void print_line(struct session *ses, char **str, int prompt)
 
 	push_call("print_line(%p,%p,%d)",ses,*str,prompt);
 
-	if (ses->scroll->line != -1 && HAS_BIT(ses->flags, SES_FLAG_SCROLLLOCK))
+	if (ses->scroll->line != -1 && HAS_BIT(ses->config_flags, CONFIG_FLAG_SCROLLLOCK))
 	{
 		pop_call();
 		return;
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_SCAN) && gtd->level->verbose == 0)
+	if (gtd->level->scan && gtd->level->verbose == 0)
 	{
 		pop_call();
 		return;
@@ -47,22 +47,23 @@ void print_line(struct session *ses, char **str, int prompt)
 
 	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) && ses->wrap != gtd->screen->cols)
 	{
+		SET_BIT(gtd->flags, TINTIN_FLAG_SESSIONUPDATE);
 		SET_BIT(ses->flags, SES_FLAG_PRINTLINE);
 
 		pop_call();
 		return;
 	}
 
-	out = str_alloc(BUFFER_SIZE + strlen(*str));
+	out = str_alloc_stack(strlen(*str) * 2);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_CONVERTMETA) || gtd->level->convert)
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA) || gtd->level->convert)
 	{
 		convert_meta(*str, out, TRUE);
 
 		str_cpy(str, out);
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || HAS_BIT(ses->flags, SES_FLAG_WORDWRAP))
+	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))
 	{
 		word_wrap(ses, *str, out, TRUE, &height, &width);
 	}
@@ -73,21 +74,20 @@ void print_line(struct session *ses, char **str, int prompt)
 
 	if (prompt)
 	{
-		print_stdout("%s", out);
+		print_stdout(0, 0, "%s", out);
 	}
 	else
 	{
-		print_stdout("%s\n", out);
+		print_stdout(0, 0, "%s\n", out);
 	}
-//	add_line_screen(out);
 
-	str_free(out);
+//	add_line_screen(out);
 
 	pop_call();
 	return;
 }
 
-void print_stdout(char *format, ...)
+void print_stdout(int row, int col, char *format, ...)
 {
 	char *buffer;
 	va_list args;
@@ -101,7 +101,10 @@ void print_stdout(char *format, ...)
 	{
 		if (gtd->detach_sock)
 		{
-			write(gtd->detach_sock, buffer, len);
+			if (write(gtd->detach_sock, buffer, len) == -1)
+			{
+				printf("error: print_stdout: write:\n");
+			}
 		}
 	}
 	else
@@ -109,8 +112,12 @@ void print_stdout(char *format, ...)
 		SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 
 		fputs(buffer, stdout);
-	
 //		printf("%s", buffer);
+
+		if (row && col)
+		{
+			set_line_screen(gtd->ses, buffer, row, col);
+		}
 	}
 	free(buffer);
 }
@@ -121,7 +128,7 @@ void print_stdout(char *format, ...)
 
 int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *height, int *width)
 {
-	char color[COLOR_SIZE] = { 0 };
+	char color[COLOR_SIZE];
 	char *pti, *pto, *lis, *los, *chi, *cho;
 	int cur_height, cur_width, size, i, skip, lines, cur_col, tab, wrap, cur_space;
 
@@ -130,12 +137,14 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 	pti = chi = lis = textin;
 	pto = cho = los = textout;
 
-	cur_height   = 1;
+	*color       = 0;
+	cur_height   = 0;
 	lines        = 0;
 	*height      = 0;
 
 	cur_col      = ses->cur_col;
 	ses->cur_col = 1;
+	cur_space    = 1;
 
 	cur_width    = 0;
 	*width       = 0;
@@ -209,7 +218,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 		{
 			cur_height++;
 
-			if (HAS_BIT(ses->flags, SES_FLAG_WORDWRAP))
+			if (HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))
 			{
 				if (ses->cur_col - cur_space >= 15 || wrap <= 20 || !SCROLL(ses))
 				{
@@ -324,7 +333,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 
 		if (ses->wrap == 0)
 		{
-			print_stdout("debug: word_wrap_split: wrap is 0\n");
+			print_stdout(0, 0, "debug: word_wrap_split: wrap is 0\n");
 			pop_call();
 			return 1;
 		}
@@ -336,17 +345,18 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 	cur_width  = 0;
 	*width     = 0;
 	cur_col    = 1;
+	cur_space  = cur_col;
 
 	if (HAS_BIT(flags, WRAP_FLAG_SPLIT) && end == 0)
 	{
-		print_stdout("debug: word_wrap_split: end point is 0.");
+		print_stdout(0, 0, "debug: word_wrap_split: end point is 0.");
 	}
 
 	while (*pti && pto - textout < BUFFER_SIZE - 20)
 	{
 		if (cur_height > 10000 || cur_width > 100000)
 		{
-			print_stdout("debug: word_wrap_split: wrap %d height %d width %d los %d start %d end %d\n", wrap, cur_height, cur_width, pto - los, start, end);
+			print_stdout(0, 0, "debug: word_wrap_split: wrap %d height %d width %d los %d start %d end %d\n", wrap, cur_height, cur_width, pto - los, start, end);
 			pop_call();
 			return 1;
 		}
@@ -373,6 +383,14 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 
 		if (*pti == '\n')
 		{
+			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
+			{
+				if (cur_width > *width)
+				{
+					*width = cur_width;
+				}
+			}
+
 			lines++;
 			cur_height++;
 
@@ -396,11 +414,6 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 				}
 			}
 
-			if (cur_width > *width)
-			{
-				*width = cur_width;
-			}
-
 			cur_col = 1;
 			cur_space = 1;
 			cur_width = 0;
@@ -416,9 +429,21 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 
 		if (cur_col > wrap)
 		{
+			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
+			{
+				if (wrap > *width)
+				{
+					*width = wrap;
+				}
+			}
+			else
+			{
+				cur_width = 0;
+			}
+
 			cur_height++;
 
-			if (HAS_BIT(ses->flags, SES_FLAG_WORDWRAP))
+			if (HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))
 			{
 				if (cur_col - cur_space > 15 || wrap <= 20)
 				{
@@ -509,7 +534,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			}
 			else
 			{
-				print_stdout("debug: word_wrap_split: utf8 error\n");
+				print_stdout(0, 0, "debug: word_wrap_split: utf8 error\n");
 				*pto++ = *pti++;
 				cur_width++;
 				cur_col++;

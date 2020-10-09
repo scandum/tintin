@@ -79,13 +79,13 @@ DO_COMMAND(do_chat)
 	{
 		info:
 
-		tintin_header(ses, " CHAT OPTIONS ");
+		tintin_header(ses, 80, " CHAT OPTIONS ");
 
 		for (cnt = 0 ; *chat_table[cnt].name != 0 ; cnt++)
 		{
 			tintin_printf2(ses, "  [%-13s] %s", chat_table[cnt].name, chat_table[cnt].desc);
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
 		return ses;
 	}
@@ -737,8 +737,8 @@ void chat_printf(char *format, ...)
 
 	push_call("chat_printf(%p,...)",format);
 
-	buf = str_alloc_stack();
-	tmp = str_alloc_stack();
+	buf = str_alloc_stack(0);
+	tmp = str_alloc_stack(0);
 
 	va_start(args, format);
 	vsnprintf(buf, BUFFER_SIZE / 3, format, args);
@@ -768,11 +768,11 @@ void chat_printf(char *format, ...)
 	}
 	str_cpy_printf(&tmp, "%s%s%s", gtd->chat->color, buf, "\e[0m");
 
-	check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 2, "CHAT MESSAGE", tmp, buf);
+	check_all_events(gtd->ses, SUB_SEC|EVENT_FLAG_PORT, 0, 2, "CHAT MESSAGE", tmp, buf);
 
-	if (!check_all_events(gtd->ses, SUB_ARG|SUB_SEC, 0, 2, "CATCH CHAT MESSAGE", tmp, buf))
+	if (!check_all_events(gtd->ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH CHAT MESSAGE", tmp, buf))
 	{
-		tintin_puts(NULL, tmp);
+		tintin_printf(gtd->ses, "%s", tmp);
 	}
 	pop_call();
 	return;
@@ -956,7 +956,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 		ptc = *pti++;
 		pto = (unsigned char *) txt;
 
-		while (isspace(*pti))
+		while (is_space(*pti))
 		{
 			pti++;
 		}
@@ -974,7 +974,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 
 		*pto-- = 0;
 
-		while (isspace(*pto))
+		while (is_space(*pto))
 		{
 			*pto-- = 0;
 		}
@@ -1400,7 +1400,7 @@ DO_CHAT(chat_downloaddir)
 {
 	char dir[BUFFER_SIZE];
 
-	sprintf(dir, "%s%s", arg1, !str_suffix(arg1, "/") ? "" : "/");
+	sprintf(dir, "%s%s", arg1, is_suffix(arg1, "/") ? "" : "/");
 
 	RESTRING(gtd->chat->download, dir);
 
@@ -1606,7 +1606,7 @@ DO_CHAT(chat_paste)
 
 		if (IS_SPLIT(gtd->ses))
 		{
-			erase_toeol();
+			command(gtd->ses, do_cursor, "clear");
 		}
 		gtd->chat->paste_time = 0;
 
@@ -2104,7 +2104,11 @@ void send_block(struct chat_data *buddy)
 		}
 		*pto++ = (unsigned char) c;
 	}
-	write(buddy->fd, block, 501);
+
+	if (write(buddy->fd, block, 501) == -1)
+	{
+		syserr_printf(gtd->ses, "send_block: write");
+	}
 
 	buddy->file_block_cnt++;
 
@@ -2212,7 +2216,9 @@ void file_cleanup(struct chat_data *buddy)
 	}
 	if (buddy->file_name)
 	{
-		FREE(buddy->file_name);
+		free(buddy->file_name);
+		
+		buddy->file_name = NULL;
 	}
 }
 

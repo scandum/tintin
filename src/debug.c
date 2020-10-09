@@ -26,7 +26,7 @@
 
 #include "tintin.h"
 
-int push_call(char *format, ...)
+int push_call_printf(char *format, ...)
 {
 	int len;
 	va_list ap;
@@ -41,7 +41,7 @@ int push_call(char *format, ...)
 
 		gtd->memory->debug[len] = calloc(1, sizeof(struct stack_data));
 
-		gtd->memory->debug[len]->name = str_alloc(NAME_SIZE);
+		gtd->memory->debug[len]->name = calloc(1, NAME_SIZE);
 	}
 
 	va_start(ap, format);
@@ -52,14 +52,43 @@ int push_call(char *format, ...)
 
 	gtd->memory->debug[len]->index = gtd->memory->stack_len;
 
-	if (gtd->memory->debug_len++ == 1000)
+	if (gtd->memory->debug_len++ == 100)
 	{
-		dump_stack();
+		tintin_printf2(gtd->ses, "\e[1;31merror: push_call_printf: stack size is going past 100.");
 
-		return 1;
+		tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] [%03d] = \e[1;31m%s\e[0m", len, gtd->memory->debug[len]->index, gtd->memory->debug[len]->name);
+
+		return FALSE;
+	}
+	if (gtd->memory->debug_len > 500)
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
+
+void push_call(char *format, ...)
+{
+	int len;
+
+	len = gtd->memory->debug_len;
+
+	if (len == gtd->memory->debug_max)
+	{
+		gtd->memory->debug_max++;
+
+		gtd->memory->debug = (struct stack_data **) realloc(gtd->memory->debug, sizeof(struct str_data *) * gtd->memory->debug_max);
+
+		gtd->memory->debug[len] = calloc(1, sizeof(struct stack_data));
+
+		gtd->memory->debug[len]->name = calloc(1, NAME_SIZE);
 	}
 
-	return 0;
+	strcpy(gtd->memory->debug[len]->name, format);
+
+	gtd->memory->debug[len]->index = gtd->memory->stack_len;
+
+	gtd->memory->debug_len++;
 }
 
 void pop_call(void)
@@ -71,20 +100,13 @@ void pop_call(void)
 	}
 	else
 	{
-		tintin_printf2(gtd->ses, "pop_call: index is zero.");
+		tintin_printf2(gtd->ses, "\e[1;31merror: pop_call: index is zero.");
 
-		unsigned char i;
+		gtd->memory->debug_len = gtd->memory->debug_max;
 
-		tintin_header(gtd->ses, " DEBUG STACK ");
+		dump_stack();
 
-		for (i = 0 ; i < 100 ; i++)
-		{
-			if (i < gtd->memory->debug_max)
-			{
-				tintin_printf2(gtd->ses, "\e[1;31mDEBUG_STACK[%03d] = %s", i, gtd->memory->debug[i]->name);
-			}
-		}
-		tintin_header(gtd->ses, "");
+		gtd->memory->debug_len = 0;
 	}
 }
 
@@ -92,7 +114,7 @@ void dump_stack(void)
 {
 	unsigned int i;
 
-	if (gtd)
+	if (gtd && gtd->ses)
 	{
 		for (i = 0 ; i < gtd->memory->debug_len ; i++)
 		{
@@ -100,4 +122,3 @@ void dump_stack(void)
 		}
 	}
 }
-

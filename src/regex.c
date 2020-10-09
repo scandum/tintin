@@ -62,7 +62,6 @@ DO_COMMAND(do_regexp)
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
-	arg = get_arg_in_braces(ses, arg, arg4, GET_ALL);
 
 	if (*arg3 == 0)
 	{
@@ -76,9 +75,16 @@ DO_COMMAND(do_regexp)
 
 			ses = script_driver(ses, LIST_COMMAND, arg3);
 		}
-		else if (*arg4)
+		else
 		{
-			ses = script_driver(ses, LIST_COMMAND, arg4);
+			arg4 = str_alloc_stack(0);
+
+			arg = get_arg_in_braces(ses, arg, arg4, GET_ALL);
+
+			if (*arg4)
+			{
+				ses = script_driver(ses, LIST_COMMAND, arg4);
+			}
 		}
 	}
 	return ses;
@@ -253,7 +259,7 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 				continue;
 
 			case 'a':
-				pto += sprintf(pto, "(.");
+				pto += sprintf(pto, "([^\\0]");
 				break;
 			case 'A':
 				pto += sprintf(pto, "(\\n");
@@ -277,7 +283,7 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 				pto += sprintf(pto, "(\\S");
 				break;
 			case 'u':
-				pto += sprintf(pto, "((?:[\\xC0-\\xFE][\\x80-\\xC0]{1,3})");
+				pto += sprintf(pto, "((?:[\\x00-\\x7F]|[\\xC0-\\xFE][\\x80-\\xC0]{1,3})");
 				break;
 			case 'U':
 				pto += sprintf(pto, "([\\x00-\\x7F\\xFF]");
@@ -476,7 +482,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 				break;
 
 			case '$':
-				if (pti[1] != DEFAULT_OPEN && !isalnum((int) pti[1]))
+				if (pti[1] != DEFAULT_OPEN && !is_alnum(pti[1]))
 				{
 					int i = 0;
 
@@ -507,9 +513,9 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 					case '8':
 					case '9':
 						fix = REGEX_FLAG_FIX;
-						arg = isdigit((int) pti[2]) ? (pti[1] - '0') * 10 + (pti[2] - '0') : pti[1] - '0';
+						arg = is_digit(pti[2]) ? (pti[1] - '0') * 10 + (pti[2] - '0') : pti[1] - '0';
 						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += isdigit((int) pti[2]) ? 3 : 2;
+						pti += is_digit(pti[2]) ? 3 : 2;
 						strcpy(pto, *pti == 0 ? "(.*)" : "(.*?)");
 						pto += strlen(pto);
 						break;
@@ -517,7 +523,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 					case 'a':
 						gtd->args[next_arg(var)] = next_arg(arg);
 						pti += 2;
-						strcpy(pto, *pti == 0 ? "([^\\n]*)" : "([^\\n]*?)");
+						strcpy(pto, *pti == 0 ? "([^\\0]*)" : "([^\\0]*?)");
 						pto += strlen(pto);
 						break;
 
@@ -590,9 +596,10 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 					case 'U':
 						gtd->args[next_arg(var)] = next_arg(arg);
 						pti += 2;
-						strcpy(pto, *pti == 0 ? "(^[\xFF]*)" : "([\\x00-\\x7F\\xFF]*?)");
+						strcpy(pto, *pti == 0 ? "(^[\\xF5-\\xFF]*)" : "([\\xF5-\\xFF]*?)");
 						pto += strlen(pto);
 						break;
+
 
 					case 'w':
 						gtd->args[next_arg(var)] = next_arg(arg);
@@ -645,7 +652,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 							case 'a':
 								gtd->args[next_arg(var)] = next_arg(arg);
 								pti += 2;
-								strcpy(pto, *pti == 0 ? "[^\\n]*" : "[^\\n]*?");
+								strcpy(pto, *pti == 0 ? "[^\\0]*" : "[^\\0]*?");
 								pto += strlen(pto);
 								break;
 
@@ -693,14 +700,14 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 							case 'u':
 								gtd->args[next_arg(var)] = next_arg(arg);
 								pti += 3;
-								strcpy(pto, *pti == 0 ? "(?:[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*" : "(?:[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*?");
+								strcpy(pto, *pti == 0 ? "(?:[\\x00-\\x7F]|[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*" : "(?:[\\x00-\\x7F]|[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*?");
 								pto += strlen(pto);
 								break;
 
 							case 'U':
 								gtd->args[next_arg(var)] = next_arg(arg);
 								pti += 3;
-								strcpy(pto, *pti == 0 ? "[\\x00-\\x7F\\xFF]*" : "[\\x00-\\x7F\\xFF]*?");
+								strcpy(pto, *pti == 0 ? "[\\xF5-\\xFF]*" : "[\\xF5-\\xFF]*?");
 								pto += strlen(pto);
 								break;
 
@@ -835,7 +842,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 				break;
 
 			case '&':
-				if (pti[1] == DEFAULT_OPEN || isalnum((int) pti[1]) || pti[1] == '&')
+				if (pti[1] == DEFAULT_OPEN || is_alnum(pti[1]) || pti[1] == '&')
 				{
 					return NULL;
 				}
@@ -843,7 +850,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 				break;
 
 			case '@':
-				if (pti[1] == DEFAULT_OPEN || isalnum((int) pti[1]) || pti[1] == '@')
+				if (pti[1] == DEFAULT_OPEN || is_alnum(pti[1]) || pti[1] == '@')
 				{
 					return NULL;
 				}
@@ -851,7 +858,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 				break;
 
 			case '$':
-				if (pti[1] == DEFAULT_OPEN || isalnum((int) pti[1]))
+				if (pti[1] == DEFAULT_OPEN || is_alnum(pti[1]))
 				{
 					return NULL;
 				}
@@ -898,7 +905,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 					case '7':
 					case '8':
 					case '9':
-						pti += isdigit((int) pti[2]) ? 3 : 2;
+						pti += is_digit(pti[2]) ? 3 : 2;
 						strcpy(pto, *pti == 0 ? "(.*)" : "(.*?)");
 						pto += strlen(pto);
 						break;
@@ -951,13 +958,13 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 
 					case 'u':
 						pti += 2;
-						strcpy(pto, *pti == 0 ? "((?:[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*)" : "((?:[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*?)");
+						strcpy(pto, *pti == 0 ? "((?:[\\x00-\\x7F]|[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*)" : "((?:[\\x00-\\x7F]|[\\xC0-\\xFE][\\x80-\\xC0]{1,3})*?)");
 						pto += strlen(pto);
 						break;
 
 					case 'U':
 						pti += 2;
-						strcpy(pto, *pti == 0 ? "([\\x00-\\x7F\\xFF]*)" : "([\\x00-\\x7F\\xFF]*?)");
+						strcpy(pto, *pti == 0 ? "([\\xF5-\\xFF]*)" : "([\\xF5-\\xFF]*?)");
 						pto += strlen(pto);
 						break;
 

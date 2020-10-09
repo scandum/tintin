@@ -36,6 +36,8 @@
 #include <dirent.h>
 #include <termios.h>
 #include <sys/un.h>
+#include <sys/socket.h>
+#include <signal.h>
 
 int get_daemon_dir(struct session *ses, char *filename);
 
@@ -49,7 +51,7 @@ DO_COMMAND(do_daemon)
 	{
 		info:
 
-		tintin_header(ses, " DAEMON OPTIONS ");
+		tintin_header(ses, 80, " DAEMON OPTIONS ");
 
 		for (cnt = 0 ; *daemon_table[cnt].fun != NULL ; cnt++)
 		{
@@ -58,7 +60,7 @@ DO_COMMAND(do_daemon)
 				tintin_printf2(ses, "  [%-13s] %s", daemon_table[cnt].name, daemon_table[cnt].desc);
 			}
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
 		return ses;
 	}
@@ -78,7 +80,7 @@ DO_COMMAND(do_daemon)
 		}
 		else
 		{
-			daemon_table[cnt].fun(ses, arg);
+			daemon_table[cnt].fun(ses, arg, arg1, arg2);
 		}
 	}
 
@@ -88,15 +90,17 @@ DO_COMMAND(do_daemon)
 
 DO_DAEMON(daemon_attach)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], filename[BUFFER_SIZE], sock_file[BUFFER_SIZE];
+	char filename[PATH_SIZE], sock_file[PATH_SIZE * 2];
 	struct dirent **dirlist;
 	struct sockaddr_un addr_un;
 	int size, index, pid, error, repeat = 0;
 	struct timeval timeout;
 	fd_set wds, rds;
 
-	timeout.tv_sec  = 0;
-	timeout.tv_usec = 100000;
+	gtd->time_daemon = gtd->time;
+
+	timeout.tv_sec   = 0;
+	timeout.tv_usec  = 100000;
 
 	if (gtd->attach_sock)
 	{
@@ -162,7 +166,7 @@ DO_DAEMON(daemon_attach)
 	{
 		if (HAS_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE))
 		{
-			daemon_detach(ses, arg1);
+			command(ses, do_daemon, "detach {%s}", arg1);
 
 			return;
 		}
@@ -186,7 +190,7 @@ DO_DAEMON(daemon_attach)
 		return;
 	}
 
-	sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
+	sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
 
 	if (access(sock_file, F_OK) == -1)
 	{
@@ -317,7 +321,7 @@ DO_DAEMON(daemon_attach)
 
 DO_DAEMON(daemon_detach)
 {
-	char arg1[BUFFER_SIZE], filename[BUFFER_SIZE];
+	char filename[PATH_SIZE];
 	struct sockaddr_un addr_un;
 	pid_t pid, sid;
 	int dev_null;
@@ -328,13 +332,17 @@ DO_DAEMON(daemon_detach)
 	{
 		if (gtd->detach_sock)
 		{
+//			dirty_screen(gtd->ses);
+
 			show_message(gtd->ses, LIST_COMMAND, "#DAEMON DETACH: DETACHING FROM {%s}", gtd->detach_file);
 
 //			kill((pid_t) gtd->detach_sock, SIGTSTP);
 
-//			print_stdout("%c", (char) 255);
+//			print_stdout(0, 0, "%c", (char) 255);
 
 			gtd->detach_sock = close(gtd->detach_sock);
+
+			check_all_events(gtd->ses, EVENT_FLAG_SYSTEM, 0, 2, "DAEMON DETACHED", gtd->detach_file, ntos(gtd->detach_info.pid));
 		}
 		else
 		{
@@ -365,16 +373,16 @@ DO_DAEMON(daemon_detach)
 
 			usleep(2000);
 
-			daemon_attach(ses, *arg1 ? arg1 : "pid");
+			command(ses, do_daemon, "attach {%s}", *arg1 ? arg1 : "pid");
 
 			return;
 		}
-		reset_terminal(gtd->ses);
-
-		print_stdout("\e[r\e[%d;%dH", gtd->screen->rows, 1);
-
-		_exit(0);
+//		check_all_events(gtd->ses, EVENT_FLAG_SYSTEM, 0, 2, "DAEMON DETACHED", gtd->detach_file, ntos(gtd->detach_info.pid));
+		quitmsg(NULL);
 	}
+
+//	reset_terminal(gtd->ses);
+	reset_screen(gtd->ses);
 
 	DEL_BIT(gtd->flags, TINTIN_FLAG_DAEMONIZE);
 
@@ -455,12 +463,13 @@ DO_DAEMON(daemon_detach)
 
 	gtd->detach_file = restringf(gtd->detach_file, "%s", filename);
 
+	check_all_events(gtd->ses, EVENT_FLAG_SYSTEM, 0, 2, "DAEMON DETACHED", gtd->detach_file, ntos(gtd->detach_info.pid));
+
 	return;
 }
 
 DO_DAEMON(daemon_input)
 {
-	char arg1[BUFFER_SIZE], out[BUFFER_SIZE];
 	int size;
 
 	if (*arg == 0)
@@ -479,9 +488,9 @@ DO_DAEMON(daemon_input)
 
 	get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
-	size = substitute(ses, arg1, out, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC|SUB_EOL);
+	size = substitute(ses, arg1, arg2, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC|SUB_EOL);
 
-	if (write(gtd->attach_sock, out, size) < 0)
+	if (write(gtd->attach_sock, arg2, size) < 0)
 	{
 		gtd->attach_sock = close(gtd->attach_sock);
 
@@ -491,7 +500,7 @@ DO_DAEMON(daemon_input)
 
 DO_DAEMON(daemon_kill)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], filename[BUFFER_SIZE], sock_file[BUFFER_SIZE];
+	char filename[PATH_SIZE], sock_file[PATH_SIZE * 2];
 	struct dirent **dirlist;
 	int size, index, pid;
 
@@ -538,7 +547,7 @@ DO_DAEMON(daemon_kill)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
 
 					show_message(ses, LIST_COMMAND, "#DAEMON {%s} KILLED.", sock_file, pid);
 
@@ -561,7 +570,7 @@ DO_DAEMON(daemon_kill)
 
 DO_DAEMON(daemon_list)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], filename[BUFFER_SIZE], sock_file[BUFFER_SIZE];
+	char filename[PATH_SIZE], sock_file[PATH_SIZE * 2];
 	struct dirent **dirlist;
 	int size, index, pid;
 
@@ -608,7 +617,7 @@ DO_DAEMON(daemon_list)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, PATH_SIZE, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
 
 					tintin_printf2(ses, "%-40s [%6d]", sock_file, pid);
 				}
@@ -626,16 +635,14 @@ DO_DAEMON(daemon_list)
 
 int get_daemon_dir(struct session *ses, char *filename)
 {
-	sprintf(filename, "%s/%s", gtd->home, TINTIN_DIR);
-
-	if (mkdir(filename, 0755) && errno != EEXIST)
+	if (mkdir(gtd->system->tt_dir, 0755) && errno != EEXIST)
 	{
 		show_error(ses, LIST_COMMAND, "#DAEMON CHECK DIR: FAILED TO CREATE TINTIN DIR %s (%s)", filename, strerror(errno));
 
 		return 0;
 	}
 
-	sprintf(filename, "%s/%s/%s", gtd->home, TINTIN_DIR, DAEMON_DIR);
+	sprintf(filename, "%s/%s", gtd->system->tt_dir, DAEMON_DIR);
 
 	if (mkdir(filename, 0755) && errno != EEXIST)
 	{
@@ -650,14 +657,14 @@ void reset_daemon()
 {
 	if (gtd->detach_sock > 0)
 	{
-//		print_stdout("removing(%s)\n", gtd->detach_file);
+//		print_stdout(0, 0, "removing(%s)\n", gtd->detach_file);
 
 		remove(gtd->detach_file);
 	}
 /*
 	if (gtd->attach_sock > 0)
 	{
-		print_stdout("unlinking(%s)\n", gtd->attach_file);
+		print_stdout(0, 0, "unlinking(%s)\n", gtd->attach_file);
 
 		unlink(gtd->attach_file);
 	}

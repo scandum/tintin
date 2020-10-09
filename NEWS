@@ -1,6 +1,23 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.04
+----------------
+
+01) Variables starting with a number are no longer supported, as per the
+    C standard for naming variables. A warning is generated when trying to
+    do so.
+
+    Keep in mind that #var {8ball} {1} will still work, just that instead of
+    being able to use $8ball you need to use ${8ball} for an explicit
+    variable lookup.
+
+02) Implicit index lookups on undefined variables are no longer supported. If
+    you do something like #if {&target} this needs to be changed to
+    #if {&{target}}.
+
+    The reason for this is that "say I played d&d last night" would evaluate
+    as "say I played d0 last night".
 
 TinTin++ 2.02.00
 ----------------

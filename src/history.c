@@ -30,21 +30,18 @@ DO_COMMAND(do_history)
 	int cnt;
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg4, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
 		info:
 
-		tintin_header(ses, " HISTORY COMMANDS ");
+		tintin_header(ses, 80, " HISTORY COMMANDS ");
 
 		for (cnt = 0 ; *history_table[cnt].name != 0 ; cnt++)
 		{
 			tintin_printf2(ses, "  [%-13s] %s", history_table[cnt].name, history_table[cnt].desc);
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
 		return ses;
 	}
@@ -56,7 +53,7 @@ DO_COMMAND(do_history)
 			continue;
 		}
 
-		history_table[cnt].fun(ses, arg2, arg3, arg4);
+		history_table[cnt].fun(ses, arg, arg2, arg3);
 
 		return ses;
 	}
@@ -78,18 +75,11 @@ void add_line_history(struct session *ses, char *line)
 		return;
 	}
 
-	if (*line == 0)
-	{
-		if (root->used && HAS_BIT(ses->flags, SES_FLAG_REPEATENTER))
-		{
-			strcpy(line, root->list[root->used - 1]->arg1);
-		}
-		return;
-	}
+	// avoid infinite loops
 
 	if (*line == gtd->repeat_char)
 	{
-		search_line_history(ses, line);
+		return;
 	}
 
 	update_node_list(ses->list[LIST_HISTORY], line, "", "", "");
@@ -102,27 +92,35 @@ void add_line_history(struct session *ses, char *line)
 	return;
 }
 
-void search_line_history(struct session *ses, char *line)
+struct session *repeat_history(struct session *ses, char *line)
 {
-	struct listroot *root;
+	struct listroot *root = ses->list[LIST_HISTORY];
 	int i;
-
-	root = ses->list[LIST_HISTORY];
 
 	for (i = root->used - 1 ; i >= 0 ; i--)
 	{
-		if (!strncmp(root->list[i]->arg1, &line[1], strlen(&line[1])))
+		if (!strncmp(root->list[i]->arg1, line, strlen(line)))
 		{
-			strcpy(line, root->list[i]->arg1);
+			add_line_history(gtd->ses, root->list[i]->arg1);
 
-			return;
+			gtd->level->repeat++;
+			
+			ses = script_driver(ses, LIST_COMMAND, root->list[i]->arg1);
+			
+			gtd->level->repeat--;
+			
+			return ses;
 		}
 	}
-	tintin_printf2(ses, "#REPEAT: NO MATCH FOUND FOR '%s'", line);
+	tintin_printf2(ses, "#REPEAT: NO MATCH FOUND FOR '%s'", line);	
+
+	return ses;
 }
 
 DO_HISTORY(history_character)
 {
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+
 	gtd->repeat_char = *arg1;
 
 	show_message(ses, LIST_HISTORY, "#HISTORY CHARACTER SET TO {%c}.", gtd->repeat_char);
@@ -140,13 +138,18 @@ DO_HISTORY(history_delete)
 
 DO_HISTORY(history_insert)
 {
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
 	add_line_history(ses, arg1);
 }
 
 DO_HISTORY(history_get)
 {
 	struct listroot *root = ses->list[LIST_HISTORY];
+	char *arg3;
 	int cnt, min, max;
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
 	if (*arg1 == 0)
 	{
@@ -154,6 +157,8 @@ DO_HISTORY(history_get)
 
 		return;
 	}
+
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 
 	min = get_number(ses, arg2);
 
@@ -164,9 +169,15 @@ DO_HISTORY(history_get)
 
 	min = URANGE(0, min, root->used - 1);
 
+	arg3 = str_alloc_stack(0);
+
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
+
 	if (*arg3 == 0)
 	{
-		set_nest_node_ses(ses, arg1, "%s", root->list[min]->arg1);
+		substitute(ses, root->list[min]->arg1, arg3, SUB_SEC);
+
+		set_nest_node_ses(ses, arg1, "%s", arg3);
 
 		return;
 	}
@@ -194,7 +205,9 @@ DO_HISTORY(history_get)
 	{
 		sprintf(arg2, "%s[%d]", arg1, ++cnt);
 
-		set_nest_node_ses(ses, arg2, "%s", root->list[min++]->arg1);
+		substitute(ses, root->list[min++]->arg1, arg3, SUB_SEC);
+
+		set_nest_node_ses(ses, arg2, "%s", arg3);
 	}
 
 	show_message(ses, LIST_COMMAND, "#HISTORY GET: %d LINES SAVED TO {%s}.", cnt, arg1);
@@ -204,6 +217,8 @@ DO_HISTORY(history_get)
 
 DO_HISTORY(history_list)
 {
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
 	if (*arg1 == 0)
 	{
 		show_list(ses->list[LIST_HISTORY], 0);
@@ -217,40 +232,36 @@ DO_HISTORY(history_list)
 
 DO_HISTORY(history_read)
 {
+	struct listroot *root = ses->list[LIST_HISTORY];
 	FILE *file;
-	char *cptr, buffer[BUFFER_SIZE];
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
 	file = fopen(arg1, "r");
 
 	if (file == NULL)
 	{
 		show_message(ses, LIST_HISTORY, "#HISTORY: COULDN'T OPEN FILE {%s} TO READ.", arg1);
+
 		return;
 	}
 
-	kill_list(ses->list[LIST_HISTORY]);
+	kill_list(root);
 
-	while (fgets(buffer, BUFFER_SIZE-1, file))
+	while (fread_one_line(&arg2, file))
 	{
-		cptr = strchr(buffer, '\n');
-
-		if (cptr)
+		if (*arg2)
 		{
-			*cptr = 0;
-
-			if (*buffer)
-			{
-				create_node_list(ses->list[LIST_HISTORY], buffer, "", "", "");
-			}
+			create_node_list(root, arg2, "", "", "");
 		}
 	}
-	create_node_list(ses->list[LIST_HISTORY], "", "", "", "");
+	create_node_list(root, "", "", "", "");
 
 	fclose(file);
 
 	if (ses->list[LIST_HISTORY]->used > gtd->history_size) 
 	{
-		execute(gts, "#CONFIG {HISTORY SIZE} {%d}", UMIN(ses->list[LIST_HISTORY]->used, 9999));
+		command(gts, do_configure, "{HISTORY SIZE} {%d}", UMIN(ses->list[LIST_HISTORY]->used, 9999));
 	}
 
 	return;
@@ -258,6 +269,8 @@ DO_HISTORY(history_read)
 
 DO_HISTORY(history_size)
 {
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+
 	if (atoi(arg1) < 1 || atoi(arg1) > 100000)
 	{
 		show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY SIZE: PROVIDE A NUMBER BETWEEN 1 and 100,000");
@@ -274,6 +287,8 @@ DO_HISTORY(history_write)
 	struct listroot *root = ses->list[LIST_HISTORY];
 	FILE *file;
 	int i;
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
 	file = fopen(arg1, "w");
 

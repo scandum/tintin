@@ -29,15 +29,13 @@ DO_COMMAND(do_line)
 {
 	int cnt;
 
-	push_call("do_line(%p,%p)",ses,arg);
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
 	if (*arg1 == 0)
 	{
 		info:
 
-		tintin_header(ses, " LINE OPTIONS ");
+		tintin_header(ses, 80, " LINE OPTIONS ");
 
 		for (cnt = 0 ; *line_table[cnt].fun != NULL ; cnt++)
 		{
@@ -46,9 +44,8 @@ DO_COMMAND(do_line)
 				tintin_printf2(ses, "  [%-13s] %s", line_table[cnt].name, line_table[cnt].desc);
 			}
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
-		pop_call();
 		return ses;
 	}
 	else
@@ -67,17 +64,14 @@ DO_COMMAND(do_line)
 		}
 		else
 		{
-			ses = line_table[cnt].fun(ses, arg);
+			ses = line_table[cnt].fun(ses, arg, arg1, arg2, arg3);
 		}
 	}
-	pop_call();
 	return ses;
 }
 
 DO_LINE(line_background)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -99,7 +93,6 @@ DO_LINE(line_background)
 DO_LINE(line_benchmark)
 {
 	long long start, end;
-	char arg1[BUFFER_SIZE];
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
@@ -123,8 +116,6 @@ DO_LINE(line_benchmark)
 
 DO_LINE(line_capture)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
@@ -154,8 +145,6 @@ DO_LINE(line_capture)
 
 DO_LINE(line_convert)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -164,6 +153,8 @@ DO_LINE(line_convert)
 
 		return ses;
 	}
+
+	// May need a clearer flag here.
 
 	gtd->level->convert++;
 
@@ -176,8 +167,6 @@ DO_LINE(line_convert)
 
 DO_LINE(line_debug)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -198,8 +187,6 @@ DO_LINE(line_debug)
 
 DO_LINE(line_gag)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	switch (*arg1)
@@ -227,8 +214,6 @@ DO_LINE(line_gag)
 
 DO_LINE(line_ignore)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -249,8 +234,6 @@ DO_LINE(line_ignore)
 
 DO_LINE(line_local)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -275,7 +258,6 @@ DO_LINE(line_local)
 
 DO_LINE(line_log)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	FILE *logfile;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -285,7 +267,11 @@ DO_LINE(line_log)
 	{
 		substitute(ses, arg2, arg2, SUB_ESC|SUB_COL|SUB_LNF);
 
-		if (ses->logline_time == gtd->time && !strcmp(ses->logline_name, arg1))
+		if (ses->logfile && !strcmp(ses->logname, arg1))
+		{
+			logit(ses, arg2, ses->logfile, LOG_FLAG_NONE);
+		}
+		else if (ses->logline_time == gtd->time && !strcmp(ses->logline_name, arg1))
 		{
 			logit(ses, arg2, ses->logline_file, LOG_FLAG_NONE);
 		}
@@ -344,8 +330,6 @@ DO_LINE(line_log)
 DO_LINE(line_logmode)
 {
 	struct session *active_ses;
-
-	char arg1[BUFFER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -413,7 +397,6 @@ DO_LINE(line_logmode)
 
 DO_LINE(line_logverbatim)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	FILE *logfile;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -473,10 +456,27 @@ DO_LINE(line_logverbatim)
 	return ses;
 }
 
+DO_LINE(line_msdp)
+{
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {STRIP} {command}.");
+
+		return ses;
+	}
+
+	tintin2msdp(arg1, arg2);
+
+	ses = script_driver(ses, LIST_COMMAND, arg2);
+
+	return ses;
+}
+
 DO_LINE(line_multishot)
 {
 	unsigned int shots;
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
@@ -505,8 +505,6 @@ DO_LINE(line_multishot)
 
 DO_LINE(line_oneshot)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -529,8 +527,6 @@ DO_LINE(line_oneshot)
 
 DO_LINE(line_quiet)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -551,8 +547,6 @@ DO_LINE(line_quiet)
 
 DO_LINE(line_strip)
 {
-	char arg1[BUFFER_SIZE], strip[BUFFER_SIZE];
-
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_ESC|SUB_COL);
 
 	if (*arg1 == 0)
@@ -562,16 +556,15 @@ DO_LINE(line_strip)
 		return ses;
 	}
 
-	strip_vt102_codes(arg1, strip);
+	strip_vt102_codes(arg1, arg2);
 
-	ses = script_driver(ses, LIST_COMMAND, strip);
+	ses = script_driver(ses, LIST_COMMAND, arg2);
 
 	return ses;
 }
 
 DO_LINE(line_substitute)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], subs[BUFFER_SIZE];
 	int i, flags = 0;
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
@@ -579,8 +572,10 @@ DO_LINE(line_substitute)
 
 	if (*arg2 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {SUBSTITUTE} {argument} {command}.");
-		
+		for (i = 0 ; *substitution_table[i].name ; i++)
+		{
+			tintin_printf2(ses, "#SYNTAX: #LINE {SUBSTITUTE} {%s} {command}.", substitution_table[i].name);
+		}
 		return ses;
 	}
 
@@ -588,11 +583,11 @@ DO_LINE(line_substitute)
 
 	while (*arg)
 	{
-		arg = get_arg_in_braces(ses, arg, subs, GET_ONE);
+		arg = get_arg_in_braces(ses, arg, arg3, GET_ONE);
 
 		for (i = 0 ; *substitution_table[i].name ; i++)
 		{
-			if (is_abbrev(subs, substitution_table[i].name))
+			if (is_abbrev(arg3, substitution_table[i].name))
 			{
 				SET_BIT(flags, substitution_table[i].bitvector);
 			}
@@ -604,17 +599,15 @@ DO_LINE(line_substitute)
 		}
 	}
 
-	substitute(ses, arg2, subs, flags);
+	substitute(ses, arg2, arg3, flags);
 
-	ses = script_driver(ses, LIST_COMMAND, subs);
+	ses = script_driver(ses, LIST_COMMAND, arg3);
 
 	return ses;
 }
 
 DO_LINE(line_verbatim)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -635,8 +628,6 @@ DO_LINE(line_verbatim)
 
 DO_LINE(line_verbose)
 {
-	char arg1[BUFFER_SIZE];
-
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)

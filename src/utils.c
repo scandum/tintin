@@ -29,7 +29,7 @@
 
 int hex_digit(char *str)
 {
-	if (isdigit((int) *str))
+	if (is_digit(*str))
 	{
 		return *str - '0';
 	}
@@ -45,7 +45,27 @@ unsigned long long hex_number_64bit(char *str)
 
 	for (len = 0 ; len < 16 ; len++)
 	{
-		if (!isxdigit((int) str[len]))
+		if (!is_hex(str[len]))
+		{
+			break;
+		}
+	}
+
+	for (mul = 1 ; len > 0 ; mul *= 16)
+	{
+		val += mul * hex_digit(str + --len);
+	}
+
+	return val;
+}
+
+unsigned int hex_number_32bit(char *str)
+{
+	unsigned long long len, mul, val = 0;
+
+	for (len = 0 ; len < 8 ; len++)
+	{
+		if (!is_hex(str[len]))
 		{
 			break;
 		}
@@ -65,7 +85,7 @@ int hex_number_8bit(char *str)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			value += 16 * (*str - '0');
 		}
@@ -78,7 +98,7 @@ int hex_number_8bit(char *str)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			value += *str - '0';
 		}
@@ -98,7 +118,7 @@ int oct_number(char *str)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			value += 8 * (*str - '0');
 		}
@@ -107,7 +127,7 @@ int oct_number(char *str)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			value += *str - '0';
 		}
@@ -122,7 +142,10 @@ int unicode_16_bit(char *str, char *out)
 	int val = 0;
 	unsigned char *pto = (unsigned char *) out;
 
-	if (isdigit((int) *str))
+	val += 4096 * hex_digit(str);
+
+/*
+	if (is_digit(*str))
 	{
 		val += 4096 * (*str - '0');
 	}
@@ -130,9 +153,13 @@ int unicode_16_bit(char *str, char *out)
 	{
 		val += 4096 * (toupper((int) *str) - 'A' + 10);
 	}
+*/
 	str++;
 
-	if (isdigit((int) *str))
+	val += 256 * hex_digit(str);
+
+/*
+	if (is_digit(*str))
 	{
 		val += 256 * (*str - '0');
 	}
@@ -140,9 +167,12 @@ int unicode_16_bit(char *str, char *out)
 	{
 		val += 256 * (toupper((int) *str) - 'A' + 10);
 	}
+*/
 	str++;
 
-	if (isdigit((int) *str))
+	val += 16 * hex_digit(str);
+/*
+	if (is_digit(*str))
 	{
 		val += 16 * (*str - '0');
 	}
@@ -150,9 +180,12 @@ int unicode_16_bit(char *str, char *out)
 	{
 		val += 16 * (toupper((int) *str) - 'A' + 10);
 	}
+*/
 	str++;
 
-	if (isdigit((int) *str))
+	val += hex_digit(str);
+/*
+	if (is_digit(*str))
 	{
 		val += (*str - '0');
 	}
@@ -160,6 +193,7 @@ int unicode_16_bit(char *str, char *out)
 	{
 		val += (toupper((int) *str) - 'A' + 10);
 	}
+*/
 	str++;
 
 	if (val < 128)
@@ -192,7 +226,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += 1048576 * (*str - '0');
 		}
@@ -205,7 +239,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += 65536 * (*str - '0');
 		}
@@ -218,7 +252,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += 4096 * (*str - '0');
 		}
@@ -231,7 +265,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += 256 * (*str - '0');
 		}
@@ -244,7 +278,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += 16 * (*str - '0');
 		}
@@ -257,7 +291,7 @@ int unicode_21_bit(char *str, char *out)
 
 	if (str)
 	{
-		if (isdigit((int) *str))
+		if (is_digit(*str))
 		{
 			val += (*str - '0');
 		}
@@ -310,35 +344,70 @@ int unicode_21_bit(char *str, char *out)
 unsigned long long utime()
 {
 	struct timeval now_time;
+	unsigned long long utime;
 
 	gettimeofday(&now_time, NULL);
 
-	if (gtd->utime >= now_time.tv_sec * 1000000ULL + now_time.tv_usec)
+	utime = now_time.tv_sec * 1000000ULL + now_time.tv_usec;
+
+	if (gtd->utime >= utime)
 	{
 		gtd->utime++;
 	}
 	else
 	{
-		gtd->utime = now_time.tv_sec * 1000000ULL + now_time.tv_usec;
+		gtd->utime = utime;
 	}
+
 	return gtd->utime;
 }
 
+time_t get_time(struct session *ses, char *str)
+{
+	unsigned long long time = get_ulong(ses, str);
+
+	if (time >= 1000000000LL * 1000000LL)
+	{
+		time /= 1000000;
+	}
+
+	return time;
+}
+
+char *str_time(struct session *ses, char *format, time_t time)
+{
+	static char buf[10][NAME_SIZE];
+	static int cnt;
+	struct tm timeval_tm;
+
+	cnt = (cnt + 1) % 10;
+
+	timeval_tm = *localtime(&time);
+
+	strftime(buf[cnt], NAME_SIZE, format, &timeval_tm);
+
+	return buf[cnt];
+}
+	
 void seed_rand(struct session *ses, unsigned long long seed)
 {
 	ses->rand = seed % 4294967291ULL;
 	ses->rkey = seed % 5;
+
+	srand(ses->rand);
 }
 
 unsigned long long generate_rand(struct session *ses)
 {
-	static unsigned long long primes[] = {26196137413795067, 1062272168593625449, 5189794811, 237506310434573, 212938855558633 };
+	static unsigned long long primes[] = {26196137413795067, 1062272168593625449, 5189794811, 237506310434573, 212938855558633, 51741641338759 };
 
-	if (ses->rkey % 3 == 1)
+	return rand();
+
+/*	if (ses->rkey % 3 == 1)
 	{
 		ses->rand += 316595909ULL + primes[++ses->rkey % 5];
 	}
-	else
+	else*/
 	{
 		ses->rand += primes[++ses->rkey % 5];
 	}
@@ -362,7 +431,7 @@ uint32_t lcg_rand(uint32_t *state)
 */
 char *capitalize(char *str)
 {
-	static char outbuf[BUFFER_SIZE];
+	char *outbuf = str_alloc_stack(0);
 	int cnt;
 
 	for (cnt = 0 ; str[cnt] != 0 ; cnt++)
@@ -372,6 +441,34 @@ char *capitalize(char *str)
 	outbuf[cnt] = 0;
 
 	return outbuf;
+}
+
+char *ftos(float number)
+{
+	static char outbuf[10][NUMBER_SIZE];
+	static int cnt;
+	int len;
+
+	cnt = (cnt + 1) % 10;
+
+	sprintf(outbuf[cnt], "%f", number);
+
+	for (len = strlen(outbuf[cnt]) - 1 ; len ; len--)
+	{
+		if (outbuf[cnt][len] == '0')
+		{
+			outbuf[cnt][len] = 0;
+		}
+		else
+		{
+			if (outbuf[cnt][len] == '.')
+			{
+				outbuf[cnt][len] = 0;
+			}
+			break;
+		}
+	}
+	return outbuf[cnt];
 }
 
 char *ntos(long long number)
@@ -402,16 +499,16 @@ char *indent_one(int len)
 
 char *indent(int len)
 {
-	static char outbuf[10][STACK_SIZE];
-	static int cnt;
+	static char outbuf[21][101];
 
-	cnt = (cnt + 1) % 10;
+	len = URANGE(0, len, 20);
 
-	memset(outbuf[cnt], ' ', UMAX(1, len * 5));
+	if (outbuf[len][0] == 0)
+	{
+		sprintf(outbuf[len], "%*s", len * 5, "");
+	}
 
-	outbuf[cnt][len * 5] = 0;
-
-	return outbuf[cnt];
+	return outbuf[len];
 }
 
 int cat_sprintf(char *dest, char *fmt, ...)
@@ -430,22 +527,33 @@ int cat_sprintf(char *dest, char *fmt, ...)
 	return size;
 }
 
-void ins_sprintf(char *dest, char *fmt, ...)
+void ins_cpy(char *dest, char *str)
 {
-	char buf[STRING_SIZE], tmp[STRING_SIZE];
-
-	va_list args;
-
-	va_start(args, fmt);
-	vsprintf(buf, fmt, args);
-	va_end(args);
+	char tmp[STRING_SIZE];
 
 	strcpy(tmp, dest);
-	strcpy(dest, buf);
+	strcpy(dest, str);
 	strcat(dest, tmp);
 }
 
-int str_suffix(char *str1, char *str2)
+// unused, also needs testing
+
+void ins_sprintf(char *dest, char *fmt, ...)
+{
+	char tmp[STRING_SIZE];
+	int len;
+	va_list args;
+
+	strcpy(tmp, dest);
+
+	va_start(args, fmt);
+	len = vsprintf(dest, fmt, args);
+	va_end(args);
+
+	strcpy(dest + len, tmp);
+}
+
+int is_suffix(char *str1, char *str2)
 {
 	int len1, len2;
 
@@ -456,10 +564,10 @@ int str_suffix(char *str1, char *str2)
 	{
 		if (!strcasecmp(str1 + len1 - len2, str2))
 		{
-			return FALSE;
+			return TRUE;
 		}
 	}
-	return TRUE;
+	return FALSE;
 }
 
 void socket_printf(struct session *ses, size_t length, char *format, ...)

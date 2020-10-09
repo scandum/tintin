@@ -38,7 +38,7 @@ DO_COMMAND(do_log)
 	{
 		info:
 
-		tintin_header(ses, " LOG OPTIONS ");
+		tintin_header(ses, 80, " LOG OPTIONS ");
 
 		for (cnt = 0 ; *log_table[cnt].fun != NULL ; cnt++)
 		{
@@ -84,6 +84,8 @@ DO_LOG(log_append)
 	{
 		SET_BIT(ses->logmode, LOG_FLAG_APPEND);
 
+		RESTRING(ses->logname, arg2);
+
 		loginit(ses, ses->logfile, ses->logmode);
 
 		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
@@ -92,6 +94,15 @@ DO_LOG(log_append)
 	{
 		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s} - COULDN'T OPEN FILE.", arg1, arg2);
 	}
+}
+
+DO_LOG(log_info)
+{
+	tintin_printf2(ses, "#LOG INFO: FILE  = %s", ses->logfile ? ses->logname : "");
+	tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(ses->logmode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
+	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->logmode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->logmode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
+	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->logline_file ? ses->logline_name : "");
+	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->lognext_file ? ses->lognext_name : "");
 }
 
 DO_LOG(log_overwrite)
@@ -104,6 +115,8 @@ DO_LOG(log_overwrite)
 	if ((ses->logfile = fopen(arg2, "w")))
 	{
 		SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
+
+		RESTRING(ses->logname, arg2);
 
 		loginit(ses, ses->logfile, ses->logmode);
 

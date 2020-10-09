@@ -25,6 +25,8 @@
 
 #include "tintin.h"
 
+struct str_data *str_alloc_list(int size);
+
 char *restring(char *point, char *string)
 {
 	if (point)
@@ -57,65 +59,33 @@ char *restringf(char *point, char *fmt, ...)
 	str_ functions
 */
 
-struct str_data *str_calloc(int size)
+void init_memory(void)
 {
+	gtd->memory            = calloc(1, sizeof(struct memory_data));
+
+	gtd->memory->debug     = calloc(1, sizeof(struct stack_data *));
+
+	gtd->memory->stack     = calloc(1, sizeof(struct str_data *));
+	gtd->memory->stack_max = 1;
+
+	gtd->memory->list      = calloc(1, sizeof(struct str_data *));
+	gtd->memory->list_max  = 1;
+
+	gtd->memory->free      = calloc(1, sizeof(int));
+	gtd->memory->free_max  = 1;
+}
+
+
+struct str_data *str_ptr_alloc(int size)
+{
+	return str_alloc_list(size);
+/*
 	struct str_data *str_ptr = (struct str_data *) calloc(1, sizeof(struct str_data) + size + 1);
 
-	LINK(str_ptr, gtd->memory->alloc->next, gtd->memory->alloc->prev);
-
 	str_ptr->max = size + 1;
-	str_ptr->len = 0;
 
 	return str_ptr;
-}
-
-char *str_alloc(int size)
-{
-	struct str_data *str_ptr;
-	char *str;
-
-	str_ptr = str_calloc(size);
-
-	str = (char *) str_ptr + sizeof(struct str_data);
-
-	return str;
-}
-
-struct str_data *str_realloc(struct str_data *str_ptr, int size)
-{
-	struct str_data *new_ptr;
-
-	push_call("str_realloc(%p,%d) (%d,%d,%p,%p)",str_ptr,size, str_ptr->len, str_ptr->max, str_ptr->next, str_ptr->prev);
-
-	if (str_ptr->max <= str_ptr->len)
-	{
-		tintin_printf2(gtd->ses, "\e[1;35mstr_realloc: we got problem\n");
-	}
-
-	if (str_ptr->max <= size)
-	{
-//		int len = str_ptr->len;
-
-		UNLINK(str_ptr, gtd->memory->alloc->next, gtd->memory->alloc->prev);
-
-		new_ptr = (struct str_data *) realloc(str_ptr, sizeof(struct str_data) + size + 1);
-
-		if (new_ptr == NULL)
-		{
-			printf("str_realloc: failed to realloc mem.\n");
-		}
-		else
-		{
-			str_ptr = new_ptr;
-		}
-
-		LINK(str_ptr, gtd->memory->alloc->next, gtd->memory->alloc->prev);
-
-		str_ptr->max = size + 1;
-//		str_ptr->len = len;
-	}
-	pop_call();
-	return str_ptr;
+*/
 }
 
 struct str_data *get_str_ptr(char *str)
@@ -128,13 +98,54 @@ char *get_str_str(struct str_data *str_ptr)
 	return (char *) str_ptr + sizeof(struct str_data);
 }
 
+struct str_data *str_ptr_realloc(struct str_data *str_ptr, int size)
+{
+	if (str_ptr->max <= size)
+	{
+		str_ptr = (struct str_data *) realloc(str_ptr, sizeof(struct str_data) + size + 1);
+
+		switch (str_ptr->flags)
+		{
+			case STR_FLAG_STACK:
+				gtd->memory->stack[str_ptr->index] = str_ptr;
+				break;
+
+			case STR_FLAG_LIST:
+				gtd->memory->list[str_ptr->index] = str_ptr;
+				break;
+
+			default:
+				printf("\e[1;35mstr_ptr_realloc: unknown memory type (%d)", str_ptr->flags);
+				break;
+		}
+
+		str_ptr->max = size + 1;
+	}
+	else
+	{
+		printf("\e[1;35mstr_ptr_realloc: shrink error max=%d len=%d\n", str_ptr->max, str_ptr->len);
+	}
+
+	return str_ptr;
+}
+
+
+char *str_alloc(int size)
+{
+	struct str_data *str_ptr;
+
+	str_ptr = str_ptr_alloc(size);
+
+	return get_str_str(str_ptr);
+}
+
 struct str_data *str_ptr_resize(struct str_data *str_ptr, int add)
 {
 	int len = str_ptr->len;
 
 	if (str_ptr->max <= len + add)
 	{
-		str_ptr = str_realloc(str_ptr, len * 2 + add);
+		str_ptr = str_ptr_realloc(str_ptr, len + add + 1);
 	}
 	return str_ptr;
 }
@@ -148,6 +159,27 @@ char *str_resize(char **str, int add)
 	*str = get_str_str(str_ptr);
 
 	return *str;
+}
+
+// call after a non str_ function alters *str to set the correct length.
+
+int str_fix(char *original)
+{
+	struct str_data *str_ptr = get_str_ptr(original);
+
+	str_ptr->len = strlen(original);
+
+	return str_ptr->len;
+}
+
+int str_len(char *str)
+{
+	return get_str_ptr(str)->len;
+}
+
+int str_max(char *str)
+{
+	return get_str_ptr(str)->max;
 }
 
 
@@ -172,7 +204,7 @@ void str_clone(char **clone, char *original)
 
 	if (clo_ptr->max < len)
 	{
-		clo_ptr = str_realloc(clo_ptr, len * 2);
+		clo_ptr = str_ptr_realloc(clo_ptr, len * 2);
 
 		*clone = get_str_str(clo_ptr);
 	}
@@ -184,37 +216,26 @@ char *str_dup_clone(char *original)
 	int len;
 
 	len = str_len(original);
+
 	dup = str_alloc(len);
 
 	memcpy(dup, original, len + 1);
 
+	get_str_ptr(dup)->len = len;
+
 	return dup;
 }
 
-// call after a non str_ function alters *str to set the correct length.
-
-int str_fix(char *original)
-{
-	struct str_data *str_ptr = get_str_ptr(original);
-
-	str_ptr->len = strlen(original);
-
-	return str_ptr->len;
-}
-
-int str_len(char *str)
-{
-	return get_str_ptr(str)->len;
-}
-
-int str_max(char *str)
-{
-	return get_str_ptr(str)->max;
-}
 
 char *str_dup(char *original)
 {
-	char *dup = str_alloc(strlen(original));
+	char *dup;
+
+	if (*original == 0)
+	{
+		return str_alloc(0);
+	}
+	dup = str_alloc(strlen(original));
 
 	str_cpy(&dup, original);
 
@@ -223,21 +244,23 @@ char *str_dup(char *original)
 
 char *str_dup_printf(char *fmt, ...)
 {
-	char *str, *ptr;
+	char *str, *ptv;
+	int len;
 	va_list args;
 
-	push_call("str_dup_printf(%s)", fmt);
-
 	va_start(args, fmt);
-	vasprintf(&str, fmt, args);
+
+	len = vasprintf(&ptv, fmt, args);
+
 	va_end(args);
 
-	ptr = str_dup(str);
+	str = str_alloc(len);
 
-	free(str);
+	memcpy(str, ptv, len + 1);
 
-	pop_call();
-	return ptr;
+	free(ptv);
+
+	return str;
 }
 
 char *str_cpy(char **str, char *buf)
@@ -251,7 +274,7 @@ char *str_cpy(char **str, char *buf)
 
 	if (str_ptr->max <= buf_len)
 	{
-		str_ptr = str_realloc(str_ptr, buf_len);
+		str_ptr = str_ptr_realloc(str_ptr, buf_len);
 
 		*str = get_str_str(str_ptr);
 	}
@@ -264,16 +287,35 @@ char *str_cpy(char **str, char *buf)
 
 char *str_cpy_printf(char **str, char *fmt, ...)
 {
-	char *arg;
+	struct str_data *str_ptr;
+	char *ptv;
 	va_list args;
+	int len;
 
 	va_start(args, fmt);
-	vasprintf(&arg, fmt, args);
+
+	len = vasprintf(&ptv, fmt, args);
+
 	va_end(args);
+/*
+	str_cpy(str, ptv);
 
-	str_cpy(str, arg);
+	return *str;
+*/
+	str_ptr = get_str_ptr(*str);
 
-	free(arg);
+	if (str_ptr->max <= len)
+	{
+		str_ptr = str_ptr_realloc(str_ptr, len);
+
+		*str = get_str_str(str_ptr);
+	}
+
+	memcpy(*str, ptv, len + 1);
+
+	str_ptr->len = len;
+
+	free(ptv);
 
 	return *str;
 }
@@ -302,7 +344,7 @@ char *str_ncpy(char **str, char *buf, int len)
 
 	if (str_ptr->max <= buf_len)
 	{
-		str_ptr = str_realloc(str_ptr, len);
+		str_ptr = str_ptr_realloc(str_ptr, len);
 
 		*str = get_str_str(str_ptr);
 	}
@@ -316,72 +358,106 @@ char *str_ncpy(char **str, char *buf, int len)
 	return *str;
 }
 
-char *str_cat(char **str, char *arg)
-{
-	int arg_len;
-	struct str_data *str_ptr;
 
-	arg_len = strlen(arg);
+char *str_cat_len(char **str, char *arg, int len)
+{
+	struct str_data *str_ptr;
 
 	str_ptr = get_str_ptr(*str);
 
-	if (str_ptr->max <= str_ptr->len + arg_len)
+	if (str_ptr->max <= str_ptr->len + len)
 	{
-		str_ptr = str_ptr_resize(str_ptr, arg_len);
+		str_ptr = str_ptr_resize(str_ptr, len);
 
 		*str = get_str_str(str_ptr);
 	}
 
 	strcpy(&(*str)[str_ptr->len], arg);
 
-	str_ptr->len += arg_len;
+	str_ptr->len += len;
 
 	return *str;
 }
 
-char *str_cat_chr(char **ptr, char chr)
+char *str_cat(char **str, char *arg)
+{
+	return str_cat_len(str, arg, strlen(arg));
+}
+
+char *str_cat_chr(char **str, char chr)
 {
 	struct str_data *str_ptr;
 
-	str_ptr = get_str_ptr(*ptr);
+	str_ptr = get_str_ptr(*str);
 
 	if (str_ptr->max <= str_ptr->len + 1)
 	{
-		str_ptr = str_ptr_resize(str_ptr, 1);
+		str_ptr = str_ptr_realloc(str_ptr, str_ptr->max + 10);
 
-		*ptr = get_str_str(str_ptr);
+		*str = get_str_str(str_ptr);
 	}
 
-	(*ptr)[str_ptr->len++] = chr;
+	(*str)[str_ptr->len++] = chr;
 
-	(*ptr)[str_ptr->len] = 0;
+	(*str)[str_ptr->len] = 0;
 
-	return *ptr;
+	return *str;
 }
-	
 
 char *str_cat_printf(char **str, char *fmt, ...)
 {
 	char *arg;
 	va_list args;
+	int len;
 
 	va_start(args, fmt);
-	vasprintf(&arg, fmt, args);
+	
+	len = vasprintf(&arg, fmt, args);
+
 	va_end(args);
 
-	str_cat(str, arg);
+	str_cat_len(str, arg, len);
 
 	free(arg);
 
 	return *str;
 }
 
-char *str_ins(char **str, int index, char *buf)
+
+char *str_cap(char **str, int index, char *buf)
 {
 	int buf_len;
 	struct str_data *str_ptr;
 
 	buf_len = strlen(buf);
+
+	str_ptr = get_str_ptr(*str);
+
+	if (str_ptr->max <= index + buf_len)
+	{
+		str_ptr = str_ptr_resize(str_ptr, buf_len);
+
+		*str = get_str_str(str_ptr);
+	}
+
+	if (index <= str_ptr->len)
+	{
+		strcpy(&(*str)[index], buf);
+	}
+	else
+	{
+		tintin_printf2(gtd->ses, "debug: str_cap: index=%d str_len=%d cap=%s", index, str_ptr->len, buf);
+	}
+
+	str_ptr->len = index + buf_len;
+
+	return *str;
+}
+
+
+char *str_ins_len(char **str, int index, char *buf, int buf_len)
+{
+	struct str_data *str_ptr;
 
 	str_ptr = get_str_ptr(*str);
 
@@ -401,10 +477,10 @@ char *str_ins(char **str, int index, char *buf)
 		int cnt;
 		char *pta, *ptz;
 
-		pta = &(*str)[str_ptr->len + 1];
-		ptz = &(*str)[str_ptr->len + 1 + buf_len];
+		pta = &(*str)[str_ptr->len];
+		ptz = &(*str)[str_ptr->len + buf_len];
 
-		for (cnt = 0 ; cnt < buf_len + 1 ; cnt++)
+		for (cnt = 0 ; cnt <= str_ptr->len - index ; cnt++)
 		{
 			*ptz-- = *pta--;
 		}
@@ -412,7 +488,7 @@ char *str_ins(char **str, int index, char *buf)
 		pta = &(*str)[index];
 		ptz = buf;
 
-		for (cnt = 0 ; cnt < buf_len ; cnt++)
+		while (*ptz)
 		{
 			*pta++ = *ptz++;
 		}
@@ -423,32 +499,189 @@ char *str_ins(char **str, int index, char *buf)
 	return *str;
 }
 
-void str_free(char *ptr)
+char *str_ins(char **str, int index, char *buf)
 {
-	struct str_data *str_ptr = get_str_ptr(ptr);
+	return str_ins_len(str, index, buf, strlen(buf));
+}
 
-	UNLINK(str_ptr, gtd->memory->alloc->next, gtd->memory->alloc->prev);
+char *str_ins_printf(char **str, int index, char *fmt, ...)
+{
+	int len;
+	char *arg;
+	va_list args;
 
-	free(str_ptr);
+	va_start(args, fmt);
+
+	len = vasprintf(&arg, fmt, args);
+
+	va_end(args);
+
+	str_ins_len(str, index, arg, len);
+
+	free(arg);
+
+	return *str;
+}
+
+char *str_mov(char **str, int dst, int src)
+{
+	struct str_data *str_ptr;
+	char *ptm;
+
+	if (dst >= src)
+	{
+		show_error(gtd->ses, LIST_COMMAND, "str_mov: dst (%d) >= src (%d)", dst, src);
+
+		return *str;
+	}
+
+	str_ptr = get_str_ptr(*str);
+
+	if (src > str_ptr->len)
+	{
+		show_error(gtd->ses, LIST_COMMAND, "str_mov: src (%d) >= len (%d)", src, str_ptr->len);
+
+		return *str;
+	}
+
+	ptm = &(*str)[src];
+
+	str_ptr->len -= (src - dst);
+
+	while (*ptm)
+	{
+		(*str)[dst++] = *ptm++;
+	}
+	(*str)[dst++] = 0;
+
+	return *str;
+}
+
+
+void str_alloc_free(struct str_data *str_ptr)
+{
+	if (HAS_BIT(str_ptr->flags, STR_FLAG_STACK|STR_FLAG_FREE))
+	{
+		tintin_printf2(gtd->ses, "\e[1;31mstr_alloc_free: trying to free invalid memory: %d", str_ptr->flags);
+		dump_stack();
+		return;
+	}
+
+	if (gtd->memory->free_len == gtd->memory->free_max)
+	{
+		gtd->memory->free_max *= 2;
+
+		gtd->memory->free = (int *) realloc(gtd->memory->free, sizeof(int) * gtd->memory->free_max);
+	}
+	SET_BIT(str_ptr->flags, STR_FLAG_FREE);
+
+	gtd->memory->free[gtd->memory->free_len++] = str_ptr->index;
+}
+
+void str_free(char *str)
+{
+//	free(get_str_ptr(str));
+
+	str_alloc_free(get_str_ptr(str));
 }
 
 // stack handling
 
-char *str_alloc_stack()
+char *str_alloc_stack(int size)
 {
 	struct str_data *str_ptr;
+	char *str;
 
-	if (gtd->memory->stack_len == gtd->memory->stack_max)
+	if (size < BUFFER_SIZE)
 	{
-		gtd->memory->stack_max++;
-
-		gtd->memory->stack = (struct str_data **) realloc(gtd->memory->stack, sizeof(struct str_data *) * gtd->memory->stack_max);
-
-		gtd->memory->stack[gtd->memory->stack_len] = str_calloc(BUFFER_SIZE);
+		size = BUFFER_SIZE;
 	}
-	str_ptr = gtd->memory->stack[gtd->memory->stack_len++];
+
+	if (gtd->memory->stack_len == gtd->memory->stack_cap)
+	{
+		gtd->memory->stack_cap++;
+
+		if (gtd->memory->stack_cap == gtd->memory->stack_max)
+		{
+			gtd->memory->stack_max *= 2;
+
+			gtd->memory->stack = (struct str_data **) realloc(gtd->memory->stack, sizeof(struct str_data *) * gtd->memory->stack_max);
+		}
+		str_ptr = (struct str_data *) calloc(1, sizeof(struct str_data) + size + 1);
+
+		str_ptr->max   = size + 1;
+		str_ptr->flags = STR_FLAG_STACK;
+		str_ptr->index = gtd->memory->stack_len++;
+
+		gtd->memory->stack[str_ptr->index] = str_ptr;
+	}
+	else
+	{
+		str_ptr = gtd->memory->stack[gtd->memory->stack_len++];
+	}
+
+	if (str_ptr->max < size)
+	{
+		str_ptr = str_ptr_realloc(str_ptr, size);
+	}
 
 	str_ptr->len = 0;
 
-	return get_str_str(str_ptr);
+	str = get_str_str(str_ptr);
+
+	*str = 0;
+
+	return str;
+}
+
+struct str_data *str_alloc_list(int size)
+{
+	struct str_data *str_ptr;
+	char *str;
+
+	if (size < 0)
+	{
+		tintin_printf2(gtd->ses, "str_alloc_list: negative size: %d", size);
+		dump_stack();
+		size = BUFFER_SIZE;
+	}
+
+	if (gtd->memory->free_len)
+	{
+		int index;
+
+		index = gtd->memory->free[--gtd->memory->free_len];
+
+		str_ptr = gtd->memory->list[index];
+
+		DEL_BIT(str_ptr->flags, STR_FLAG_FREE);
+
+		if (size >= str_ptr->max)
+		{
+			str_ptr = str_ptr_realloc(str_ptr, size);
+		}
+		str_ptr->len = 0;
+	}
+	else
+	{
+		if (gtd->memory->list_len + 1 >= gtd->memory->list_max)
+		{
+			gtd->memory->list_max *= 2;
+
+			gtd->memory->list = (struct str_data **) realloc(gtd->memory->list, sizeof(struct str_data *) * gtd->memory->list_max);
+		}
+		str_ptr = (struct str_data *) calloc(1, sizeof(struct str_data) + size + 1);
+
+		str_ptr->max   = size + 1;
+		str_ptr->flags = STR_FLAG_LIST;
+		str_ptr->index = gtd->memory->list_len++;
+
+		gtd->memory->list[str_ptr->index] = str_ptr;
+	}
+
+	str = get_str_str(str_ptr);
+
+	*str = 0;
+
+	return str_ptr;
 }

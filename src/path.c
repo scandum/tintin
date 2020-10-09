@@ -38,7 +38,7 @@ DO_COMMAND(do_path)
 	{
 		info:
 
-		tintin_header(ses, " PATH OPTIONS ");
+		tintin_header(ses, 80, " PATH OPTIONS ");
 
 		for (cnt = 0 ; *path_table[cnt].fun != NULL ; cnt++)
 		{
@@ -47,7 +47,7 @@ DO_COMMAND(do_path)
 				tintin_printf2(ses, "  [%-13s] %s", path_table[cnt].name, path_table[cnt].desc);
 			}
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
 		return ses;
 	}
@@ -129,7 +129,7 @@ DO_PATH(path_stop)
 	}
 	else
 	{
-		if (root->list[root->update]->val64)
+		if (root->update < root->used && root->list[root->update]->val64)
 		{
 			for (index = 0 ; index < root->used ; index++)
 			{
@@ -193,7 +193,14 @@ DO_PATH(path_describe)
 		{
 			if (root->used > 2)
 			{
-				tintin_printf2(ses, "The path is %d rooms long and leads back to where you are at.", root->used);
+				if (root->update == root->used)
+				{
+					tintin_printf2(ses, "The path is %d rooms long.", root->used);
+				}
+				else
+				{
+					tintin_printf2(ses, "The path is %d rooms long and appears to circle back to where you are at.", root->used);
+				}
 			}
 			else
 			{
@@ -202,12 +209,12 @@ DO_PATH(path_describe)
 		}
 		else
 		{
-			tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms %s of you.", root->used, abs(z), z < 0 ? "below" : "above", s);
+			tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms %s you.", root->used, abs(z), z < 0 ? "below" : "above", s);
 		}
 	}
 	else
 	{
-		tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms to the %s of you at %s.", root->used, a, dirs[d], slopes[s]);
+		tintin_printf2(ses, "The path is %d rooms long and the destination lies %d rooms to the %s from you at %s.", root->used, a, dirs[d], slopes[s]);
 	}
 
 	if (root->update == 0)
@@ -240,7 +247,14 @@ DO_PATH(path_map)
 
 		for (i = 0 ; i < root->update ; i++)
 		{
-			cat_sprintf(buf, " %s", root->list[i]->arg1);
+			if (strchr(root->list[i]->arg1, ' '))
+			{
+				cat_sprintf(buf, " {%s}", root->list[i]->arg1);
+			}
+			else
+			{
+				cat_sprintf(buf, " %s", root->list[i]->arg1);
+			}
 		}
 
 		if (i != root->used)
@@ -249,7 +263,14 @@ DO_PATH(path_map)
 
 			for (i = root->update + 1 ; i < root->used ; i++)
 			{
-				cat_sprintf(buf, " %s", root->list[i]->arg1);
+				if (strchr(root->list[i]->arg1, ' '))
+				{
+					cat_sprintf(buf, " {%s}", root->list[i]->arg1);
+				}
+				else
+				{
+					cat_sprintf(buf, " %s", root->list[i]->arg1);
+				}
 			}
 		}
 
@@ -300,7 +321,7 @@ DO_PATH(path_get)
 DO_PATH(path_save)
 {
 	struct listroot *root = ses->list[LIST_PATH];
-	char result[STRING_SIZE], arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	char result[STRING_SIZE], arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], *ptr;
 	int i;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -310,9 +331,15 @@ DO_PATH(path_save)
 	{
 		tintin_puts2(ses, "#PATH SAVE: LOAD OR CREATE A PATH FIRST.");
 	}
+	else if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH SAVE <BACKWARD|BOTH|FORWARD> <VARIABLE NAME>");
+	}
 	else if (*arg2 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH SAVE <BACKWARD|FORWARD> <VARIABLE NAME>");
+		sprintf(result, "BOTH {%s}", arg1);
+
+		path_save(ses, result);
 	}
 	else if (is_abbrev(arg1, "BACKWARDS"))
 	{
@@ -348,6 +375,20 @@ DO_PATH(path_save)
 
 		show_message(ses, LIST_COMMAND, "#PATH SAVE: FORWARD PATH SAVED TO {%s}", arg2);
 	}
+	else if (is_abbrev(arg1, "BOTH"))
+	{
+		ptr = result;
+
+		*result = 0;
+
+		for (i = 0 ; i < root->used ; i++)
+		{
+			ptr += sprintf(ptr, ";{%s}{%s}{%s}", root->list[i]->arg1, root->list[i]->arg2, root->list[i]->arg3);
+		}
+		set_nest_node_ses(ses, arg2, "%s", result);
+
+		show_message(ses, LIST_COMMAND, "#PATH SAVE: PATH SAVED TO {%s}", arg2);
+	}
 	else if (is_abbrev(arg1, "LENGTH"))
 	{
 		sprintf(result, "%d", root->used);
@@ -377,7 +418,7 @@ DO_PATH(path_load)
 	char arg1[BUFFER_SIZE], temp[BUFFER_SIZE];
 	struct listnode *node;
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 	{
@@ -392,24 +433,22 @@ DO_PATH(path_load)
 
 	root->update = 0;
 
+	DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
+
+	gtd->level->input++;
+
 	while (*arg)
 	{
 		if (*arg == ';')
 		{
 			arg++;
 		}
+		arg = get_arg_all(ses, arg, temp, 0);
 
-		arg = get_arg_in_braces(ses, arg, temp, GET_ALL);
-
-		if ((node = search_node_list(root, temp)))
-		{
-			create_node_list(root, node->arg1, node->arg2, "0", "");
-		}
-		else
-		{
-			create_node_list(root, temp, temp, "0", "");
-		}
+		path_insert(ses, temp);
 	}
+	gtd->level->input--;
+
 	show_message(ses, LIST_COMMAND, "#PATH LOAD: PATH WITH %d NODES LOADED.", root->used);
 }
 
@@ -430,7 +469,7 @@ DO_PATH(path_delete)
 	}
 	else
 	{
-		tintin_puts(ses, "#PATH DELETE: NO MOVES LEFT.");
+		tintin_printf(ses, "#PATH DELETE: NO MOVES LEFT.");
 	}
 
 }
@@ -438,10 +477,11 @@ DO_PATH(path_delete)
 DO_PATH(path_insert)
 {
 	struct listroot *root = ses->list[LIST_PATH];
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0 && *arg2 == 0)
 	{
@@ -449,9 +489,9 @@ DO_PATH(path_insert)
 	}
 	else
 	{
-		create_node_list(root, arg1, arg2, "0", "");
+		create_node_list(root, arg1, arg2, arg3, "");
 
-		show_message(ses, LIST_COMMAND, "#PATH INSERT: FORWARD {%s} BACKWARD {%s}.", arg1, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH INSERT: FORWARD {%s} BACKWARD {%s} DELAY {%s}.", arg1, arg2, arg3);
 
 		if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 		{
@@ -474,7 +514,7 @@ DO_PATH(path_run)
 
 	if (root->update == root->used)
 	{
-		tintin_puts(ses, "#PATH RUN: #END OF PATH.");
+		tintin_printf(ses, "#PATH RUN: #END OF PATH.");
 	}
 	else
 	{
@@ -490,6 +530,8 @@ DO_PATH(path_run)
 			{
 				root->list[index]->val64 = gtd->utime + total;
 
+				total += atof(root->list[index]->arg3) * 1000000.0;
+
 				total += delay;
 			}
 		}
@@ -499,6 +541,7 @@ DO_PATH(path_run)
 			{
 				script_driver(ses, LIST_COMMAND, root->list[root->update++]->arg1);
 			}
+			check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "END OF RUN");
 		}
 	}
 
@@ -520,7 +563,7 @@ DO_PATH(path_walk)
 	{
 		if (root->update == 0)
 		{
-			tintin_puts(ses, "#PATH WALK: #START OF PATH.");
+			tintin_printf(ses, "#PATH WALK: #START OF PATH.");
 		}
 		else
 		{
@@ -528,7 +571,7 @@ DO_PATH(path_walk)
 
 			if (root->update == 0)
 			{
-				check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "START OF PATH");
+				check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "START OF PATH");
 			}
 		}
 	}
@@ -536,7 +579,7 @@ DO_PATH(path_walk)
 	{
 		if (root->update == root->used)
 		{
-			tintin_puts(ses, "#PATH WALK: #END OF PATH.");
+			tintin_printf(ses, "#PATH WALK: #END OF PATH.");
 		}
 		else
 		{
@@ -544,7 +587,7 @@ DO_PATH(path_walk)
 
 			if (root->update == root->used)
 			{
-				check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "END OF PATH");
+				check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "END OF PATH");
 			}
 		}
 	}
@@ -608,16 +651,15 @@ DO_PATH(path_zip)
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int i, cnt;
 
-	cnt   =  1;
+	cnt   = 1;
+	*arg1 = 0;
 
-	*arg1 =  0;
-	*arg2 = 0;
 
 	for (i = 0 ; i < root->used ; i++)
 	{
-		if (search_node_list(root, root->list[i]->arg1) == NULL || strlen(root->list[i]->arg1) != 1)
+		if (search_node_list(ses->list[LIST_PATHDIR], root->list[i]->arg1) == NULL || strlen(root->list[i]->arg1) != 1)
 		{
-			if (i && search_node_list(root, root->list[i - 1]->arg1) != NULL && strlen(root->list[i - 1]->arg1) == 1)
+			if (i && search_node_list(ses->list[LIST_PATHDIR], root->list[i - 1]->arg1) != NULL && strlen(root->list[i - 1]->arg1) == 1)
 			{
 				cat_sprintf(arg1, "%c", COMMAND_SEPARATOR);
 			}
@@ -642,11 +684,14 @@ DO_PATH(path_zip)
 		}
 	}
 
+	cnt   = 1;
+	*arg2 = 0;
+
 	for (i = root->used - 1 ; i >= 0 ; i--)
 	{
-		if (search_node_list(root, root->list[i]->arg2) == NULL || strlen(root->list[i]->arg2) != 1)
+		if (search_node_list(ses->list[LIST_PATHDIR], root->list[i]->arg2) == NULL || strlen(root->list[i]->arg2) != 1)
 		{
-			if (i != root->used - 1 && search_node_list(root, root->list[i + 1]->arg2) != NULL && strlen(root->list[i + 1]->arg2) == 1)
+			if (i != root->used - 1 && search_node_list(ses->list[LIST_PATHDIR], root->list[i + 1]->arg2) != NULL && strlen(root->list[i + 1]->arg2) == 1)
 			{
 				cat_sprintf(arg2, "%c", COMMAND_SEPARATOR);
 			}
@@ -712,11 +757,11 @@ DO_PATH(path_unzip)
 				continue;
 		}
 
-		if (isdigit((int) *arg))
+		if (is_digit(*arg))
 		{
 			ptn = num;
 
-			while (isdigit((int) *arg))
+			while (is_digit(*arg))
 			{
 				if (ptn - num < 5)
 				{
@@ -772,7 +817,7 @@ DO_PATH(path_unzip)
 
 			for (dir[1] = 0 ; *str ; str++)
 			{
-				if (isdigit((int) *str))
+				if (is_digit(*str))
 				{
 					sscanf(str, "%d%c", &cnt, dir);
 
@@ -934,7 +979,7 @@ DO_PATH(path_undo)
 	show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 }
 
-void check_append_path(struct session *ses, char *forward, char *backward, int follow)
+void check_append_path(struct session *ses, char *forward, char *backward, float delay, int follow)
 {
 	struct listroot *root = ses->list[LIST_PATH];
 	struct listnode *node;
@@ -943,7 +988,9 @@ void check_append_path(struct session *ses, char *forward, char *backward, int f
 	{
 		if ((node = search_node_list(ses->list[LIST_PATHDIR], forward)))
 		{
-			create_node_list(root, node->arg1, node->arg2, "0", "");
+			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
+
+			create_node_list(root, node->arg1, node->arg2, ftos(delay), "");
 
 			root->update = root->used;
 		}
@@ -952,11 +999,15 @@ void check_append_path(struct session *ses, char *forward, char *backward, int f
 	{
 		if ((node = search_node_list(ses->list[LIST_PATHDIR], forward)))
 		{
-			create_node_list(root, node->arg1, node->arg2, "0", "");
+			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
+
+			create_node_list(root, node->arg1, node->arg2, ftos(delay), "");
 		}
 		else
 		{
-			create_node_list(root, forward, backward, "0", "");
+			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
+
+			create_node_list(root, forward, backward, ftos(delay), "");
 		}
 	}
 }
@@ -1033,6 +1084,15 @@ DO_COMMAND(do_unpathdir)
 	return ses;
 }
 
+int is_pathdir(struct session *ses, char *dir)
+{
+	struct listnode *node;
+
+	node = search_node_list(ses->list[LIST_PATHDIR], dir);
+
+	return node != NULL;
+}
+
 int exit_to_dir(struct session *ses, char *name)
 {
 	struct listnode *node;
@@ -1047,6 +1107,17 @@ int exit_to_dir(struct session *ses, char *name)
 	{
 		return 0;
 	}
+}
+
+// Prone to misuse, so double checking
+
+unsigned char pdir(struct listnode *node)
+{
+	if (node->val32[0] < 0 || node->val32[0] >= 64)
+	{
+		tintin_printf2(NULL, "pdir: node->val32[0] = %d", node->val32[0]);
+	}
+	return node->val32[0];
 }
 
 char *dir_to_exit(struct session *ses, int dir)
@@ -1067,7 +1138,7 @@ char *dir_to_exit(struct session *ses, int dir)
 	{
 		node = root->list[root->update];
 
-		if (node->val32[0] == dir)
+		if (pdir(node) == dir)
 		{
 			return node->arg1;
 		}

@@ -33,14 +33,12 @@ DO_COMMAND(do_showme)
 	char *out, *tmp;
 	int lnf;
 
-	push_call("do_showme(%p,%p)",ses,arg);
-
-	out = str_alloc_stack();
-	tmp = str_alloc_stack();
+	out = str_alloc_stack(0);
+	tmp = str_alloc_stack(0);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
-	lnf = !str_suffix(arg1, "\\");
+	lnf = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
 
 	substitute(ses, arg1, tmp, SUB_VAR|SUB_FUN);
 	substitute(ses, tmp, arg1, SUB_COL|SUB_ESC);
@@ -56,15 +54,13 @@ DO_COMMAND(do_showme)
 
 		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, arg1);
 
-		pop_call();
 		return ses;
 	}
 
 	if (*arg2)
 	{
-		split_show(ses, arg1, (int) get_number(ses, arg2), (int) get_number(ses, arg3));
+		split_show(ses, arg1, arg2, arg3);
 
-		pop_call();
 		return ses;
 	}
 
@@ -96,7 +92,6 @@ DO_COMMAND(do_showme)
 		}
 	}
 
-	pop_call();
 	return ses;
 }
 
@@ -133,7 +128,15 @@ void show_message(struct session *ses, int index, char *format, ...)
 	display:
 
 	va_start(args, format);
-	vasprintf(&buffer, format, args);
+
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "show_message: vasprintf1:");
+
+		pop_call();
+		return;
+	}
+
 	va_end(args);
 
 	tintin_puts2(ses, buffer);
@@ -145,13 +148,19 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 	end:
 
-
 	if (HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
 		if (ses->logfile)
 		{
 			va_start(args, format);
-			vasprintf(&buffer, format, args);
+
+			if (vasprintf(&buffer, format, args) == -1)
+			{
+				syserr_printf(ses, "print_lines: vasprintf2:");
+				
+				pop_call();
+				return;
+			}
 			va_end(args);
 
 			logit(ses, buffer, ses->logfile, LOG_FLAG_LINEFEED);
@@ -173,8 +182,16 @@ void show_error(struct session *ses, int index, char *format, ...)
 	push_call("show_error(%p,%p,%p)",ses,index,format);
 
 	va_start(args, format);
-	vasprintf(&buffer, format, args);
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "show_error: vasprintf:");
+
+		pop_call();
+		return;
+	}
 	va_end(args);
+
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 1, "RECEIVED ERROR", buffer);
 
 	if (gtd->level->verbose || gtd->level->debug)
 	{
@@ -300,18 +317,24 @@ void print_lines(struct session *ses, int flags, char *format, ...)
 	push_call("print_lines(%p,%d,%p,...)",ses,flags,format);
 
 	va_start(args, format);
-	vasprintf(&buffer, format, args);
+
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "print_lines: vasprintf:");
+
+		pop_call();
+		return;
+	}
+
 	va_end(args);
 
 	if (flags)
 	{
-		str_buf = str_alloc(BUFFER_SIZE + strlen(buffer) * 2);
+		str_buf = str_alloc_stack(strlen(buffer) * 2);
 
 		substitute(ses, buffer, str_buf, flags);
 
 		show_lines(ses, str_buf);
-
-		str_free(str_buf);
 	}
 	else
 	{
@@ -349,7 +372,7 @@ void show_lines(struct session *ses, char *str)
 }
 
 
-void tintin_header(struct session *ses, char *format, ...)
+void tintin_header(struct session *ses, int width, char *format, ...)
 {
 	char arg[BUFFER_SIZE], buf[BUFFER_SIZE];
 	va_list args;
@@ -361,7 +384,14 @@ void tintin_header(struct session *ses, char *format, ...)
 	vsprintf(arg, format, args);
 	va_end(args);
 
-	cols = get_scroll_cols(ses);
+	if (width)
+	{
+		cols = UMIN(width, get_scroll_cols(ses));
+	}
+	else
+	{
+		cols = get_scroll_cols(ses);
+	}
 
 	if (cols < 2)
 	{
@@ -374,7 +404,7 @@ void tintin_header(struct session *ses, char *format, ...)
 		arg[cols - 2] = 0;
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_SCREENREADER))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER))
 	{
 		memset(buf, ' ', cols);
 	}
@@ -401,7 +431,13 @@ void tintin_printf2(struct session *ses, char *format, ...)
 	push_call("tintin_printf2(%p,%p,...)",ses,format);
 
 	va_start(args, format);
-	vasprintf(&buffer, format, args);
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "tintin_printf2: vasprintf:");
+
+		pop_call();
+		return;
+	}
 	va_end(args);
 
 	tintin_puts2(ses, buffer);
@@ -463,11 +499,11 @@ void tintin_puts2(struct session *ses, char *string)
 
 	push_call("tintin_puts2(%p,%p)",ses,string);
 
-	output = str_dup_printf("%s%s%s", COLOR_TEXT, string, COLOR_TEXT);
+	output = str_alloc_stack(0);
+
+	str_cpy_printf(&output, "%s%s%s", COLOR_TEXT, string, COLOR_TEXT);
 
 	tintin_puts3(ses, output);
-
-	str_free(output);
 
 	pop_call();
 	return;
@@ -490,19 +526,33 @@ void tintin_puts3(struct session *ses, char *string)
 		ses = gtd->ses;
 	}
 
+	if (ses->line_capturefile)
+	{
+		if (ses->line_captureindex == 1)
+		{
+			set_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, string);
+		}
+		else
+		{
+			add_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, string);
+		}
+	}
+
 	if (gtd->level->quiet && gtd->level->verbose == 0)
 	{
 		pop_call();
 		return;
 	}
 
+	output = str_alloc_stack(0);
+
 	if (strip_vt102_strlen(ses, ses->more_output) != 0)
 	{
-		output = str_dup_printf("\n%s", string);
+		str_cpy_printf(&output, "\n%s", string);
 	}
 	else
 	{
-		output = str_dup_printf("%s", string);
+		str_cpy_printf(&output, "%s", string);
 	}
 
 	add_line_buffer(ses, output, FALSE);
@@ -523,8 +573,6 @@ void tintin_puts3(struct session *ses, char *string)
 			restore_pos(ses);
 		}
 	}
-
-	str_free(output);
 
 	pop_call();
 	return;

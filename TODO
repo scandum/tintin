@@ -1,24 +1,39 @@
 * BUGS
 
-  - Editor
+  - might be \ handling issues in #format %w
 
-  - make #line quiet #line capture work.
+  - finish BUFFER_SIZE replacement.
 
-  - improve screen fill default
+  - WSL faq: #system cmd.exe /c start notepad
 
-  - Add screen and line clear VT events
+  - str_ify ses->more_output
 
-  - Add easy way to check if session is foreground.
+  - update msdp scripts with #line msdp feature
 
-  - check that desktop dimensions are inherited by sessions
+  - update the FAQ, and online manual
 
-  - example script for two sessions in one screen.
+  - refresh input on session switch
+
+  - swap arg1, arg2, arg for do_port
+
+  - https://tintin.sourceforge.io/forum/viewtopic.php?f=5&t=2776
+    Need special casing for non capturing {?!} regex handling.
+
+  - #cursor get word option, maybe get the yank buffer as well.
+
+  - Look into config option to change the working directory
+
+  - Add a way to set env variables either 1) for the current process, and/or 2) as a parameter to #system (i.e. after fork in the child process).
 
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
-  - if error pcre.h, need export C_INCLUDE_PATH= where it locate
+  - Editor
 
-  - #write table variables a bit nicer.
+  - Finish port proxy support: resizing, input, security
+
+  - look into transparent drawing
+
+  - if error pcre.h, need export C_INCLUDE_PATH= where it locate
 
   - The #else command could follow a #foreach so as to create "for-else" loops
     in case a loop is not broken.
@@ -40,11 +55,12 @@
 
   - Enhance #scan with a scan of the directory structure.
 
+  - #map list {<exits>} breaks on rooms that have e mapped to eu.
+
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
   ! #map legend support for unicode graphics.
-  - add step count for #map list and rename distance to weight
   - multi-line room symbols
   - pancake mode to display rooms at all levels and annotations
   - there might be a terrain density bug
@@ -60,6 +76,7 @@
   - more data to #map list saving, and maybe easier sorting of tables.
   - event for failed #map move.
   - look into #send triggering follow map.
+
   - truncate prompt longer than split.
 
   - Make actions with a priority of 0. trigger always
@@ -81,14 +98,13 @@
 
   - make #path load bi-directional.
 
-  - class bla assign {stuff} feature?
   - add class specific debug
   - better class event and class size handling ?
 
   - more potent long-click handling including held down ticks.
 
   - look into discord api / arachnos
- 
+
   - better color syntax highlighting configuration.
 
   - Add #log delete/remove option.
@@ -98,15 +114,6 @@
   - See about adding SESSIONS to the list table.
 
   - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
-
-  - look at scripts/bug.tin
-
-  - Add FILE READ <name> event
-  - #buffer events
-  - add KILLED TYPE ARG event, for example KILLED CLASS bla
-  - CAPTURED INPUT event
-  - http://tintin.sourceforge.net/board/viewtopic.php?p=8735#8735 RECEIVED MESSAGE event?
-? - http://tintin.sourceforge.net/board/viewtopic.php?p=8655#8655 FILE OPENED / CLOSED event?
 
   - fix readmud in net.c to not move the cursor on inactive sessions.
 
@@ -151,7 +158,11 @@
 
 * LOW PRIORITY
 
+  - Add a file handler.
+
   - multi-line buffer searches / captures / deletes
+
+  - multi-line triggers (use nested actions?)
 
   - add color based auto unwrap routine.
 
@@ -161,7 +172,7 @@
 
 * ROADMAP
 
-  - dictionary +
+  - dictionary +tabbing
 
   - editor
 
@@ -336,3 +347,5 @@
 - TinTin++ only allows 1 action triggering per line.
 
 - TinTin++ probably should substitute escapes in if checks.
+
+- TinTin++ is not handling #return inside #regex intuitively.

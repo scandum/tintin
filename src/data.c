@@ -70,7 +70,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 	int i;
 	struct listnode *node;
 
-	push_call("copy_list(%p,%p,%p)",ses,sourcelist,type);
+	push_call("copy_list(%p,%p,%s)",ses,sourcelist,list_table[type].name);
 
 	ses->list[type] = init_list(ses, type, sourcelist->size);
 
@@ -102,14 +102,28 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 					break;
 
 				case LIST_BUTTON:
+				case LIST_DELAY:
+				case LIST_EVENT:
+				case LIST_TICKER:
+				case LIST_PATHDIR:
+					node->val64 = sourcelist->list[i]->val64;
+/*
 					node->val16[0] = sourcelist->list[i]->val16[0];
 					node->val16[1] = sourcelist->list[i]->val16[1];
 					node->val16[2] = sourcelist->list[i]->val16[2];
 					node->val16[3] = sourcelist->list[i]->val16[3];
+*/
 					break;
 
 				case LIST_VARIABLE:
 					copy_nest_node(ses->list[type], node, sourcelist->list[i]);
+					break;
+
+				default:
+					if (sourcelist->list[i]->val64)
+					{
+						printf("copy_list: unhandled val64 (%d).\n", type);
+					}
 					break;
 			}
 			ses->list[type]->list[i] = node;
@@ -144,6 +158,29 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 	node->arg2 = str_dup(arg2);
 	node->arg3 = str_dup(arg3);
 	node->arg4 = str_dup(arg4);
+
+//	printf("debug: %p [%p] (%d) (%s) (%s)\n", root, root->ses, root->type, node->arg1, node->arg3);
+
+	switch (root->type)
+	{
+		case LIST_DELAY:
+			node->val64 = (long long) tintoi(node->arg1);
+
+			if (node->val64 < gtd->utime_next_delay)
+			{
+				gtd->utime_next_delay = node->val64;
+			}
+			break;
+
+		case LIST_TICKER:
+			node->val64 = gtd->utime + (long long) get_number(root->ses, node->arg3) * 1000000LL;
+
+			if (node->val64 < gtd->utime_next_tick)
+			{
+				gtd->utime_next_tick = node->val64;
+			}
+			break;
+	}
 
 	if (gtd->level->shots)
 	{
@@ -189,11 +226,6 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 
 	if (index != -1)
 	{
-		if (list_table[root->type].mode == SORT_DELAY && is_number(arg1))
-		{
-			return create_node_list(root, arg1, arg2, arg3, arg4);
-		}
-
 		node = root->list[index];
 
 		if (gtd->level->shots)
@@ -208,9 +240,13 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 
 		switch (root->type)
 		{
-			case LIST_DELAY:
 			case LIST_TICKER:
-				node->val64 = 0;
+				node->val64 = gtd->utime + (long long) get_number(root->ses, node->arg3) * 1000000LL;
+
+				if (node->val64 < gtd->utime_next_tick)
+				{
+					gtd->utime_next_tick = node->val64;
+				}
 				break;
 		}
 
@@ -219,9 +255,12 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 			strcpy(arg3, "5");
 		}
 
-		if (strcmp(node->arg3, arg3) != 0)
+		if (list_table[root->type].mode != SORT_PRIORITY)
 		{
-			str_cpy(&node->arg3, arg3);
+			if (strcmp(node->arg3, arg3) != 0)
+			{
+				str_cpy(&node->arg3, arg3);
+			}
 		}
 
 		if (strcmp(node->arg4, arg4) != 0)
@@ -232,9 +271,10 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 		switch (list_table[root->type].mode)
 		{
 			case SORT_PRIORITY:
-				if (atof(node->arg3) != atof(arg3))
+				if (strcmp(node->arg3, arg3))
 				{
 					remove_index_list(root, index);
+					str_cpy(&node->arg3, arg3);
 					insert_node_list(root, node);
 				}
 				break;
@@ -245,7 +285,7 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 				break;
 
 			case SORT_ALPHA:
-			case SORT_DELAY:
+			case SORT_ALNUM:
 				break;
 
 			default:
@@ -271,7 +311,10 @@ struct listnode *insert_index_list(struct listroot *root, struct listnode *node,
 		root->list = (struct listnode **) realloc(root->list, (root->size) * sizeof(struct listnode *));
 	}
 
-	memmove(&root->list[index + 1], &root->list[index], (root->used - index) * sizeof(struct listnode *));
+	if (index + 1 < root->used)
+	{
+		memmove(&root->list[index + 1], &root->list[index], (root->used - index) * sizeof(struct listnode *));
+	}
 
 	root->list[index] = node;
 
@@ -310,18 +353,6 @@ void delete_index_list(struct listroot *root, int index)
 {
 	struct listnode *node = root->list[index];
 
-	if (node->root)
-	{
-		free_list(node->root);
-	}
-
-	str_free(node->arg1);
-	str_free(node->arg2);
-	str_free(node->arg3);
-	str_free(node->arg4);
-
-	free(node->group);
-
 	if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_REGEX))
 	{
 		if (node->regex)
@@ -343,10 +374,34 @@ void delete_index_list(struct listroot *root, int index)
 				free(node->data);
 			}
 			break;
+
+		case LIST_EVENT:
+			event_table[node->val32[0]].level--;
+			break;
 	}
-	free(node);
 
 	remove_index_list(root, index);
+
+	// dispose in memory update for one shot handling
+
+	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
+}
+
+void dispose_node(struct listnode *node)
+{
+	if (node->root)
+	{
+		free_list(node->root);
+	}
+
+	str_free(node->arg1);
+	str_free(node->arg2);
+	str_free(node->arg3);
+	str_free(node->arg4);
+
+	free(node->group);
+
+	free(node);
 }
 
 struct listnode *search_node_list(struct listroot *root, char *text)
@@ -358,8 +413,15 @@ struct listnode *search_node_list(struct listroot *root, char *text)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
-		case SORT_DELAY:
 			index = bsearch_alpha_list(root, text, 0);
+			break;
+
+		case SORT_ALNUM:
+			index = bsearch_alnum_list(root, text, 0);
+			break;
+
+		case SORT_DELAY:
+			index = bsearch_priority_list(root, text, text, 0);
 			break;
 
 		default:
@@ -379,14 +441,23 @@ struct listnode *search_node_list(struct listroot *root, char *text)
 
 int search_index_list(struct listroot *root, char *text, char *priority)
 {
-	if (list_table[root->type].mode == SORT_ALPHA || list_table[root->type].mode == SORT_DELAY)
+	switch (list_table[root->type].mode)
 	{
-		return bsearch_alpha_list(root, text, 0);
-	}
+		case SORT_ALPHA:
+			return bsearch_alpha_list(root, text, 0);
+		
+		case SORT_ALNUM:
+			return bsearch_alnum_list(root, text, 0);
 
-	if (list_table[root->type].mode == SORT_PRIORITY && priority)
-	{
-		return bsearch_priority_list(root, text, priority, 0);
+		case SORT_DELAY:
+			return bsearch_priority_list(root, text, text, 0);
+
+		case SORT_PRIORITY:
+			if (priority)
+			{
+				bsearch_priority_list(root, text, priority, 0);
+			}
+			break;
 	}
 
 	return nsearch_list(root, text);
@@ -401,8 +472,13 @@ int locate_index_list(struct listroot *root, char *text, char *priority)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
-		case SORT_DELAY:
 			return bsearch_alpha_list(root, text, 1);
+
+		case SORT_ALNUM:
+			return bsearch_alnum_list(root, text, 1);
+
+		case SORT_DELAY:
+			return bsearch_priority_list(root, text, text, 1);
 
 		case SORT_PRIORITY:
 			return bsearch_priority_list(root, text, priority, 1);
@@ -412,14 +488,48 @@ int locate_index_list(struct listroot *root, char *text, char *priority)
 	}
 }
 
-/*
-	binary search on alphabetically sorted list
-*/
 
 int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 {
-	long long bot, top, val;
-	long double toi, toj, srt;
+	int bot, top, val, srt;
+
+	bot = 0;
+	top = root->used - 1;
+	val = top;
+
+	while (bot <= top)
+	{
+		srt = strcmp(text, root->list[val]->arg1);
+
+		if (srt == 0)
+		{
+			return val;
+		}
+
+		if (srt < 0)
+		{
+			top = val - 1;
+		}
+		else
+		{
+			bot = val + 1;
+		}
+
+		val = bot + (top - bot) / 2;
+	}
+
+	if (seek)
+	{
+		return UMAX(0, val);
+	}
+	return -1;
+}
+
+
+int bsearch_alnum_list(struct listroot *root, char *text, int seek)
+{
+	long double toi, toj;
+	int bot, top, val, noi, noj, srt;
 
 	push_call("bsearch_alpha_list(%p,%p,%d)",root,text,seek);
 
@@ -428,16 +538,30 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 		switch (*text)
 		{
 			case '+':
+				toi = get_number(root->ses, text);
+
+				if (seek == 0)
+				{
+					if (toi > 0 && toi <= root->used)
+					{
+						pop_call();
+						return toi - 1;
+					}
+				}
+				else
+				{
+					if (toi >= 0 && toi <= root->used)
+					{
+						pop_call();
+						return UMAX(0, toi - 1);
+					}
+				}
+				break;
+
 			case '-':
 				toi = get_number(root->ses, text);
 
-				if (toi > 0 && toi <= root->used)
-				{
-					pop_call();
-					return toi - 1;
-				}
-
-				if (toi < 0 && toi + root->used >= 0)
+				if (toi < 0 && root->used + toi >= 0)
 				{
 					pop_call();
 					return root->used + toi;
@@ -454,17 +578,21 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 	top = root->used - 1;
 	val = top;
 
-	toi = is_number(text) ? tintoi(text) : 0;
+	noi = is_number(text);
+
+	toi = noi ? tintoi(text) : 0;
 
 	while (bot <= top)
 	{
-		toj = is_number(root->list[val]->arg1) ? tintoi(root->list[val]->arg1) : 0;
+		noj = is_number(root->list[val]->arg1);
 
-		if (toi)
+		toj = noj ? tintoi(root->list[val]->arg1) : 0;
+
+		if (noi)
 		{
-			srt = toi - toj;
+			srt = (toi < toj) ? -1 : (toi > toj) ? 1 : 0;
 		}
-		else if (toj)
+		else if (noj)
 		{
 			srt = -1;
 		}
@@ -507,35 +635,46 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 int bsearch_priority_list(struct listroot *root, char *text, char *priority, int seek)
 {
 	int bot, top, val;
-	double srt;
+	long double prt, srt;
 
 	bot = 0;
 	top = root->used - 1;
 	val = top;
+	prt = tintoi(priority);
 
 	while (bot <= top)
 	{
-		srt = atof(priority) - atof(root->list[val]->arg3);
+		srt = tintoi(root->list[val]->arg3);
 
-		if (!srt)
+		if (srt == prt)
 		{
 			srt = strcmp(text, root->list[val]->arg1);
-		}
 
-		if (srt == 0)
-		{
-			return val;
-		}
+			if (srt == 0)
+			{
+				return val;
+			}
 
-		if (srt < 0)
-		{
-			top = val - 1;
+			if (srt < 0)
+			{
+				top = val - 1;
+			}
+			else
+			{
+				bot = val + 1;
+			}
 		}
 		else
 		{
-			bot = val + 1;
+			if (prt < srt)
+			{
+				top = val - 1;
+			}
+			else
+			{
+				bot = val + 1;
+			}
 		}
-
 		val = bot + (top - bot) / 2;
 	}
 
@@ -573,7 +712,11 @@ int nsearch_list(struct listroot *root, char *text)
 
 void show_node(struct listroot *root, struct listnode *node, int level)
 {
-	char *str_arg2 = str_dup("");
+	char *str_arg2;
+
+	push_call("show_node(%p,%p,%d)",root,node,level);
+
+	str_arg2 = str_alloc_stack(0);
 
 	show_nest_node(node, &str_arg2, TRUE);
 
@@ -599,7 +742,8 @@ void show_node(struct listroot *root, struct listnode *node, int level)
 			tintin_printf2(root->ses, "%s" COLOR_TINTIN "#" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", indent(level), list_table[root->type].name, node->arg1);
 			break;
 	}
-	str_free(str_arg2);
+	pop_call();
+	return;
 }
 
 /*
@@ -612,7 +756,7 @@ void show_list(struct listroot *root, int level)
 
 	if (root == root->ses->list[root->type])
 	{
-		tintin_header(root->ses, " %s ", list_table[root->type].name_multi);
+		tintin_header(root->ses, 80, " %s ", list_table[root->type].name_multi);
 	}
 
 	for (i = 0 ; i < root->used ; i++)
@@ -632,8 +776,15 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
-		case SORT_DELAY:
 			index = bsearch_alpha_list(root, text, 0);
+			break;
+
+		case SORT_ALNUM:
+			index = bsearch_alnum_list(root, text, 0);
+			break;
+
+		case SORT_DELAY:
+			index = bsearch_priority_list(root, text, text, 0);
 			break;
 
 		default:
@@ -734,8 +885,15 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 	switch (list_table[type].mode)
 	{
 		case SORT_ALPHA:
-		case SORT_DELAY:
 			index = bsearch_alpha_list(root, arg1, 0);
+			break;
+
+		case SORT_ALNUM:
+			index = bsearch_alnum_list(root, arg1, 0);
+			break;
+
+		case SORT_DELAY:
+			index = bsearch_priority_list(root, arg1, arg1, 0);
 			break;
 
 		default:
@@ -843,7 +1001,7 @@ DO_COMMAND(do_message)
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " MESSAGES ");
+		tintin_header(ses, 80, " MESSAGES ");
 
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
@@ -853,7 +1011,7 @@ DO_COMMAND(do_message)
 			}
 		}
 
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 	}
 	else
 	{
@@ -910,7 +1068,7 @@ DO_COMMAND(do_ignore)
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " IGNORES ");
+		tintin_header(ses, 80, " IGNORES ");
 
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
@@ -920,7 +1078,7 @@ DO_COMMAND(do_ignore)
 			}
 		}
 
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 	}
 	else
 	{
@@ -977,7 +1135,7 @@ DO_COMMAND(do_debug)
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " DEBUGS ");
+		tintin_header(ses, 80, " DEBUGS ");
 
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
@@ -987,7 +1145,7 @@ DO_COMMAND(do_debug)
 			}
 		}
 
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 	}
 	else
 	{
@@ -1050,7 +1208,7 @@ DO_COMMAND(do_info)
 
 	if (*arg1 == 0)
 	{
-		tintin_header(ses, " INFORMATION ");
+		tintin_header(ses, 80, " INFORMATION ");
 
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
@@ -1066,7 +1224,7 @@ DO_COMMAND(do_info)
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_LOG)     ? "LOG" : "   ");
 			}
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 	}
 	else
 	{
@@ -1102,19 +1260,20 @@ DO_COMMAND(do_info)
 				{
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
-						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {arg4}{%s} {class}{%s} {shots}{%u}", list_table[index].name, cnt, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->shots);
+						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {arg4}{%s} {class}{%s} {shots}{%u}", list_table[index].name, cnt+1, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->shots);
 					}
 				}
 				else if (is_abbrev(arg2, "SAVE"))
 				{
 					sprintf(name, "info[%s]", list_table[index].name);
-//					delete_nest_node(ses->list[LIST_VARIABLE], name);
+
+					set_nest_node_ses(ses, name, "");
 
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
-						sprintf(name, "info[%s][%d]", list_table[index].name, cnt);
+						sprintf(name, "info[%s][%d]", list_table[index].name, cnt + 1);
 
-						set_nest_node_ses(ses, name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{shots}{%u}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->shots);
+						set_nest_node_ses(ses, name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{nest}{%d}{shots}{%u}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->root ? root->list[cnt]->root->used : 0, root->list[cnt]->shots);
 					}
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[%s]}", list_table[index].name);
 				}
@@ -1139,35 +1298,104 @@ DO_COMMAND(do_info)
 			{
 				if (ses->mccp2)
 				{
-					tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9ull TOTAL OUT: %9ull RATIO: %3d", ses->mccp2->total_in, ses->mccp2->total_out, 100 * ses->mccp2->total_out / ses->mccp2->total_in);
+					tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0);
 				}
 				if (ses->mccp3)
 				{
-					tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9ull TOTAL OUT: %9ull RATIO: %3d", ses->mccp3->total_in, ses->mccp3->total_out, 100 * ses->mccp3->total_out / ses->mccp3->total_in);
+					tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0);
 				}
 			}
 			else if (is_abbrev(arg1, "MEMORY"))
 			{
+				struct str_data *str_ptr;
+
 				long long quan, used, max;
-				struct str_data *str;
 
 				max  = 0;
 				quan = 0;
 				used = 0;
 
-				for (str = gtd->memory->alloc->next ; str ; str = str->next)
+				for (index = 0 ; index < gtd->memory->stack_cap ; index++)
 				{
 					max++;
-					quan += str->max;
-					used += str->len;
+					quan += gtd->memory->stack[index]->max;
+					used += gtd->memory->stack[index]->len;
 				}
 
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC  MAX: %d", max);
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC QUAN: %d", quan);
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC USED: %d", used);
+				tintin_printf2(ses, "#INFO MEMORY: STACK SIZE: %d", quan);
 
 				tintin_printf2(ses, "#INFO MEMORY: STACK  MAX: %d", gtd->memory->stack_max);
+				tintin_printf2(ses, "#INFO MEMORY: STACK  CAP: %d", gtd->memory->stack_cap);
 				tintin_printf2(ses, "#INFO MEMORY: STACK  LEN: %d", gtd->memory->stack_len);
+
+				tintin_printf2(ses, "");
+
+				max  = 0;
+				quan = 0;
+				used = 0;
+
+				for (index = 0 ; index < gtd->memory->list_len ; index++)
+				{
+					str_ptr = gtd->memory->list[index];
+
+					if (str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
+					{
+						tintin_printf2(ses, "#ERROR: index %d len = %d/%d max = %d flags = %d (%s)", index, strlen(get_str_str(str_ptr)), str_ptr->len, str_ptr->max, str_ptr->flags, get_str_str(str_ptr));
+					}
+
+					if (!HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
+					{
+						max++;
+						quan += str_ptr->max;
+						used += str_ptr->len;
+					}
+				}
+
+				tintin_printf2(ses, "#INFO MEMORY: ALLOC SIZE: %d", quan);
+				tintin_printf2(ses, "#INFO MEMORY: ALLOC USED: %d", used);
+
+				tintin_printf2(ses, "#INFO MEMORY: ALLOC  MAX: %d", gtd->memory->list_max);
+				tintin_printf2(ses, "#INFO MEMORY: ALLOC  LEN: %d", gtd->memory->list_len);
+
+				tintin_printf2(ses, "");
+
+				quan = 0;
+				used = 0;
+
+				for (index = 0 ; index < gtd->memory->free_len ; index++)
+				{
+					str_ptr = gtd->memory->list[gtd->memory->free[index]];
+
+					if (HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
+					{
+						quan += str_ptr->max;
+						used += str_ptr->len;
+					}
+					else
+					{
+						tintin_printf2(ses, "error: found freed memory not marked as free.");
+					}
+				}
+
+				tintin_printf2(ses, "#INFO MEMORY: FREED SIZE: %d", quan);
+
+				tintin_printf2(ses, "#INFO MEMORY: FREED  MAX: %d", gtd->memory->free_max);
+				tintin_printf2(ses, "#INFO MEMORY: FREED  LEN: %d", gtd->memory->free_len);
+
+				tintin_printf2(ses, "");
+
+				quan = 0;
+				used = 0;
+
+				for (index = 0 ; index < gtd->memory->debug_len ; index++)
+				{
+					quan += NAME_SIZE;
+				}
+
+				tintin_printf2(ses, "#INFO MEMORY: DEBUG SIZE: %d", quan);
+
+				tintin_printf2(ses, "#INFO MEMORY: DEBUG  MAX: %d", gtd->memory->debug_max);
+				tintin_printf2(ses, "#INFO MEMORY: DEBUG  LEN: %d", gtd->memory->debug_len);
 			}
 			else if (is_abbrev(arg1, "SESSION"))
 			{
@@ -1175,25 +1403,61 @@ DO_COMMAND(do_info)
 				{
 					sprintf(name, "info[SESSION]");
 
-					set_nest_node_ses(ses, name, "{SESSION_NAME}{%s}", ses->name);
-					add_nest_node_ses(ses, name, "{SESSION_ACTIVE}{%d}", gtd->ses == ses);
-					add_nest_node_ses(ses, name, "{SESSION_CLASS}{%s}", ses->group);
-					add_nest_node_ses(ses, name, "{SESSION_CREATED}{%d}", ses->created);
-					add_nest_node_ses(ses, name, "{SESSION_HOST} {%s}", ses->session_host);
-					add_nest_node_ses(ses, name, "{SESSION_IP} {%s}", ses->session_ip);
-					add_nest_node_ses(ses, name, "{SESSION_PORT} {%s}", ses->session_port);
+					set_nest_node_ses(ses, name, "{NAME}{%s}", ses->name);
+					add_nest_node_ses(ses, name, "{ACTIVE}{%d}", gtd->ses == ses);
+					add_nest_node_ses(ses, name, "{CLASS}{%s}", ses->group);
+					add_nest_node_ses(ses, name, "{CREATED}{%d}", ses->created);
+					add_nest_node_ses(ses, name, "{HOST} {%s}", ses->session_host);
+					add_nest_node_ses(ses, name, "{IP} {%s}", ses->session_ip);
+					add_nest_node_ses(ses, name, "{PORT} {%s}", ses->session_port);
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
 				}
 				else
 				{
-					tintin_printf2(ses, "{SESSION_NAME}{%s}", ses->name);
-					tintin_printf2(ses, "{SESSION_ACTIVE}{%d}", gtd->ses == ses);
-					tintin_printf2(ses, "{SESSION_CLASS}{%s}", ses->group);
-					tintin_printf2(ses, "{SESSION_CREATED}{%d}", ses->created);
-					tintin_printf2(ses, "{SESSION_HOST} {%s}", ses->session_host);
-					tintin_printf2(ses, "{SESSION_IP} {%s}", ses->session_ip);
-					tintin_printf2(ses, "{SESSION_PORT} {%s}", ses->session_port);
+					tintin_printf2(ses, "{NAME}{%s}", ses->name);
+					tintin_printf2(ses, "{ACTIVE}{%d}", gtd->ses == ses);
+					tintin_printf2(ses, "{CLASS}{%s}", ses->group);
+					tintin_printf2(ses, "{CREATED}{%d}", ses->created);
+					tintin_printf2(ses, "{HOST} {%s}", ses->session_host);
+					tintin_printf2(ses, "{IP} {%s}", ses->session_ip);
+					tintin_printf2(ses, "{PORT} {%s}", ses->session_port);
+				}
+			}
+			else if (is_abbrev(arg1, "SESSIONS"))
+			{
+				struct session *sesptr;
+
+				if (is_abbrev(arg2, "SAVE"))
+				{
+					set_nest_node_ses(ses, "info[SESSIONS]", "");
+
+					for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+					{
+						sprintf(name, "info[SESSIONS][%s]", sesptr->name);
+
+						add_nest_node_ses(ses, name, "{NAME}{%s}", sesptr->name);
+						add_nest_node_ses(ses, name, "{ACTIVE}{%d}", gtd->ses == sesptr);
+						add_nest_node_ses(ses, name, "{CLASS}{%s}", sesptr->group);
+						add_nest_node_ses(ses, name, "{CREATED}{%d}", sesptr->created);
+						add_nest_node_ses(ses, name, "{HOST} {%s}", sesptr->session_host);
+						add_nest_node_ses(ses, name, "{IP} {%s}", sesptr->session_ip);
+						add_nest_node_ses(ses, name, "{PORT} {%s}", sesptr->session_port);
+					}
+					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
+				}
+				else
+				{
+					for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+					{
+						tintin_printf2(ses, "{%s}{NAME}{%s}", sesptr->name, sesptr->name);
+						tintin_printf2(ses, "{%s}{ACTIVE}{%d}", sesptr->name, gtd->ses == sesptr);
+						tintin_printf2(ses, "{%s}{CLASS}{%s}", sesptr->name, sesptr->group);
+						tintin_printf2(ses, "{%s}{CREATED}{%d}", sesptr->name, sesptr->created);
+						tintin_printf2(ses, "{%s}{HOST} {%s}", sesptr->name, sesptr->session_host);
+						tintin_printf2(ses, "{%s}{IP} {%s}", sesptr->name, sesptr->session_ip);
+						tintin_printf2(ses, "{%s}{PORT} {%s}", sesptr->name, sesptr->session_port);
+					}
 				}
 			}
 			else if (is_abbrev(arg1, "STACK"))
@@ -1204,7 +1468,10 @@ DO_COMMAND(do_info)
 			{
 				char cwd[PATH_MAX];
 
-				getcwd(cwd, PATH_MAX);
+				if (getcwd(cwd, PATH_MAX) == NULL)
+				{
+					syserr_printf(ses, "do_info: getcwd:");
+				}
 
 				if (is_abbrev(arg2, "SAVE"))
 				{
@@ -1212,7 +1479,7 @@ DO_COMMAND(do_info)
 
 					set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
 //					add_nest_node_ses(ses, name, "{CLIENT}{{NAME}{%s}{VERSION}{%s}}", CLIENT_NAME, CLIENT_VERSION);
-					add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}", cwd, gtd->exec, gtd->home, gtd->lang, gtd->os, gtd->term);
+					add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}{TINTIN}{%s}", cwd, gtd->system->exec, gtd->system->home, gtd->system->lang, gtd->system->os, gtd->system->term, gtd->system->tt_dir);
 					add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
 
 					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
@@ -1222,11 +1489,12 @@ DO_COMMAND(do_info)
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
 					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
 					tintin_printf2(ses, "#INFO SYSTEM: CWD            = %s", cwd);
-					tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->exec);
-					tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->home);
-					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->lang);
-					tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->os);
-					tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->term);
+					tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->system->exec);
+					tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->system->home);
+					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->system->lang);
+					tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->system->os);
+					tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->system->term);
+					tintin_printf2(ses, "#INFO SYSTEM: TINTIN         = %s", gtd->system->tt_dir);
 					tintin_printf2(ses, "#INFO SYSTEM: DETACH_PORT    = %d", gtd->detach_port);
 					tintin_printf2(ses, "#INFO SYSTEM: DETACH_FILE    = %s", gtd->detach_port ? gtd->detach_file : "");
 					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_SOCK    = %d", gtd->attach_sock);

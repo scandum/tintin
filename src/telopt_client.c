@@ -29,7 +29,6 @@
 extern  int  client_send_do_eor(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_mark_prompt(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_do_naws(struct session *ses, int cplen, unsigned char *cpsrc);
-extern  int  client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_sb_tspeed(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_dont_ttype(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc);
@@ -243,7 +242,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 	while (cplen > 0)
 	{
-		if (*cpsrc == IAC && HAS_BIT(ses->flags, SES_FLAG_TELNET) && !HAS_BIT(ses->flags, SES_FLAG_RUN))
+		if (*cpsrc == IAC && HAS_BIT(ses->config_flags, CONFIG_FLAG_TELNET) && !HAS_BIT(ses->flags, SES_FLAG_RUN))
 		{
 			skip = 2;
 
@@ -342,7 +341,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					case WILL:
 						if (cplen > 2)
 						{
-							if (!check_all_events(ses, SUB_ARG|SUB_SEC, 1, 0, "IAC WILL %s", telopt_table[cpsrc[2]].name) && !check_all_events(ses, SUB_ARG|SUB_SEC, 1, 0, "CATCH IAC WILL %s", telopt_table[cpsrc[2]].name))
+							if (!check_all_events(ses, EVENT_FLAG_TELNET, 1, 0, "IAC WILL %s", telopt_table[cpsrc[2]].name) && !check_all_events(ses, EVENT_FLAG_CATCH, 1, 0, "CATCH IAC WILL %s", telopt_table[cpsrc[2]].name))
 							{
 								if (!HAS_BIT(ses->telopt_flag[cpsrc[2] / 32], 1 << cpsrc[2] % 32))
 								{
@@ -364,7 +363,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					case DO:
 						if (cplen > 2)
 						{
-							if (!check_all_events(ses, SUB_ARG|SUB_SEC, 1, 0, "IAC DO %s", telopt_table[cpsrc[2]].name) && !check_all_events(ses, SUB_ARG|SUB_SEC, 1, 0, "IAC DO %s", telopt_table[cpsrc[2]].name))
+							if (!check_all_events(ses, EVENT_FLAG_TELNET, 1, 0, "IAC DO %s", telopt_table[cpsrc[2]].name) && !check_all_events(ses, EVENT_FLAG_CATCH, 1, 0, "CATCH IAC DO %s", telopt_table[cpsrc[2]].name))
 							{
 								if (!HAS_BIT(ses->telopt_flag[cpsrc[2] / 32], 1 << cpsrc[2] % 32))
 								{
@@ -387,7 +386,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					case DONT:
 						if (cplen > 2)
 						{
-							check_all_events(ses, SUB_ARG|SUB_SEC, 2, 0, "IAC %s %s", TELCMD(cpsrc[1]), telopt_table[cpsrc[2]].name);
+							check_all_events(ses, EVENT_FLAG_TELNET, 2, 0, "IAC %s %s", TELCMD(cpsrc[1]), telopt_table[cpsrc[2]].name);
 
 							DEL_BIT(ses->telopt_flag[cpsrc[2] / 32], 1 << cpsrc[2] % 32);
 						}
@@ -466,7 +465,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					continue;
 
 				case ASCII_ENQ:
-					if (check_all_events(ses, SUB_ARG, 0, 1, "CATCH VT100 ENQ", gtd->term))
+					if (check_all_events(ses, EVENT_FLAG_TELNET, 0, 1, "CATCH VT100 ENQ", gtd->system->term))
 					{
 						cpsrc++;
 						cplen--;
@@ -474,85 +473,8 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					}
 					break;
 
+
 				default:
-					if (cpsrc[0] == ASCII_ESC)
-					{
-						if (cplen >= 2 && cpsrc[1] == 'Z')
-						{
-							check_all_events(ses, SUB_ARG, 0, 0, "VT100 DECID");
-							cpsrc += 2;
-							cplen -= 2;
-							continue;
-						}
-
-						if (cplen >= 3 && cpsrc[1] == '[')
-						{
-							if (cpsrc[2] == 'c')
-							{
-								check_all_events(ses, SUB_ARG, 0, 0, "VT100 DA");
-								cpsrc += 3;
-								cplen -= 3;
-								continue;
-							}
-
-							if (cplen >= 4)
-							{
-								if (cpsrc[2] == '0' && cpsrc[3] == 'c')
-								{
-									check_all_events(ses, SUB_ARG, 0, 0, "VT100 DA");
-									cpsrc += 4;
-									cplen -= 4;
-									continue;
-								}
-								if (cpsrc[2] >= '5' && cpsrc[2] <= '6' && cpsrc[3] == 'n')
-								{
-									if (cpsrc[2] == '5')
-									{
-										check_all_events(ses, SUB_ARG, 0, 0, "VT100 DSR");
-									}
-									if (cpsrc[2] == '6')
-									{
-										check_all_events(ses, SUB_ARG, 0, 2, "VT100 CPR", ntos(gtd->screen->cols), ntos(gtd->screen->rows));
-									}
-									cpsrc += 4;
-									cplen -= 4;
-									continue;
-								}
-								if (cpsrc[2] == '0' && cpsrc[3] == 'c')
-								{
-									check_all_events(ses, SUB_ARG, 0, 0, "VT100 DA");
-									cpsrc += 4;
-									cplen -= 4;
-									continue;
-								}
-							}
-						}
-
-						if (cplen >= 3 && cpsrc[1] == ']')
-						{
-							char osc[BUFFER_SIZE];
-
-							for (skip = 2 ; cplen >= skip ; skip++)
-							{
-								if (cpsrc[skip] == ASCII_BEL)
-								{
-									break;
-								}
-							}
-							sprintf(osc, "%.*s", skip - 2, cpsrc + 2);
-
-							check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "VT100 OSC", osc);
-
-							if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH VT100 OSC", osc))
-							{
-								cpsrc += skip;
-								cplen -= skip;
-
-								continue;
-							}
-						}
-					}
-
 					if (HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 					{
 						DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
@@ -565,6 +487,18 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 						{
 							*cpdst++ = '\n';
 							gtd->mud_output_len++;
+						}
+					}
+
+					if (*cpsrc == ASCII_ESC)
+					{
+						skip = catch_vt102_codes(ses, cpsrc, cplen);
+
+						if (skip)
+						{
+							cpsrc += skip;
+							cplen -= skip;
+							continue;
 						}
 					}
 					break;
@@ -587,9 +521,9 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 int client_recv_will_sga(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WILL SGA");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL SGA");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WILL SGA"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL SGA"))
 	{
 		return 3;
 	}
@@ -609,9 +543,9 @@ int client_recv_will_sga(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_do_sga(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DO SGA");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC DO SGA");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC DO SGA"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC DO SGA"))
 	{
 		return 3;
 	}
@@ -632,15 +566,15 @@ int client_recv_do_sga(struct session *ses, int cplen, unsigned char *cpsrc)
 int client_mark_prompt(struct session *ses, int cplen, unsigned char *cpsrc)
 {
 	SET_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
-	SET_BIT(ses->flags, SES_FLAG_AUTOPROMPT);
+	SET_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT);
 
 	if (cpsrc[1] == GA)
 	{
-		check_all_events(ses, SUB_ARG, 0, 0, "IAC GA");
+		check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC GA");
 	}
 	else if (cpsrc[1] == EOR)
 	{
-		check_all_events(ses, SUB_ARG, 0, 0, "IAC EOR");
+		check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC EOR");
 	}
 	return 2;
 }
@@ -651,9 +585,9 @@ int client_mark_prompt(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_dont_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DONT TTYPE");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC DONT TTYPE");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC DONT TTYPE"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC DONT TTYPE"))
 	{
 		return 3;
 	}
@@ -667,9 +601,9 @@ int client_recv_dont_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "IAC SB TTYPE", ntos(cpsrc[3]));
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 1, "IAC SB TTYPE", ntos(cpsrc[3]));
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH IAC SB TTYPE", ntos(cpsrc[3])))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 1, "CATCH IAC SB TTYPE", ntos(cpsrc[3])))
 	{
 		return 6;
 	}
@@ -683,7 +617,7 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 			(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2) +
 			(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0) +
 			(ses->color > 16 ? 8 : 0) +
-			(HAS_BIT(ses->flags, SES_FLAG_SCREENREADER) ? 64 : 0) +
+			(HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0) +
 			(ses->color > 256 ? 256 : 0));
 
 		telnet_printf(ses, 6 + strlen(mtts), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, mtts, IAC, SE);
@@ -692,9 +626,9 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 	}
 	else if (HAS_BIT(ses->telopts, TELOPT_FLAG_TTYPE))
 	{
-		telnet_printf(ses, 6 + strlen(gtd->term), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, gtd->term, IAC, SE);
+		telnet_printf(ses, 6 + strlen(gtd->system->term), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, gtd->system->term, IAC, SE);
 
-		client_telopt_debug(ses, "SENT IAC SB TTYPE %s", gtd->term);
+		client_telopt_debug(ses, "SENT IAC SB TTYPE %s", gtd->system->term);
 
 		SET_BIT(ses->telopts, TELOPT_FLAG_MTTS);
 	}
@@ -716,9 +650,9 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_sb_tspeed(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "IAC SB TSPEED", ntos(cpsrc[3]));
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 1, "IAC SB TSPEED", ntos(cpsrc[3]));
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 1, "CATCH IAC SB TSPEED", ntos(cpsrc[3])))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 1, "CATCH IAC SB TSPEED", ntos(cpsrc[3])))
 	{
 		return 6;
 	}
@@ -739,9 +673,9 @@ int client_recv_sb_tspeed(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_do_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DO NAWS");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC DO NAWS");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC DO NAWS"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC DO NAWS"))
 	{
 		return 3;
 	}
@@ -769,9 +703,9 @@ int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 
 	cols = get_scroll_cols(ses);
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "IAC SB NAWS", ntos(rows), ntos(cols));
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB NAWS", ntos(rows), ntos(cols));
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "CATCH IAC SB NAWS", ntos(rows), ntos(cols)))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH IAC SB NAWS", ntos(rows), ntos(cols)))
 	{
 		return 3;
 	}
@@ -804,9 +738,9 @@ int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_wont_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WONT ECHO");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WONT ECHO");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WONT ECHO"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WONT ECHO"))
 	{
 		return 3;
 	}
@@ -833,9 +767,9 @@ int client_recv_wont_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_will_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WILL ECHO");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL ECHO");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WILL ECHO"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL ECHO"))
 	{
 		return 3;
 	}
@@ -861,9 +795,9 @@ int client_recv_will_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_do_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DO ECHO");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC DO ECHO");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC DO ECHO"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC DO ECHO"))
 	{
 		return 3;
 	}
@@ -947,7 +881,7 @@ int client_send_do_telopt(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_will_mssp(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WILL MSSP") && !check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WILL MSSP"))
+	if (!check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL MSSP") && !check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL MSSP"))
 	{
 		if (HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
 		{
@@ -999,8 +933,8 @@ int client_recv_sb_mssp(struct session *ses, int cplen, unsigned char *src)
 
 				client_telopt_debug(ses, "RCVD IAC SB MSSP VAR %-20s VAL %s", var, val);
 
-				check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "IAC SB MSSP", var, val);
-				check_all_events(ses, SUB_ARG|SUB_SEC, 1, 2, "IAC SB MSSP %s", var, var, val);
+				check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSSP", var, val);
+				check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSSP %s", var, var, val);
 				break;
 
 			default:
@@ -1011,7 +945,7 @@ int client_recv_sb_mssp(struct session *ses, int cplen, unsigned char *src)
 
 	client_telopt_debug(ses, "RCVD IAC SB MSSP IAC SE");
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC SB MSSP IAC SE");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC SB MSSP IAC SE");
 
 	return UMIN(i + 1, cplen);
 }
@@ -1105,8 +1039,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 					{
 						strip_vt102_codes(val, plain);
 						client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-						check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
-						check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = var;
 				}
@@ -1134,8 +1068,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 					{
 						strip_vt102_codes(val, plain);
 						client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-						check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
-						check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = val;
 				}
@@ -1184,8 +1118,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 		{
 			strip_vt102_codes(val, plain);
 			client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-			check_all_events(ses, SUB_ARG, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
-			check_all_events(ses, SUB_ARG, 0, 3, "IAC SB MSDP", var, val, plain);
+			check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
+			check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 		}
 		i++;
 	}
@@ -1264,8 +1198,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 					if (last)
 					{
 						strip_vt102_codes(val, plain);
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = var;
 				}
@@ -1298,8 +1232,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 					if (last != MSDP_VAR)
 					{
 						strip_vt102_codes(val, plain);
-						check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
-						check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = val;
 				}
@@ -1344,15 +1278,15 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 		if (last)
 		{
 			strip_vt102_codes(val, plain);
-			check_all_events(ses, SUB_ARG, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
-			check_all_events(ses, SUB_ARG, 0, 2, "IAC SB MSDP2JSON", var, plain);
+			check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
+			check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 		}
 		i++;
 	}
 
 	client_telopt_debug(ses, "RCVD IAC SB MSDP IAC SE");
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC SB MSDP IAC SE");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC SB MSDP IAC SE");
 
 	return UMIN(i + 1, cplen);
 }
@@ -1407,10 +1341,10 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 
 		client_telopt_debug(ses, "RCVD IAC SB CHARSET %s %s", buf, var);
 
-		check_all_events(ses, SUB_ARG|SUB_SEC, 0, 2, "IAC SB CHARSET", buf, var);
-		check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "IAC SB CHARSET %s %s", buf, var, buf, var);
+		check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB CHARSET", buf, var);
+		check_all_events(ses, EVENT_FLAG_TELNET, 2, 2, "IAC SB CHARSET %s %s", buf, var, buf, var);
 
-		if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+		if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 		{
 			if (!strcmp(buf, "REQUEST"))
 			{
@@ -1446,7 +1380,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				}
 				else if (!strcasecmp(var, "FANSI"))
 				{
-					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 					{
 						if (HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
 						{
@@ -1464,7 +1398,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				}
 				else if (!strcasecmp(var, "ISO-8859-1") || !strcasecmp(var, "ISO-1"))
 				{
-					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 					{
 						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO1TOUTF8))
 						{
@@ -1482,7 +1416,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				}
 				else if (!strcasecmp(var, "ISO-8859-2") || !strcasecmp(var, "ISO-2"))
 				{
-					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 					{
 						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO2TOUTF8))
 						{
@@ -1500,7 +1434,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				}
 				else if (!strcasecmp(var, "GBK-1"))
 				{
-					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 					{
 						if (HAS_BIT(ses->charset, CHARSET_FLAG_GBK1TOUTF8))
 						{
@@ -1523,7 +1457,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 
 	client_telopt_debug(ses, "RCVD IAC SB CHARSET IAC SE");
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC SB CHARSET IAC SE");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC SB CHARSET IAC SE");
 
 	return i + 1;
 }
@@ -1543,7 +1477,7 @@ int get_mtts_val(struct session *ses)
 		+
 		(ses->color > 16 ? 8 : 0)
 		+
-		(HAS_BIT(ses->flags, SES_FLAG_SCREENREADER) ? 64 : 0)
+		(HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
 		+
 //		proxy ? 128 : 0
 //		+
@@ -1622,13 +1556,13 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 				{
 					client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON SEND %s %s", sub2, var);
 
-					check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, "");
+					check_all_events(ses, EVENT_FLAG_TELNET, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, "");
 
-					if (!check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "CATCH IAC SB NEW-ENVIRON", sub1, sub2, var, ""))
+					if (!check_all_events(ses, EVENT_FLAG_CATCH, 0, 4, "CATCH IAC SB NEW-ENVIRON", sub1, sub2, var, ""))
 					{
-						check_all_events(ses, SUB_ARG|SUB_SEC, 1, 4, "IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, "");
+						check_all_events(ses, EVENT_FLAG_TELNET, 1, 4, "IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, "");
 
-						if (!check_all_events(ses, SUB_ARG|SUB_SEC, 1, 4, "CATCH IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, ""))
+						if (!check_all_events(ses, EVENT_FLAG_CATCH, 1, 4, "CATCH IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, ""))
 						{
 							if (!strcmp(var, ""))
 							{
@@ -1638,7 +1572,7 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_NAME", CLIENT_NAME);
 									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_VERSION", CLIENT_VERSION);
 									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR MTTS VAL %d", get_mtts_val(ses));
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->term);
+									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->system->term);
 
 									telnet_printf(ses, -1, "%c%c%c" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%d" "%c%c%s%c%s" "%c%c",
 										IAC, SB, TELOPT_NEW_ENVIRON,
@@ -1646,7 +1580,7 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 										ENV_IS, ENV_VAR, "CLIENT_NAME", ENV_VAL, CLIENT_NAME,
 										ENV_IS, ENV_VAR, "CLIENT_VERSION", ENV_VAL, CLIENT_VERSION,
 										ENV_IS, ENV_VAR, "MTTS", ENV_VAL, get_mtts_val(ses),
-										ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->term,
+										ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->system->term,
 										IAC, SE);
 								}
 							}
@@ -1676,9 +1610,9 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 							}
 							else if (!strcmp(var, "TERMINAL_TYPE"))
 							{
-								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->term, IAC, SE);
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->system->term, IAC, SE);
 
-								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->term);
+								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->system->term);
 							}
 						}
 					}
@@ -1699,8 +1633,8 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 
 				client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON %s %s VAR %s VAL %s", sub1, sub2, var, val);
 
-				check_all_events(ses, SUB_ARG|SUB_SEC, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, val);
-				check_all_events(ses, SUB_ARG|SUB_SEC, 2, 4, "IAC SB NEW-ENVIRON %s %s", sub1, sub2, sub1, sub2, var, val);
+				check_all_events(ses, EVENT_FLAG_TELNET, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, val);
+				check_all_events(ses, EVENT_FLAG_TELNET, 2, 4, "IAC SB NEW-ENVIRON %s %s", sub1, sub2, sub1, sub2, var, val);
 				break;
 
 			default:
@@ -1712,7 +1646,7 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 
 	client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON IAC SE");
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC SB NEW-ENVIRON IAC SE");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC SB NEW-ENVIRON IAC SE");
 
 	return i + 2;
 }
@@ -1755,7 +1689,7 @@ int client_recv_sb_zmp(struct session *ses, int cplen, unsigned char *src)
 				{
 					client_telopt_debug(ses, "IAC SB ZMP %s", var);
 
-					check_all_events(ses, SUB_ARG|SUB_SEC, 1, 1, "IAC SB ZMP %s", var, val);
+					check_all_events(ses, EVENT_FLAG_TELNET, 1, 1, "IAC SB ZMP %s", var, val);
 				}
 				break;
 		}
@@ -1763,7 +1697,7 @@ int client_recv_sb_zmp(struct session *ses, int cplen, unsigned char *src)
 
 	client_telopt_debug(ses, "IAC SB ZMP %s IAC SE", var);
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 1, 0, "IAC SB ZMP %s IAC SE", var);
+	check_all_events(ses, EVENT_FLAG_TELNET, 1, 0, "IAC SB ZMP %s IAC SE", var);
 
 	return UMIN(i + 1, cplen);
 }
@@ -2021,7 +1955,9 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	client_telopt_debug(ses, "IAC SB GMCP %s IAC SE", mod);
 
-	check_all_events(ses, SUB_ARG, 1, 2, "IAC SB GMCP %s IAC SE", mod, val, json);
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB GMCP", mod, val, json);
+
+	check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB GMCP %s IAC SE", mod, val, json);
 
 	pop_call();
 	return UMIN(i + 1, cplen);
@@ -2033,14 +1969,14 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_will_mccp2(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WILL MCCP2");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL MCCP2");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WILL MCCP2"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL MCCP2"))
 	{
 		return 3;
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_MCCP))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_MCCP))
 	{
 		telnet_printf(ses, 3, "%c%c%c", IAC, DO, TELOPT_MCCP2);
 
@@ -2100,16 +2036,21 @@ void client_end_mccp2(struct session *ses)
 	{
 		return;
 	}
-
+/*
 	ses->mccp2->next_in     = NULL;
 	ses->mccp2->avail_in    = 0;
 
 	ses->mccp2->next_out    = gtd->mccp_buf;
 	ses->mccp2->avail_out   = gtd->mccp_len;
 
-	if (deflateEnd(ses->mccp2) == Z_STREAM_ERROR)
+	if (deflate(ses->mccp2, Z_FINISH) != Z_STREAM_END)
 	{
-		client_telopt_debug(ses, "MCCP2: deflateEnd failed:");
+		tintin_printf2(ses, "MCCP2: FAILED TO DEFLATE");
+	}
+*/
+	if (inflateEnd(ses->mccp2) == Z_STREAM_ERROR)
+	{
+		client_telopt_debug(ses, "MCCP2: inflateEnd failed:");
 	}
 
 	free(ses->mccp2);
@@ -2126,14 +2067,14 @@ void client_end_mccp2(struct session *ses)
 
 int client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WILL MCCP3");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL MCCP3");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WILL MCCP3"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL MCCP3"))
 	{
 		return 3;
 	}
 
-	if (HAS_BIT(ses->flags, SES_FLAG_MCCP))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_MCCP))
 	{
 		telnet_printf(ses, 3, "%c%c%c", IAC, DO, TELOPT_MCCP3);
 
@@ -2153,9 +2094,9 @@ int client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC DONT MCCP3");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC DONT MCCP3");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC DONT MCCP3"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC DONT MCCP3"))
 	{
 	 	return 3;
 	}
@@ -2169,9 +2110,9 @@ int client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "IAC WONT MCCP3");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WONT MCCP3");
 
-	if (check_all_events(ses, SUB_ARG|SUB_SEC, 0, 0, "CATCH IAC WONT MCCP3"))
+	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WONT MCCP3"))
 	{
 	 	return 3;
 	}
@@ -2358,7 +2299,7 @@ int client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 	*pt1 = 0;
 	*pt2 = 0;
 
-	check_all_events(ses, SUB_ARG|SUB_SEC, 1, 2, "IAC SB %s", telopt_table[cpsrc[2]].name, var1, var2);
+	check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB %s", telopt_table[cpsrc[2]].name, var1, var2);
 
 	return i + 2;
 }

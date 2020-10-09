@@ -310,14 +310,14 @@ int is_variable(struct session *ses, char *str)
 		return TRUE;
 	}
 
-	if (str[i] != '_' && isalpha((int) str[i]) == 0)
+	if (str[i] != '_' && !is_alpha(str[i]))
 	{
 		return FALSE;
 	}
 
 	ptt = temp;
 
-	while (isalnum((int) str[i]) || str[i] == '_')
+	while (is_alnum(str[i]) || str[i] == '_')
 	{
 		*ptt++ = str[i];
 
@@ -325,16 +325,24 @@ int is_variable(struct session *ses, char *str)
 	}
 	*ptt = 0;
 
-	root = local_list(ses);
+	root = search_nest_base_ses(ses, temp);
+
+	if (root == NULL)
+	{
+		if (str[0] == '&' && HAS_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER))
+		{
+			show_error(ses, LIST_VARIABLE, "\e[1;31m#WARNING: FOUND %c%s. USE %c{%s} INSTEAD?", str[0], temp, str[0], temp);
+		}
+		return FALSE;
+	}
 
 	if (search_node_list(root, temp) == NULL)
 	{
-		root = ses->list[LIST_VARIABLE];
-
-		if (search_node_list(root, temp) == NULL)
+		if (str[0] == '&' && HAS_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER))
 		{
-			return FALSE;
+			show_error(ses, LIST_VARIABLE, "\e[1;31m#WARNING: FOUND %c%s. USE %c{%s} INSTEAD?", str[0], temp, str[0], temp);
 		}
+		return FALSE;
 	}
 
 	return TRUE;
@@ -350,14 +358,14 @@ int is_function(struct session *ses, char *str)
 		i++;
 	}
 
-	if (str[i] != '_' && isalpha((int) str[i]) == 0)
+	if (str[i] != '_' && !is_alpha(str[i]))
 	{
 		return FALSE;
 	}
 
 	ptt = temp;
 
-	while (isalnum((int) str[i]) || str[i] == '_')
+	while (is_alnum(str[i]) || str[i] == '_')
 	{
 		*ptt++ = str[i];
 
@@ -464,7 +472,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 			if (pti[4] == '>')
 			{
-				if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				if (is_digit(pti[1]) && is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					pto += sprintf(pto, "<%c%c%c>", pti[1], pti[2], pti[3]);
 				}
@@ -476,7 +484,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 				{
 					pto += sprintf(pto, "<%s%s%s>", fuzzy_char(ses, 0, pti[1], 8), fuzzy_char(ses, 0, pti[2], 8), fuzzy_char(ses, 0, pti[3], 8));
 				}
-				else if ((pti[1] == 'g' || pti[1] == 'G') && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				else if ((pti[1] == 'g' || pti[1] == 'G') && is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					tmp = (pti[2] - '0') * 10 + (pti[3] - '0') - 3 + generate_rand(ses) % 7;
 
@@ -490,7 +498,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 			}
 			else if (toupper((int) pti[1]) == 'F')
 			{
-				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+				if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", fuzzy_char(ses, 0, pti[2], 12), fuzzy_char(ses, 0, pti[3], 12), fuzzy_char(ses, 0, pti[4], 12));
 
@@ -504,7 +512,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 					pti += 6;
 				}
-				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+				else if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", fuzzy_char(ses, pti[3], pti[4], 24), fuzzy_char(ses, pti[4], pti[5], 24), fuzzy_char(ses, pti[7], pti[7], 24));
 
@@ -517,7 +525,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 			}
 			else if (toupper((int) pti[1]) == 'B')
 			{
-				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+				if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", fuzzy_char(ses, 0, pti[2], 12), fuzzy_char(ses, 0, pti[3], 12), fuzzy_char(ses, 0, pti[4], 12));
 
@@ -531,7 +539,7 @@ char *fuzzy_color_code(struct session *ses, char *in)
 
 					pti += 6;
 				}
-				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+				else if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", fuzzy_char(ses, pti[2], pti[3], 24), fuzzy_char(ses, pti[4], pti[5], 24), fuzzy_char(ses, pti[6], pti[7], 24));
 
@@ -645,7 +653,7 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 
 			if (pti[4] == '>')
 			{
-				if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				if (is_digit(pti[1]) && is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					pto += sprintf(pto, "<%c%c%c>", pti[1], pti[2], pti[3]);
 				}
@@ -657,7 +665,7 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 				{
 					pto += sprintf(pto, "<%s%s%s>", dim_char(ses, 0, pti[1], mod, 8), dim_char(ses, 0, pti[2], mod, 8), dim_char(ses, 0, pti[3], mod, 8));
 				}
-				else if ((pti[1] == 'g' || pti[1] == 'G') && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				else if ((pti[1] == 'g' || pti[1] == 'G') && is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					tmp = (pti[2] - '0') * 10 + (pti[3] - '0') - mod;
 
@@ -676,13 +684,13 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 					c4096_rnd(ses, &pti[2]);
 				}
 
-				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+				if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", dim_char(ses, 0, pti[2], mod, 12), dim_char(ses, 0, pti[3], mod, 12), dim_char(ses, 0, pti[4], mod, 12));
 
 					pti += 6;
 				}
-				else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+				else if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<F%s%s%s>", dim_char(ses, pti[2], pti[3], mod, 24), dim_char(ses, pti[4], pti[5], mod, 24), dim_char(ses, mod, pti[6], pti[7], 24));
 
@@ -700,13 +708,13 @@ char *dim_color_code(struct session *ses, char *in, int mod)
 					c4096_rnd(ses, &pti[2]);
 				}
 
-				if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+				if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", dim_char(ses, 0, pti[2], mod, 12), dim_char(ses, 0, pti[3], mod, 12), dim_char(ses, 0, pti[4], mod, 12));
 
 					pti += 6;
 				}
-				else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+				else if (toupper((int) pti[1]) == 'B' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 				{
 					pto += sprintf(pto, "<B%s%s%s>", dim_char(ses, pti[2], pti[3], mod, 24), dim_char(ses, pti[4], pti[5], mod, 24), dim_char(ses, pti[6], pti[7], mod, 24));
 
@@ -765,7 +773,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 		if (pti[4] == '>')
 		{
-			if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+			if (is_digit(pti[1]) && is_digit(pti[2]) && is_digit(pti[3]))
 			{
 				sprintf(fuzzy[cnt], "<%c%c%c>%.9s", pti[1], pti[2], pti[3], &pti[5]);
 
@@ -790,7 +798,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 		{
 			if (pti[1] == 'g' || pti[1] == 'G')
 			{
-				if (isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				if (is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					tmp = (pti[2] - '0') * 10 + (pti[3] - '0');
 
@@ -811,7 +819,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 		if (toupper((int) pti[1]) == 'F')
 		{
-			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 			{
 				sprintf(fuzzy[cnt], "<F%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[3], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), &pti[6]);
 
@@ -825,7 +833,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 				return dim_color_code(ses, fuzzy[cnt], mod);
 			}
-			else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			else if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 			{
 				sprintf(fuzzy[cnt], "<F%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), lit_char(ses, mod, pti[6], 'F', 12), &pti[9]);
 
@@ -836,7 +844,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 		if (toupper((int) pti[1]) == 'B')
 		{
-			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 			{
 				sprintf(fuzzy[cnt], "<B%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[3], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), &pti[6]);
 
@@ -850,7 +858,7 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 
 				return dim_color_code(ses, fuzzy[cnt], mod);
 			}
-			if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			if (toupper((int) pti[1]) == 'B' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 			{
 				sprintf(fuzzy[cnt], "<B%c%c%c>%.9s", lit_char(ses, 'F', pti[2], mod, 12), lit_char(ses, 'F', pti[4], mod, 12), lit_char(ses, mod, pti[6], 'F', 12), &pti[9]);
 
@@ -867,11 +875,15 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 	struct listnode *node;
 	struct listroot *root;
 	struct session *sesptr;
-	char temp[BUFFER_SIZE], buf[BUFFER_SIZE], buffer[BUFFER_SIZE], *pti, *pto, *ptt, *str;
+	char *temp, *buf, *buffer, *pti, *pto, *ptt, *str;
 	char *pte, old[10] = { 0 };
 	int i, skip, cnt, escape = FALSE, flags_neol = flags;
 
 	push_call("substitute(%p,%p,%p,%d)",ses,string,result,flags);
+
+	temp   = str_alloc_stack(0);
+	buf    = str_alloc_stack(0);
+	buffer = str_alloc_stack(0);
 
 	pti = string;
 	pto = (string == result) ? buffer : result;
@@ -938,7 +950,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						i++;
 					}
 
-					for (ptt = temp ; isalnum((int) pti[i]) || pti[i] == '_' ; i++)
+					for (ptt = temp ; is_alnum(pti[i]) || pti[i] == '_' ; i++)
 					{
 						*ptt++ = pti[i];
 					}
@@ -1035,9 +1047,33 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					script_driver(ses, LIST_FUNCTION, buf);
 
-					substitute(ses, "$result", pto, flags_neol|SUB_VAR);
+					node = search_nest_node_ses(ses, "result");
 
-					pto += strlen(pto);
+					if (node)
+					{
+						if (node->root)
+						{
+							str = str_dup("");
+
+							show_nest_node(node, &str, TRUE);
+
+							pto += substitute(ses, str, pto, flags_neol);
+
+							str_free(str);
+						}
+						else
+						{
+							show_debug(ses, LIST_FUNCTION, "#DEBUG FUNCTION: (%s) (%s) [%d]", node->arg1, node->arg2, flags_neol);
+
+							// sub color codes
+
+							pto += substitute(ses, node->arg2, pto, flags_neol);
+						}
+					}
+					else
+					{
+						pto += sprintf(pto, "$result");
+					}
 				}
 				else
 				{
@@ -1050,7 +1086,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '*':
-				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && pti[1])
+				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;
@@ -1077,7 +1113,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						ptt = temp;
 
-						while (isalnum((int) pti[i]) || pti[i] == '_')
+						while (is_alnum(pti[i]) || pti[i] == '_')
 						{
 							*ptt++ = pti[i];
 
@@ -1155,7 +1191,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '$':
-				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && pti[1])
+				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;
@@ -1182,7 +1218,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						ptt = temp;
 
-						while (isalnum((int) pti[i]) || pti[i] == '_')
+						while (is_alnum(pti[i]) || pti[i] == '_')
 						{
 							*ptt++ = pti[i];
 
@@ -1247,6 +1283,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					get_nest_node_val(root, buf, &str, brace);
 
 					substitute(ses, str, pto, flags_neol - SUB_VAR);
+//					substitute(ses, str, pto, flags_neol);
 
 					pto += strlen(pto);
 
@@ -1263,7 +1300,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '&':
-				if (HAS_BIT(flags, SUB_CMD) && (isdigit((int) pti[1]) || pti[1] == '&'))
+				if (HAS_BIT(flags, SUB_CMD) && (is_digit(pti[1]) || pti[1] == '&'))
 				{
 					if (pti[1] == '&')
 					{
@@ -1271,7 +1308,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						{
 							*pto++ = *pti++;
 						}
-						if (isdigit((int) pti[1]))
+						if (is_digit(pti[1]))
 						{
 							pti++;
 						}
@@ -1282,16 +1319,16 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else
 					{
-						i = isdigit((int) pti[2]) ? (pti[1] - '0') * 10 + pti[2] - '0' : pti[1] - '0';
+						i = is_digit(pti[2]) ? (pti[1] - '0') * 10 + pti[2] - '0' : pti[1] - '0';
 
 						for (cnt = 0 ; gtd->cmds[i][cnt] ; cnt++)
 						{
 							*pto++ = gtd->cmds[i][cnt];
 						}
-						pti += isdigit((int) pti[2]) ? 3 : 2;
+						pti += is_digit(pti[2]) ? 3 : 2;
 					}
 				}
-				else if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE))
+				else if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;
@@ -1318,7 +1355,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						ptt = temp;
 
-						while (isalnum((int) pti[i]) || pti[i] == '_')
+						while (is_alnum(pti[i]) || pti[i] == '_')
 						{
 							*ptt++ = pti[i];
 
@@ -1395,7 +1432,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '%':
-				if (HAS_BIT(flags, SUB_ARG) && (isdigit((int) pti[1]) || pti[1] == '%'))
+				if (HAS_BIT(flags, SUB_ARG) && (is_digit(pti[1]) || pti[1] == '%'))
 				{
 					if (pti[1] == '%')
 					{
@@ -1407,7 +1444,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else
 					{
-						i = isdigit((int) pti[2]) ? (pti[1] - '0') * 10 + pti[2] - '0' : pti[1] - '0';
+						i = is_digit(pti[2]) ? (pti[1] - '0') * 10 + pti[2] - '0' : pti[1] - '0';
 
 						ptt = gtd->vars[i];
 
@@ -1424,6 +1461,20 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							{
 								switch (*ptt)
 								{
+									case '\e':
+										skip = find_secure_color_code(ptt);
+
+										if (skip)
+										{
+											pto += sprintf(pto, "%.*s", skip, ptt);
+											ptt += skip - 1;
+										}
+										else
+										{
+											*pto++ = *ptt;
+										}
+										break;
+
 									case '\\':
 										*pto++ = '\\';
 										*pto++ = '\\';
@@ -1485,7 +1536,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 								*pto++ = *ptt++;
 							}
 						}
-						pti += isdigit((int) pti[2]) ? 3 : 2;
+						pti += is_digit(pti[2]) ? 3 : 2;
 					}
 				}
 				else if (pti[1] == '*') // avoid %*variable triggers
@@ -1502,15 +1553,19 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 			case '<':
 				if (HAS_BIT(flags, SUB_COL))
 				{
-					if (HAS_BIT(flags, SUB_CMP) && old[0] && !strncmp(old, pti, strlen(old)))
+					if (old[0] && !strncmp(old, pti, strlen(old)))
 					{
 						pti += strlen(old);
 					}
 					else if (pti[1] && pti[2] && pti[3] && pti[4] == '>')
 					{
-						if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+						if (is_digit(pti[1]) && is_digit(pti[2]) && is_digit(pti[3]))
 						{
-							if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
+							if (pti[1] == '9' && pti[2] == '0' && pti[3] == '0')
+							{
+								pto += sprintf(pto, "%s", gtd->color_reset);
+							}
+							else if (pti[1] != '8' || pti[2] != '8' || pti[3] != '8')
 							{
 								*pto++ = ASCII_ESC;
 								*pto++ = '[';
@@ -1559,7 +1614,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							
 							if (ses->color >= 256)
 							{
-								pto += sprintf(pto, "\e[38;5;%dm", cnt);
+								pto += sprintf(pto, "\e[22;38;5;%dm", cnt);
 							}
 							else if (ses->color == 16)
 							{
@@ -1581,13 +1636,13 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							}
 							pti += sprintf(old, "<%c%c%c>", pti[1], pti[2], pti[3]);
 						}
-						else if (pti[1] == 'g' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
+						else if (pti[1] == 'g' && is_digit(pti[2]) && is_digit(pti[3]) && pti[4] == '>')
 						{
 							cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
 
 							if (ses->color >= 256)
 							{
-								pto += sprintf(pto, "\e[38;5;%dm", cnt);
+								pto += sprintf(pto, "\e[22;38;5;%dm", cnt);
 							}
 							else if (ses->color == 16)
 							{
@@ -1595,7 +1650,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							}
 							pti += sprintf(old, "<g%c%c>", pti[2], pti[3]);
 						}
-						else if (pti[1] == 'G' && isdigit((int) pti[2]) && isdigit((int) pti[3]) && pti[4] == '>')
+						else if (pti[1] == 'G' && is_digit(pti[2]) && is_digit(pti[3]) && pti[4] == '>')
 						{
 							cnt = 232 + (pti[2] - '0') * 10 + (pti[3] - '0');
 
@@ -1614,7 +1669,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							*pto++ = *pti++;
 						}
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'F' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1648,7 +1703,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'F' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+					else if (toupper((int) pti[1]) == 'F' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1664,7 +1719,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c%c%c%c>", pti[2], pti[3], pti[4], pti[5], pti[6], pti[7]);
 					}
-					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'B' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1698,7 +1753,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+					else if (toupper((int) pti[1]) == 'B' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 					{
 						if (ses->color == 4096)
 						{
@@ -1798,6 +1853,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						case 'v':
 							*pto++ = '\v';
 							break;
+
 						case '0':
 							if (pti[1] == 0)
 							{
@@ -1813,12 +1869,30 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							break;
 
 						case '\0':
+							*pto = 0;
+
 							DEL_BIT(flags, SUB_EOL);
 							DEL_BIT(flags, SUB_LNF);
 							continue;
 
-						default:
+						case '$':
+						case '&':
+						case '*':
+						case '@':
+						case '\\':
 							*pto++ = *pti;
+							break;
+
+						default:
+							if (HAS_BIT(flags, SUB_LIT))
+							{
+								pti--;
+								*pto++ = *pti;
+							}
+							else
+							{
+								*pto++ = *pti;
+							}
 							break;
 					}
 					pti++;
@@ -1868,6 +1942,20 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				{
 					switch (*pti)
 					{
+						case '\e':
+							skip = find_secure_color_code(pti);
+
+							if (skip)
+							{
+								pto += sprintf(pto, "%.*s", skip, pti);
+								pti += skip;
+							}
+							else
+							{
+								*pto++ = *pti++;
+							}
+							break;
+
 						case '{':
 							*pto++ = '\\';
 							*pto++ = 'x';
@@ -1916,7 +2004,7 @@ int is_color_code(char *pti)
 		if (pti[4] == '>')
 		{
 
-			if (isdigit((int) pti[1]) && isdigit((int) pti[2]) && isdigit((int) pti[3]))
+			if (is_digit(pti[1]) && is_digit(pti[2]) && is_digit(pti[3]))
 			{
 				return 5;
 			}
@@ -1931,7 +2019,7 @@ int is_color_code(char *pti)
 
 			if (pti[1] == 'g' || pti[1] == 'G')
 			{
-				if (isdigit((int) pti[2]) && isdigit((int) pti[3]))
+				if (is_digit(pti[2]) && is_digit(pti[3]))
 				{
 					return 5;
 				}
@@ -1948,7 +2036,7 @@ int is_color_code(char *pti)
 
 		if (toupper((int) pti[1]) == 'F')
 		{
-			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 			{
 				return 6;
 			}
@@ -1956,7 +2044,7 @@ int is_color_code(char *pti)
 			{
 				return 6;
 			}
-			else if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			else if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 			{
 				return 9;
 			}
@@ -1965,7 +2053,7 @@ int is_color_code(char *pti)
 
 		if (toupper((int) pti[1]) == 'B')
 		{
-			if (isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && pti[5] == '>')
+			if (is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && pti[5] == '>')
 			{
 				return 6;
 			}
@@ -1973,7 +2061,7 @@ int is_color_code(char *pti)
 			{
 				return 6;
 			}
-			if (toupper((int) pti[1]) == 'B' && isxdigit((int) pti[2]) && isxdigit((int) pti[3]) && isxdigit((int) pti[4]) && isxdigit((int) pti[5]) && isxdigit((int) pti[6]) && isxdigit((int) pti[7]) && pti[8] == '>')
+			if (toupper((int) pti[1]) == 'B' && is_hex(pti[2]) && is_hex(pti[3]) && is_hex(pti[4]) && is_hex(pti[5]) && is_hex(pti[6]) && is_hex(pti[7]) && pti[8] == '>')
 			{
 				return 9;
 			}
@@ -2028,7 +2116,7 @@ int is_color_name(char *string)
 				continue;
 		}
 
-		if (isalpha((int) *string))
+		if (is_alpha(*string))
 		{
 			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
 			{
@@ -2116,7 +2204,7 @@ int translate_color_names(struct session *ses, char *string, char *result)
 				continue;
 		}
 
-		if (isalpha((int) *string))
+		if (is_alpha(*string))
 		{
 			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
 			{
@@ -2215,7 +2303,7 @@ int get_color_names(struct session *ses, char *string, char *result)
 				continue;
 		}
 
-		if (isalpha((int) *string))
+		if (is_alpha(*string))
 		{
 			for (cnt = 0 ; *color_table[cnt].name ; cnt++)
 			{

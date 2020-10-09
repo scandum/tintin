@@ -49,13 +49,11 @@ DO_COMMAND(do_variable)
 			{
 				char *str_result;
 
-				str_result = str_dup("");
+				str_result = str_alloc_stack(0);
 
 				view_nest_node(node, &str_result, 0, 1);
 
 				print_lines(ses, SUB_NONE, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, node->arg1, str_result);
-
-				str_free(str_result);
 			}
 			else
 			{
@@ -71,10 +69,11 @@ DO_COMMAND(do_variable)
 	{
 		if (!valid_variable(ses, arg1))
 		{
-			show_message(ses, LIST_VARIABLE, "#VARIABLE: INVALID VARIALBE NAME {%s}.", arg1);
+			show_error(ses, LIST_VARIABLE, "#VARIABLE: INVALID VARIALBE NAME {%s}.", arg1);
+
 			return ses;
 		}
-		str = str_alloc(UMAX(strlen(arg), BUFFER_SIZE));
+		str = str_alloc_stack(strlen(arg));
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
@@ -93,8 +92,6 @@ DO_COMMAND(do_variable)
 		show_nest_node(node, &str, 1);
 
 		show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
-
-		str_free(str);
 	}
 	return ses;
 }
@@ -138,7 +135,7 @@ DO_COMMAND(do_local)
 	}
 	else
 	{
-		str = str_alloc(UMAX(strlen(arg), BUFFER_SIZE));
+		str = str_alloc_stack(strlen(arg));
 
 		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
@@ -161,8 +158,6 @@ DO_COMMAND(do_local)
 		show_nest_node(node, &str, 1);
 
 		show_message(ses, LIST_VARIABLE, "#OK. LOCAL VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
-
-		str_free(str);
 	}
 	return ses;
 }
@@ -191,6 +186,7 @@ DO_COMMAND(do_unvariable)
 DO_COMMAND(do_cat)
 {
 	char *str;
+	struct listroot *root;
 	struct listnode *node;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
@@ -201,7 +197,7 @@ DO_COMMAND(do_cat)
 	}
 	else
 	{
-		str = str_alloc(UMAX(strlen(arg), BUFFER_SIZE));
+		str = str_alloc_stack(strlen(arg));
 
 		if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 		{
@@ -210,35 +206,44 @@ DO_COMMAND(do_cat)
 			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", str);
 		}
 
+		root = search_nest_base_ses(ses, arg1);
+
 		while (*arg)
 		{
 			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
-			check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", arg1, arg1, str);
+			check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", arg1, arg1, str);
 
 			if (*str)
 			{
-				str_cat(&node->arg2, str);
+				if (node->root)
+				{
+					add_nest_node(root, arg1, "%s", str);
+				}
+				else
+				{
+					str_cat(&node->arg2, str);
+				}
 			}
 		}
 
-		check_all_events(ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", arg1, arg1, str);
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", arg1, arg1, str);
 
-		show_message(ses, LIST_VARIABLE, "#CAT: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, node->arg2);
+		show_nest_node(node, &str, 1);
 
-		str_free(str);
+		show_message(ses, LIST_VARIABLE, "#CAT: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 	}
 	return ses;
 }
 
 DO_COMMAND(do_replace)
 {
-	char tmp[BUFFER_SIZE], *pti, *ptm, *str;
+	char *tmp, *pti, *ptm, *str;
 	struct listnode *node;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR);
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
@@ -260,8 +265,11 @@ DO_COMMAND(do_replace)
 	}
 	else
 	{
+		show_debug(ses, LIST_VARIABLE, "#REPLACE {%s} {%s} {%s}", node->arg2, arg2, arg3);
+
 		pti = node->arg2;
-		str = str_dup("");
+		str = str_alloc_stack(0);
+		tmp = str_alloc_stack(0);
 
 		do
 		{
@@ -279,7 +287,7 @@ DO_COMMAND(do_replace)
 
 			*ptm = 0;
 
-			substitute(ses, arg3, tmp, SUB_CMD);
+			substitute(ses, arg3, tmp, SUB_CMD|SUB_FUN);
 
 			str_cat_printf(&str, "%s%s", pti, tmp);
 
@@ -291,7 +299,6 @@ DO_COMMAND(do_replace)
 
 		str_cpy(&node->arg2, str);
 
-		str_free(str);
 	}
 	return ses;
 }
@@ -306,6 +313,16 @@ int valid_variable(struct session *ses, char *arg)
 	if (is_math(ses, arg))
 	{
 		return FALSE;
+	}
+
+	if (strlen(arg) > 4096)
+	{
+		return FALSE;
+	}
+
+	if (is_digit(*arg))
+	{
+		show_error(ses, LIST_COMMAND, "\e[1;31m#WARNING: VALIDATE {%s}: VARIABLES SHOULD NOT START WITH A NUMBER.", arg);
 	}
 
 	return TRUE;
@@ -380,7 +397,7 @@ void stringtobasez(char *str, char *base)
 	switch (atoi(base))
 	{
 		case 64:
-			str_to_base64(buf, str, strlen(str));
+			str_to_base64z(buf, str, strlen(str));
 			break;
 
 		case 252:
@@ -408,7 +425,7 @@ void basetostringz(char *str, char *base)
 	switch (atoi(base))
 	{
 		case 64:
-			base64_to_str(buf, str, strlen(str));
+			base64z_to_str(buf, str, strlen(str));
 			break;
 
 		case 252:
@@ -513,34 +530,55 @@ void charactertohex(struct session *ses, char *str)
 
 void colorstring(struct session *ses, char *str)
 {
-	char result[BUFFER_SIZE];
+	char *result;
+
+	push_call("colorstring(%p,%p)",ses,str);
+
+	result = str_alloc_stack(0);
 
 	get_color_names(ses, str, result);
 
 	strcpy(str, result);
+
+	pop_call();
+	return;
 }
 
 void headerstring(struct session *ses, char *str, char *columns)
 {
-	char buf[BUFFER_SIZE], fill[BUFFER_SIZE];
+	char *buf, *fill;
 	int len, max;
 
-	len = string_raw_str_len(ses, str, 0, BUFFER_SIZE);
+	push_call("headerstring(%p,%p,%p)",ses,str,columns);
 
-	max = *columns ? atoi(columns) : get_scroll_cols(ses);
+	buf  = str_alloc_stack(0);
+	fill = str_alloc_stack(0);
+
+	max  = *columns ? atoi(columns) : get_scroll_cols(ses);
+
+	len  = string_raw_str_len(ses, str, 0, max);
 
 	if (len > max - 2)
 	{
-		str[max] = 0;
-
+		pop_call();
 		return;
 	}
 
-	memset(fill, '#', max);
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER))
+	{
+		memset(fill, ' ', max);
+	}
+	else
+	{
+		memset(fill, '#', max);
+	}
 
 	sprintf(buf, "%.*s%s%.*s%s", (max - len) / 2, fill, str, (max - len) / 2, fill, (max - len) % 2 ? "#" : "");
 
 	strcpy(str, buf);
+
+	pop_call();
+	return;
 }
 
 void lowerstring(char *str)
@@ -602,8 +640,13 @@ void mathstring(struct session *ses, char *str)
 
 void thousandgroupingstring(struct session *ses, char *str)
 {
-	char result[BUFFER_SIZE], strold[BUFFER_SIZE];
+	char *result, *strold;
 	int cnt1, cnt2, cnt3, cnt4;
+
+	push_call("thousandsgroupingstring(%p,%p)",ses,str);
+
+	result = str_alloc_stack(0);
+	strold = str_alloc_stack(0);
 
 	get_number_string(ses, str, strold);
 
@@ -615,14 +658,14 @@ void thousandgroupingstring(struct session *ses, char *str)
 
 	for (cnt3 = 0 ; cnt1 >= 0 ; cnt1--, cnt2--)
 	{
-		if (cnt3++ % 3 == 0 && cnt3 != 1 && cnt4 == 0 && isdigit((int) strold[cnt1]))
+		if (cnt3++ % 3 == 0 && cnt3 != 1 && cnt4 == 0 && is_digit(strold[cnt1]))
 		{
 			result[cnt2--] = ',';
 		}
 
 		result[cnt2] = strold[cnt1];
 
-		if (!isdigit((int) result[cnt2]))
+		if (!is_digit(result[cnt2]))
 		{
 			cnt4 = 0;
 			cnt3 = 0;
@@ -631,6 +674,9 @@ void thousandgroupingstring(struct session *ses, char *str)
 	}
 
 	strcpy(str, result + cnt2 + 1);
+
+	pop_call();
+	return;
 }
 
 void chronosgroupingstring(struct session *ses, char *str)
@@ -765,7 +811,7 @@ void stripspaces(char *str)
 
 	for (cnt = strlen(str) - 1 ; cnt >= 0 ; cnt--)
 	{
-		if (!isspace((int) str[cnt]))
+		if (!is_space(str[cnt]))
 		{
 			break;
 		}
@@ -774,7 +820,7 @@ void stripspaces(char *str)
 
 	for (cnt = 0 ; str[cnt] != 0 ; cnt++)
 	{
-		if (!isspace((int) str[cnt]))
+		if (!is_space(str[cnt]))
 		{
 			break;
 		}
@@ -785,13 +831,16 @@ void stripspaces(char *str)
 
 void wrapstring(struct session *ses, char *str, char *wrap)
 {
-	char  arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	char  *arg1, *arg2;
 	char *pts, *pte, *arg;
 	int cnt, width, height;
 
 	push_call("wrapstring(%p,%p,%p)",ses,str,wrap);
 
-	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL);
+	arg1 = str_alloc_stack(0);
+	arg2 = str_alloc_stack(0);
+
+	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
 
 	if (*arg == COMMAND_SEPARATOR)
 	{
@@ -838,7 +887,9 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 		{
 			*pte++ = 0;
 
-			cat_sprintf(str, "{%d}{%s}", ++cnt, pts);
+			substitute(ses, pts, arg1, SUB_SEC);
+
+			cat_sprintf(str, "{%d}{%s}", ++cnt, arg1);
 
 			pts = pte;
 		}
@@ -847,7 +898,9 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 			pte++;
 		}
 	}
-	cat_sprintf(str, "{%d}{%s}", ++cnt, pts);
+	substitute(ses, pts, arg1, SUB_SEC);
+
+	cat_sprintf(str, "{%d}{%s}", ++cnt, arg1);
 
 	pop_call();
 	return;
@@ -855,11 +908,19 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 
 int stringlength(struct session *ses, char *str)
 {
-	char temp[BUFFER_SIZE];
+	int len;
+	char *temp;
+
+	push_call("stringlength(%p,%p)",ses,str);
+
+	temp = str_alloc_stack(0);
 
 	substitute(ses, str, temp, SUB_COL|SUB_ESC);
 
-	return strip_vt102_strlen(ses, temp);
+	len = strip_vt102_strlen(ses, temp);
+
+	pop_call();
+	return len;
 }
 
 
@@ -867,7 +928,7 @@ int stringlength(struct session *ses, char *str)
 
 int string_str_raw_len(struct session *ses, char *str, int start, int end)
 {
-	int raw_cnt, str_cnt, ret_cnt, tmp_cnt, tot_len, width, col_len;
+	int raw_cnt, str_cnt, ret_cnt, tmp_cnt, tot_len, width, col_len, skip;
 
 	raw_cnt = str_cnt = ret_cnt = 0;
 
@@ -875,16 +936,21 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 
 	while (raw_cnt < tot_len)
 	{
-		if (skip_vt102_codes(&str[raw_cnt]))
+		skip = skip_vt102_codes(&str[raw_cnt]);
+
+		if (skip)
 		{
-			ret_cnt += (str_cnt >= start) ? skip_vt102_codes(&str[raw_cnt]) : 0;
-			raw_cnt += skip_vt102_codes(&str[raw_cnt]);
+			if (str_cnt >= start)
+			{
+				ret_cnt += skip;
+			}
+			raw_cnt += skip;
 
 			continue;
 		}
 
 		col_len = is_color_code(&str[raw_cnt]);
-		
+
 		if (col_len)
 		{
 			ret_cnt += (str_cnt >= start) ? col_len : 0;
@@ -956,7 +1022,7 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 
 	while (raw_cnt < tot_len)
 	{
-		if (raw_cnt >= raw_end)
+		if (raw_end >= 0 && raw_cnt >= raw_end)
 		{
 			break;
 		}
@@ -1016,10 +1082,14 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 
 void timestring(struct session *ses, char *str)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], *arg;
-
+	char *arg, *arg1, *arg2;
 	struct tm timeval_tm;
 	time_t    timeval_t;
+
+	push_call("timestring(%p,%p)",ses,str);
+
+	arg1 = str_alloc_stack(0);
+	arg2 = str_alloc_stack(0);
 
 	arg = get_arg_in_braces(ses, str, arg1, GET_ALL);
 
@@ -1041,46 +1111,65 @@ void timestring(struct session *ses, char *str)
 	timeval_tm = *localtime(&timeval_t);
 
 	strftime(str, BUFFER_SIZE, arg1, &timeval_tm);
+
+	pop_call();
+	return;
 }
 
 void justify_string(struct session *ses, char *in, char *out, int align, int cut)
 {
-	char temp[BUFFER_SIZE];
+	char *temp;
+
+	push_call("justify_string(%p,%p,%p,%d,%d)",ses,in,out,align,cut);
+
+	temp = str_alloc_stack(0);
 
 	if (align < 0)
 	{
-		sprintf(temp, "%%%d.%ds", align - ((int) strlen(in) - string_raw_str_len(ses, in, 0, BUFFER_SIZE)), string_str_raw_len(ses, in, 0, cut));
+		sprintf(temp, "%%%d.%ds", align - ((int) strlen(in) - string_raw_str_len(ses, in, 0, -1)), string_str_raw_len(ses, in, 0, cut));
 	}
 	else
 	{
-		sprintf(temp, "%%%d.%ds", align + ((int) strlen(in) - string_raw_str_len(ses, in, 0, BUFFER_SIZE)), string_str_raw_len(ses, in, 0, cut));
+		sprintf(temp, "%%%d.%ds", align + ((int) strlen(in) - string_raw_str_len(ses, in, 0, -1)), string_str_raw_len(ses, in, 0, cut));
 	}
 
 	sprintf(out, temp, in);
+
+	pop_call();
+	return;
 }
 
 void format_string(struct session *ses, char *format, char *arg, char *out)
 {
 	char *arglist[30];
-	char argformat[BUFFER_SIZE], newformat[BUFFER_SIZE], *ptf, *ptt, *pts, *ptn;
+	char *argformat, *newformat, *arg1, *arg2, *ptf, *ptt, *pts, *ptn;
 	struct tm timeval_tm;
 	time_t    timeval_t;
 	int i, max;
 
-	push_call("format_string(%p,%p,%p,%p)",ses,format,arg,out);
+	argformat = str_alloc_stack(0);
+	newformat = str_alloc_stack(0);
+
+	arg1 = str_alloc_stack(0);
+	arg2 = str_alloc_stack(0);
 
 	for (max = 0 ; max < 4 ; max++)
 	{
-		arglist[max] = str_alloc_stack();
+		arglist[max] = str_alloc_stack(0);
 
 		arg = sub_arg_in_braces(ses, arg, arglist[max], GET_ONE, SUB_VAR|SUB_FUN);
 	}
 
 	for (max = 4 ; *arg && max < 30 ; max++)
 	{
-		arglist[max] = str_alloc_stack();
+		arglist[max] = str_alloc_stack(0);
 
 		arg = sub_arg_in_braces(ses, arg, arglist[max], GET_ONE, SUB_VAR|SUB_FUN);
+	}
+
+	for (i = max ; i < 30 ; i++)
+	{
+		arglist[i] = "";
 	}
 
 	i = 0;
@@ -1118,7 +1207,7 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 			}
 			else
 			{
-				while (!isalpha((int) *ptf))
+				while (!is_alpha(*ptf))
 				{
 					if (*ptf == 0)
 					{
@@ -1158,8 +1247,6 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 					default:
 						if (pts[1])
 						{
-							char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 							ptt = arg1;
 							ptn = pts + 1;
 
@@ -1174,11 +1261,11 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 							{
 								if (atoi(arg1) < 0)
 								{
-									sprintf(argformat, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+									sprintf(argformat, "%%%d", atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, -1)));
 								}
 								else
 								{
-									sprintf(argformat, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)));
+									sprintf(argformat, "%%%d", atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, -1)));
 								}
 							}
 							else
@@ -1196,13 +1283,13 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 								if (atoi(arg1) < 0)
 								{
 									sprintf(argformat, "%%%d.%d",
-										atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
+										atoi(arg1) - ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, -1)),
 										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
 								}
 								else
 								{
 									sprintf(argformat, "%%%d.%d",
-										atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, BUFFER_SIZE)),
+										atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, -1)),
 										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
 								}
 							}
@@ -1223,7 +1310,6 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 				{
 					case 'a':
 						numbertocharacter(ses, arglist[i]);
-//						sprintf(arglist[i], "%c", (char) get_number(ses, arglist[i]));
 						break;
 
 					case 'b':
@@ -1386,18 +1472,21 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 
 	snprintf(out, BUFFER_SIZE - 1, newformat, arglist[0], arglist[1], arglist[2], arglist[3], arglist[4], arglist[5], arglist[6], arglist[7], arglist[8], arglist[9], arglist[10], arglist[11], arglist[12], arglist[13], arglist[14], arglist[15], arglist[16], arglist[17], arglist[18], arglist[19], arglist[20], arglist[21], arglist[22], arglist[23], arglist[24], arglist[25], arglist[26], arglist[27], arglist[28], arglist[29]);
 
-	pop_call();
 	return;
 }
 
 DO_COMMAND(do_format)
 {
-	char destvar[BUFFER_SIZE], format[BUFFER_SIZE], result[BUFFER_SIZE];
+	char *argvar, *format, *result;
 
-	arg = sub_arg_in_braces(ses, arg, destvar,  GET_NST, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, format,   GET_ONE, SUB_VAR|SUB_FUN);
+	argvar = arg1;
+	format = arg2;
+	result = arg3;
 
-	if (*destvar == 0)
+	arg = sub_arg_in_braces(ses, arg, argvar, GET_NST, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, format, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*argvar == 0)
 	{
 		show_error(ses, LIST_VARIABLE, "#SYNTAX: #format {variable} {format} {arg1} {arg2}");
 
@@ -1406,9 +1495,9 @@ DO_COMMAND(do_format)
 
 	format_string(ses, format, arg, result);
 
-	set_nest_node_ses(ses, destvar, "%s", result);
+	set_nest_node_ses(ses, argvar, "%s", result);
 
-	show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", destvar, result);
+	show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", argvar, result);
 
 	return ses;
 }

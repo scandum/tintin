@@ -1,3 +1,196 @@
+May 2020        2.02.04
+------------------------------------------------------------------------------
+
+help.c          Updated the MSLP helpfile.
+
+scan.c          Added #scan forward, does the same as #textin.
+
+substitute.c    Added a warning when using &variable on an undefined variable
+                in math operations.
+
+draw.c          Updated the #draw line mode to behave more distinct from the
+                #draw side mode. When teed a horizontal line can have only
+                the left or right side teed when specified. Similarly a
+                vertical line can have the top or bot side teed.
+
+banner.c        Added the tt++ -g startup option to startup tintin with a gui.
+                So far it only supports a connection manager.
+
+main.c          Added the SYSTEM CRASH event, %0 holds the error message.
+
+screen.c        #screen inputregion now takes a 5th argument to assign a
+                name, can be used with the RECEIVED INPUT [NAME] event.
+
+screen.c        Added #screen swap, swaps the input and scroll region height.
+
+mapper.c        The MAP ENTER ROOM and MAP EXIT ROOM events will store the
+                direction traveled in the %2 argument.
+
+draw.c          #draw CALIGN will prune and center text.
+
+                #draw LALIGN will prune and left align text.
+
+                #draw RALIGN will prune and right align text.
+
+                #draw TALIGN will show the top of the text if it is too long
+                to fit the square, cutting off the bottom. The default is to
+                bottom align and cut off the top.
+
+                #draw UALIGN will unwrap and rewrap text.
+
+math.c          Added very basic ? : ternary operator support in #math. It
+                currently only supports simple assignments like:
+                #math result $variable < 5 ? 0 : $variable
+
+screen.c        Added several #screen get INPUT_ options.
+
+daemon.c        Added DAEMON ATTACHED and DAEMON DETACHED events.
+
+mapper.c        Added #map flag quiet, gets rid of build walk spam.
+
+event.c         With mouse pixel mode enabled the %7 argument of a mouse
+                event will contain nw, n, ne, w, c, e, sw, s, se, depending
+                on where on a character you clicked.
+
+                You can, for example use #if {"%7" == "{nw|w|sw}"} to check
+                if the left side of a character was clicked.
+
+help.c          Added #help edit and #help editing
+
+config.c        Added the #config mouse pixels option for pixel precision.
+                Requires the latext xterm or mintty release to work.
+
+tokenize.z      The default ! repeat character can now be used in scripts.
+                Use with caution. To repeat the last command when you press
+                ctrl-enter use: #macro {\e[13;5u} {!}
+
+tintin.h        Increased BUFFER_SIZE from 30KB to 40KB. 
+
+screen.c        Added #screen scrollbar on/off, currently only works with
+                mintty / wintin++. Allows using the scrollbar with tintin's
+                own scrollback buffer. Works automatically once enabled.
+
+list.c          Changed #list simplify to work in a similar manner as
+                #list sort and #list order. 
+
+draw.c          #draw now takes a second color argument. First color argument
+                sets the box color, the second sets the text color.
+
+split.c         Updated #split to take a 5th argument to set the height of
+                the input region, #split without an argument defaults to
+                #split 0 1 0 0 1.
+
+event.c         Added event group lookups, can use #event mouse to see all
+                mouse events.
+
+edit.c          Added the [CATCH] EDIT FINISHED and EDIT STARTED events.
+
+cursor.c        Added #cursor {page} which has several sub-options that can
+                be used in edit mode.
+
+                ctrl-home is bound by default to #cursor page home
+                ctrl-end  is bound by default to #cursor page end
+
+cursor.c        Added #cursor {soft enter} which allows inserting new lines
+                while in edit mode, it's bound to shift-enter by default. A
+                regular enter will exit edit mode.
+
+edit.c          Added the #edit command, used to enter edit mode and perform
+                various edit buffer operations.
+
+cursor.c        Added #cursor up and #cursor down, moves cursor up/down in
+                multiline input regions.
+
+event.c         Added the INPUT MOUSE event, which triggers when using the
+                mouse in the input region.
+
+cursor.c        Added multiline input support. Use #screen inputregion to
+                enable. For example:
+
+                #screen inputregion -3 1 -1 -1
+                #split 0 3
+
+cursor.c        #cursor preserve macro and reset macro have been moved to
+                #cursor macro {preserve|reset}
+
+                #cursor echo and #cursor insert have been moved to
+                #cursor flag {echo|insert} {on|off}
+
+input.c         Added infinite input support, TinTin++ will still crash
+                somewhere down the line until the rest of the engine has
+                infinite string support as well. When CHILD LOCKED the
+                input buffer is capped.
+
+class.c         Added #event CLASS LOAD <NAME>, triggers after a class is
+                loaded.
+                Added #event CLASS CLEAR <NAME>, triggers before a class is
+                cleared.
+
+scan.c          Added the #scan dir <dir> <variable> option, will scan the
+                given file or directory and store the info in the provided
+                variable.
+
+scan.c          Modernized #scan, includes a warning when the old syntax is
+                used.
+
+variable.c      #return now returns a local result, this should solve issues
+                with function nesting.
+
+list.c          Added #list {<list>} index {nest} which can be used to index
+                a two dimensional table as a one dimensional list. After a
+                table has been indexed, #list find, order, sort, and reverse
+                will work.
+
+triggers.c      Added the <900> color tag which can be used in substitutions
+                to restore the text color to the original text color.
+
+                #sub {\bsmurf\b} {<bdf>smurf<900>}
+                #showme {<afa>A smurf is smurfing here.}
+
+draw.c          Added the SCALED drawing option. When used the size of the
+                square is increased depending on the size of the inputted
+                text.
+
+documentation   Added docs/link.txt file with the initial documentation for
+                link handling.
+
+buffer.c        #buffer find now places the found keyword at the top instead
+                of at the bottom of the page.
+
+path.c          Added #path save {BOTH} <variable> to save both the forward
+                and backward path, as well as any given delays. Keep in mind
+                that delays will only work properly for forward going paths.
+
+path.c          Added a third field to #path insert to specify the delay.
+
+mapper.c        Added a delay field to #map exits, which will be used
+                when using #path run with a delay argument.
+
+data.c          Added #info sessions save which will save the data on all
+                sessions to $info[SESSIONS].
+
+data.c          #info session save now saves the data to $info[SESSION][NAME]
+                rather than to $info[SESSION][SESSION_NAME]
+
+cursor.c        Added #cursor position <column> to move the cursor to the
+                given column.
+
+show.c          Added RECEIVED ERROR event. Example:
+                #event {RECEIVED ERROR} {#info stack}
+
+class.c         Added #class {name} assign {argument} which will execute the
+                argument, assigning all newly created triggers to the given
+                class.
+
+draw.c          Added #draw buffer, which draws the scrollback buffer based
+                on the scrolling state.
+
+draw.c          Added #draw foreground flag, which allows inactive sessions
+                to draw.
+
+update.c        Added END OF RUN event which triggers at the end of #map or
+                #path run.
+
 Mar 2020        2.02.03
 ------------------------------------------------------------------------------
 
@@ -97,7 +290,7 @@ input.c         ctrl-v will now correctly capture ctrl-alt-f and similar
                 combinations. ctrl-v will also allow pasting blocks of text.
                 Example added to the SCRIPTS file.
 
-event.c         Added GAG SESSION CONNECTED, GAG SESSION CREATED, 
+event.c         Added GAG SESSION CONNECTED, GAG SESSION CREATED,
                 GAG SESSION DISCONNECTED, and GAG SESSION TIMED OUT events.
 
 mapper.c        Added #map roomflag fog. Works like #map roomflag hide but
@@ -117,17 +310,15 @@ sort.c          Added sorting routines utilizing quadsort.
 
 list.c          Added #list reverse option.
 
-cursor.c        Added default bindings for ctrl-left, ctrl-right, and 
+cursor.c        Added default bindings for ctrl-left, ctrl-right, and
                 ctrl-backspace
 
 screen.c        Added advanced link support. To create an advanced link
                 surround a keyword with the \e[4m keyword \e24m tags and
-                prefix it with \e]68; code \a. The code must be valid
-                MSDP, which on click will spawn a LINK mouse event holding
-                the MSDP data as a tintin table. Example:
+                prefix it with \e]68; code \a.
 
                 #config mouse on
-                #showme {\e]68;\x01key\x02val\a\e[4mthis is a test\e[24m}
+                #showme {\e]68;;1;test\a\e[4mthis is a test\e[24m}
                 #event {SHORT-CLICKED LINK MOUSE BUTTON ONE} {#showme {[%4]}}
 
 screen.c        Added basic link support. To create a basic link surround a
@@ -200,8 +391,8 @@ draw.c          Added #draw RAIN {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}
 class.c         Added #class clear, load, and save. See #help class.
 
 main.c          Configurations and pathdirs are automatically assigned to
-                the CONFIG and PATHDIR class on startup. Somewhat experimental
-                as there may be unforseen complications.
+                the CONFIG and PATHDIR class on startup. Somewhat
+                experimental as there may be unforseen complications.
 
 list.c          Added #list <list> collapse and explode
 
@@ -255,7 +446,7 @@ cursor.c        Added #cursor tab <list|scrollback> <backward|forward>
 
 line.c          Added #line capture <variable> <command> option.
 
-mapper.c        Added the MAP MOUSE LOCATION event to go along with the 
+mapper.c        Added the MAP MOUSE LOCATION event to go along with the
                 SCREEN MOUSE LOCATION event. MAP MOUSE LOCATION is more
                 accurate than regular MAP click events. It needs to be
                 trigged with #screen raise mouse location, which is not
@@ -302,8 +493,8 @@ screen.c        Added #screen raise SCREEN MOUSE LOCATION, the SCREEN MOUSE
                 within the character cell. %8 will report the pixel position
                 as a 3x3 cell using values 1 through 9.
 
-mapper.c        Added the BLOCK exit flag and room flag. Works like AVOID, but
-                also prevents movement into the room.
+mapper.c        Added the BLOCK exit flag and room flag. Works like AVOID,
+                but also prevents movement into the room.
 
 mapper.c        Added #map landmark <name> <vnum> [desc] and #map unlandmark.
                 Landmarks work as fast lookup aliases and to give tintin an
@@ -397,7 +588,7 @@ nest.c          Added a notice for people still using $variable[] instead of
 
 math.c          Added .. ellipsis support to define ranges in tables. It can
                 also be used in #math to join two 32 bit integers into a 64
-                bit integer. 
+                bit integer.
 
 terminal.c      Now initializing a more advanced keyboard mode upon startup,
                 if a macro stops working check if you have to redefine it to
@@ -445,7 +636,7 @@ draw.c          More feature complete, see #help draw.
 vt100.c         Added better cursor save/restore handling.
 
 update.c        Added support for centisecond delays (0.01) and moved ticks to
-                deciseconds (0.1). 
+                deciseconds (0.1).
 
                 Reduced input and session polling lag from 25 ms to 5 ms,
                 which comes at a slight increase in cpu usage.
@@ -787,7 +978,7 @@ main.c          Added better #! hashbang support, with %0 in the PROGRAM START
 
 data.c          Added #INFO SYSTEM option, with #INFO SYSTEM SAVE saving the
                 data to the info[SYSTEM] variable. Current variables
-                supported are CLIENT_NAME and CLIENT_VERSION. 
+                supported are CLIENT_NAME and CLIENT_VERSION.
 
 event.c         Added %4 and %5 arguments to mouse click events which hold the
                 word and line that was clicked. Under construction.
@@ -922,7 +1113,7 @@ telopt.c        Added support for the CHARSET telnet option. Currently
 path.c          Added #path save <length|position> <variable> options.
 
 
-Feb 2019       
+Feb 2019
 ------------------------------------------------------------------------------
                 There was a question regarding copyright and licensing
                 recently so I made some changes and I'm writing this entry to
@@ -976,7 +1167,7 @@ Feb 2019
            2001 Robert Ellsworth, aka Joann Ellsworth, as the copyright holder
                 licensed the tintin15.txt manual under the GPL on 28 Aug 2001.
 
-           2004 Igor van den Hoven received permission from Bill Reiss to 
+           2004 Igor van den Hoven received permission from Bill Reiss to
                 release TinTin++ derived code under the name TinTin++.
 
            2004 Igor van den Hoven released TinTin++ 1.90 on March 13 under
@@ -985,7 +1176,7 @@ Feb 2019
                 file the code could only be legally released under the GPL
                 2 or later.
 
-                Version 1.90 featured a new mathematics engine and regular 
+                Version 1.90 featured a new mathematics engine and regular
                 expression interpreter, telnet negotations, a scroll back
                 buffer, enhanced VT102 interpretation, a more standardized
                 TINTIN scripting language, a nifty string formatter, internal
@@ -1183,7 +1374,7 @@ line.c         #line log {filename} {text} was extremely slow, at least on
                for each log call. Multiple logs to the same file are much
                faster now, with each session having its own dedicated file
                descriptor to speed up consecutive writes to the same log
-               file. 
+               file.
 
 config.c       Added config RANDOM SEED option to set a custom seed for the
                random number generator. Useful for machine learning scripts
@@ -2245,7 +2436,7 @@ alias.c        Variables passed along as an alias argument now go by value
                instead of by reference.
 
 mapper.c       Added the asciivnums flag which displays room vnums in the ascii
-               map. 
+               map.
 
 
 August 2008    1.98.5
@@ -2744,7 +2935,7 @@ input.c        Escaped unmatched sequences are now automagically meta converted.
 cursor.c       history prev and next can now be used in combination with the
                history search function.
 
-mapper.c       Improved map drawing by using virtual coordinates. 
+mapper.c       Improved map drawing by using virtual coordinates.
 
 mapper.c       Added a flag to enable vt graphics mode. A hopefully universal
                legenda is: 250 223 222 200 220 186 201 204 221 188 205 202 187
@@ -2754,7 +2945,7 @@ mapper.c       Added a flag to draw 6x3 ascii graphics which allows displaying
                rooms going ne, nw, se, sw, u, and d.
 
 misc.c         Can no longer use commas in #loop. When using 1 argument with
-               #loop it's assumed 
+               #loop it's assumed
 
 misc.c         Can now use math in delays, as in #delay 1d5 smile.
 
@@ -3163,7 +3354,7 @@ split.c        Fixed various #split bugs when creating or switching sessions.
 
 buffer.c       #buffer {i} will now give some info about the scrollback buffer.
 
-tick.c         #delay now works in the startup session. Tickers are still 
+tick.c         #delay now works in the startup session. Tickers are still
                disabled.
 
 class.c        #class <class> read <file>, now only reads in stuff that belongs
@@ -3307,7 +3498,7 @@ rl.c           No more threading, made tintin crashy as well.
 variable.c     Added %n (name) to #format, which capitalizes the first letter
                of the given string.
 
-buffer.c       No longer resetting the buffer if the new scrollback size 
+buffer.c       No longer resetting the buffer if the new scrollback size
                is the same as the old one.
 
 rl.c           prompts automatically get a newline added in split mode.
@@ -3772,7 +3963,7 @@ action.c       rewrote the %0 - %9 check_one_action regexp routine, it's
 action.c       rewrote substitute_vars, ';' is changed to : per default
 
 variable.c     rewrote subsitute_myvariables, no longer supporting $number
-               variables. ';' is stripped per default. This also easily 
+               variables. ';' is stripped per default. This also easily
                allows a change so variables can contain numbers.
 
 variable.c     #format {variable} {format} {arguments}

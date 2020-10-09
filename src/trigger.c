@@ -46,6 +46,11 @@ DO_COMMAND(do_action)
 	}
 	else
 	{
+		if (*arg3 && (atof(arg3) < 1 || atof(arg3) >= 10))
+		{
+			show_error(ses, LIST_ACTION, "\e[1;31m#ERROR: #ACTION {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
+		}
+
 		update_node_list(ses->list[LIST_ACTION], arg1, arg2, arg3, "");
 
 		show_message(ses, LIST_ACTION, "#OK. #ACTION {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
@@ -62,11 +67,10 @@ DO_COMMAND(do_unaction)
 }
 
 
-void check_all_actions(struct session *ses, char *original, char *line)
+void check_all_actions(struct session *ses, char *original, char *line, char *buf)
 {
 	struct listroot *root = ses->list[LIST_ACTION];
 	struct listnode *node;
-	char buf[BUFFER_SIZE];
 
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
@@ -135,7 +139,7 @@ int check_all_aliases(struct session *ses, char *input)
 {
 	struct listnode *node;
 	struct listroot *root;
-	char tmp[BUFFER_SIZE], line[BUFFER_SIZE], *arg;
+	char *buf, *line, *arg;
 	int i;
 
 	root = ses->list[LIST_ALIAS];
@@ -144,6 +148,15 @@ int check_all_aliases(struct session *ses, char *input)
 	{
 		return FALSE;
 	}
+
+	if (push_call_printf("check_all_aliases(%s,%s)",ses->name,input) == 0)
+	{
+		pop_call();
+		return FALSE;
+	}
+
+	buf  = str_alloc_stack(0);
+	line = str_alloc_stack(0);
 
 	substitute(ses, input, line, SUB_VAR|SUB_FUN);
 
@@ -174,9 +187,9 @@ int check_all_aliases(struct session *ses, char *input)
 
 				for (i = 1 ; i < 100 ; i++)
 				{
-					arg = get_arg_in_braces(ses, arg, tmp, GET_ONE);
+					arg = get_arg_in_braces(ses, arg, buf, GET_ONE);
 
-					RESTRING(gtd->vars[i], tmp);
+					RESTRING(gtd->vars[i], buf);
 
 					if (*arg == 0)
 					{
@@ -193,15 +206,15 @@ int check_all_aliases(struct session *ses, char *input)
 				}
 			}
 
-			substitute(ses, node->arg2, tmp, SUB_ARG);
+			substitute(ses, node->arg2, buf, SUB_ARG);
 
-			if (!strncmp(node->arg1, line, strlen(node->arg1)) && !strcmp(node->arg2, tmp) && *gtd->vars[0])
+			if (!strncmp(node->arg1, line, strlen(node->arg1)) && !strcmp(node->arg2, buf) && *gtd->vars[0])
 			{
-				sprintf(input, "%s %s", tmp, gtd->vars[0]);
+				sprintf(input, "%s %s", buf, gtd->vars[0]);
 			}
 			else
 			{
-				sprintf(input, "%s", tmp);
+				sprintf(input, "%s", buf);
 			}
 
 			show_debug(ses, LIST_ALIAS, "#DEBUG ALIAS {%s} {%s}", node->arg1, gtd->vars[0]);
@@ -210,9 +223,11 @@ int check_all_aliases(struct session *ses, char *input)
 			{
 				delete_node_list(ses, LIST_ALIAS, node);
 			}
+			pop_call();
 			return TRUE;
 		}
 	}
+	pop_call();
 	return FALSE;
 }
 
@@ -246,6 +261,7 @@ DO_COMMAND(do_button)
 	}
 	else
 	{
+		SET_BIT(gtd->event_flags, EVENT_FLAG_MOUSE);
 		SET_BIT(ses->event_flags, EVENT_FLAG_MOUSE);
 
 		node = update_node_list(ses->list[LIST_BUTTON], arg1, arg2, arg3, "");
@@ -290,7 +306,7 @@ DO_COMMAND(do_unbutton)
 
 void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line)
 {
-	char buf[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char *buf, *arg4;
 	struct listnode *node;
 	struct listroot *root;
 	short val[4];
@@ -301,6 +317,11 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 	{
 		return;
 	}
+
+	push_call("check_all_buttons(%p,%d,%d,%p,%p,%p,%p)",ses,row,col,arg1,arg2,word,line);
+
+	buf  = str_alloc_stack(0);
+	arg4 = str_alloc_stack(0);
 
 	sprintf(arg4, "%s %s", arg1, arg2);
 
@@ -345,9 +366,11 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 			}
 			script_driver(ses, LIST_BUTTON, buf);
 
-			return;
+			break;
 		}
 	}
+	pop_call();
+	return;
 }
 
 
@@ -384,7 +407,7 @@ DO_COMMAND(do_delay)
 
 			get_number_string(ses, arg1, time);
 
-			update_node_list(ses->list[LIST_DELAY], arg3, arg2, time, "");
+			create_node_list(ses->list[LIST_DELAY], arg3, arg2, arg3, time);
 
 			show_message(ses, LIST_DELAY, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", time, arg2);
 		}
@@ -398,7 +421,7 @@ DO_COMMAND(do_delay)
 
 			node->shots = 1;
 
-			show_message(ses, LIST_TICKER, "#OK. #TICK {%s} WILL EXECUTE {%s} IN {%s} SECONDS.", arg1, arg2, time);
+			show_message(ses, LIST_TICKER, "#ONESHOT: #TICK {%s} WILL EXECUTE {%s} IN {%s} SECONDS.", arg1, arg2, time);
 		}
 	}
 	return ses;
@@ -408,7 +431,7 @@ DO_COMMAND(do_undelay)
 {
 	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if (isalpha((int) *arg1))
+	if (is_alpha(*arg1))
 	{
 		delete_node_with_wild(ses, LIST_TICKER, arg);
 	}
@@ -578,10 +601,15 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 	struct listroot *root = ses->list[LIST_HIGHLIGHT];
 	struct listnode *node;
 	char *pto, *ptl, *ptm;
-	char match[BUFFER_SIZE], color[BUFFER_SIZE], reset[BUFFER_SIZE], output[BUFFER_SIZE], plain[BUFFER_SIZE];
+	char *match, *color, *output, *plain;
 	int len;
 
 	push_call("check_all_highlights(%p,%p,%p)",ses,original,line);
+
+	match  = str_alloc_stack(0);
+	color  = str_alloc_stack(0);
+	output = str_alloc_stack(0);
+	plain  = str_alloc_stack(0);
 
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
@@ -591,7 +619,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 		{
 			get_color_names(ses, node->arg2, color);
 
-			*output = *reset = 0;
+			*output = *gtd->color_reset = 0;
 
 			pto = original;
 			ptl = line;
@@ -622,9 +650,9 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 				*ptm = 0;
 
-				get_color_codes(reset, pto, reset, GET_ALL);
+				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
 
-				cat_sprintf(output, "%s%s%s\e[0m%s", pto, color, plain, reset);
+				cat_sprintf(output, "%s%s%s\e[0m%s", pto, color, plain, gtd->color_reset);
 
 				pto = ptm + len;
 
@@ -657,7 +685,6 @@ DO_COMMAND(do_macro)
 {
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
-//	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
 	if (*arg1 == 0)
 	{
@@ -672,9 +699,9 @@ DO_COMMAND(do_macro)
 	}
 	else
 	{
-		tintin_macro_compile(arg1, arg4);
+		tintin_macro_compile(arg1, arg3);
 
-		update_node_list(ses->list[LIST_MACRO], arg1, arg2, "", arg4);
+		update_node_list(ses->list[LIST_MACRO], arg1, arg2, "", arg3);
 
 		show_message(ses, LIST_MACRO, "#OK. MACRO {%s} NOW TRIGGERS {%s}.", arg1, arg2);
 	}
@@ -717,6 +744,9 @@ DO_COMMAND(do_prompt)
 	}
 	else
 	{
+		arg3 = str_alloc_stack(0);
+		arg4 = str_alloc_stack(0);
+
 		arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg4, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -736,12 +766,12 @@ DO_COMMAND(do_unprompt)
 }
 
 
-int check_all_prompts(struct session *ses, char *original, char *line, int check)
+int check_all_prompts(struct session *ses, char *original, char *line)
 {
 	struct listroot *root = ses->list[LIST_PROMPT];
 	struct listnode *node;
 
-	if (check && !HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
 		return 0;
 	}
@@ -752,22 +782,17 @@ int check_all_prompts(struct session *ses, char *original, char *line, int check
 
 		if (check_one_regexp(ses, node, line, original, 0))
 		{
-			if (!check)
-			{
-				return TRUE;
-			}
-
 			if (*node->arg2)
 			{
-				substitute(ses, node->arg2, original, SUB_ARG);
-				substitute(ses, original, original, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+				substitute(ses, node->arg2, line, SUB_ARG);
+				substitute(ses, line, original, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
 
 				strip_vt102_codes(original, line);
 			}
 
 			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
 
-			split_show(ses, original, atoi(node->arg3), atoi(node->arg4));
+			split_show(ses, original, node->arg3, node->arg4);
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -826,11 +851,18 @@ DO_COMMAND(do_unsubstitute)
 
 void check_all_substitutions(struct session *ses, char *original, char *line)
 {
-	char match[BUFFER_SIZE], subst[BUFFER_SIZE], output[BUFFER_SIZE], temp[BUFFER_SIZE], *ptl, *ptm, *pto;
+	char *match, *subst, *result, *temp, *ptl, *ptm, *pto, *ptr;
 	struct listroot *root = ses->list[LIST_SUBSTITUTE];
 	struct listnode *node;
 	int len;
 
+	push_call("check_all_substitutions(%p,%p,%p)",ses,original,line);
+
+	match  = str_alloc_stack(0);
+	subst  = str_alloc_stack(0);
+	result = str_alloc_stack(0);
+	temp   = str_alloc_stack(0);
+	
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
 		node = root->list[root->update];
@@ -839,8 +871,9 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 		{
 			pto = original;
 			ptl = line;
+			ptr = result;
 
-			*output = 0;
+			*result = *gtd->color_reset = 0;
 
 			do
 			{
@@ -852,7 +885,6 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 				strcpy(match, gtd->vars[0]);
 
 				substitute(ses, node->arg2, temp, SUB_ARG);
-				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
 
 				if (*node->arg1 == '~')
 				{
@@ -869,7 +901,11 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 
 				*ptm = 0;
 
-				cat_sprintf(output, "%s%s", pto, subst);
+				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
+
+				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+
+				ptr += sprintf(ptr, "%s%s", pto, subst);
 
 				pto = ptm + len;
 
@@ -881,13 +917,15 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 			{
 				delete_node_list(ses, LIST_SUBSTITUTE, node);
 			}
-			strcat(output, pto);
+			strcpy(ptr, pto);
 
-			strcpy(original, output);
+			strcpy(original, result);
 
 			strip_vt102_codes(original, line);
 		}
 	}
+	pop_call();
+	return;
 }
 
 

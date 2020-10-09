@@ -307,7 +307,7 @@
 	};
 	#else
 	{
-		#var result <118>%1<278>
+		#var result <118>%1<900>
 	}
 }
 
@@ -500,3 +500,351 @@
 	#showme <138>Bubba tells you 'hello';
 	#showme <158>Pamela chats 'bye';
 }
+
+#nop -------------------------------------------------------------------------
+#nop Display two sessions next to each other
+#nop -------------------------------------------------------------------------
+
+#event {SCREEN RESIZE}
+{
+	#var ROWS %0;
+	#var COLS %1;
+	#draw line 1 {$COLS / 2} -3 {$COLS / 2};
+
+	#left #screen scroll 1 1 -3 {$COLS / 2 - 1};
+	#right #screen scroll 1 {$COLS / 2 + 1} -3 -1;
+}
+
+#event {PROGRAM START}
+{
+	#screen raise SCREEN RESIZE;
+	#ses right localhost 4321;
+	#ses left localhost 4321;
+}
+
+#event {SESSION CREATED}
+{
+	#var name %0;
+}
+
+#event {SESSION ACTIVATED}
+{
+	#gts #var active %0;
+}
+
+#event {RECEIVED OUTPUT}
+{
+	#if {"@gts{$active}" == "$name"}
+	{
+		#return;
+	};
+
+	#switch {"$name"}
+	{
+		#case {"left"} {#draw Red boxed foreground buffer 1 1 -3 {$COLS / 2 - 1};};
+		#case {"right"}{#draw Red boxed foreground buffer 1 {$COLS / 2 + 1} -3 -1};
+	};
+}
+
+#nop -------------------------------------------------------------------------
+#nop Follow the group leader on the map.
+#nop -------------------------------------------------------------------------
+
+#var short_dir
+{
+	{north}{n}
+	{northeast}{ne}
+	{east}{e}
+	{southeast}{se}
+	{south}{s}
+	{southwest}{sw}
+	{west}{w}
+	{northwest}{nw}
+}
+
+#action {%1 walks %2.$}
+{
+	#var {follow_targets[%1]} {$short_dir[%2]}
+}
+
+#action {^You follow %1.$}
+{
+	#if {&follow_targets[%1]}
+	{
+		#map move $follow_targets[%1]
+	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Use mouse click to change the input cursor's position.
+#nop -------------------------------------------------------------------------
+
+#config mouse on
+
+#split
+
+#event {SHORT-CLICKED MOUSE BUTTON ONE -1}
+{
+	#cursor position %1
+}
+
+#nop -------------------------------------------------------------------------
+#nop Move the VT100 map from the top to the right of the screen
+#nop -------------------------------------------------------------------------
+
+#map create
+#map flag vtmap
+#map flag unicode
+#map goto 1
+
+#split 0 1 0 -80;
+#map offset 1 82 -5 -1
+
+#screen resize horizontal 120
+
+#nop -------------------------------------------------------------------------
+#nop Add clickable session tabs at the top of the screen
+#nop -------------------------------------------------------------------------
+
+#event {PROGRAM START}
+{
+    #split 3 1;
+    #config mouse on;
+    #var active gts;
+    session_activated gts;
+}
+
+#event {SESSION CREATED}
+{
+    #gts session_activated %0
+}
+
+#event {SESSION ACTIVATED}
+{
+    #gts session_activated %0
+}
+
+#alias {session_activated}
+{
+    #line sub esc #var sessions[$active] {<138>\e]68;2;TABS;#$active\a\e[4;24m$active\e[24m};
+    #var active {%0};
+    #line sub esc #var sessions[%0] {<128>\e]68;2;TABS;#nop\a\e[4;24m%0\e[24m};
+    #draw foreground Azure table 1 1 3 -1 {$sessions[%*]}
+}
+
+#event {PRESSED SECURE LINK TABS MOUSE BUTTON ONE}
+{
+    %4
+}
+
+
+#nop -------------------------------------------------------------------------
+#nop Add basic MXP link and color handling
+#nop -------------------------------------------------------------------------
+
+#config mouse on
+
+#event {IAC DO MXP}
+{
+    #send {\xFF\xFB\x5B\}
+}
+
+#function {mxp_link}
+{
+    #line sub esc #var result {\e]68;1;%1;%2\a\e[4m%3\e[24m}
+}
+
+#act {~\e[1z<VERSION>} {#send {\e[4z<VERSION MXP=1.0 CLIENT=TINTIN++ VERSION=2.02.04>}}
+#act {~\e[1z<SUPPORT>} {#send {\e[4z<SUPPORTS +SEND +COLOR>}}
+
+#sub {~\e[4z<COLOR #%1>%2\e[4z</COLOR>} {<f%1>%2<900>}
+
+#sub {~\e[4z<SEND HREF="%1">%2\e[4z</SEND>} {@mxp_link{MXP;%1;%2}}
+
+#event {PRESSED LINK MXP MOUSE BUTTON ONE}
+{
+    #send {%4}
+}
+
+#sub {~\e[4z{<RExits>|</RExits>|<RDesc>|</RDesc>|<PROMPT>|</PROMPT>|<RName>|</RName>}} {}
+
+#sub {~\e[4z<RNum %d />} {}
+
+#sub {&lt;} {<}
+#sub {&gt;} {>}
+
+#nop -------------------------------------------------------------------------
+#nop Example script for using #list indexing.
+#nop -------------------------------------------------------------------------
+
+#var players[1] {{name}{bubba}{age}{15}{level}{24}}
+#var players[2] {{name}{pamela}{age}{19}{level}{2}}
+#var players[3] {{name}{ronald}{age}{69}{level}{13}}
+#var players[4] {{name}{bubba}{age}{26}{level}{30}}
+#var players[5] {{name}{ronald}{age}{11}{level}{31}}
+
+#alias {display}
+{
+        #var out {};
+
+        #loop 1 &players[] cnt
+        {
+            #var out[$cnt] {$cnt;$players[+$cnt][name];$players[+$cnt][age];$players[+$cnt][level]};
+        };
+        #draw scroll grid table 1 1 2+&players[]*2 80 $out[%*]
+}
+
+#alias {test1}
+{
+    #list players index name;
+    #list players order;
+    display
+}
+
+#alias {test2}
+{
+    #list players index name;
+    #list players order;
+    #list players reverse;
+    display;
+}
+
+#alias {test3}
+{
+    #list players index name;
+    #list players order;
+    #list players index level;
+    #list players order;
+    display
+}
+
+#nop -------------------------------------------------------------------------
+#nop This creates two input lines that can be switched between using the tab
+#nop key.
+#nop -------------------------------------------------------------------------
+
+#line quiet #split
+
+#macro {\t} {inputswitch}
+
+#var input[width] 1
+
+#alias {inputswitch}
+{
+    #cursor get {input[current]};
+    #cursor clear;
+    #cursor set {$input[buffer2]};
+    #cursor end;
+    #var input[buffer2] {$input[current]};
+    #draw Ebony tile {-1-$input[width]} 1 -2 -1 {$input[buffer2]}
+}
+
+#nop -------------------------------------------------------------------------
+#nop This allows for split screen scroll back, just use the mouse wheel in
+#nop the upper half of the screen.
+#nop -------------------------------------------------------------------------
+
+#event {PROGRAM START}
+{
+    #config mouse on;
+    #var SCROLL[MODE] 0;
+    #split 0 1;
+    #screen raise SCREEN RESIZE;
+}
+
+#event {SCREEN RESIZE}
+{
+    #var ROWS %0;
+    #var COLS %1;
+    #screen get SCROLL_TOP_ROW SCROLL[TOP_ROW];
+    #screen get SCROLL_TOP_COL SCROLL[TOP_COL];
+    #screen get SCROLL_BOT_ROW SCROLL[BOT_ROW];
+    #screen get SCROLL_BOT_COL SCROLL[BOT_COL];
+}
+
+#EVENT {SCROLLED MOUSE WHEEL UP}
+{
+    #if {$SCROLL[MODE] == 0}
+    {
+        #if {%0 < $ROWS / 2}
+        {
+            #var SCROLL[MODE] 1;
+            #var SCROLL[OLD_ROW] $SCROLL[BOT_ROW];
+            #math SCROLL[BOT_ROW] $SCROLL[OLD_ROW] / 2;
+            #var BUFFER {};
+            #screen scroll $SCROLL[TOP_ROW] $SCROLL[TOP_COL] $SCROLL[BOT_ROW] $SCROLL[BOT_COL];
+
+            #draw red teed line $SCROLL[BOT_ROW]+1 $SCROLL[TOP_COL] $SCROLL[BOT_ROW]+1 $SCROLL[BOT_COL];
+
+            #screen clear square $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL];
+        };
+    };
+    #if {$SCROLL[MODE] == 1}
+    {
+        #buffer up 1
+    }
+}
+
+#EVENT {SCROLLED MOUSE WHEEL DOWN}
+{
+    #if {$SCROLL[MODE] == 1}
+    {
+        #if {%0 < $ROWS / 2}
+        {
+            #buffer down 1;
+
+            #buffer info save SCROLL[INFO];
+
+            #if {$SCROLL[INFO][LINE] == -1}
+            {
+                #var SCROLL[MODE] 0;
+                #var SCROLL[BOT_ROW] $SCROLL[OLD_ROW];
+
+                #split 0 1;
+                #buffer end;
+            }
+        }
+    }
+}
+
+#event {RECEIVED LINE}
+{
+    #if {$SCROLL[MODE] == 1}
+    {
+        #if {&BUFFER[] > $ROWS}
+        {
+            #list BUFFER del 1
+        };
+        #list BUFFER add {%0};
+
+        #draw tile $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL] $BUFFER[%*];
+    }
+}
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------

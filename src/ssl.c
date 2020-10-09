@@ -115,7 +115,7 @@ static int get_cert_file(struct session *ses, char *result)
 		{
 			*ptr++ = '.';
 		}
-		else if (isalnum((int) *ptr) || *ptr == '-' || *ptr == '.' || *ptr == '_')
+		else if (is_alnum(*ptr) || *ptr == '-' || *ptr == '.' || *ptr == '_')
 		{
 			ptr++;
 		}
@@ -125,7 +125,7 @@ static int get_cert_file(struct session *ses, char *result)
 		}
 	}
 
-	sprintf(result, "%s/%s/ssl/%s.crt", gtd->home, TINTIN_DIR, name);
+	sprintf(result, "%s/ssl/%s.crt", gtd->system->tt_dir, name);
 
 	return 1;
 }
@@ -175,18 +175,16 @@ static void save_cert(struct session *ses, gnutls_x509_crt_t cert, int new)
 		return;
 	}
 
-	sprintf(filename, "%s/%s", gtd->home, TINTIN_DIR);
+	sprintf(filename, "%s", gtd->system->tt_dir);
 
-	if (mkdir(filename, 0777) && errno != EEXIST)
+	if (mkdir(filename, 0755) && errno != EEXIST)
 	{
 		tintin_printf(ses, "#SSL: FAILED TO CREATE TINTIN DIR %s (%s)", filename, strerror(errno));
 
 		return;
 	}
 
-	sprintf(filename, "%s/%s/ssl", gtd->home, TINTIN_DIR);
-
-	mkdir(filename, 0755);
+	sprintf(filename, "%s/ssl", gtd->system->tt_dir);
 
 	if (mkdir(filename, 0755) && errno != EEXIST)
 	{
@@ -258,7 +256,7 @@ static int diff_certs(gnutls_x509_crt_t c1, gnutls_x509_crt_t c2)
 
 static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 {
-	char filename[BUFFER_SIZE], buf2[BUFFER_SIZE], *bptr;
+	char filename[BUFFER_SIZE], buf2[BUFFER_SIZE];
 	time_t t;
 	gnutls_x509_crt_t cert, oldcert;
 	const gnutls_datum_t *cert_list;
@@ -288,34 +286,23 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 		err = "#SSL: SERVER'S CERTIFICATE IS INVALID.";
 		goto badcert;
 	}
-	
+
 	t = time(0);
 
 	if (gnutls_x509_crt_get_activation_time(cert) > t)
 	{
-		sprintf(buf2, "%s", ctime(&t));
+		sprintf(buf2, "CERTIFICATE ACTIVATION TIME IS IN THE FUTURE (%s)", str_time(ses, "%c", gnutls_x509_crt_get_activation_time(cert)));
 
-		if ((bptr = strchr(buf2, '\n')))
-		{
-			*bptr = 0;
-		}
-		sprintf(filename, "CERTIFICATE ACTIVATION TIME IS IN THE FUTURE (%s)", buf2);
-
-		err = filename;
+		err = buf2;
 	}
 	
-	if (gnutls_x509_crt_get_expiration_time(cert)<t)
+	if (gnutls_x509_crt_get_expiration_time(cert) < t)
 	{
-		sprintf(buf2, "%s", ctime(&t));
+		sprintf(buf2, "CERTIFICATE HAS EXPIRED (%s)", str_time(ses, "%c", gnutls_x509_crt_get_expiration_time(cert)));
 
-		if ((bptr = strchr(buf2, '\n')))
-		{
-			*bptr = 0;
-		}
-		sprintf(filename, "CERTIFICATE HAS EXPIRED (%s)", buf2);
-		err = filename;
+		err = buf2;
 	}
-	
+
 	if (!oldcert)
 	{
 		save_cert(ses, cert, 1);

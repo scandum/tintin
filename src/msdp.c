@@ -38,7 +38,7 @@ void init_msdp_table(void)
 		{
 			if (*msdp_table[index+1].name)
 			{
-				print_stdout("\e[31minit_msdp_table: Improperly sorted variable: %s.\e0m", msdp_table[index+1].name);
+				print_stdout(0, 0, "\e[31minit_msdp_table: Improperly sorted variable: %s.\e0m", msdp_table[index+1].name);
 			}
 		}
 	}
@@ -974,3 +974,127 @@ int json2msdp(unsigned char *src, int srclen, char *out)
 	return pto - out;
 }
 
+int tintin2msdp(char *str, char *out)
+{
+	char *pto, *ptv, var[BUFFER_SIZE], val[BUFFER_SIZE];
+	int nest, last, type, level, state[100];
+
+	nest = last = level = 0;
+
+	pto = out;
+	ptv = var;
+
+	while (*str && *str != '{')
+	{
+		*pto++ = *str++;
+	}
+
+	pto += sprintf(pto, "%c%c%c", IAC, SB, TELOPT_MSDP);
+
+	state[0] = nest = type = 0;
+
+	while (*str && nest < 99)
+	{
+		switch (*str)
+		{
+			case '{':
+				level++;
+
+				if (state[nest] == 0)
+				{
+					ptv = var;
+
+					state[nest] = *pto++ = MSDP_VAR;
+				}
+				else if (state[nest] == MSDP_VAR)
+				{
+					ptv = val;
+
+					state[nest] = *pto++ = MSDP_VAL;
+				}
+				str++;
+
+				break;
+
+			case '}':
+				level--;
+
+				if (level == 0)
+				{
+					if (state[nest] == MSDP_VAR)
+					{
+						*ptv = 0;
+
+						pto += sprintf(pto, "%s", var);
+					}
+					else if (state[nest] == MSDP_VAL)
+					{
+						*ptv = 0;
+
+						pto += sprintf(pto, "%s", val);
+
+						state[nest] = 0;
+					}
+				}
+				str++;
+
+				if (nest < 0)
+				{
+					pto += sprintf(pto, "%c%c", IAC, SE);
+					return pto - out;
+				}
+				break;
+
+			case ';':
+				if (level)
+				{
+					if (state[nest] == MSDP_VAL)
+					{
+						*ptv = 0;
+
+						pto += sprintf(pto, "%s%c", val, MSDP_VAL);
+
+						ptv = val;
+					}
+				}
+				else
+				{
+					goto end;
+				}
+				str++;
+
+				break;
+
+			default:
+				if (level)
+				{
+					if (state[nest] == MSDP_VAR)
+					{
+						*ptv++ = *str++;
+					}
+					else if (state[nest] == MSDP_VAL)
+					{
+						*ptv++ = *str++;
+					}
+				}
+				else
+				{
+					goto end;
+				}
+
+				break;
+		}
+	}
+
+	end:
+
+	pto += sprintf(pto, "%c%c", IAC, SE);
+
+	while (*str)
+	{
+		*pto++ = *str++;
+	}
+	*pto = 0;
+
+	return pto - out;
+}

@@ -3,15 +3,16 @@ ABOUT
   TinTin++ is a command line MUD client which features support for TELNET,
   PCRE, UTF-8, SSL, VT100, IPv6, the dynamic TINTIN scripting language,
   a comprensive trigger system, and several other features geared towards
-  mudding, scripting, text processing, interprocess communication,
-  redirection, and VT100 / xterm terminal emulation and multiplexing.
+  mudding, scripting, shell-scripting, text processing, automation,
+  interprocess communication, redirection, xterm terminal emulation, and
+  multiplexing / demultiplexing.
 
 INFO
 
   You'll find answers to common questions in the FAQ and INSTALL documents. A
-  brief introduction to using TinTin++ is available in the docs/tintin19.txt
-  and docs/syntax.txt documents. The SCRIPTS document contains some useful
-  example scripts.
+  brief introduction to using TinTin++ is available in the docs/tintin19.txt,
+  docs/manual.html, and docs/syntax.txt documents. The SCRIPTS document
+  contains a variety of example scripts.
 
   The NEWS document contains important announcements and a list of changes
   that impact backward compatibility with older versions. A more detailed
@@ -19,9 +20,9 @@ INFO
 
 CONTACT
 
-  Easiest is to register on the forum linked from the website if you have
-  questions about using TinTin++. If you need to get in touch with one of
-  the contributors check the CREDITS file. 
+  Easiest is to register on the forum or discord channel linked from the
+  website if you have questions about using TinTin++. If you need to get
+  in touch with one of the contributors check the CREDITS file. 
 
 LICENSE
 
@@ -29,7 +30,7 @@ LICENSE
 
 COPYRIGHT
 
-  Copyright 2004-2019 Igor van den Hoven
+  Copyright 2004-2020 Igor van den Hoven
 
 WEBSITE
 

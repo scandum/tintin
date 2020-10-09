@@ -1453,26 +1453,23 @@ int cmp_float(const void * a, const void * b)
 
 int cmp_num(const void * a, const void * b)
 {
-	if (is_number(*(char **) a) && is_number(*(char **) b))
-	{
-		long double num_a = is_number(*(char **) a) ? tintoi(*(char **) a) : 0;
-		long double num_b = is_number(*(char **) b) ? tintoi(*(char **) b) : 0;
+	unsigned char isnum_a, isnum_b;
 
-		if (num_a < num_b)
-		{
-			return -1;
-		}
-		if (num_a > num_b)
-		{
-			return 1;
-		}
-		return 0;
+	isnum_a = is_number(*(char **) a);
+	isnum_b = is_number(*(char **) b);
+
+	if (isnum_a && isnum_b)
+	{
+		long double num_a = tintoi(*(char **) a);
+		long double num_b = tintoi(*(char **) b);
+
+		return num_a < num_b ? -1 : num_a > num_b ? 1 : 0;
 	}
-	else if (is_number(*(char **) a))
+	else if (isnum_a)
 	{
 		return -1;
 	}
-	else if (is_number(*(char **) b))
+	else if (isnum_b)
 	{
 		return 1;
 	}

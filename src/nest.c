@@ -47,7 +47,7 @@ struct listroot *search_nest_base_ses(struct session *ses, char *arg)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
-		for (index = gtd->script_index ; index ; index--)
+		for (index = gtd->script_index ; index >= 0 ; index--)
 		{
 			root = gtd->script_stack[index]->local;
 
@@ -90,7 +90,7 @@ struct listnode *search_nest_node_ses(struct session *ses, char *variable)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
-		for (index = gtd->script_index ; index ; index--)
+		for (index = gtd->script_index ; index >= 0 ; index--)
 		{
 			root = gtd->script_stack[index]->local;
 
@@ -871,12 +871,20 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 	push_call("set_nest_node_ses(%p,%s,%p,...)",ses,arg1,format);
 
 	va_start(args, format);
-	vasprintf(&arg2, format, args);
+
+	if (vasprintf(&arg2, format, args) == -1)
+	{
+		syserr_printf(ses, "set_nest_node_ses: vasprintf");
+	}
+
 	va_end(args);
 
 	arg = get_arg_to_brackets(ses, arg1, name);
 
-	check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	if (HAS_BIT(ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	}
 
 	root = search_nest_base_ses(ses, name);
 
@@ -936,8 +944,10 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 		node->shots = gtd->level->mshot;
 	}
 
-	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
-
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	}
 	free(arg2);
 
 	pop_call();
@@ -956,12 +966,19 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 	push_call("add_nest_node_ses(%p,%s,%p,...)",ses,arg1,format);
 
 	va_start(args, format);
-	vasprintf(&arg2, format, args);
+	if (vasprintf(&arg2, format, args) == -1)
+	{
+		syserr_printf(ses, "add_nest_node_ses: vasprintf");
+	}
+
 	va_end(args);
 
 	arg = get_arg_to_brackets(ses, arg1, name);
 
-	check_all_events(ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	if (HAS_BIT(ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	}
 
 	root = search_nest_base_ses(ses, name);
 
@@ -1016,8 +1033,10 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 		node->shots = gtd->level->mshot;
 	}
 
-	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
-
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	}
 	free(arg2);
 
 	pop_call();
@@ -1035,12 +1054,19 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 	push_call("set_nest_node(%p,%s,%p,...)",root,arg1,format);
 
 	va_start(args, format);
-	vasprintf(&arg2, format, args);
+	if (vasprintf(&arg2, format, args) == -1)
+	{
+		syserr_printf(root->ses, "set_nest_node: vasprintf");
+	}
+
 	va_end(args);
 
 	arg = get_arg_to_brackets(root->ses, arg1, name);
 
-	check_all_events(root->ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
@@ -1091,7 +1117,10 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 		node->shots = gtd->level->mshot;
 	}
 
-	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	}
 
 	free(arg2);
 
@@ -1111,12 +1140,19 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 	push_call("add_nest_node(%p,%s,%p,...)",root,arg1,format);
 
 	va_start(args, format);
-	vasprintf(&arg2, format, args);
+	if (vasprintf(&arg2, format, args) == -1)
+	{
+		syserr_printf(root->ses, "add_nest_node: vasprintf");
+	}
+
 	va_end(args);
 
 	arg = get_arg_to_brackets(root->ses, arg1, name);
 
-	check_all_events(root->ses, SUB_ARG, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
@@ -1170,7 +1206,10 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 		node->shots = gtd->level->mshot;
 	}
 
-	check_all_events(root->ses, SUB_ARG, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
+	{
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+	}
 
 	free(arg2);
 

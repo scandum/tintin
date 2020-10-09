@@ -34,17 +34,17 @@ DO_COMMAND(do_bell)
 
 	if (*arg1 == 0)
 	{
-		print_stdout("\007");
+		print_stdout(0, 0, "\007");
 	}
 	else if (is_abbrev(arg1, "FLASH"))
 	{
 		if (is_abbrev(arg2, "ON"))
 		{
-			print_stdout("\e[?1042h");
+			print_stdout(0, 0, "\e[?1042h");
 		}
 		else if (is_abbrev(arg2, "OFF"))
 		{
-			print_stdout("\e[?1042l");
+			print_stdout(0, 0, "\e[?1042l");
 		}
 		else
 		{
@@ -55,11 +55,11 @@ DO_COMMAND(do_bell)
 	{
 		if (is_abbrev(arg2, "ON"))
 		{
-			print_stdout("\e[?1043h");
+			print_stdout(0, 0, "\e[?1043h");
 		}
 		else if (is_abbrev(arg2, "OFF"))
 		{
-			print_stdout("\e[?1043l");
+			print_stdout(0, 0, "\e[?1043l");
 		}
 		else
 		{
@@ -70,11 +70,11 @@ DO_COMMAND(do_bell)
 	{
 		if (is_abbrev(arg2, "ON"))
 		{
-			print_stdout("\e[?44h");
+			print_stdout(0, 0, "\e[?44h");
 		}
 		else if (is_abbrev(arg2, "OFF"))
 		{
-			print_stdout("\e[?44l");
+			print_stdout(0, 0, "\e[?44l");
 		}
 		else
 		{
@@ -83,13 +83,13 @@ DO_COMMAND(do_bell)
 	}
 	else if (is_abbrev(arg1, "RING"))
 	{
-		print_stdout("\007");
+		print_stdout(0, 0, "\007");
 	}
 	else if (is_abbrev(arg1, "VOLUME"))
 	{
 		if (is_math(ses, arg2))
 		{
-			print_stdout("\e[ %dt", (int) get_number(ses, arg2));
+			print_stdout(0, 0, "\e[ %dt", (int) get_number(ses, arg2));
 		}
 		else
 		{
@@ -105,42 +105,6 @@ DO_COMMAND(do_bell)
 }
 
 
-DO_COMMAND(do_commands)
-{
-	char buf[BUFFER_SIZE] = { 0 };
-	int cmd;
-
-	tintin_header(ses, " %s ", "COMMANDS");
-
-	for (cmd = 0 ; *command_table[cmd].name != 0 ; cmd++)
-	{
-		if (*arg && !is_abbrev(arg, command_table[cmd].name))
-		{
-			continue;
-		}
-
-		if (strip_vt102_strlen(ses, buf) + 20 > gtd->screen->cols)
-		{
-			tintin_puts2(ses, buf);
-			buf[0] = 0;
-		}
-		if (command_table[cmd].type == TOKEN_TYPE_COMMAND)
-		{
-			cat_sprintf(buf, "%s%20s", COLOR_COMMAND, command_table[cmd].name);
-		}
-		else
-		{
-			cat_sprintf(buf, "%s%20s", COLOR_STATEMENT, command_table[cmd].name);
-		}
-	}
-	if (buf[0])
-	{
-		tintin_puts2(ses, buf);
-	}
-	return ses;
-}
-
-
 DO_COMMAND(do_cr)
 {
 	write_mud(ses, "", SUB_EOL);
@@ -151,8 +115,14 @@ DO_COMMAND(do_cr)
 
 DO_COMMAND(do_echo)
 {
-	char format[BUFFER_SIZE], result[BUFFER_SIZE], temp[BUFFER_SIZE], *output, left[BUFFER_SIZE];
+	char *format, *result, *temp, *output, *left;
 	int lnf;
+
+	format = arg1;
+	result = arg2;
+
+	temp = str_alloc_stack(0);
+	left = str_alloc_stack(0);
 
 	arg = sub_arg_in_braces(ses, arg, format, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -167,27 +137,29 @@ DO_COMMAND(do_echo)
 
 		if (*temp)
 		{
-			int row = (int) get_number(ses, temp);
+//			int row = (int) get_number(ses, temp);
 
-			substitute(ses, left, temp, SUB_COL|SUB_ESC);
+			substitute(ses, left, format, SUB_COL|SUB_ESC);
 
-			split_show(ses, temp, row, 0);
+			split_show(ses, format, temp, "");
 
 			return ses;
 		}
 	}
 
-	lnf = !str_suffix(arg, "\\");
+	lnf = is_suffix(arg, "\\") && !is_suffix(arg, "\\\\");
 
 	substitute(ses, arg, temp, SUB_COL|SUB_ESC);
 
+	output = str_alloc_stack(0);
+
 	if (strip_vt102_strlen(ses, ses->more_output) != 0)
 	{
-		output = str_dup_printf("\n\e[0m%s\e[0m", temp);
+		str_cpy_printf(&output, "\n\e[0m%s\e[0m", temp);
 	}
 	else
 	{
-		output = str_dup_printf("\e[0m%s\e[0m", temp);
+		str_cpy_printf(&output, "\e[0m%s\e[0m", temp);
 	}
 
 	add_line_buffer(ses, output, lnf);
@@ -209,7 +181,6 @@ DO_COMMAND(do_echo)
 			print_line(ses, &output, lnf);
 		}
 	}
-	str_free(output);
 
 	return ses;
 }
@@ -253,43 +224,32 @@ DO_COMMAND(do_send)
 
 DO_COMMAND(do_test)
 {
-	if (!strcmp(arg, "string"))
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (!strcmp(arg1, "rain"))
 	{
-		char *test = str_dup("\e[32m0 2 4 6 8 A C E");
+		strcpy(arg2, "9");
+		strcpy(arg3, "<f3c3>");
+		strcpy(arg1, "1 9");
 
-		test = str_ins_str(ses, &test, "\e[33mbli bli", 4, 11);
-
-		printf("test: [%s]\n", test);
-
-		str_free(test);
-		
-		return ses;
-	}
-
-	strcpy(arg2, "9");
-	strcpy(arg3, "<f0b8>");
-	strcpy(arg4, "1 9");
-
-	if (isdigit((int) arg[0]))
-	{
-		sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
-
-		if ((isxdigit((int) arg[1]) && isxdigit((int) arg[2]) && isxdigit((int) arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
+		if (is_digit(arg[0]))
 		{
-			sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
+			sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
 
-			if (isdigit((int) arg[4]) && isdigit((int) arg[5]))
+			if ((is_hex(arg[1]) && is_hex(arg[2]) && is_hex(arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
 			{
-				sprintf(arg4, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+				sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
 
-				tintin_printf2(ses, "do_test debug: %s", arg4);
+				if (is_digit(arg[4]) && is_digit(arg[5]))
+				{
+					sprintf(arg1, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+				}
 			}
 		}
+		command(gtd->ses, do_line, "quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg1);
+
+		return ses;
 	}
-	sprintf(arg1, "#line quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg4);
-
-	script_driver(gtd->ses, LIST_COMMAND, arg1);
-
 	return ses;
 }
 

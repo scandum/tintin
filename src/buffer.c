@@ -46,10 +46,7 @@ void init_buffer(struct session *ses, int size)
 			free(ses->scroll->buffer[cnt]);
 		}
 		free(ses->scroll->buffer);
-	}
 
-	if (ses->scroll->input)
-	{
 		str_free(ses->scroll->input);
 	}
 
@@ -81,17 +78,29 @@ void check_buffer(struct session *ses)
 	char temp[STRING_SIZE];
 	int index, wrap;
 
-	push_call("check_buffer(%p)",ses);
-
 	if (!HAS_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE))
 	{
-		pop_call();
 		return;
 	}
 
 	DEL_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE);
 
 	wrap = get_scroll_cols(ses);
+
+	if (ses->scroll->width)
+	{
+		if (wrap == ses->scroll->wrap)
+		{
+			return;
+		}
+
+		if (ses->scroll->width < ses->scroll->wrap && ses->scroll->width < wrap)
+		{
+			goto end;
+		}
+	}
+
+	ses->scroll->width = 0;
 
 	for (index = ses->scroll->used - 1 ; index >= 0 ; index--)
 	{
@@ -105,20 +114,45 @@ void check_buffer(struct session *ses)
 		{
 			buffer->lines = word_wrap_split(ses, buffer->str, temp, wrap, 0, 0, FLAG_NONE, &buffer->height, &buffer->width);
 		}
+
+		if (ses->scroll->width < buffer->width)
+		{
+			ses->scroll->width = buffer->width;
+		}
 	}
+
+	end:
 
 	ses->scroll->wrap = wrap;
 	ses->scroll->time = gtd->time;
 	ses->scroll->base = 0;
 	ses->scroll->line = -1;
 
-	pop_call();
 	return;
+}
+
+void update_scrollbar(struct session *ses)
+{
+	if (HAS_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLMODE))
+	{
+		if (ses == gtd->ses)
+		{
+			int line = gtd->ses->scroll->line >= 0 ? gtd->ses->scroll->line : gtd->ses->scroll->used + 1;
+
+			line = URANGE(1, line - get_scroll_rows(gtd->ses), gtd->ses->scroll->used);
+
+			print_stdout(0, 0, "\e[%d;%d#t", line, gtd->ses->scroll->used);
+
+			check_all_events(ses, EVENT_FLAG_UPDATE, 0, 2, "SCROLLBAR UPDATE", ntos(line), ntos(gtd->ses->scroll->used));
+
+			DEL_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLUPDATE);
+		}
+	}
 }
 
 void add_line_buffer(struct session *ses, char *line, int prompt)
 {
-	char temp[STRING_SIZE];
+	char *temp;
 	char *pti, *pto;
 	int cnt, purge;
 	int skip, cur_row, cur_col, top_row, bot_row;
@@ -132,45 +166,12 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		return;
 	}
 
+	temp = str_alloc_stack(0);
+
+	SET_BIT(gtd->flags, TINTIN_FLAG_SESSIONUPDATE);
 	SET_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
 
-/*
-	strip_vt102_codes(line, temp);
-
-	check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "ADD LINE BUFFER", line, temp);
-
-	if (check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "CATCH ADD LINE BUFFER", line, temp))
-	{
-		pop_call();
-		return;
-	}
-
-	if (prompt)
-	{
-		check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "ADD PROMPT BUFFER", line, temp);
-		
-		if (check_all_events(ses, SUB_ARG|SUB_SEC|SUB_SIL, 0, 2, "CATCH ADD PROMPT BUFFER", line, temp))
-		{
-			pop_call();
-			return;
-		}
-	}
-*/
-	if (ses->line_capturefile)
-	{
-		sprintf(temp, "{%d}{%s}", ses->line_captureindex++, line);
-
-		if (ses->line_captureindex == 1)
-		{
-			set_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
-		}
-		else
-		{
-			add_nest_node_ses(ses, ses->line_capturefile, "%s", temp);
-		}
-	}
-
-	if (HAS_BIT(ses->flags, SES_FLAG_CONVERTMETA))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
 		convert_meta(line, temp, TRUE);
 
@@ -185,11 +186,28 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	if (str_len(ses->scroll->input) + strlen(line) + 100 >= BUFFER_SIZE)
 	{
 		str_cat_printf(&ses->scroll->input, "\n\e[1;31m#BUFFER: LINE LENGTH OF (%d) EXEEDS MAXIMUM SIZE OF (%d)%s\n", str_len(ses->scroll->input) + strlen(line), BUFFER_SIZE, COLOR_TEXT);
+
+		prompt = FALSE;
 	}
 	else
 	{
 		if (prompt == TRUE)
 		{
+			pti = strchr(line, '\n');
+
+			while (pti)
+			{
+				*pti = 0;
+
+				add_line_buffer(ses, line, FALSE);
+
+				*pti++ = '\n';
+
+				line = pti;
+
+				pti = strchr(line, '\n');
+			}
+
 			str_cat(&ses->scroll->input, line);
 
 			pop_call();
@@ -251,6 +269,11 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		tintin_printf2(gtd->ses, "%s[%s%s] %s", COLOR_TEXT, ses->name, ses->scroll->input, COLOR_TEXT);
 	}
 
+	if (ses->proxy)
+	{
+		port_socket_printf(ses, ses->proxy, "%s%s", ses->scroll->input, prompt ? "" : "\n");
+	}
+
 	ses->scroll->buffer[ses->scroll->used] = calloc(1, sizeof(struct buffer_data));
 
 	buffer = ses->scroll->buffer[ses->scroll->used];
@@ -259,7 +282,10 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	buffer->time  = gtd->time;
 	buffer->str   = strdup(ses->scroll->input);
 
-	add_line_screen(temp);
+	if (ses->scroll->line == -1)
+	{
+		add_line_screen(ses, temp, 0);
+	}
 
 	if (gtd->level->grep || prompt == -1)
 	{
@@ -285,14 +311,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 
 	if (ses->scroll->used == ses->scroll->size)
 	{
-		if (ses->scroll->size < 100000)
-		{
-			purge = ses->scroll->size / 10;
-		}
-		else
-		{
-			purge = 10000;
-		}
+		purge = URANGE(10, ses->scroll->size / 10, 10000);
 
 		for (cnt = 0 ; cnt < purge ; cnt++)
 		{
@@ -305,6 +324,11 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		ses->scroll->line = URANGE(-1, ses->scroll->line - purge, ses->scroll->used - 1);
 	}
 
+	if (HAS_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLMODE))
+	{
+		SET_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLUPDATE);
+	}
+
 	ses->cur_row = cur_row;
 	ses->cur_col = cur_col;
 	ses->split->top_row = top_row;
@@ -315,38 +339,40 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 }
 
 
-
 void buffer_print(struct session *ses, int index, int start, int end)
 {
 	struct buffer_data *buffer;
 	char *pti, temp[STRING_SIZE];
-	int col, swap, raw_len, str_len, col_len, height, width;
+	int col, swap, str_len, col_len, height, width;
 
 	push_call("buffer_print(%p,%d,%d,%d)",ses,index,start,end);
 
 	col_len = get_scroll_cols(ses);
 
+	// prompt
+
 	if (start == 0 && end == 0)
 	{
 		if (HAS_BIT(ses->flags, SES_FLAG_PRINTBUFFER) || ses->scroll->line == ses->scroll->used - 1)
 		{
-			pti = ses->scroll->input;
-			raw_len = string_str_raw_len(ses, pti, 0, col_len - 1);
+			word_wrap_split(ses, ses->scroll->input, temp, ses->wrap, 0, 1, WRAP_FLAG_NONE, &height, &width);
 		}
 		else
 		{
-			pti = temp;
-			raw_len = temp[0] = 0;
+			strcpy(temp, "");
 		}
 
 		if (ses->cur_row != ses->split->bot_row)
 		{
-			print_stdout("[1;31m%02d[0m \e[1;32mmisaligned (%d)", ses->cur_row, ses->scroll->line);
+			print_stdout(0, 0, "[1;31m%02d[0m \e[1;32mmisaligned (%d)", ses->cur_row, ses->scroll->line);
 		}
 		else
 		{
-//			print_stdout("\e[1;36m%02d\e[0m", ses->cur_row);//
-			print_stdout("\e[%dX%.*s", col_len, raw_len, pti);
+			print_stdout(0, 0, "%s", temp);
+
+			add_line_screen(ses, temp, ses->cur_row);
+
+			erase_cols(col_len - width);
 		}
 	}
 	else
@@ -355,15 +381,15 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 		if (buffer->height == 1)
 		{
-//			print_stdout("\e[1;37m%02d", ses->cur_row);//
-
 			word_wrap_split(ses, buffer->str, temp, ses->wrap, start, end, 0, &height, &width);
 
-			print_stdout("%s", temp);
+			print_stdout(0, 0, "%s", temp);
+
+			add_line_screen(ses, temp, ses->cur_row);
 
 			erase_cols(col_len - buffer->width);
 
-			goto_pos(ses, ++ses->cur_row, ses->split->top_col);
+			goto_pos(ses, ses->cur_row + 1, ses->split->top_col);
 		}
 		else
 		{
@@ -382,38 +408,16 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 					str_len = strip_vt102_strlen(ses, pti);
 
-					// debug info
-/*					if (start == 0)
-					{
-						if (end == buffer->height)
-						{
-							print_stdout("\e[1;31m%02d\e[0m(%d)(%d)(%d)", ses->cur_row, buffer->lines, buffer->height, buffer->width);
-						}
-						else
-						{
-							print_stdout("\e[1;33m%02d\e[0m", ses->cur_row);
-						}
-					}
-					else
-					{
-						if (end == buffer->height)
-						{
-							print_stdout("\e[1;32m%02d\e[0m", ses->cur_row);
-						}
-						else
-						{
-							print_stdout("\e[1;34m%02d\e[0m", ses->cur_row);
-						}
-					}
-*/
-					print_stdout("%s", pti);
+					print_stdout(0, 0, "%s", pti);
+
+					add_line_screen(ses, pti, ses->cur_row);
 
 					erase_cols(col_len - str_len);
 
 					pti += col + 1;
 					col = 0;
 
-					goto_pos(ses, ++ses->cur_row, ses->split->top_col);
+					goto_pos(ses, ses->cur_row + 1, ses->split->top_col);
 
 					if (swap == 0)
 					{
@@ -432,7 +436,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 int show_buffer(struct session *ses)
 {
-	int scroll_size, scroll_cnt, scroll_tmp, scroll_add, scroll_cut, start, end;
+	int scroll_size, scroll_cnt, scroll_tmp, scroll_add, scroll_cut, start, end, row;
 
 	if (ses != gtd->ses)
 	{
@@ -488,12 +492,13 @@ int show_buffer(struct session *ses)
 
 	if (scroll_cnt == 0) // home
 	{
-		goto_pos(ses, ses->split->bot_row - scroll_add, ses->split->top_col);
+		row = ses->split->bot_row - scroll_add;
 	}
 	else
 	{
-		goto_pos(ses, ses->split->top_row, ses->split->top_col);
+		row = ses->split->top_row;
 	}
+	goto_pos(ses, row, ses->split->top_col);
 
 	if (IS_SPLIT(ses))
 	{
@@ -514,15 +519,9 @@ int show_buffer(struct session *ses)
 			start = scroll_tmp - scroll_cut;
 			end   = scroll_tmp;
 
-			if (end - start != scroll_size)
-			{
-//				print_stdout("\e[1;32mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
-			}
-			else
-			{
-				buffer_print(ses, scroll_cnt, start, end);
-			}
+			buffer_print(ses, scroll_cnt, start, end);
 		}
+
 		// middle chunk
 
 		else if (scroll_cut > scroll_size)
@@ -530,35 +529,23 @@ int show_buffer(struct session *ses)
 			start = scroll_tmp - scroll_cut;
 			end   = scroll_tmp - scroll_cut + scroll_size;
 
-//			if (end - start > scroll_size)
-			{
-//				print_stdout("\e[1;1H\e[1;33mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
-			}
-//			else
-			{
-				buffer_print(ses, scroll_cnt, start, end);
-			}
+			buffer_print(ses, scroll_cnt, start, end);
 
 			goto eof;
 		}
 
 		// top chunk
+
 		else if (scroll_add == 0)
 		{
 			start = ses->scroll->base;
 			end   = scroll_tmp - scroll_cut;
 
-//			if (end - start > scroll_size)
-			{
-//				print_stdout("\e[1;1H\e[1;34mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
-			}
-//			else
-			{
-				buffer_print(ses, scroll_cnt, start, end);
-			}
+			buffer_print(ses, scroll_cnt, start, end);
 
 			goto eof;
 		}
+
 		// bot chunk
 
 		else
@@ -566,14 +553,7 @@ int show_buffer(struct session *ses)
 			start = scroll_tmp - scroll_cut;
 			end   = scroll_tmp;
 
-//			if (end - start > scroll_size)
-			{
-//				print_stdout("\e[1;1H\e[1;35mcnt %d, base: %d, size: %d, add %d, tmp %d, scroll_cut %d start %d end %d\n", scroll_cnt, ses->scroll->base, scroll_size, scroll_add, scroll_tmp, scroll_cut, start, end);
-			}
-//			else
-			{
-				buffer_print(ses, scroll_cnt, start, end);
-			}
+			buffer_print(ses, scroll_cnt, start, end);
 		}
 		scroll_cnt++;
 		scroll_cut = 0;
@@ -626,6 +606,11 @@ int show_buffer(struct session *ses)
 		DEL_BIT(ses->flags, SES_FLAG_READMUD);
 	}
 
+	if (HAS_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLMODE))
+	{
+		SET_BIT(gtd->screen->flags, SCREEN_FLAG_SCROLLUPDATE);
+	}
+
 	pop_call();
 	return TRUE;
 }
@@ -637,20 +622,19 @@ DO_COMMAND(do_buffer)
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
-
 	check_buffer(ses);
 
 	if (*arg1 == 0)
 	{
 		info:
 
-		tintin_header(ses, " BUFFER OPTIONS ");
+		tintin_header(ses, 80, " BUFFER OPTIONS ");
 
 		for (cnt = 0 ; *buffer_table[cnt].name != 0 ; cnt++)
 		{
 			tintin_printf2(ses, "  [%-13s] %s", buffer_table[cnt].name, buffer_table[cnt].desc);
 		}
-		tintin_header(ses, "");
+		tintin_header(ses, 80, "");
 
 		return ses;
 	}
@@ -662,7 +646,7 @@ DO_COMMAND(do_buffer)
 			continue;
 		}
 
-		buffer_table[cnt].fun(ses, arg);
+		buffer_table[cnt].fun(ses, arg, arg1, arg2);
 
 		return ses;
 	}
@@ -688,7 +672,6 @@ DO_BUFFER(buffer_clear)
 
 DO_BUFFER(buffer_up)
 {
-	char arg1[BUFFER_SIZE];
 	int scroll_size;
 
 	check_buffer(ses);
@@ -699,7 +682,10 @@ DO_BUFFER(buffer_up)
 		ses->scroll->base = 0;
 	}
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	if (*arg)
+	{
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	}
 
 	if (is_math(ses, arg1))
 	{
@@ -736,7 +722,6 @@ DO_BUFFER(buffer_up)
 
 DO_BUFFER(buffer_down)
 {
-	char arg1[BUFFER_SIZE];
 	int scroll_size;
 
 	if (ses->scroll->line == -1)
@@ -746,7 +731,10 @@ DO_BUFFER(buffer_down)
 
 	check_buffer(ses);
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	if (*arg)
+	{
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	}
 
 	if (is_math(ses, arg1))
 	{
@@ -763,9 +751,9 @@ DO_BUFFER(buffer_down)
 
 		if (ses->scroll->base == 0)
 		{
-			if (++ses->scroll->line == ses->scroll->used)
+			if (++ses->scroll->line >= ses->scroll->used)
 			{
-				buffer_end(ses, "");
+				buffer_end(ses, "", "", "");
 				return;
 			}
 			ses->scroll->base = ses->scroll->buffer[ses->scroll->line]->height;
@@ -782,7 +770,7 @@ DO_BUFFER(buffer_home)
 	ses->scroll->line = 0;
 	ses->scroll->base = 0;
 
-	buffer_down(ses, "");
+	buffer_down(ses, "", "", "");
 }
 
 DO_BUFFER(buffer_end)
@@ -798,10 +786,44 @@ DO_BUFFER(buffer_end)
 	ses->scroll->line = -1;
 }
 
+DO_BUFFER(buffer_jump)
+{
+	int line;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	line = get_number(ses, arg1);
+
+	if (line >= 0)
+	{
+		line = URANGE(0, line, ses->scroll->used - 1);
+	}
+	else
+	{
+		line = URANGE(0, ses->scroll->used + line, ses->scroll->used - 1);
+	}
+
+	if (line >= ses->scroll->used - 1)
+	{
+		buffer_end(ses, "", "", "");
+
+		return;
+	}
+
+	if (line != ses->scroll->line)
+	{
+		ses->scroll->line = line;
+
+		ses->scroll->base = 0;
+
+		show_buffer(ses);
+
+		update_scrollbar(ses);
+	}
+}
+
 DO_BUFFER(buffer_lock)
 {
-	char arg1[BUFFER_SIZE];
-
 	check_buffer(ses);
 
 	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -812,7 +834,7 @@ DO_BUFFER(buffer_lock)
 	}
 	else if (!strcasecmp(arg1, "OFF"))
 	{
-		 buffer_end(ses, "");
+		 buffer_end(ses, "", "", "");
 	}
 	else
 	{
@@ -822,14 +844,13 @@ DO_BUFFER(buffer_lock)
 		}
 		else
 		{
-			buffer_end(ses, "");
+			buffer_end(ses, "", "", "");
 		}
 	}
 }
 
 DO_BUFFER(buffer_find)
 {
-	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int scroll_cnt, grep_cnt, grep_max, page;
 
 	check_buffer(ses);
@@ -867,7 +888,7 @@ DO_BUFFER(buffer_find)
 
 	if (page > 0)
 	{
-		for (scroll_cnt = ses->scroll->used - 1; scroll_cnt ; scroll_cnt--)
+		for (scroll_cnt = ses->scroll->used - 1; scroll_cnt >= 0 ; scroll_cnt--)
 		{
 			if (HAS_BIT(ses->scroll->buffer[scroll_cnt]->flags, BUFFER_FLAG_GREP))
 			{
@@ -916,14 +937,13 @@ DO_BUFFER(buffer_find)
 
 	ses->scroll->line = scroll_cnt;
 
-	show_buffer(ses);
+	buffer_down(ses, ntos(get_scroll_rows(ses) - 1), arg1, arg2);
 
 	return;
 }
 
 DO_BUFFER(buffer_get)
 {
-	char arg1[BUFFER_SIZE], arg2[STRING_SIZE], arg3[BUFFER_SIZE];
 	int cnt, min, max;
 
 	check_buffer(ses);
@@ -938,7 +958,6 @@ DO_BUFFER(buffer_get)
 	}
 
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 
 	min = get_number(ses, arg2);
 
@@ -948,14 +967,16 @@ DO_BUFFER(buffer_get)
 	}
 	min = URANGE(0, min, ses->scroll->used - 1);
 
-	if (*arg3 == 0)
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg2 == 0)
 	{
 		set_nest_node_ses(ses, arg1, "%s", ses->scroll->buffer[min]->str);
 
 		return;
 	}
 
-	max = get_number(ses, arg3);
+	max = get_number(ses, arg2);
 
 	if (max < 0)
 	{
@@ -986,10 +1007,41 @@ DO_BUFFER(buffer_get)
 	return;
 }
 
+DO_BUFFER(buffer_refresh)
+{
+	check_buffer(ses);
+
+	if (HAS_BIT(ses->flags, SES_FLAG_PRINTLINE) && ses->check_output == 0)
+	{
+		if (ses == gtd->ses)
+		{
+			DEL_BIT(ses->flags, SES_FLAG_PRINTLINE);
+
+			SET_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
+
+			print_scroll_region(ses);
+
+			DEL_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
+
+			fflush(stdout);
+		}
+		return;
+	}
+
+	if (ses->scroll->line == -1)
+	{
+		buffer_end(ses, "", "", "");
+	}
+	else
+	{
+		show_buffer(ses);
+	}
+	return;
+}
+
 DO_BUFFER(buffer_write)
 {
 	FILE *fp;
-	char arg1[BUFFER_SIZE], out[STRING_SIZE];
 	int cnt;
 
 	check_buffer(ses);
@@ -1012,17 +1064,17 @@ DO_BUFFER(buffer_write)
 			{
 				if (HAS_BIT(ses->logmode, LOG_FLAG_PLAIN))
 				{
-					strip_vt102_codes(ses->scroll->buffer[cnt]->str, out);
+					strip_vt102_codes(ses->scroll->buffer[cnt]->str, arg2);
 				}
 				else if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
 				{
-					vt102_to_html(ses, ses->scroll->buffer[cnt]->str, out);
+					vt102_to_html(ses, ses->scroll->buffer[cnt]->str, arg2);
 				}
 				else
 				{
-					strcpy(out, ses->scroll->buffer[cnt]->str);
+					strcpy(arg2, ses->scroll->buffer[cnt]->str);
 				}
-				fprintf(fp, "%s\n", out);
+				fprintf(fp, "%s\n", arg2);
 			}
 
 			fclose(fp);
@@ -1041,23 +1093,42 @@ DO_BUFFER(buffer_info)
 
 	check_buffer(ses);
 
-	tintin_printf2(ses, "Scroll row:  %d", ses->scroll->used);
-	tintin_printf2(ses, "Scroll max:  %d", ses->scroll->size);
-	tintin_printf2(ses, "Scroll line: %d", ses->scroll->line);
-	tintin_printf2(ses, "Scroll base: %d", ses->scroll->base);
-	tintin_printf2(ses, "Scroll wrap: %d", ses->scroll->wrap);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);	
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
-	tintin_printf2(ses, "");
-
-	memory = 0;
-
-	for (index = 0 ; index < ses->scroll->used ; index++)
+	if (*arg1 == 0)
 	{
-		memory += sizeof(struct buffer_data) + strlen(ses->scroll->buffer[index]->str);
+		tintin_printf2(ses, "#BUFFER INFO: BASE   = %d", ses->scroll->base);
+		tintin_printf2(ses, "#BUFFER INFO: LINE   = %d", ses->scroll->line);
+		tintin_printf2(ses, "#BUFFER INFO: SIZE   = %d", ses->scroll->size);
+		tintin_printf2(ses, "#BUFFER INFO: USED   = %d", ses->scroll->used);
+		tintin_printf2(ses, "#BUFFER INFO: WIDTH  = %d", ses->scroll->width);
+		tintin_printf2(ses, "#BUFFER INFO: WRAP   = %d", ses->scroll->wrap);
+
+		tintin_printf2(ses, "");
+
+		memory = 0;
+
+		for (index = 0 ; index < ses->scroll->used ; index++)
+		{
+			memory += sizeof(struct buffer_data) + strlen(ses->scroll->buffer[index]->str);
+		}
+		tintin_printf2(ses, "#BUFFER INFO: MEMORY = %d", memory);
 	}
+	else if (is_abbrev(arg1, "SAVE") && *arg2)
+	{
+		add_nest_node_ses(ses, arg2, "{BASE}{%d}", ses->scroll->base);
+		add_nest_node_ses(ses, arg2, "{LINE}{%d}", ses->scroll->line);
+		add_nest_node_ses(ses, arg2, "{SIZE}{%d}", ses->scroll->size);
+		add_nest_node_ses(ses, arg2, "{USED}{%d}", ses->scroll->used);
+		add_nest_node_ses(ses, arg2, "{WRAP}{%d}", ses->scroll->wrap);
 
-	tintin_printf2(ses, "Memory use:  %d", memory);
-
+		show_message(ses, LIST_COMMAND, "#BUFFER INFO: SAVED TO {%s}", arg2);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #BUFFER INFO [SAVE] [<VARIABLE>]");
+	}
 }
 
 
@@ -1112,7 +1183,7 @@ DO_COMMAND(do_grep)
 
 	gtd->level->grep++;
 
-	tintin_header(ses, " GREPPING PAGE %d FOR %s ", page, arg2);
+	tintin_header(ses, 80, " GREPPING PAGE %d FOR %s ", page, arg2);
 
 	if (page > 0)
 	{
@@ -1203,7 +1274,7 @@ DO_COMMAND(do_grep)
 			return ses;
 		}
 	}
-	tintin_header(ses, "");
+	tintin_header(ses, 80, "");
 
 	gtd->level->grep--;
 

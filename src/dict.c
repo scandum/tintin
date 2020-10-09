@@ -27,20 +27,83 @@
 
 #include "dict.h"
 
-int dictionary_search(char **array, int array_size, char *key)
+struct dictionary_data
 {
-        // Copyright 2014-2020 Igor van den Hoven
+	unsigned int  * wordindex[26];
+	int             listsize[26];
+};
 
+struct dictionary_data *dictionary;
+
+void dictionary_init()
+{
+	char *pta;
+	int index, hash;
+
+	dictionary = calloc(1, sizeof(struct dictionary_data));
+
+	for (hash = 0 ; hash < 26 ; hash++)
+	{
+		index = 1;
+
+		pta = wordlist[hash];
+
+		do
+		{
+			pta++;
+
+			if (*pta == 0)
+			{
+				index++;
+				pta++;
+			}
+		}
+		while (*pta);
+
+		dictionary->listsize[hash] = index;
+
+		dictionary->wordindex[hash] = calloc(index, sizeof(int));
+	}
+
+	for (hash = 0 ; hash < 26 ; hash++)
+	{
+		index = 1;
+
+		pta = wordlist[hash] + 1;
+
+		do
+		{
+			dictionary->wordindex[hash][index++] = pta - wordlist[hash];
+
+			while (*pta)
+			{
+				pta++;
+			}
+			pta++;
+		}
+		while (*pta);
+	}
+
+//	for (hash = 0 ; hash < 26 ; hash++)
+//	{
+//		printf("hash %2d = %d\n", hash, dictionary->listsize[hash]);
+//	}
+}
+
+int dictionary_search(int hash, char *key)
+{
 	register int mid, i, bot;
 	register char val;
 
 	bot = 0;
-	i = array_size - 1;
+	i = dictionary->listsize[hash] - 1;
 	mid = i / 2;
 
 	while (mid)
 	{
-		val = strcmp(key, array[i - mid]);
+		val = strcmp(key, wordlist[hash] + dictionary->wordindex[hash][i - mid]);
+
+//		printf("debug: %5d '%c' %s\n", i - mid, 'a' + hash, wordlist[hash] + dictionary->wordindex[hash][i - mid]);
 
 		if (val < 0)
 		{
@@ -48,7 +111,7 @@ int dictionary_search(char **array, int array_size, char *key)
 		}
 		else if (val > 0)
 		{
-			bot = i - mid;
+			bot = i - mid + 1;
 		}
 		else
 		{
@@ -59,7 +122,7 @@ int dictionary_search(char **array, int array_size, char *key)
 
 	if (i > bot)
 	{
-		val = strcmp(key, array[i]);
+		val = strcmp(key, wordlist[hash] + dictionary->wordindex[hash][i]);
 
 		if (val > 0)
 		{
@@ -75,7 +138,7 @@ int dictionary_search(char **array, int array_size, char *key)
 		}
 	}
 
-	if (!strcmp(key, array[i]))
+	if (!strcmp(key, wordlist[hash] + dictionary->wordindex[hash][i]))
 	{
 		return i;
 	}
@@ -91,7 +154,7 @@ void dictionary_lowerstring(char *in, char *out)
 
 	while (*pti)
 	{
-		if (isalpha((int) *pti))
+		if (is_alpha(*pti))
 		{
 			*pto++ = tolower(*pti++);
 		}
@@ -108,6 +171,11 @@ int spellcheck_count(struct session *ses, char *in)
 	char *arg, arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 	int cnt, hash, index;
 
+	if (dictionary == NULL)
+	{
+		dictionary_init();
+	}
+
 	cnt = 0;
 	arg = in;
 
@@ -117,11 +185,11 @@ int spellcheck_count(struct session *ses, char *in)
 
 		dictionary_lowerstring(arg1, arg2);
 
-		if (isalpha((int) *arg2))
+		if (is_alpha(*arg2))
 		{
 			hash = *arg2 - 'a';
 
-			index = dictionary_search(wordlist[hash], wordlist_size[hash], arg2 + 1);
+			index = dictionary_search(hash, arg2 + 1);
 
 			if (index == -1)
 			{
@@ -139,11 +207,16 @@ int spellcheck_count(struct session *ses, char *in)
 
 DO_COMMAND(do_dictionary)
 {
-	int hash, size, index;
+	int hash, index;
+
+	if (dictionary == NULL)
+	{
+		dictionary_init();
+	}
 
 	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
-	if (*arg1 == 0 || !isalpha((int) *arg1))
+	if (*arg1 == 0 || !is_alpha(*arg1))
 	{
 		show_message(ses, LIST_COMMAND, "#SYNTAX: #DICTIONARY {WORD}");
 
@@ -158,13 +231,11 @@ DO_COMMAND(do_dictionary)
 
 		dictionary_lowerstring(arg2, arg3);
 
-		if (isalpha((int) *arg3))
+		if (is_alpha(*arg3))
 		{
 			hash = *arg3 - 'a';
 
-			size = wordlist_size[hash];
-
-			index = dictionary_search(wordlist[hash], size, arg3 + 1);
+			index = dictionary_search(hash, arg3 + 1);
 
 			if (index == -1)
 			{

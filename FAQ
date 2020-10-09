@@ -21,11 +21,12 @@ Q01) What machines does tintin work on?
 A01) Pretty much any UNIX machine with a modern compiler as well as Windows,
      Mac OS X, Android, and iOS.
 
-Q02) What version should I use 1.50 or 1.86 or 2.00 ?
+Q02) What causes a part of a line to be missing sometimes?
 
-A02) TinTin++ 2.00 is twice the size of 1.86 with over 90% of the 1.86 code
-     rewritten. TinTin++ 2.00 is not backward compatible with 1.50 or 1.86.
-     The NEWS file contains all known compatibility issues.
+A02) It's most likely caused by packet fragmentation. This problem can be
+     solved by using:
+
+     #config packet_patch 0.5
 
 Q06) I can't get tintin compiled.  Where can I get more help?
 

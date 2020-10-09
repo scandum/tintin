@@ -40,10 +40,24 @@ void init_pos(struct session *ses, int row, int col)
 	return;
 }
 
+void hide_cursor(struct session *ses)
+{
+	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
+	{
+		print_stdout(0, 0, "\e[?25l");
+	}
+}
+
+void show_cursor(struct session *ses)
+{
+	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
+	{
+		print_stdout(0, 0, "\e[?25h");
+	}
+}
+
 void save_pos(struct session *ses)
 {
-	push_call("save_pos(%p)",ses);
-
 	gtd->screen->sav_row[gtd->screen->sav_lev] = ses->cur_row;
 	gtd->screen->sav_col[gtd->screen->sav_lev] = ses->cur_col;
 
@@ -56,13 +70,7 @@ void save_pos(struct session *ses)
 		syserr_printf(ses, "sav_lev++ above 1000.");
 	}
 
-	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
-	{
-		print_stdout("\e[?25l");
-	}
-
-	pop_call();
-	return;
+	hide_cursor(ses);
 }
 
 void restore_pos(struct session *ses)
@@ -74,7 +82,7 @@ void restore_pos(struct session *ses)
 	else
 	{
 		gtd->screen->sav_lev = 0;
-		syserr_printf(ses, "sav_lev-- below 0.");
+		syserr_printf(ses, "restore_pos: sav_lev-- below 0.");
 	}
 
 	if (gtd->screen->sav_lev == 1 /* gtd->screen->sav_row[gtd->screen->sav_lev] == inputline_cur_row()*/ /*gtd->screen->rows*/)
@@ -85,21 +93,20 @@ void restore_pos(struct session *ses)
 	{
 		goto_pos(ses, gtd->screen->sav_row[gtd->screen->sav_lev], gtd->screen->sav_col[gtd->screen->sav_lev]);
 	}
-
-	if (!HAS_BIT(gtd->flags, TINTIN_FLAG_HIDDENCURSOR))
-	{
-		print_stdout("\e[?25h");
-	}
+	show_cursor(ses);
 }
 
 void goto_pos(struct session *ses, int row, int col)
 {
-	print_stdout("\e[%d;%dH", row, col);
-
-	if (col < 1)
+	if (row < 1 || col < 1)
 	{
-		print_stdout("debug: goto_pos(%d,%d)\n",row,col);
+		print_stdout(0, 0, "debug: goto_pos(%d,%d)\n",row,col);
+		dump_stack();
+
+		return;
 	}
+	print_stdout(0, 0, "\e[%d;%dH", row, col);
+
 	ses->cur_row = row;
 	ses->cur_col = col;
 }
@@ -108,36 +115,8 @@ void erase_cols(int cnt)
 {
 	if (cnt)
 	{
-		print_stdout("\e[%dX", cnt);
+		print_stdout(0, 0, "\e[%dX", cnt);
 	}
-}
-
-void erase_row(struct session *ses)
-{
-	if (ses->wrap == gtd->screen->cols || ses->cur_row == gtd->screen->rows)
-	{
-		print_stdout("\e[2K");
-	}
-	else
-	{
-		save_pos(ses);
-
-		goto_pos(ses, ses->cur_row, ses->split->top_col);
-
-		erase_cols(ses->wrap);
-
-		restore_pos(ses);
-	}
-}
-
-void erase_lines(struct session *ses, int rows)
-{
-	print_stdout("\e[%dM", rows);
-}
-
-void erase_toeol(void)
-{
-	print_stdout("\e[K");
 }
 
 /*
@@ -149,7 +128,7 @@ void reset(struct session *ses)
 	ses->cur_row = 1;
 	ses->cur_col = 1;
 
-	print_stdout("\ec");
+	print_stdout(0, 0, "\ec");
 }
 
 
@@ -157,12 +136,20 @@ void scroll_region(struct session *ses, int top, int bot)
 {
 	push_call("scroll_region(%p,%d,%d)",ses,top,bot);
 
-	print_stdout("\e[%d;%dr", top, bot);
+	if (top != 1)
+	{
+//		print_stdout(0, 0, "\e[?1047h\e[?1007h\e[?7786h\e[?7787h\e[%d;%dr", top, bot);
+		print_stdout(0, 0, "\e[?1047h\e[?7787h\e[%d;%dr", top, bot);
+	}
+	else
+	{
+		print_stdout(0, 0, "\e[?1047l\e[?7787l\e[%d;%dr", top, bot);
+	}
 
 	ses->split->top_row = top;
 	ses->split->bot_row = bot;
 
-	check_all_events(ses, SUB_ARG, 0, 4, "VT100 SCROLL REGION", ntos(top), ntos(bot), ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(get_scroll_cols(ses)));
+	check_all_events(ses, EVENT_FLAG_VT100, 0, 4, "VT100 SCROLL REGION", ntos(top), ntos(bot), ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(get_scroll_cols(ses)));
 
 	pop_call();
 	return;
@@ -172,7 +159,14 @@ void reset_scroll_region(struct session *ses)
 {
 	if (ses == gtd->ses)
 	{
-		print_stdout("\e[r");
+		if (ses->split->top_row != 1)
+		{
+			print_stdout(0, 0, "\e[?1047l\e[?7787l\e[r");
+		}
+		else
+		{
+			print_stdout(0, 0, "\e[r");
+		}
 	}
 	ses->split->top_row = 1;
 	ses->split->top_col = 1;
@@ -183,9 +177,7 @@ void reset_scroll_region(struct session *ses)
 
 int skip_vt102_codes(char *str)
 {
-	int skip = 0;
-
-	push_call("skip_vt102_codes(%p)",str);
+	int skip;
 
 	switch (str[0])
 	{
@@ -202,7 +194,6 @@ int skip_vt102_codes(char *str)
 		case  19:   /* DC3 */
 		case  24:   /* CAN */
 		case  26:   /* SUB */
-			pop_call();
 			return 1;
 
 		case  27:   /* ESC */
@@ -213,40 +204,33 @@ int skip_vt102_codes(char *str)
 			{
 				if (str[skip] == 30) // HTML_CLOSE
 				{
-					pop_call();
 					return skip + 1;
 				}
 			}
-			pop_call();
 			return 0;
 
 		case 127:   /* DEL */
-			pop_call();
 			return 1;
 
 		default:
-			pop_call();
 			return 0;
 	}
 
 	switch (str[1])
 	{
 		case '\0':
-			pop_call();
 			return 1;
 
 		case '%':
 		case '#':
 		case '(':
 		case ')':
-			pop_call();
 			return str[2] ? 3 : 2;
 
 		case ']':
 			switch (str[2])
 			{
 				case 0:
-					pop_call();
 					return 2;
 
 				case 'P':
@@ -257,235 +241,44 @@ int skip_vt102_codes(char *str)
 							break;
 						}
 					}
-					pop_call();
 					return skip;
 
 				case 'R':
-					pop_call();
 					return str[3] ? 3 : 2;
 
 				default:
 					for (skip = 2 ; str[skip] ; skip++)
 					{
-						if (str[skip] == '\a' || (str[skip] == '\e' && str[skip+1] == '\\'))
+						if (str[skip] == '\a')
 						{
-							pop_call();
 							return skip + 1;
 						}
+
+						if (str[skip] == '\e' && str[skip+1] == '\\')
+						{
+							return skip + 2;
+						}
 					}
+					break;
 			}
-			pop_call();
 			return 2;
 
 		case '[':
 			break;
 
 		default:
-			pop_call();
 			return 2;
 	}
 
 	for (skip = 2 ; str[skip] != 0 ; skip++)
 	{
-		if (isalpha((int) str[skip]))
+		if (is_csichar(str[skip]))
 		{
-			pop_call();
 			return skip + 1;
 		}
-
-		switch (str[skip])
-		{
-			case '@':
-			case '`':
-			case ']':
-				pop_call();
-				return skip + 1;
-		}
 	}
-	pop_call();
 	return skip;
 }
-
-int skip_one_char(struct session *ses, char *str, int *width)
-{
-	int skip;
-
-	*width = 0;
-
-	if (*str)
-	{
-		skip = skip_vt102_codes(str);
-
-		if (skip)
-		{
-			return skip;
-		}
-
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, str))
-		{
-			return get_euc_width(ses, str, width);
-		}
-
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
-		{
-			return get_utf8_width(str, width);
-		}
-
-		*width = 1;
-		return 1;
-	}
-	return 0;
-}
-
-int find_color_code(char *str)
-{
-	int skip;
-
-	switch (str[0])
-	{
-		case  ASCII_ESC:
-			break;
-
-		default:
-			return 0;
-	}
-
-	switch (str[1])
-	{
-		case '[':
-			break;
-
-		default:
-			return 0;
-	}
-
-	for (skip = 2 ; str[skip] != 0 ; skip++)
-	{
-		switch (str[skip])
-		{
-			case 'm':
-				return skip + 1;
-			case '@':
-			case '`':
-			case ']':
-				return 0;
-		}
-
-		if (isalpha((int) str[skip]))
-		{
-			return 0;
-		}
-	}
-	return 0;
-}
-
-int find_escaped_color_code(char *str)
-{
-	int skip;
-
-	switch (str[0])
-	{
-		case  '\\':
-			break;
-
-		default:
-			return 0;
-	}
-
-	switch (str[1])
-	{
-		case 'e':
-			break;
-		default:
-			return 0;
-	}
-
-	switch (str[2])
-	{
-		case '[':
-			break;
-
-		default:
-			return 0;
-	}
-
-	for (skip = 3 ; str[skip] != 0 ; skip++)
-	{
-		switch (str[skip])
-		{
-			case 'm':
-				return skip + 1;
-			case '@':
-			case '`':
-			case ']':
-				return 0;
-		}
-
-		if (isalpha((int) str[skip]))
-		{
-			return 0;
-		}
-	}
-	return 0;
-}
-
-int find_secure_color_code(char *str)
-{
-	int skip, valid = 1;
-
-	switch (str[0])
-	{
-		case  ASCII_ESC:   /* ESC */
-			break;
-
-		default:
-			return 0;
-	}
-
-	switch (str[1])
-	{
-		case '[':
-			break;
-
-		default:
-			return 0;
-	}
-
-	for (skip = 2 ; str[skip] != 0 ; skip++)
-	{
-		switch (str[skip])
-		{
-			case 'm':
-				if (valid)
-				{
-					return skip + 1;
-				}
-				return 0;
-
-			case ';':
-				valid = 0;
-				break;
-
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				valid = 1;
-				break;
-
-			default:
-				return 0;
-		}
-	}
-	return 0;
-}
-
 
 int skip_vt102_codes_non_graph(char *str)
 {
@@ -542,6 +335,9 @@ int skip_vt102_codes_non_graph(char *str)
 		case ']':
 			switch (str[2])
 			{
+				case 0:
+					return 2;
+
 				case 'P':
 					for (skip = 3 ; skip < 10 ; skip++)
 					{
@@ -551,10 +347,29 @@ int skip_vt102_codes_non_graph(char *str)
 						}
 					}
 					return skip;
+
 				case 'R':
-					return 3;
+					return str[3] ? 3 : 2;
+
+				case '6':
+					return 0;
+
+				default:
+					for (skip = 2 ; str[skip] ; skip++)
+					{
+						if (str[skip] == '\a')
+						{
+							return skip + 1;
+						}
+
+						if (str[skip] == '\e' && str[skip+1] == '\\')
+						{
+							return skip + 2;
+						}
+					}
+					break;
 			}
-			return 0;
+			return 2;
 
 		case '[':
 			break;
@@ -565,23 +380,205 @@ int skip_vt102_codes_non_graph(char *str)
 
 	for (skip = 2 ; str[skip] != 0 ; skip++)
 	{
-		switch (str[skip])
+		if (str[skip] == 'm')
 		{
-			case 'm':
-				return 0;
-			case '@':
-			case '`':
-			case ']':
-				return skip + 1;
+			return 0;
 		}
 
-		if (isalpha((int) str[skip]))
+		if (is_csichar(str[skip]))
 		{
 			return skip + 1;
 		}
 	}
 	return 0;
 }
+
+int get_vt102_width(struct session *ses, char *str, int *str_len)
+{
+	int raw_len;
+
+	*str_len = 0;
+
+	if (*str)
+	{
+		raw_len = skip_vt102_codes(str);
+
+		if (raw_len)
+		{
+			return raw_len;
+		}
+
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC))
+		{
+			return get_euc_width(ses, str, str_len);
+		}
+
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
+		{
+			return get_utf8_width(str, str_len);
+		}
+
+		return get_ascii_width(str, str_len);
+	}
+	return 0;
+}
+
+int strip_vt102_width(struct session *ses, char *str, int *str_width)
+{
+	int width;
+	char *pts;
+
+	pts = str;
+
+	*str_width = 0;
+
+	while (*pts)
+	{
+		pts += get_vt102_width(ses, pts, &width);
+
+		*str_width += width;
+	}
+	return pts - str;
+}
+
+
+int find_color_code(char *str)
+{
+	int skip;
+
+	switch (str[0])
+	{
+		case  ASCII_ESC:
+			break;
+
+		default:
+			return 0;
+	}
+
+	switch (str[1])
+	{
+		case '[':
+			break;
+
+		default:
+			return 0;
+	}
+
+	for (skip = 2 ; str[skip] != 0 ; skip++)
+	{
+		if (str[skip] == 'm')
+		{
+			return skip + 1;
+		}
+
+		if (is_csichar(str[skip]))
+		{
+			return 0;
+		}
+	}
+	return 0;
+}
+
+int find_escaped_color_code(char *str)
+{
+	int skip;
+
+	switch (str[0])
+	{
+		case  '\\':
+			break;
+
+		default:
+			return 0;
+	}
+
+	switch (str[1])
+	{
+		case 'e':
+			break;
+		default:
+			return 0;
+	}
+
+	switch (str[2])
+	{
+		case '[':
+			break;
+
+		default:
+			return 0;
+	}
+
+	for (skip = 3 ; str[skip] != 0 ; skip++)
+	{
+		if (str[skip] == 'm')
+		{
+			return skip + 1;
+		}
+
+		if (is_csichar(str[skip]))
+		{
+			return 0;
+		}
+	}
+	return 0;
+}
+
+int find_secure_color_code(char *str)
+{
+	int skip;
+
+	if (*str != ASCII_ESC)
+	{
+		return 0;
+	}
+
+	if (str[1] == '[')
+	{
+		for (skip = 2 ; str[skip] != 0 ; skip++)
+		{
+			switch (str[skip])
+			{
+				case 'm':
+					if (is_digit(str[skip - 1]))
+					{
+						return skip + 1;
+					}
+					return 0;
+
+				case ';':
+				case ':':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					break;
+
+				default:
+					return 0;
+			}
+		}
+	}
+	else if (str[1] == ']' && str[2] == '6' && str[3] == '8' && str[4] == ';')
+	{
+		for (skip = 5 ; str[skip] != 0 ; skip++)
+		{
+			if (str[skip] == ASCII_BEL)
+			{
+				return skip + 1;
+			}
+		}
+		return 0;
+	}
+	return 0;
+}
+
 
 int strip_vt102_codes(char *str, char *buf)
 {
@@ -700,398 +697,348 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 
 void get_color_codes(char *old, char *str, char *buf, int flags)
 {
-	char *pti, *pto, col[100], tmp[BUFFER_SIZE];
-	int len, vtc, fgc, bgc, cnt;
+	char *pti, *ptb, *ptc, col[100];
+	int hop, vtc, fgc, bgc;
 	int rgb[6] = { 0, 0, 0, 0, 0, 0 };
 
-	push_call("get_color_codes(%p,%p,%p,%d)",old,str,buf,flags);
-
-	pto = tmp;
-
-	pti = old;
-
-	while (*pti)
-	{
-		while ((len = find_color_code(pti)) != 0)
-		{
-			memcpy(pto, pti, len);
-			pti += len;
-			pto += len;
-		}
-
-		if (*pti)
-		{
-			pti++;
-		}
-	}
-
-	pti = str;
-
-	while (*pti)
-	{
-		while ((len = find_color_code(pti)) != 0)
-		{
-			memcpy(pto, pti, len);
-			pti += len;
-			pto += len;
-		}
-
-		if (!HAS_BIT(flags, GET_ALL))
-		{
-			break;
-		}
-
-		if (*pti == '\n')
-		{
-			break;
-		}
-
-		if (*pti)
-		{
-			pti++;
-		}
-	}
-
-	*pto = 0;
-
-	if (strlen(tmp) == 0)
-	{
-		buf[0] = 0;
-		pop_call();
-		return;
-	}
-
+	hop =  0;
 	vtc =  0;
 	fgc = -1;
 	bgc = -1;
 
-	pti = tmp;
+	start:
+
+	pti = hop ? str : old;
 
 	while (*pti)
 	{
-		switch (*pti)
+		if (*pti != ASCII_ESC)
 		{
-			case ASCII_ESC:
-				pti += 2;
+			if (!HAS_BIT(flags, GET_ALL))
+			{
+				break;
+			}
+			pti++;
 
-				if (pti[-1] == 'm')
+			continue;
+		}
+
+		pti++;
+
+		if (*pti != '[')
+		{
+			continue;
+		}
+		pti++;
+
+		if (*pti == 'm')
+		{
+			vtc =  0;
+			fgc = -1;
+			bgc = -1;
+
+			pti++;
+
+			continue;
+		}
+
+		ptc = col;
+
+		while (*pti)
+		{
+			if (*pti >= '0' && *pti <= '9')
+			{
+				if (ptc - col > 20)
 				{
-					vtc =  0;
-					fgc = -1;
-					bgc = -1;
 					break;
 				}
 
-				for (cnt = 0 ; pti[cnt] ; cnt++)
+				*ptc++ = *pti++;
+
+				continue;
+			}
+
+			if (*pti != ';' && *pti != 'm')
+			{
+				pti++;
+
+				break;
+			}
+
+			*ptc = 0;
+
+			ptc = col;
+
+			if (HAS_BIT(vtc, COL_XTF_R))
+			{
+				fgc = URANGE(0, atoi(col), 255);
+				DEL_BIT(vtc, COL_XTF_5|COL_XTF_R);
+				SET_BIT(vtc, COL_XTF);
+			}
+			else if (HAS_BIT(vtc, COL_XTB_R))
+			{
+				bgc = URANGE(0, atoi(col), 255);
+				DEL_BIT(vtc, COL_XTB_5|COL_XTB_R);
+				SET_BIT(vtc, COL_XTB);
+			}
+			else if (HAS_BIT(vtc, COL_TCF_R))
+			{
+				if (rgb[0] == 256)
 				{
-					col[cnt] = pti[cnt];
+					rgb[0] = URANGE(0, atoi(col), 255);
+				}
+				else if (rgb[1] == 256)
+				{
+					rgb[1] = URANGE(0, atoi(col), 255);
+				}
+				else
+				{
+					rgb[2] = URANGE(0, atoi(col), 255);
 
-					if (pti[cnt] == ';' || pti[cnt] == 'm')
-					{
-						col[cnt] = 0;
+					fgc = rgb[0] * 256 * 256 + rgb[1] * 256 + rgb[2];
+					
+					DEL_BIT(vtc, COL_TCF_2|COL_TCF_R);
+					SET_BIT(vtc, COL_TCB);
+				}
+			}
+			else if (HAS_BIT(vtc, COL_TCB_R))
+			{
+				if (rgb[3] == 256)
+				{
+					rgb[3] = URANGE(0, atoi(col), 255);
+				}
+				else if (rgb[4] == 256)
+				{
+					rgb[4] = URANGE(0, atoi(col), 255);
+				}
+				else
+				{
+					rgb[5] = URANGE(0, atoi(col), 255);
 
-						cnt = -1;
-						pti += 1 + strlen(col);
-
-						if (HAS_BIT(vtc, COL_XTF_R))
+					fgc = rgb[3] * 256 * 256 + rgb[4] * 256 + rgb[5];
+					
+					DEL_BIT(vtc, COL_TCB_2|COL_TCF_R);
+					SET_BIT(vtc, COL_TCB);
+				}
+			}
+			else
+			{
+				switch (atoi(col))
+				{
+					case 0:
+						vtc = 0;
+						fgc = -1;
+						bgc = -1;
+						break;
+					case 1:
+						SET_BIT(vtc, COL_BLD);
+						break;
+					case 2:
+						if (HAS_BIT(vtc, COL_TCF_2))
 						{
-							fgc = URANGE(0, atoi(col), 255);
-							DEL_BIT(vtc, COL_XTF_5|COL_XTF_R);
-							SET_BIT(vtc, COL_XTF);
+							rgb[0] = rgb[1] = rgb[2] = 256;
+							SET_BIT(vtc, COL_TCF_R);
 						}
-						else if (HAS_BIT(vtc, COL_XTB_R))
+						else if (HAS_BIT(vtc, COL_TCB_2))
 						{
-							bgc = URANGE(0, atoi(col), 255);
-							DEL_BIT(vtc, COL_XTB_5|COL_XTB_R);
-							SET_BIT(vtc, COL_XTB);
-						}
-						else if (HAS_BIT(vtc, COL_TCF_R))
-						{
-							if (rgb[0] == 256)
-							{
-								rgb[0] = URANGE(0, atoi(col), 255);
-							}
-							else if (rgb[1] == 256)
-							{
-								rgb[1] = URANGE(0, atoi(col), 255);
-							}
-							else
-							{
-								rgb[2] = URANGE(0, atoi(col), 255);
-
-								fgc = rgb[0] * 256 * 256 + rgb[1] * 256 + rgb[2];
-								
-								DEL_BIT(vtc, COL_TCF_2|COL_TCF_R);
-								SET_BIT(vtc, COL_TCB);
-							}
-						}
-						else if (HAS_BIT(vtc, COL_TCB_R))
-						{
-							if (rgb[3] == 256)
-							{
-								rgb[3] = URANGE(0, atoi(col), 255);
-							}
-							else if (rgb[4] == 256)
-							{
-								rgb[4] = URANGE(0, atoi(col), 255);
-							}
-							else
-							{
-								rgb[5] = URANGE(0, atoi(col), 255);
-
-								fgc = rgb[3] * 256 * 256 + rgb[4] * 256 + rgb[5];
-								
-								DEL_BIT(vtc, COL_TCB_2|COL_TCF_R);
-								SET_BIT(vtc, COL_TCB);
-							}
+							rgb[3] = rgb[4] = rgb[5] = 256;
+							SET_BIT(vtc, COL_TCB_R);
 						}
 						else
 						{
-							switch (atoi(col))
-							{
-								case 0:
-									vtc = 0;
-									fgc = -1;
-									bgc = -1;
-									break;
-								case 1:
-									SET_BIT(vtc, COL_BLD);
-									break;
-								case 2:
-									if (HAS_BIT(vtc, COL_TCF_2))
-									{
-										rgb[0] = rgb[1] = rgb[2] = 256;
-										SET_BIT(vtc, COL_TCF_R);
-									}
-									else if (HAS_BIT(vtc, COL_TCB_2))
-									{
-										rgb[3] = rgb[4] = rgb[5] = 256;
-										SET_BIT(vtc, COL_TCB_R);
-									}
-									else
-									{
-										DEL_BIT(vtc, COL_BLD);
-									}
-									break;
-								case 4:
-									SET_BIT(vtc, COL_UND);
-									break;
-								case 5:
-									if (HAS_BIT(vtc, COL_XTF_5))
-									{
-										SET_BIT(vtc, COL_XTF_R);
-									}
-									else if (HAS_BIT(vtc, COL_XTB_5))
-									{
-										SET_BIT(vtc, COL_XTB_R);
-									}
-									else
-									{
-										SET_BIT(vtc, COL_BLK);
-									}
-									break;
-								case 7:
-									SET_BIT(vtc, COL_REV);
-									break;
-								case 21:
-								case 22:
-									DEL_BIT(vtc, COL_BLD);
-									break;
-								case 24:
-									DEL_BIT(vtc, COL_UND);
-									break;
-								case 25:
-									DEL_BIT(vtc, COL_BLK);
-									break;
-								case 27:
-									DEL_BIT(vtc, COL_REV);
-									break;
-								case 38:
-									SET_BIT(vtc, COL_XTF_5|COL_TCF_2);
-									fgc = -1;
-									break;
-								case 48:
-									SET_BIT(vtc, COL_XTB_5|COL_TCB_2);
-									bgc = -1;
-									break;
-								default:
-									switch (atoi(col) / 10)
-									{
-										case 3:
-										case 10:
-											fgc = atoi(col);
-											DEL_BIT(vtc, COL_XTF|COL_TCF);
-											break;
-										
-										case 4:
-										case 9:
-											bgc = atoi(col);
-											DEL_BIT(vtc, COL_XTB|COL_TCB);
-											break;
-									}
-									break;
-							}
+							DEL_BIT(vtc, COL_BLD);
 						}
-					}
-
-					if (pti[-1] == 'm')
-					{
 						break;
-					}
-				}
-				break;
 
-			default:
-				pti++;
+					case 3:
+						SET_BIT(vtc, COL_ITA);
+						break;
+
+					case 4:
+						SET_BIT(vtc, COL_UND);
+						break;
+					case 5:
+						if (HAS_BIT(vtc, COL_XTF_5))
+						{
+							SET_BIT(vtc, COL_XTF_R);
+						}
+						else if (HAS_BIT(vtc, COL_XTB_5))
+						{
+							SET_BIT(vtc, COL_XTB_R);
+						}
+						else
+						{
+							SET_BIT(vtc, COL_BLK);
+						}
+						break;
+					case 7:
+						SET_BIT(vtc, COL_REV);
+						break;
+					case 21:
+					case 22:
+						DEL_BIT(vtc, COL_BLD);
+						break;
+
+					case 23:
+						DEL_BIT(vtc, COL_ITA);
+						break;
+
+					case 24:
+						DEL_BIT(vtc, COL_UND);
+						break;
+					case 25:
+						DEL_BIT(vtc, COL_BLK);
+						break;
+					case 27:
+						DEL_BIT(vtc, COL_REV);
+						break;
+					case 38:
+						SET_BIT(vtc, COL_XTF_5|COL_TCF_2);
+						fgc = -1;
+						break;
+					case 48:
+						SET_BIT(vtc, COL_XTB_5|COL_TCB_2);
+						bgc = -1;
+						break;
+					default:
+						switch (atoi(col) / 10)
+						{
+							case 3:
+							case 10:
+								fgc = atoi(col);
+								DEL_BIT(vtc, COL_XTF|COL_TCF);
+								break;
+							
+							case 4:
+							case 9:
+								bgc = atoi(col);
+								DEL_BIT(vtc, COL_XTB|COL_TCB);
+								break;
+						}
+						break;
+				}
+			}
+
+			if (*pti++ == 'm')
+			{
 				break;
+			}
 		}
 	}
 
-	strcpy(buf, "\e[0");
+	if (++hop == 1)
+	{
+		goto start;
+	}
+
+	ptb = buf;
+
+	*ptb++ = '\e';
+	*ptb++ = '[';
+	*ptb++ = '0';
 
 	if (HAS_BIT(vtc, COL_BLD))
 	{
-		strcat(buf, ";1");
+		*ptb++ = ';';
+		*ptb++ = '1';
 	}
+	if (HAS_BIT(vtc, COL_ITA))
+	{
+		*ptb++ = ';';
+		*ptb++ = '3';
+	}
+
 	if (HAS_BIT(vtc, COL_UND))
 	{
-		strcat(buf, ";4");
+		*ptb++ = ';';
+		*ptb++ = '4';
 	}
 	if (HAS_BIT(vtc, COL_BLK))
 	{
-		strcat(buf, ";5");
+		*ptb++ = ';';
+		*ptb++ = '5';
 	}
 	if (HAS_BIT(vtc, COL_REV))
 	{
-		strcat(buf, ";7");
+		*ptb++ = ';';
+		*ptb++ = '7';
 	}
 
 	if (HAS_BIT(vtc, COL_XTF))
 	{
-		cat_sprintf(buf, ";38;5;%d", fgc);
+		ptb += sprintf(ptb, ";38;5;%d", fgc);
 	}
 	else if (HAS_BIT(vtc, COL_TCF))
 	{
-		cat_sprintf(buf, ";38;2;%d;%d;%d", fgc / 256 / 256, fgc / 256 % 256, fgc % 256);
+		ptb += sprintf(ptb, ";38;2;%d;%d;%d", fgc / 256 / 256, fgc / 256 % 256, fgc % 256);
 	}
 	else if (fgc != -1)
 	{
-		cat_sprintf(buf, ";%d", fgc);
+		ptb += sprintf(ptb, ";%d", fgc);
 	}
 
 	if (HAS_BIT(vtc, COL_XTB))
 	{
-		cat_sprintf(buf, ";48;5;%d", bgc);
+		ptb += sprintf(ptb, ";48;5;%d", bgc);
 	}
 	else if (HAS_BIT(vtc, COL_TCB))
 	{
-		cat_sprintf(buf, ";48;2;%d;%d;%d", bgc / 256 / 256, bgc / 256 % 256, bgc % 256);
+		ptb += sprintf(ptb, ";48;2;%d;%d;%d", bgc / 256 / 256, bgc / 256 % 256, bgc % 256);
 	}
 	else if (bgc != -1)
 	{
-		cat_sprintf(buf, ";%d", bgc);
+		ptb += sprintf(ptb, ";%d", bgc);
 	}
 
-	strcat(buf, "m");
+	*ptb++ = 'm';
 
-	pop_call();
+	*ptb = 0;
+
 	return;
 }
 
 int strip_vt102_strlen(struct session *ses, char *str)
 {
 	char *pti;
-	int w, i = 0;
+	int size, width, str_len;
+	
+	str_len = 0;
 
 	pti = str;
 
 	while (*pti)
 	{
-		if (skip_vt102_codes(pti))
+		size = skip_vt102_codes(pti);
+
+		if (size == 0)
 		{
-			pti += skip_vt102_codes(pti);
-
-			continue;
-		}
-
-		if (*pti == '\t')
-		{
-			i += ses->tab_width - i % ses->tab_width;
-			pti++;
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-		{
-			pti += get_utf8_width(pti, &w);
-
-			i += w;
-		}
-		else
-		{
-			pti++;
-			i++;
-		}
-	}
-	return i;
-}
-
-
-int strip_vt102_width(struct session *ses, char *str, int *lines)
-{
-	char *pti;
-	int w, i = 0, max = 0;
-
-	*lines = 1;
-
-	pti = str;
-
-	while (*pti)
-	{
-		if (*pti == '\n')
-		{
-			*lines += 1;
-
-			if (i > max)
+/*			if (*pti == '\t')
 			{
-				max = i;
-				i = 0;
+				width = ses->tab_width - str_len % ses->tab_width;
+				size  = 1;
 			}
+			else
+*/
+			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
+			{
+				size = get_utf8_width(pti, &width);
+			}
+			else
+			{
+				size = get_ascii_width(pti, &width);
+			}
+			str_len += width;
 		}
-
-		if (skip_vt102_codes(pti))
-		{
-			pti += skip_vt102_codes(pti);
-
-			continue;
-		}
-
-		if (*pti == '\t')
-		{
-			i += ses->tab_width - i % ses->tab_width;
-			pti++;
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-		{
-			pti += get_utf8_width(pti, &w);
-
-			i += w;
-		}
-		else
-		{
-			pti++;
-			i++;
-		}
+		pti += size;
 	}
-
-	if (i > max)
-	{
-		return i;
-	}
-	return max;
+	return str_len;
 }
+
+// outdated
 
 int strip_color_strlen(struct session *ses, char *str)
 {
-	char buf[BUFFER_SIZE];
+	char *buf = str_alloc_stack(0);
 
 	substitute(ses, str, buf, SUB_ESC|SUB_COL);
 
@@ -1100,7 +1047,7 @@ int strip_color_strlen(struct session *ses, char *str)
 
 int interpret_vt102_codes(struct session *ses, char *str, int real)
 {
-	char data[BUFFER_SIZE] = { 0 };
+	char *data = str_alloc_stack(0);
 	int skip = 0;
 
 	switch (str[skip])
@@ -1267,7 +1214,7 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 				break;
 		}
 
-		if (isalpha((int) str[skip]))
+		if (is_alpha(str[skip]))
 		{
 			ses->cur_row = URANGE(1, ses->cur_row, gtd->screen->rows);
 
@@ -1284,3 +1231,239 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 	return TRUE;
 }
 
+int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
+{
+	int skip, cnt, len, val[5];
+
+	push_call("catch_vt102_codes(%p)",str);
+
+	switch (str[0])
+	{
+		case ASCII_ENQ:
+			if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 1, "CATCH VT100 ENQ", gtd->system->term))
+			{
+				pop_call();
+				return 1;
+			}
+			pop_call();
+			return 0;
+			
+		case ASCII_ESC:
+			break;
+
+		default:
+			pop_call();
+			return 0;
+	}
+
+	val[0] = val[1] = val[2] = val[3] = 0;
+
+	cnt = 0;
+
+	switch (str[1])
+	{
+		case '\0':
+			break;
+
+		case '[':
+			for (len = 2 ; str[len] ; len++)
+			{
+				if (str[len] >= '0' && str[len] <= '9')
+				{
+					val[cnt] *= 10;
+					val[cnt] += str[len] - '0';
+				}
+				else
+				{
+					switch (str[len])
+					{
+						case ';':
+							if (cnt < 4)
+							{
+								cnt++;
+							}
+							break;
+
+						case 'c':
+							check_all_events(ses, EVENT_FLAG_VT100, 0, 1, "VT100 DA", ntos(val[0]));
+							pop_call();
+							return len + 1;
+
+						case 'n':
+							if (val[0] == 5)
+							{
+								check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "VT100 DSR");
+							}
+							if (val[0] == 6)
+							{
+								check_all_events(ses, EVENT_FLAG_VT100, 0, 2, "VT100 CPR", ntos(gtd->screen->cols), ntos(gtd->screen->rows));
+							}
+							pop_call();
+							return len + 1;
+
+						case 'r':
+							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH VT100 SCROLL REGION", ntos(val[0]), ntos(val[1])))
+							{
+								pop_call();
+								return len + 1;
+							}
+							break;
+
+						case 'H':
+							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH VT100 CURSOR H", ntos(val[0]), ntos(val[1])))
+							{
+								pop_call();
+								return len + 1;
+							}
+							break;
+
+						case 'J':
+							if (val[0] == 0)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE SCREEN BELOW"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							if (val[0] == 1)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE SCREEN ABOVE"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							if (val[0] == 2)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE SCREEN ALL"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							if (val[0] == 3)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE SCREEN SAVED"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							break;
+
+						case 'K':
+							if (val[0] == 0)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE LINE RIGHT"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							if (val[0] == 1)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE LINE LEFT"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							if (val[0] == 2)
+							{
+								if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH VT100 ERASE LINE ALL"))
+								{
+									pop_call();
+									return len + 1;
+								}
+							}
+							break;
+
+						case 'Z':
+							check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "VT100 DECID");
+							pop_call();
+							return len + 1;
+
+						default:
+							pop_call();
+							return 0;
+					}
+				}
+			}
+			break;
+
+		case ']':
+			{
+				int opt;
+				char *osc = str_alloc_stack(0);
+
+				if (str[2] == 'P')
+				{
+					if (cplen >= 10)
+					{
+						sprintf(osc, "%.*s", 8, str + 3);
+							
+						check_all_events(ses, EVENT_FLAG_VT100, 0, 1, "VT100 OSC COLOR PALETTE", osc);
+							
+						if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 1, "CATCH VT100 OSC", osc))
+						{
+							pop_call();
+							return 11;
+						}
+					}
+					pop_call();
+					return 0;
+				}
+				else
+				{
+					opt = 0;
+
+					for (skip = 2 ; cplen >= skip && skip < NUMBER_SIZE ; skip++)
+					{
+						if (!is_digit(str[skip]))
+						{
+							break;
+						}
+						opt = opt * 10 + (str[skip] - '0');
+					}
+
+					if (opt == 68 && cplen >= skip + 3)
+					{
+						if (str[skip] != ';')
+						{
+							pop_call();
+							return 0;
+						}
+
+						if (str[skip + 1] == '2' && str[skip + 2] == ';')
+						{
+							pop_call();
+							return 1;
+						}
+					}
+					
+					while (cplen >= skip && skip < BUFFER_SIZE)
+					{
+						if (str[skip] == ASCII_BEL)
+						{
+							break;
+						}
+						skip++;
+					}
+	
+					sprintf(osc, "%.*s", skip - 2, str + 2);
+
+					check_all_events(ses, SUB_SEC|EVENT_FLAG_VT100, 0, 1, "VT100 OSC", osc);
+
+					if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 1, "CATCH VT100 OSC", osc))
+					{
+						pop_call();
+						return skip + 1;
+					}
+				}
+			}
+			break;
+	}
+	pop_call();
+	return 0;
+}
