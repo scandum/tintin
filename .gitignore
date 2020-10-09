@@ -1,4 +1,5 @@
 src/Makefile
+src/confdefs.h
 src/config.h
 src/config.log
 src/config.status
