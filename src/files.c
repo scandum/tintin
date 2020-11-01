@@ -499,8 +499,6 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 {
 	char *result, *str;
 	int val = 0;
-	int llen = UMAX(20, strlen(node->arg1));
-	int rlen = UMAX(25, strlen(node->arg2));
 
 	push_call("write_node(%d,%p,%p)",list,node,file);
 
@@ -528,10 +526,17 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 		case LIST_VARIABLE:
 			str = str_alloc_stack(0);
 
-			show_nest_node(node, &str, 1);
+//			show_nest_node(node, &str, 1);
+			view_nest_node(node, &str, 0, TRUE, FALSE);
 
-			val = asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", str);
-
+			if (node->root)
+			{
+				val = asprintf(&result, "%c%s {%s}\n{\n%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, str);
+			}
+			else
+			{
+				val = asprintf(&result, "%c%s {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, str);
+			}
 			break;
 
 		default:
@@ -541,16 +546,16 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 					result = strdup("");
 					break;
 				case 1:
-					val = asprintf(&result, "%c%-16s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1);
+					val = asprintf(&result, "%c%s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1);
 					break;
 				case 2:
-					val = asprintf(&result, "%c%-16s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2);
+					val = asprintf(&result, "%c%s {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, node->arg2);
 					break;
 				case 3:
-					val = asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3);
+					val = asprintf(&result, "%c%s {%s} {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, node->arg2, node->arg3);
 					break;
 				case 4:
-					val = asprintf(&result, "%c%-16s {%s} %*s {%s} %*s {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, 20 - llen, "", node->arg2, 25 - rlen, "", node->arg3, node->arg4);
+					val = asprintf(&result, "%c%s {%s} {%s} {%s} {%s}\n", gtd->tintin_char, list_table[list].name, node->arg1, node->arg2, node->arg3, node->arg4);
 					break;
 			}
 			break;

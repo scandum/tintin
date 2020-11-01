@@ -815,7 +815,7 @@ void show_nest_node(struct listnode *node, char **str_result, int initialize)
 	}
 }
 
-void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize)
+void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize, int color)
 {
 	if (initialize == TRUE)
 	{
@@ -830,7 +830,14 @@ void view_nest_node(struct listnode *node, char **str_result, int nest, int init
 		}
 		else
 		{
-			str_cat_printf(str_result, COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n", node->arg2);
+			if (color)
+			{
+				str_cat_printf(str_result, COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n", node->arg2);
+			}
+			else
+			{
+				str_cat_printf(str_result, "{%s}\n", node->arg2);
+			}
 		}
 	}
 	else
@@ -840,23 +847,44 @@ void view_nest_node(struct listnode *node, char **str_result, int nest, int init
 
 		if (initialize == FALSE)
 		{
-			str_cat_printf(str_result, "\n" COLOR_BRACE "%s{\n", indent(nest));
+			if (color)
+			{
+				str_cat_printf(str_result, "\n" COLOR_BRACE "%s{\n", indent(nest));
+			}
+			else
+			{
+				str_cat_printf(str_result, "\n%s{\n", indent(nest));
+			}
 		}
 
 		nest++;
 
 		for (i = 0 ; i < root->used ; i++)
 		{
-			str_cat_printf(str_result, COLOR_BRACE "%s{" COLOR_STRING "%s" COLOR_BRACE "} ", indent(nest), root->list[i]->arg1);
+			if (color)
+			{
+				str_cat_printf(str_result, COLOR_BRACE "%s{" COLOR_STRING "%s" COLOR_BRACE "} ", indent(nest), root->list[i]->arg1);
+			}
+			else
+			{
+				str_cat_printf(str_result, "%s{%s} ", indent(nest), root->list[i]->arg1);
+			}
 
-			view_nest_node(root->list[i], str_result, nest, FALSE);
+			view_nest_node(root->list[i], str_result, nest, FALSE, color);
 		}
 
 		nest--;
 
 		if (initialize == FALSE)
 		{
-			str_cat_printf(str_result, COLOR_BRACE "%s}\n", indent(nest), "");
+			if (color)
+			{
+				str_cat_printf(str_result, COLOR_BRACE "%s}\n", indent(nest), "");
+			}
+			else
+			{
+				str_cat_printf(str_result, "%s}\n", indent(nest), "");
+			}
 		}
 	}
 }
@@ -883,7 +911,7 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
 	}
 
 	root = search_nest_base_ses(ses, name);
@@ -896,7 +924,7 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 		}
 		else
 		{
-			root = ses->list[LIST_VARIABLE];
+                      root = ses->list[LIST_VARIABLE];
 		}
 		node = NULL;
 	}
@@ -946,7 +974,7 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
 	}
 	free(arg2);
 
@@ -977,7 +1005,7 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
 	}
 
 	root = search_nest_base_ses(ses, name);
@@ -1035,7 +1063,7 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
 	}
 	free(arg2);
 
@@ -1065,7 +1093,7 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
 	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
@@ -1119,7 +1147,7 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
 	}
 
 	free(arg2);
@@ -1140,6 +1168,7 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 	push_call("add_nest_node(%p,%s,%p,...)",root,arg1,format);
 
 	va_start(args, format);
+
 	if (vasprintf(&arg2, format, args) == -1)
 	{
 		syserr_printf(root->ses, "add_nest_node: vasprintf");
@@ -1151,7 +1180,7 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
 	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
@@ -1208,7 +1237,7 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", name, name, arg2);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
 	}
 
 	free(arg2);

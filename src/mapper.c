@@ -2414,10 +2414,10 @@ char *draw_room(struct session *ses, struct room_data *room, int line, int x, in
 		if (HAS_BIT(room->flags, ROOM_FLAG_PATH) && room->search_stamp == ses->map->search->stamp)
 		{
 			room_color = ses->map->color[MAP_COLOR_PATH];
-
 			if (symsize > 1)
 			{
-				symsize = 0;
+				strcpy(room_symbol, " ");
+				symsize = 1;
 			}
 		}
 		else if (*room->color)
@@ -7190,7 +7190,7 @@ DO_MAP(map_map)
 			break;
 
 		case 'D':
-			draw_arg(ses, 1, 2, 3, 4, 5, 6, 7, "", arg4, arg2, arg1, arg3);
+			command(ses, do_draw, "tile %s {%s}", arg4, arg1);
 			break;
 
 		case 'S':

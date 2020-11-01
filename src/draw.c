@@ -28,6 +28,101 @@ static int  draw_cnt;
 
 #include "tintin.h"
 
+#define DRAW_FLAG_NONE                   0
+#define DRAW_FLAG_ASCII               BV01
+#define DRAW_FLAG_BLANKED             BV02
+#define DRAW_FLAG_BOT                 BV03
+#define DRAW_FLAG_BOXED               BV04
+#define DRAW_FLAG_BUMP                BV05
+#define DRAW_FLAG_CIRCLED             BV06
+#define DRAW_FLAG_COLOR1              BV07
+#define DRAW_FLAG_COLOR2              BV08
+#define DRAW_FLAG_CONVERT             BV09
+#define DRAW_FLAG_CORNERED            BV10
+#define DRAW_FLAG_CROSSED             BV11
+#define DRAW_FLAG_FILLED              BV12
+#define DRAW_FLAG_FOREGROUND          BV13
+#define DRAW_FLAG_GRID                BV14
+#define DRAW_FLAG_HOR                 BV15
+#define DRAW_FLAG_HUGE                BV16
+#define DRAW_FLAG_JEWELED             BV17
+#define DRAW_FLAG_LEFT                BV18
+//#define DRAW_FLAG_LINED               BV19 unused / obsolete
+#define DRAW_FLAG_NUMBERED            BV20
+#define DRAW_FLAG_PRUNED              BV21
+#define DRAW_FLAG_RIGHT               BV22
+#define DRAW_FLAG_ROUNDED             BV23
+#define DRAW_FLAG_SCALED              BV24
+#define DRAW_FLAG_SCROLL              BV25
+#define DRAW_FLAG_SHADOWED            BV26
+#define DRAW_FLAG_TEED                BV27
+#define DRAW_FLAG_TOP                 BV28
+#define DRAW_FLAG_TRACED              BV29
+#define DRAW_FLAG_TUBED               BV30
+#define DRAW_FLAG_UTF8                BV31
+#define DRAW_FLAG_VER                 BV32
+
+#define DRAW_FLAG_CURSIVE             BV33
+#define DRAW_FLAG_FAT                 BV34
+#define DRAW_FLAG_SANSSERIF           BV35
+#define DRAW_FLAG_CALIGN              BV36
+#define DRAW_FLAG_LALIGN              BV37
+#define DRAW_FLAG_RALIGN              BV38
+#define DRAW_FLAG_TALIGN              BV39
+#define DRAW_FLAG_UALIGN              BV40
+
+#define DRAW_FLAG_APPENDIX            DRAW_FLAG_CIRCLED|DRAW_FLAG_CORNERED|DRAW_FLAG_CROSSED|DRAW_FLAG_JEWELED|DRAW_FLAG_PRUNED|DRAW_FLAG_ROUNDED|DRAW_FLAG_TEED
+
+
+
+#define DO_DRAW(draw) void draw (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, long long flags, char *color, char *arg, char *arg1, char *arg2, char *arg3)
+
+extern DO_DRAW(draw_blank);
+extern DO_DRAW(draw_bot_side);
+//extern DO_DRAW(draw_arg);
+extern DO_DRAW(draw_box);
+extern DO_DRAW(draw_buffer);
+extern DO_DRAW(draw_corner);
+extern DO_DRAW(draw_horizontal_line);
+extern DO_DRAW(draw_left_side);
+extern DO_DRAW(draw_line);
+extern DO_DRAW(draw_map);
+extern DO_DRAW(draw_right_side);
+extern DO_DRAW(draw_side);
+extern DO_DRAW(draw_square);
+extern DO_DRAW(draw_rain);
+extern DO_DRAW(draw_table_grid);
+extern DO_DRAW(draw_text);
+extern DO_DRAW(draw_top_side);
+extern DO_DRAW(draw_vertical_lines);
+
+typedef void DRAW(struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, long long flags, char *color, char *arg, char *arg1, char *arg2, char *arg3);
+
+struct draw_type
+{
+	char                  * name;
+	char                  * desc;
+	int                     flags;
+	DRAW                  * fun;
+};
+
+struct draw_type draw_table[] =
+{
+	{       "BOX",       "Draw four sides of a box.",         DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT, draw_box },
+	{       "BUFFER",    "Draw the scrollback buffer.",       DRAW_FLAG_NONE, draw_buffer },
+	{       "CORNER",    "Draw a corner",                     DRAW_FLAG_CORNERED, draw_corner },
+	{       "LINE",      "Draw a line.",                      DRAW_FLAG_NONE, draw_line },
+	{       "MAP",       "Draw the map.",                     DRAW_FLAG_NONE, draw_map },
+	{       "RAIN",      "Draw digital rain.",                DRAW_FLAG_NONE, draw_rain },
+	{       "SIDE",      "Draw a line with corners.",         DRAW_FLAG_BOXED, draw_side },
+	{       "TABLE",     "Draw a table.",                     DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT, draw_table_grid },
+	{       "TILE",      "Draw a tile.",                      DRAW_FLAG_NONE, draw_square },
+	{       "",          "",                                  DRAW_FLAG_NONE, NULL }
+};
+
+
+void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row, int *bot_col, int *rows, int *cols, int index, long long flags, char *arg);
+
 DO_COMMAND(do_draw)
 {
 	char *color, *code1, *code2, *input;
@@ -1292,6 +1387,7 @@ DO_DRAW(draw_bot_side)
 	}
 }
 
+/*
 DO_DRAW(draw_arg)
 {
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
@@ -1315,6 +1411,7 @@ DO_DRAW(draw_arg)
 
 	restore_pos(ses);
 }
+*/
 
 DO_DRAW(draw_box)
 {

@@ -893,7 +893,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 
 				if (*token->data->arg == 0)
 				{
-					token->type++;
+//					token->type++;
 
 					do
 					{
@@ -958,7 +958,7 @@ struct scriptnode *parse_script(struct scriptroot *root, int lvl, struct scriptn
 
 					if (*token->data->arg == 0)
 					{
-						token->type++;
+//						token->type++;
 
 						do
 						{

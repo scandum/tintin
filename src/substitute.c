@@ -1103,11 +1103,9 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						brace = TRUE;
 
-						ptt = get_arg_in_braces(ses, &pti[i], buf, GET_ALL);
+						sub_arg_in_braces(ses, &pti[i], buf, GET_ONE, flags_neol);
 
-						i += strlen(buf) + 2;
-
-						substitute(ses, buf, temp, flags_neol);
+						get_arg_to_brackets(ses, buf, temp);
 					}
 					else
 					{
@@ -1124,13 +1122,16 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					if (*temp)
 					{
-						root = local_list(ses);
+						root = search_nest_base_ses(ses, temp);
 
-						if ((node = search_node_list(root, temp)) == NULL)
+						if (root)
+						{
+							node = search_node_list(root, temp);
+						}
+						else
 						{
 							root = ses->list[LIST_VARIABLE];
-
-							node = search_node_list(root, temp);
+							node = NULL;
 						}
 					}
 					else
@@ -1165,7 +1166,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else
 					{
-						pti = ptt;
+						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
 					substitute(ses, temp, buf, flags_neol);
@@ -1208,11 +1209,9 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						brace = TRUE;
 
-						ptt = get_arg_in_braces(ses, &pti[i], buf, GET_ALL);
+						sub_arg_in_braces(ses, &pti[i], buf, GET_ONE, flags_neol);
 
-						i += strlen(buf) + 2;
-
-						substitute(ses, buf, temp, flags_neol);
+						get_arg_to_brackets(ses, buf, temp);
 					}
 					else
 					{
@@ -1273,7 +1272,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else
 					{
-						pti = ptt;
+						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
 					substitute(ses, temp, buf, flags_neol);
@@ -1283,7 +1282,6 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					get_nest_node_val(root, buf, &str, brace);
 
 					substitute(ses, str, pto, flags_neol - SUB_VAR);
-//					substitute(ses, str, pto, flags_neol);
 
 					pto += strlen(pto);
 
@@ -1345,11 +1343,9 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						brace = TRUE;
 
-						ptt = get_arg_in_braces(ses, &pti[i], buf, GET_ALL);
+						sub_arg_in_braces(ses, &pti[i], buf, GET_ONE, flags_neol);
 
-						i += strlen(buf) + 2;
-
-						substitute(ses, buf, temp, flags_neol);
+						get_arg_to_brackets(ses, buf, temp);
 					}
 					else
 					{
@@ -1366,12 +1362,16 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					if (*temp)
 					{
-						root = local_list(ses);
+						root = search_nest_base_ses(ses, temp);
 
-						if ((node = search_node_list(root, temp)) == NULL)
+						if (root)
+						{
+							node = search_node_list(root, temp);
+						}
+						else
 						{
 							root = ses->list[LIST_VARIABLE];
-							node = search_node_list(root, temp);
+							node = NULL;
 						}
 					}
 					else
@@ -1406,7 +1406,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					}
 					else
 					{
-						pti = ptt;
+						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
 					substitute(ses, temp, buf, flags_neol);

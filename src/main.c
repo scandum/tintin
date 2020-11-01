@@ -150,7 +150,7 @@ void trap_handler(int signal)
 int main(int argc, char **argv)
 {
 	int c, i = 0, greeting = 0;
-	char filename[PATH_SIZE];
+
 	char arg[BUFFER_SIZE];
 
 	#ifdef SOCKS
@@ -286,12 +286,6 @@ int main(int argc, char **argv)
 
 	init_tintin(greeting);
 
-	sprintf(filename, "%s/%s", gtd->system->tt_dir, HISTORY_FILE);
-
-	if (access(filename, F_OK ) != -1)
-	{
-		command(gts, do_history, "read %s", filename);
-	}
 
 	RESTRING(gtd->vars[1], argv[0]);
 
@@ -426,6 +420,7 @@ int main(int argc, char **argv)
 
 void init_tintin(int greeting)
 {
+	char filename[PATH_SIZE];
 	int index;
 
 	gtd                 = (struct tintin_data *) calloc(1, sizeof(struct tintin_data));
@@ -526,6 +521,8 @@ void init_tintin(int greeting)
 	gts->lognext_name   = strdup("");
 	gts->logline_name   = strdup("");
 
+	gts->more_output    = str_dup("");
+
 	gtd->ses = gts;
 
 	for (index = 0 ; index < LIST_MAX ; index++)
@@ -590,6 +587,13 @@ void init_tintin(int greeting)
 	command(gts, do_pathdir, "nw se  9");
 	command(gts, do_pathdir, "se nw  6");
 	command(gts, do_pathdir, "sw ne 12");
+
+	sprintf(filename, "%s/%s", gtd->system->tt_dir, HISTORY_FILE);
+
+	if (access(filename, F_OK ) != -1)
+	{
+		command(gts, do_history, "read %s", filename);
+	}
 
 	gtd->level->input--;
 

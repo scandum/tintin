@@ -70,8 +70,10 @@ extern struct chat_data *find_group(char *arg);
 
 DO_COMMAND(do_chat)
 {
-	char cmd[BUFFER_SIZE];
+	char *cmd;
 	int cnt;
+
+	cmd = str_alloc_stack(0);
 
 	arg = get_arg_in_braces(ses, arg, cmd, GET_ONE);
 
@@ -262,12 +264,12 @@ int chat_new(int s)
 	return 0;
 }
 
-// getaddrinfo should be universally supported anno 2019, if not, let me know.
+// getaddrinfo should be universally supported anno 2020
 
 void *threaded_chat_call(void *arg)
 {
 	int sock, error;
-	char host[BUFFER_SIZE], port[BUFFER_SIZE], name[BUFFER_SIZE];
+	char host[NAME_SIZE], port[NAME_SIZE], name[NAME_SIZE];
 	struct addrinfo *address;
 	static struct addrinfo hints;
 	struct chat_data *new_buddy;
@@ -437,165 +439,6 @@ void *threaded_chat_call(void *arg)
 	return NULL;
 }
 
-/*
-void *threaded_chat_call(void *arg)
-{
-	int sock, dig;
-	char host[BUFFER_SIZE], port[BUFFER_SIZE], name[BUFFER_SIZE];
-	struct sockaddr_in dest_addr;
-	struct chat_data *new_buddy;
-	struct timeval to;
-	fd_set wds, rds;
-
-	chat_printf("Attempting to call %s ...", arg);
-
-	to.tv_sec = CALL_TIMEOUT;
-	to.tv_usec = 0;
-
-	arg = (void *) get_arg_in_braces(gtd->ses, (char *) arg, host, GET_ONE);
-	arg = (void *) get_arg_in_braces(gtd->ses, (char *) arg, port, GET_ONE);
-
-	if (*port == 0)
-	{
-		sprintf(port, "%d", DEFAULT_PORT);
-	}
-
-	if (sscanf(host, "%d.%d.%d.%d", &dig, &dig, &dig, &dig) == 4)
-	{
-		dest_addr.sin_addr.s_addr = inet_addr(host);
-	}
-	else
-	{
-		struct hostent *hp;
-		int addr, address[4];
-
-		if ((hp = gethostbyname(host)) == NULL)
-		{
-			chat_printf("Failed to call %s, unknown host.", host);
-
-			return NULL;
-		}
-		memcpy((char *)&dest_addr.sin_addr, hp->h_addr, sizeof(dest_addr.sin_addr));
-
-		addr = ntohl(dest_addr.sin_addr.s_addr);
-
-		address[0] = ( addr >> 24 ) & 0xFF ; 
-		address[1] = ( addr >> 16 ) & 0xFF ;
-		address[2] = ( addr >>  8 ) & 0xFF ;
-		address[3] = ( addr       ) & 0xFF ;
-
-		sprintf(host, "%d.%d.%d.%d", address[0], address[1], address[2], address[3]);
-	}
-
-	if (is_number(port))
-	{
-		dest_addr.sin_port = htons(atoi(port));
-	}
-	else
-	{
-		chat_printf("The port should be a number.");
-
-		return NULL;
-	}
-
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		syserr_printf(gtd->ses, "old_threaded_chat_call: socket");
-
-		return NULL;
-	}
-
-	dest_addr.sin_family = AF_INET;
-
-	if (connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) != 0)
-	{
-		chat_printf("Failed to connect to %s:%s", host, port);
-
-		close(sock);
-
-		return NULL;
-	}
-
-	FD_ZERO(&wds);
-
-	FD_SET(sock, &wds);
-
-	if (select(FD_SETSIZE, NULL, &wds, NULL, &to) == -1)
-	{
-		chat_printf("Failed to connect to %s %s", host, port);
-
-		close(sock);
-
-		return NULL;
-	}
-
-	if (!FD_ISSET(sock, &wds))
-	{
-		chat_printf("Connection timed out.");
-
-		close(sock);
-
-		return NULL;
-	}
-
-	new_buddy = (struct chat_data *) calloc(1, sizeof(struct chat_data));
-
-	new_buddy->fd       = sock;
-	new_buddy->port     = atoi(port);
-
-	new_buddy->download = strdup("");
-	new_buddy->group    = strdup("");
-	new_buddy->ip       = strdup(host);
-	new_buddy->name     = strdup("");
-	new_buddy->version  = strdup("");
-
-	strip_vt102_codes(gtd->chat->name, name);
-
-	chat_socket_printf(new_buddy, "CHAT:%s\n%s%-5u", name, gtd->chat->ip, gtd->chat->port);
-
-	chat_printf("Socket connected, negotiating protocol...");
-
-	FD_ZERO(&rds);
-	FD_SET(sock, &rds);
-
-	to.tv_sec  = CALL_TIMEOUT;
-	to.tv_usec = 0;
-
-	if (select(FD_SETSIZE, &rds, NULL, NULL, &to) == -1)
-	{
-		close_chat(new_buddy, FALSE);
-
-		return NULL;
-	}
-
-	if (process_chat_input(new_buddy) == -1)
-	{
-		FD_CLR(new_buddy->fd, &rds);
-		close_chat(new_buddy, FALSE);
-
-		return NULL;
-	}
-
-	if (gtd->chat == NULL || *new_buddy->name == 0)
-	{
-		close_chat(new_buddy, FALSE);
-	}
-	else
-	{
-		if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
-		{
-			syserr_printf(gtd->ses, "chat_new: fcntl O_NDELAY|O_NONBLOCK");
-		}
-
-		LINK(new_buddy, gtd->chat->next, gtd->chat->prev);
-		chat_printf("Connection made to %s.", new_buddy->name);
-	}
-
-	return NULL;
-}
-
-*/
-
 #ifdef HAVE_LIBPTHREAD
 
 DO_CHAT(chat_call)
@@ -624,8 +467,14 @@ DO_CHAT(chat_call)
 
 DO_CHAT(chat_call)
 {
-	char buf[BUFFER_SIZE];
+	char buf[NAME_SIZE];
 
+	if (strlen(arg1) + strlen(arg2) + 5 >= 200)
+	{
+		chat_printf("The call arguments {%s} and {%s} exceed the maximum length of 200 characters.", arg1, arg2);
+
+		return;
+	}
 	sprintf(buf, "{%s} {%s}", arg1, arg2);
 
 	threaded_chat_call((void *) buf);
@@ -711,22 +560,26 @@ void process_chat_connections(fd_set *read_set, fd_set *write_set, fd_set *exc_s
 
 void chat_socket_printf(struct chat_data *buddy, char *format, ...)
 {
-	char buf[BUFFER_SIZE];
+	char *buf;
+	int len;
 	va_list args;
 
 	va_start(args, format);
-	vsnprintf(buf, BUFFER_SIZE / 3, format, args);
+
+	len = vasprintf(&buf, format, args);
+
 	va_end(args);
 
 	if (!HAS_BIT(buddy->flags, CHAT_FLAG_LINKLOST))
 	{
-		if (write(buddy->fd, buf, strlen(buf)) < 0)
+		if (write(buddy->fd, buf, len) < 0)
 		{
 			chat_printf("%s went link lost.", buddy->name);
 
 			SET_BIT(buddy->flags, CHAT_FLAG_LINKLOST);
 		}
 	}
+	free(buf);
 }
 
 void chat_printf(char *format, ...)
@@ -782,11 +635,12 @@ void chat_printf(char *format, ...)
 int process_chat_input(struct chat_data *buddy)
 {
 	struct chat_data *node;
-
-	char buf[BUFFER_SIZE], name[BUFFER_SIZE], temp[BUFFER_SIZE], ip[BUFFER_SIZE], *sep;
+	char *buf, *name, *temp, *ip, *sep;
 	int size;
 
 	push_call("process_chat_input(%p)",buddy);
+
+	buf = str_alloc_stack(0);
 
 	size = read(buddy->fd, buf, BUFFER_SIZE / 3);
 
@@ -795,6 +649,10 @@ int process_chat_input(struct chat_data *buddy)
 		pop_call();
 		return -1;
 	}
+
+	name = str_alloc_stack(0);
+	temp = str_alloc_stack(0);
+	ip   = str_alloc_stack(0);
 
 	buf[size] = 0;
 
@@ -915,11 +773,13 @@ int process_chat_input(struct chat_data *buddy)
 
 void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 {
-	char txt[BUFFER_SIZE];
+	char *txt;
 	unsigned char *pto, *pti, ptc;
 	int size;
 
 	push_call("get_chat_commands(%s,%d,%s)",buddy->name,len,buf);
+
+	txt = str_alloc_stack(0);
 
 	pti = (unsigned char *) buf;
 	pto = (unsigned char *) txt;
@@ -1094,14 +954,12 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 
 void chat_name_change(struct chat_data *buddy, char *txt)
 {
-	char temp[BUFFER_SIZE], name[BUFFER_SIZE];
+	char name[BUFFER_SIZE];
 	struct chat_data *node;
-
-	strip_vt102_codes(txt, name);
 
 	if (strlen(name) > 20)
 	{
-		chat_socket_printf(buddy, "%c\n%s has refused your name change because your name is too long.\n%c", CHAT_MESSAGE, gtd->chat->name, name, CHAT_END_OF_COMMAND);
+		chat_socket_printf(buddy, "%c\n%s has refused your name change because your name is too long.\n%c", CHAT_MESSAGE, gtd->chat->name, CHAT_END_OF_COMMAND);
 
 		chat_printf("Refusing connection from %.21s:%d, name too long. (%d characters)", buddy->ip, buddy->port, strlen(name));
 
@@ -1137,11 +995,9 @@ void chat_name_change(struct chat_data *buddy, char *txt)
 
 	if (strcmp(name, buddy->name))
 	{
-		strcpy(temp, buddy->name);
+		chat_printf("%s changed their name to %s.", buddy->name, name);
 
 		RESTRING(buddy->name, name);
-
-		chat_printf("%s is now %s.", temp, txt);
 	}
 }
 
@@ -1531,6 +1387,13 @@ DO_CHAT(chat_name)
 	if (strip_vt102_strlen(gtd->ses, arg1) > 20)
 	{
 		chat_printf("Your name cannot be longer than 20 characters.");
+
+		return;
+	}
+
+	if (strlen(arg1) > 200)
+	{
+		chat_printf("Your name cannot be longer than 200 bytes.");
 
 		return;
 	}

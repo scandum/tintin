@@ -355,7 +355,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 	{
 		if (HAS_BIT(ses->flags, SES_FLAG_PRINTBUFFER) || ses->scroll->line == ses->scroll->used - 1)
 		{
-			word_wrap_split(ses, ses->scroll->input, temp, ses->wrap, 0, 1, WRAP_FLAG_NONE, &height, &width);
+			word_wrap_split(ses, ses->scroll->input, temp, ses->wrap, 0, 1, WRAP_FLAG_SPLIT, &height, &width);
 		}
 		else
 		{

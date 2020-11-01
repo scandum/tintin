@@ -26,6 +26,252 @@
 #include "tintin.h"
 #include "telnet.h"
 
+#define DO_SCREEN(screen)               void screen (struct session *ses, int ind, char *arg, char *arg1, char *arg2)
+
+extern DO_SCREEN(screen_blur);
+extern DO_SCREEN(screen_clear);
+extern DO_SCREEN(screen_cursor);
+extern DO_SCREEN(screen_dump);
+extern DO_SCREEN(screen_fill);
+extern DO_SCREEN(screen_focus);
+extern DO_SCREEN(screen_fullscreen);
+extern DO_SCREEN(screen_get);
+extern DO_SCREEN(screen_info);
+extern DO_SCREEN(screen_inputregion);
+extern DO_SCREEN(screen_load);
+extern DO_SCREEN(screen_maximize);
+extern DO_SCREEN(screen_minimize);
+extern DO_SCREEN(screen_move);
+extern DO_SCREEN(screen_print);
+extern DO_SCREEN(screen_raise);
+extern DO_SCREEN(screen_refresh);
+extern DO_SCREEN(screen_resize);
+extern DO_SCREEN(screen_rescale);
+extern DO_SCREEN(screen_save);
+extern DO_SCREEN(screen_scrollbar);
+extern DO_SCREEN(screen_scrollregion);
+extern DO_SCREEN(screen_set);
+extern DO_SCREEN(screen_swap);
+
+typedef void            SCREEN  (struct session *ses, int ind, char *arg, char *arg1, char *arg2);
+
+struct screen_type
+{
+	char                  * name;
+	char                  * desc;
+	int                     get1;
+	int                     get2;
+	int                     flags;
+	SCREEN                * fun;
+};
+
+struct screen_type screen_table[] =
+{
+	{
+		"BLUR",
+		"Shuffle the screen to the back of the desktop.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_blur
+	},
+	{
+		"CLEAR",
+		"Clear the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_NONE,
+		SCREEN_FLAG_CSIP,
+		screen_clear
+	},
+	{
+		"CURSOR",
+		"Cursor settings.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_cursor
+	},
+
+	{
+		"DUMP",
+		"Dump the screen buffer.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_dump
+	},
+
+	{
+		"FILL",
+		"Fill given region with given character.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_fill
+	},
+	{
+		"FOCUS",
+		"Shuffle the screen to the front of the desktop.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_focus
+	},
+	{
+		"FULLSCREEN",
+		"Toggle fullscreen mode.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_fullscreen
+	},
+	{
+		"GET",
+		"Save screen information to given variable.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_get
+	},
+	{
+		"INFO",
+		"Show some debugging information.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_info
+	},
+	{
+		"INPUTREGION",
+		"Set the input region to {square}.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_inputregion
+	},
+
+	{
+		"LOAD",
+		"Load screen information from memory.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_OSCT,
+		screen_load
+	},
+	{
+		"MAXIMIZE",
+		"Maximize or restore the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_maximize
+	},
+
+	{
+		"MINIMIZE",
+		"Minimize or restore the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_minimize
+	},
+	{
+		"MOVE",
+		"Move the screen to the given position.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_move
+	},
+	{
+		"PRINT",
+		"Print the screen dump to the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_print
+	},
+	{
+		"RAISE",
+		"Raise a screen event.",
+		SCREEN_FLAG_GET_ALL,
+		SCREEN_FLAG_GET_ALL,
+		SCREEN_FLAG_CSIP,
+		screen_raise
+	},
+	{
+		"REFRESH",
+		"Force a refresh of the screen.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_refresh
+	},
+	{
+		"RESCALE",
+		"Rescale the screen to {height} {width} pixels.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_rescale
+	},
+	{
+		"RESIZE",
+		"Resize the screen to {rows} {cols} characters.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_resize
+	},
+	{
+		"SAVE",
+		"Save screen information to memory.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_save
+	},
+
+	{
+		"SCROLLREGION",
+		"Set the scroll region to {square}.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_scrollregion
+	},
+
+	{
+		"SCROLLBAR",
+		"Scrollbar settings.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_scrollbar
+	},
+
+
+	{
+		"SET",
+		"Set screen information.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_OSCT,
+		screen_set
+	},
+	{
+		"SWAP",
+		"Swap the input and scroll region.",
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_GET_ONE,
+		SCREEN_FLAG_CSIP,
+		screen_swap
+	},
+	{
+		"", "", 0, 0, 0, NULL
+	}
+};
+
 void screen_osc(char *arg1, char *arg2);
 void screen_csi(char *cmd, char *arg1, char *arg2, char *arg3, char *tc);
 void screen_csit(struct session *ses, char *arg1, char *arg2, char *tc);
@@ -137,6 +383,11 @@ DO_SCREEN(screen_cursor)
 DO_SCREEN(screen_clear)
 {
 	int top_row, top_col, bot_row, bot_col;
+
+	if (ses != gtd->ses)
+	{
+		return;
+	}
 
 	if (is_abbrev(arg1, "ALL"))
 	{
@@ -301,12 +552,12 @@ DO_SCREEN(screen_fill)
 		{
 			if (ses->split->sav_top_col)
 			{
-				command(ses, do_draw, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row, ses->split->top_col - 1);
+				command(ses, do_draw, "%s BOT TEED LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->top_col - 1, ses->split->bot_row + 1, ses->split->top_col - 1);
 			}
 
 			if (ses->split->sav_bot_col)
 			{
-				command(ses, do_draw, "%s VERTICAL LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row, ses->split->bot_col + 1);
+				command(ses, do_draw, "%s BOT TEED LINE %d %d %d %d", arg2, ses->split->top_row, ses->split->bot_col + 1, ses->split->bot_row + 1, ses->split->bot_col + 1);
 			}
 		}
 	}
@@ -1883,7 +2134,12 @@ void destroy_screen()
 
 void print_scroll_region(struct session *ses)
 {
-	int cnt;
+	char *wrap;
+	int cnt, height, width;
+
+	push_call("print_scroll_region(%p)",ses);
+
+	wrap = str_alloc_stack(0);
 
 	save_pos(ses);
 
@@ -1891,9 +2147,15 @@ void print_scroll_region(struct session *ses)
 	{
 		print_stdout(0, 0, "\e[%d;%dH\e[%dX%s", cnt, ses->split->top_col, ses->wrap, gtd->screen->line[cnt - 1]->str);
 	}
-	print_stdout(0, 0, "\e[%d;%dH\e[%dX%s", cnt, ses->split->top_col, ses->wrap, ses->scroll->input);
+
+	word_wrap_split(ses, ses->scroll->input, wrap, ses->wrap, 0, 1, WRAP_FLAG_SPLIT, &height, &width);
+
+	print_stdout(0, 0, "\e[%d;%dH\e[%dX%s", cnt, ses->split->top_col, ses->wrap, wrap);
 
 	restore_pos(ses);
+
+	pop_call();
+	return;
 }
 
 void print_screen()

@@ -214,7 +214,9 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 			lis = pti;
 		}
 
-		if (ses->cur_col > wrap)
+		size = get_vt102_width(ses, pti, &tab);
+
+		if (ses->cur_col > 1 && ses->cur_col + tab > wrap + 1)
 		{
 			cur_height++;
 
@@ -253,29 +255,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 		}
 		else
 		{
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
-			{
-				size = get_euc_width(ses, pti, &tab);
-
-				while (size--)
-				{
-					*pto++ = *pti++;
-				}
-				cur_width += tab;
-				ses->cur_col += tab;
-			}
-			else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-			{
-				size = get_utf8_width(pti, &tab);
-
-				while (size--)
-				{
-					*pto++ = *pti++;
-				}
-				cur_width += tab;
-				ses->cur_col += tab;
-			}
-			else if (*pti == '\t')
+			if (*pti == '\t')
 			{
 				tab = ses->tab_width - (ses->cur_col - 1) % ses->tab_width;
 
@@ -292,10 +272,12 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 			}
 			else
 			{
-				*pto++ = *pti++;
-
-				cur_width++;
-				ses->cur_col++;
+				while (size--)
+				{
+					*pto++ = *pti++;
+				}
+				cur_width += tab;
+				ses->cur_col += tab;
 			}
 		}
 	}
@@ -427,7 +409,9 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			los = pto;
 		}
 
-		if (cur_col > wrap)
+		size = get_vt102_width(ses, pti, &tab);
+
+		if (cur_col > 1 && cur_col + tab > wrap + 1)
 		{
 			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
 			{
@@ -494,10 +478,27 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			continue;
 		}
 
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		if (*pti == '\t')
 		{
-			size = get_euc_width(ses, pti, &tab);
+			tab = ses->tab_width - (cur_col - 1) % ses->tab_width;
 
+			if (cur_col + tab >= wrap)
+			{
+				tab = (wrap - cur_col);
+			}
+
+			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
+			{
+				pto += sprintf(pto, "%.*s", tab, "                ");
+			}
+			pti++;
+
+			cur_width += tab;
+			cur_col += tab;
+			cur_space = cur_col;
+		}
+		else
+		{
 			if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
 			{
 				while (size--)
@@ -511,69 +512,6 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			}
 			cur_width += tab;
 			cur_col += tab;
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-		{
-			size = get_utf8_width(pti, &tab);
-
-			if (size)
-			{
-				if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
-				{
-					while (size--)
-					{
-						*pto++ = *pti++;
-					}
-				}
-				else
-				{
-					pti += size;
-				}
-				cur_width += tab;
-				cur_col += tab;
-			}
-			else
-			{
-				print_stdout(0, 0, "debug: word_wrap_split: utf8 error\n");
-				*pto++ = *pti++;
-				cur_width++;
-				cur_col++;
-			}
-		}
-		else
-		{
-			if (*pti == '\t')
-			{
-				tab = ses->tab_width - (cur_col - 1) % ses->tab_width;
-
-				if (cur_col + tab >= wrap)
-				{
-					tab = (wrap - cur_col);
-				}
-
-				if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
-				{
-					pto += sprintf(pto, "%.*s", tab, "                ");
-				}
-				pti++;
-
-				cur_width += tab;
-				cur_col += tab;
-				cur_space = cur_col;
-			}
-			else
-			{
-				if (!HAS_BIT(flags, WRAP_FLAG_SPLIT) || (cur_height >= start && cur_height < end))
-				{
-					*pto++ = *pti++;
-				}
-				else
-				{
-					pti++;
-				}
-				cur_width++;
-				cur_col++;
-			}
 		}
 	}
 	*pto = 0;

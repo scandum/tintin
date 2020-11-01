@@ -505,7 +505,7 @@ char *indent(int len)
 
 	if (outbuf[len][0] == 0)
 	{
-		sprintf(outbuf[len], "%*s", len * 5, "");
+		sprintf(outbuf[len], "%*s", len * 4, "");
 	}
 
 	return outbuf[len];

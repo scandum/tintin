@@ -1,3 +1,15 @@
+Oct 2020        2.02.05
+------------------------------------------------------------------------------
+
+variables.c     Added the #unlocal command.
+
+files.c         Table variables are now written to file with indentation.
+
+utf8.c          Decreased the memory footprint of BIG-5 / GBK-1 support.
+
+variable.c      The VARIABLE UPDATE event now reports the path in the %2
+                argument.
+
 May 2020        2.02.04
 ------------------------------------------------------------------------------
 
@@ -150,9 +162,6 @@ triggers.c      Added the <900> color tag which can be used in substitutions
 draw.c          Added the SCALED drawing option. When used the size of the
                 square is increased depending on the size of the inputted
                 text.
-
-documentation   Added docs/link.txt file with the initial documentation for
-                link handling.
 
 buffer.c        #buffer find now places the found keyword at the top instead
                 of at the bottom of the page.

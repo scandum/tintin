@@ -314,6 +314,38 @@
 #substitute {{\b[a-zA-Z]+\b}} {@spellcheck{%1}}
 
 #nop -------------------------------------------------------------------------
+#nop This function and substitution will add a speed reader to the split line
+#nop -------------------------------------------------------------------------
+
+#split
+
+#function spellcheck
+{
+        #format result %S %1;
+        #if {$result == 0}
+        {
+                #var result %1
+        };
+        #else
+        {
+                #var result <118>%1<900>
+        };
+        #list speedread ins -1 {$result}
+}
+
+#substitute {{\b[a-zA-Z]+\b}} {@spellcheck{%1}}
+
+#tick {speedread}
+{
+        #if {&{speedread[]}}
+        {
+                #draw tile -2 1 -2 20 {$speedread[1]};
+                #list speedread delete 1
+        }
+}
+{0.1}
+
+#nop -------------------------------------------------------------------------
 #nop This function tests the random number engine
 #nop -------------------------------------------------------------------------
 

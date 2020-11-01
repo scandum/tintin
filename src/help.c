@@ -622,8 +622,8 @@ struct help_type help_table[] =
 		"\n"
 		"\\        An input line starting with a backslash is send verbatim if you are\n"
 		"         connected to a server. This character can be configured with\n"
-		"         #config, and is itself send verbatim when the verbatim config mode\n",
-		"         is enabled.\n"
+		"         #config, and is itself send verbatim when the verbatim config mode\n"
+		"         is enabled.\n",
 
 		"colors escape function mathematics pcre variable"
 	},
@@ -1479,8 +1479,8 @@ struct help_type help_table[] =
 		"\n"
 		"         <128>VARIABLE EVENTS<278>\n"
 		"\n"
-		"         VARIABLE UPDATE [VAR]  %0 name %1 new value\n"
-		"         VARIABLE UPDATED [VAR] %0 name %1 new value\n"
+		"         VARIABLE UPDATE <VAR>  %0 name %1 new value %2 path\n"
+		"         VARIABLE UPDATED <VAR> %0 name %1 new value %2 path\n"
 		"\n"
 		"         <128>VT100 EVENTS<278>\n"
 		"\n"
@@ -2221,7 +2221,7 @@ struct help_type help_table[] =
 		"         #list {var} {delete} {index} {number}  Delete the item at {index},\n"
 		"                                                the {number} is optional.\n"
 		"         #list {var} {explode}                  Turn list into a character list\n"
-		"         #list {var} {index}                    Index a list table for sorting\n"
+		"         #list {var} {indexate}                 Index a list table for sorting\n"
 		"         #list {var} {insert} {index} {string}  Insert {string} at given index\n"
 		"         #list {var} {find} {string} {variable} Return the found index\n"
 		"         #list {var} {get} {index} {variable}   Copy an item to {variable}\n"
@@ -2541,7 +2541,9 @@ struct help_type help_table[] =
 		"\n"
 		"         Avoid setting the result variable as local in a function.\n"
 		"\n"
-		"<178>Example<278>: #alias {swap} {#local x %0;#replace x {e} {u};#show $x}\n",
+		"<178>Example<278>: #alias {swap} {#local x %0;#replace x {e} {u};#show $x}\n"
+		"\n"
+		"<178>Comment<278>: You can remove a local variable with the #unlocal command.\n",
 
 		"format function math replace script variable"
 	},
@@ -3909,6 +3911,7 @@ struct help_type help_table[] =
 		"\n"
 		"         <178>#screen swap\n"
 		"         <278>  Swap the input and scroll region.\n",
+
 		"bell"
 	},
 
@@ -4449,6 +4452,7 @@ struct help_type help_table[] =
 		"",
 		TOKEN_TYPE_COMMAND,
 		"",
+
 		""
 	}
 };

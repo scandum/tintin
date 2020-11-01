@@ -1016,7 +1016,7 @@ void packet_update(void)
 			{
 				strcpy(result, ses->more_output);
 			}
-			ses->more_output[0] = 0;
+			str_cpy(&ses->more_output, "");
 
 			process_mud_output(ses, result, TRUE);
 

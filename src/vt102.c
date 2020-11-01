@@ -136,16 +136,17 @@ void scroll_region(struct session *ses, int top, int bot)
 {
 	push_call("scroll_region(%p,%d,%d)",ses,top,bot);
 
-	if (top != 1)
+	if (ses == gtd->ses)
 	{
-//		print_stdout(0, 0, "\e[?1047h\e[?1007h\e[?7786h\e[?7787h\e[%d;%dr", top, bot);
-		print_stdout(0, 0, "\e[?1047h\e[?7787h\e[%d;%dr", top, bot);
+		if (top != 1)
+		{
+			print_stdout(0, 0, "\e[?1047h\e[?7787h\e[%d;%dr", top, bot);
+		}
+		else
+		{
+			print_stdout(0, 0, "\e[?1047l\e[?7787l\e[%d;%dr", top, bot);
+		}
 	}
-	else
-	{
-		print_stdout(0, 0, "\e[?1047l\e[?7787l\e[%d;%dr", top, bot);
-	}
-
 	ses->split->top_row = top;
 	ses->split->bot_row = bot;
 
@@ -159,14 +160,7 @@ void reset_scroll_region(struct session *ses)
 {
 	if (ses == gtd->ses)
 	{
-		if (ses->split->top_row != 1)
-		{
-			print_stdout(0, 0, "\e[?1047l\e[?7787l\e[r");
-		}
-		else
-		{
-			print_stdout(0, 0, "\e[r");
-		}
+		print_stdout(0, 0, "\e[?1047l\e[?7787l\e[r");
 	}
 	ses->split->top_row = 1;
 	ses->split->top_col = 1;

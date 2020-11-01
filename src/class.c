@@ -26,6 +26,45 @@
 
 #include "tintin.h"
 
+#define DO_CLASS(class) struct session *class(struct session *ses, struct listnode *node, char *arg1, char *arg2)
+
+extern DO_CLASS(class_assign);
+extern DO_CLASS(class_clear);
+extern DO_CLASS(class_close);
+extern DO_CLASS(class_kill);
+extern DO_CLASS(class_list);
+extern DO_CLASS(class_load);
+extern DO_CLASS(class_open);
+extern DO_CLASS(class_read);
+extern DO_CLASS(class_save);
+extern DO_CLASS(class_size);
+extern DO_CLASS(class_write);
+
+typedef struct session *CLASS(struct session *ses, struct listnode *node, char *arg1, char *arg2);
+
+struct class_type
+{
+	char                  * name;
+	CLASS                 * fun;
+};
+
+struct class_type class_table[] =
+{
+	{    "ASSIGN",            class_assign           },
+	{    "CLEAR",             class_clear            },
+	{    "CLOSE",             class_close            },
+	{    "KILL",              class_kill             },
+	{    "LIST",              class_list             },
+	{    "LOAD",              class_load             },
+	{    "OPEN",              class_open             },
+	{    "READ",              class_read             },
+	{    "SAVE",              class_save             },
+	{    "SIZE",              class_size             },
+	{    "WRITE",             class_write            },
+	{    "",                  NULL                   },
+};
+
+int count_class(struct session *ses, struct listnode *group);
 
 DO_COMMAND(do_class)
 {

@@ -221,11 +221,22 @@ DO_COMMAND(do_send)
 }
 
 
-
 DO_COMMAND(do_test)
 {
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
+/*	if (!strcmp(arg1, "bla"))
+	{
+		int size = sizeof(_gbk1_to_unicode_table) / sizeof(struct interval_type);
+
+		printf("size: %d\n", size);
+
+		for (int i = 0 ; i < size ; i++)
+		{
+			command(ses, do_line, "log tmp %d,", _gbk1_to_unicode_table[i].tail);
+		}
+	}
+*/
 	if (!strcmp(arg1, "rain"))
 	{
 		strcpy(arg2, "9");
@@ -250,6 +261,7 @@ DO_COMMAND(do_test)
 
 		return ses;
 	}
+
 	return ses;
 }
 

@@ -25,7 +25,7 @@
 
 #include "tintin.h"
 
-extern struct command_type command_table[];
+struct command_type command_table[];
 
 DO_COMMAND(do_commands)
 {
@@ -159,6 +159,64 @@ struct session *command(struct session *ses, COMMAND *cmd, char *format, ...)
 	return ses;
 }
 
+extern DO_COMMAND(do_action);
+extern DO_COMMAND(do_alias);
+extern DO_COMMAND(do_all);
+extern DO_COMMAND(do_bell);
+extern DO_COMMAND(do_button);
+extern DO_COMMAND(do_cat);
+extern DO_COMMAND(do_class);
+extern DO_COMMAND(do_commands);
+extern DO_COMMAND(do_cr);
+extern DO_COMMAND(do_debug);
+extern DO_COMMAND(do_echo);
+extern DO_COMMAND(do_event);
+extern DO_COMMAND(do_format);
+extern DO_COMMAND(do_function);
+extern DO_COMMAND(do_gag);
+extern DO_COMMAND(do_highlight);
+extern DO_COMMAND(do_ignore);
+extern DO_COMMAND(do_info);
+extern DO_COMMAND(do_killall);
+extern DO_COMMAND(do_log);
+extern DO_COMMAND(do_local);
+extern DO_COMMAND(do_list);
+extern DO_COMMAND(do_macro);
+extern DO_COMMAND(do_math);
+extern DO_COMMAND(do_message);
+extern DO_COMMAND(do_path);
+extern DO_COMMAND(do_port);
+extern DO_COMMAND(do_prompt);
+extern DO_COMMAND(do_replace);
+extern DO_COMMAND(do_run);
+extern DO_COMMAND(do_scan);
+extern DO_COMMAND(do_script);
+extern DO_COMMAND(do_send);
+extern DO_COMMAND(do_showme);
+extern DO_COMMAND(do_ssl);
+extern DO_COMMAND(do_substitute);
+extern DO_COMMAND(do_system);
+extern DO_COMMAND(do_tab);
+extern DO_COMMAND(do_textin);
+extern DO_COMMAND(do_tick);
+extern DO_COMMAND(do_unaction);
+extern DO_COMMAND(do_unalias);
+extern DO_COMMAND(do_unbutton);
+extern DO_COMMAND(do_undelay);
+extern DO_COMMAND(do_unevent);
+extern DO_COMMAND(do_unfunction);
+extern DO_COMMAND(do_ungag);
+extern DO_COMMAND(do_unhighlight);
+extern DO_COMMAND(do_unlocal);
+extern DO_COMMAND(do_unmacro);
+extern DO_COMMAND(do_unpathdir);
+extern DO_COMMAND(do_unprompt);
+extern DO_COMMAND(do_unsubstitute);
+extern DO_COMMAND(do_untab);
+extern DO_COMMAND(do_untick);
+extern DO_COMMAND(do_unvariable);
+extern DO_COMMAND(do_variable);
+
 struct command_type command_table[] =
 {
 	{    "action",            do_action,            3, TOKEN_TYPE_COMMAND },
@@ -247,6 +305,7 @@ struct command_type command_table[] =
 	{    "unfunction",        do_unfunction,        0, TOKEN_TYPE_COMMAND },
 	{    "ungag",             do_ungag,             0, TOKEN_TYPE_COMMAND },
 	{    "unhighlight",       do_unhighlight,       0, TOKEN_TYPE_COMMAND },
+	{    "unlocal",           do_unlocal,           1, TOKEN_TYPE_COMMAND },
 	{    "unmacro",           do_unmacro,           0, TOKEN_TYPE_COMMAND },
 	{    "unpathdir",         do_unpathdir,         1, TOKEN_TYPE_COMMAND },
 	{    "unprompt",          do_unprompt,          0, TOKEN_TYPE_COMMAND },

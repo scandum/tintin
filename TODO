@@ -1,16 +1,16 @@
 * BUGS
 
-  - might be \ handling issues in #format %w
+  - Look into escaped color codes in zmp, possibly msdp
+
+  - See about making @$var{} work.
+
+  - See about turning window close into a program termination event.
 
   - finish BUFFER_SIZE replacement.
 
   - WSL faq: #system cmd.exe /c start notepad
 
-  - str_ify ses->more_output
-
   - update msdp scripts with #line msdp feature
-
-  - update the FAQ, and online manual
 
   - refresh input on session switch
 
@@ -26,8 +26,6 @@
   - Add a way to set env variables either 1) for the current process, and/or 2) as a parameter to #system (i.e. after fork in the child process).
 
 * STUFF THAT IS PROBABLY GONNA GET DONE
-
-  - Editor
 
   - Finish port proxy support: resizing, input, security
 
@@ -53,10 +51,7 @@
   - tabbing on directory structure.
   - tabbing on dictionary
 
-  - Enhance #scan with a scan of the directory structure.
-
   - #map list {<exits>} breaks on rooms that have e mapped to eu.
-
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
@@ -88,15 +83,12 @@
     #draw titanic
 
   - proper vt100 skip detection for improper color codes.
-  - look into VT100 / #split hybrid mode.
 
-  - I'll look and see if I can make { match both a { and \x7B as it's an annoying issue to debug.
+  - Make { match both a { and \x7B as it's an annoying issue to debug.
 
   - Add VT100 filter to make outside sources respect terminal size constraints, also needed to run bash in vsplit mode.
 
   - Remote script loading
-
-  - make #path load bi-directional.
 
   - add class specific debug
   - better class event and class size handling ?
@@ -108,8 +100,6 @@
   - better color syntax highlighting configuration.
 
   - Add #log delete/remove option.
-
-  - See about filling COMMAND_LIST table.
 
   - See about adding SESSIONS to the list table.
 
@@ -130,15 +120,7 @@
 
   - Add JSON support to #scan
 
-  - fix \x00 showme
-
-  - support strikethrough html logging.
-
   - see if #break 2 is possible, maybe #continue 2 as well.
-
-  - Add options to #cursor to implement custom behaviour.
-
-  - toggle global flags with #message all on, #debug all on, etc.
 
   - http://tintin.sourceforge.net/board/viewtopic.php?p=9625 (map undo issue) (not a big issue)
 
@@ -194,6 +176,8 @@
 
   - Allow converting tt++ scripts to C.
 
+  - session proxies
+
 --------------------------------------------------------------------------------
 
 * STUFF THAT MIGHT BE IMPLEMENTED
@@ -210,13 +194,9 @@
 
   - SGA disabling
 
-  - CHARSET TELOPT support.
-
   - BINARY TELOPT support.
 
-  - Split pane scrollback (event system?)
-
-  - add #line gag {lines} option or #lines {lines} {gag}.
+  - add #line gag {lines} option
 
   - Add something like #log append $dir/logs/log.txt {%D %H:%M:%S}
 
@@ -242,8 +222,6 @@
   - http://tintin.sourceforge.net/board/viewtopic.php?p=7124
 
   - There's a bug with prompt repetitions with packet patch set.
-
-  - garbage collection for deleted nodes.
 
   - Deal with escaping { } / ; in #script variables.
 
@@ -291,35 +269,20 @@
 
 --------------------------------------------------------------------------------
 
-
-* MISCELANEOUS
-
-- look into Launchpad PPA
-
---------------------------------------------------------------------------------
-
 * STUFF FOR A RAINY DAY
-
-- nestable functions
-
-- Buffer safe strings.
 
 - Fix up ipv6 support in chat.
 
 - Look into packet defragmentation for chat.
 
-- Color code compression, particularly useful with vt map drawing.
-
-- Events for prompt lines.
-
-- Lua scripting
-
 - Look into using speech-dispatcher for text to speech.
-
-- MXP script http://tintin.sourceforge.net/board/viewtopic.php?t=1396
 
 - Add %U (upper) %L (lower) support.
   check https://www.boost.org/doc/libs/1_50_0/libs/regex/doc/html/boost_regex/syntax/basic_extended.html
+
+- cursor extension for vim
+
+- interactive script tutorial
 
 -------------------------------------------------------------------------------
 
@@ -331,14 +294,9 @@
 
 -------------------------------------------------------------------------------
 
-* NEW STUFF
+* STUFF THAT WON'T BE IMPLEMENTED
 
-- xterm mouse
-- path improvements
-- remote session
-- map sharing
-- cursor extension for vim
-- interactive script tutorial
+- Lua or any other scripting language, focus is on developing tintin scripting.
 
 -------------------------------------------------------------------------------
 

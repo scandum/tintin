@@ -480,13 +480,13 @@ void readmud(struct session *ses)
 				*next_line++ = 0;
 			}
 
-			if (strlen(ses->more_output) < BUFFER_SIZE / 3)
+			if (str_len(ses->more_output) < BUFFER_SIZE / 3)
 			{
 				if (!HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 				{
 					if (ses->packet_patch)
 					{
-						strcat(ses->more_output, line);
+						str_cat(&ses->more_output, line);
 						ses->check_output = utime() + ses->packet_patch;
 
 						break;
@@ -497,14 +497,14 @@ void readmud(struct session *ses)
 						{
 							if (!detect_prompt(ses, line))
 							{
-								strcat(ses->more_output, line);
+								str_cat(&ses->more_output, line);
 								ses->check_output = utime() + 500000ULL;
 								break;
 							}
 						}
 						else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT))
 						{
-							strcat(ses->more_output, line);
+							str_cat(&ses->more_output, line);
 							ses->check_output = utime() + 500000ULL;
 							break;
 						}
@@ -517,10 +517,10 @@ void readmud(struct session *ses)
 		{
 			if (ses->check_output)
 			{
-				strcat(ses->more_output, line);
+				str_cat(&ses->more_output, line);
 				strcpy(linebuf, ses->more_output);
 
-				ses->more_output[0] = 0;
+				str_cpy(&ses->more_output, "");
 			}
 			else
 			{

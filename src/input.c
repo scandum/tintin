@@ -223,6 +223,14 @@ void read_line(char *input, int len)
 		}
 	}
 
+	if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC) && is_euc_head(gtd->ses, gtd->macro_buf))
+	{
+		if (gtd->macro_buf[1] == 0)
+		{
+			return;
+		}
+	}
+
 	if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
 	{
 		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 2, "RECEIVED KEYPRESS", input, ntos(index));
@@ -272,9 +280,13 @@ void read_line(char *input, int len)
 				break;
 
 			default:
-				if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && gtd->macro_buf[0] & 128 && gtd->macro_buf[1])
+				if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(gtd->macro_buf) && gtd->macro_buf[1])
 				{
 					size = get_utf8_width(gtd->macro_buf, &width);
+				}
+				else if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC) && is_euc_head(gtd->ses, gtd->macro_buf) && gtd->macro_buf[1])
+				{
+					size = get_euc_width(gtd->ses, gtd->macro_buf, &width);
 				}
 				else
 				{

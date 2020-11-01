@@ -34,6 +34,42 @@
 #endif
 #include <dirent.h>
 
+#define DO_SCAN(scan) struct session *scan(struct session *ses, FILE *fp, char *arg, char *arg1, char *arg2)
+
+DO_SCAN(scan_abort);
+DO_SCAN(scan_csv);
+DO_SCAN(scan_dir);
+DO_SCAN(scan_file);
+DO_SCAN(scan_forward);
+DO_SCAN(scan_tsv);
+DO_SCAN(scan_txt);
+
+#define SCAN_FLAG_NONE                0
+#define SCAN_FLAG_FILE                BV01
+#define SCAN_FLAG_SCAN                BV02
+
+typedef struct session *SCAN(struct session *ses, FILE *fp, char *arg, char *arg1, char *arg2);
+
+struct scan_type
+{
+	char                  * name;
+	SCAN                  * fun;
+	int                     flags;
+	char                  * desc;
+};
+
+struct scan_type scan_table[] =
+{
+	{       "ABORT",            scan_abort,   SCAN_FLAG_NONE,                "Abort a scan currently in progress."},
+	{       "CSV",              scan_csv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a comma separated value file." },
+	{       "DIR",              scan_dir,     SCAN_FLAG_FILE,                "Scan a directory to a variable."    },
+	{       "FILE",             scan_file,    SCAN_FLAG_FILE,                "Scan a file all at once."           },
+	{       "FORWARD",          scan_forward, SCAN_FLAG_FILE,                "Scan a file and send each line."    },
+	{       "TSV",              scan_tsv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a tab separated value file."   },
+	{       "TXT",              scan_txt,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a text file line by line."     },
+	{       "",                 NULL,         0,                             ""                                   }
+};
+
 DO_COMMAND(do_scan)
 {
 	char cmd[BUFFER_SIZE];

@@ -310,6 +310,8 @@ struct session *activate_session(struct session *ses)
 
 	if (!check_all_events(ses, EVENT_FLAG_GAG, 0, 1, "GAG SESSION ACTIVATED", ses->name))
 	{
+		buffer_refresh(ses, "", "", "");
+
 		show_message(ses, LIST_COMMAND, "#SESSION '%s' ACTIVATED.", ses->name);
 	}
 
@@ -392,6 +394,8 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	newses->lognext_name   = strdup("");
 	newses->logline_name   = strdup("");
 	newses->rand           = utime();
+
+	newses->more_output    = str_dup("");
 
 	LINK(newses, gts->next, gts->prev);
 
@@ -759,6 +763,8 @@ void dispose_session(struct session *ses)
 	free(ses->logline_name);
 	free(ses->split);
 	free(ses->input);
+
+	str_free(ses->more_output);
 
 	free(ses);
 

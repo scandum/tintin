@@ -203,7 +203,7 @@
 #define STRING_SIZE        2 * BUFFER_SIZE
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.04 "
+#define CLIENT_VERSION           "2.02.05 "
 
 
 #define XT_E                            0x27
@@ -471,51 +471,6 @@ enum operators
 #define CHAT_FLAG_DND                 BV08
 #define CHAT_FLAG_LINKLOST            BV09
 
-#define DRAW_FLAG_NONE                   0
-#define DRAW_FLAG_ASCII               BV01
-#define DRAW_FLAG_BLANKED             BV02
-#define DRAW_FLAG_BOT                 BV03
-#define DRAW_FLAG_BOXED               BV04
-#define DRAW_FLAG_BUMP                BV05
-#define DRAW_FLAG_CIRCLED             BV06
-#define DRAW_FLAG_COLOR1              BV07
-#define DRAW_FLAG_COLOR2              BV08
-#define DRAW_FLAG_CONVERT             BV09
-#define DRAW_FLAG_CORNERED            BV10
-#define DRAW_FLAG_CROSSED             BV11
-#define DRAW_FLAG_FILLED              BV12
-#define DRAW_FLAG_FOREGROUND          BV13
-#define DRAW_FLAG_GRID                BV14
-#define DRAW_FLAG_HOR                 BV15
-#define DRAW_FLAG_HUGE                BV16
-#define DRAW_FLAG_JEWELED             BV17
-#define DRAW_FLAG_LEFT                BV18
-//#define DRAW_FLAG_LINED               BV19 unused / obsolete
-#define DRAW_FLAG_NUMBERED            BV20
-#define DRAW_FLAG_PRUNED              BV21
-#define DRAW_FLAG_RIGHT               BV22
-#define DRAW_FLAG_ROUNDED             BV23
-#define DRAW_FLAG_SCALED              BV24
-#define DRAW_FLAG_SCROLL              BV25
-#define DRAW_FLAG_SHADOWED            BV26
-#define DRAW_FLAG_TEED                BV27
-#define DRAW_FLAG_TOP                 BV28
-#define DRAW_FLAG_TRACED              BV29
-#define DRAW_FLAG_TUBED               BV30
-#define DRAW_FLAG_UTF8                BV31
-#define DRAW_FLAG_VER                 BV32
-
-#define DRAW_FLAG_CURSIVE             BV33
-#define DRAW_FLAG_FAT                 BV34
-#define DRAW_FLAG_SANSSERIF           BV35
-#define DRAW_FLAG_CALIGN              BV36
-#define DRAW_FLAG_LALIGN              BV37
-#define DRAW_FLAG_RALIGN              BV38
-#define DRAW_FLAG_TALIGN              BV39
-#define DRAW_FLAG_UALIGN              BV40
-
-#define DRAW_FLAG_APPENDIX            DRAW_FLAG_CIRCLED|DRAW_FLAG_CORNERED|DRAW_FLAG_CROSSED|DRAW_FLAG_JEWELED|DRAW_FLAG_PRUNED|DRAW_FLAG_ROUNDED|DRAW_FLAG_TEED
-
 #define INPUT_FLAG_EDIT               BV01
 #define INPUT_FLAG_HISTORYBROWSE      BV02
 #define INPUT_FLAG_HISTORYSEARCH      BV03
@@ -563,10 +518,6 @@ enum operators
 #define MTTS_FLAG_SCREENREADER        BV07
 #define MTTS_FLAG_PROXY               BV08
 #define MTTS_FLAG_TRUECOLOR           BV09
-
-#define SCAN_FLAG_NONE                0
-#define SCAN_FLAG_FILE                BV01
-#define SCAN_FLAG_SCAN                BV02
 
 #define SCREEN_FLAG_CSIP              BV01
 #define SCREEN_FLAG_OSCT              BV02
@@ -644,13 +595,13 @@ enum operators
 #define TINTIN_FLAG_INHERITANCE       BV04
 #define TINTIN_FLAG_INSERTINPUT       BV05
 #define TINTIN_FLAG_CHILDLOCK         BV06
-#define TINTIN_FLAG_TERMINATE         BV06
-#define TINTIN_FLAG_MOUSETRACKING     BV07
-#define TINTIN_FLAG_DISPLAYUPDATE     BV08
-#define TINTIN_FLAG_DAEMONIZE         BV09
-#define TINTIN_FLAG_HIDDENCURSOR      BV10
-#define TINTIN_FLAG_LOCAL             BV11
-#define TINTIN_FLAG_PRESERVEMACRO     BV12
+#define TINTIN_FLAG_TERMINATE         BV07
+#define TINTIN_FLAG_MOUSETRACKING     BV08
+#define TINTIN_FLAG_DISPLAYUPDATE     BV09
+#define TINTIN_FLAG_DAEMONIZE         BV10
+#define TINTIN_FLAG_HIDDENCURSOR      BV11
+#define TINTIN_FLAG_LOCAL             BV12
+#define TINTIN_FLAG_PRESERVEMACRO     BV13
 
 
 #define CONFIG_FLAG_AUTOPATCH         BV01
@@ -1045,7 +996,7 @@ enum operators
 
 #define SCROLL(ses)               ((ses)->cur_row == 0 || ((ses)->cur_row >= (ses)->split->top_row && (ses)->cur_row <= (ses)->split->bot_row) || ((ses)->cur_row >= ses->input->top_row && (ses)->cur_row <= ses->input->bot_row))
 
-#define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM)) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))
+#define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && (HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))))
 
 
 
@@ -1232,7 +1183,8 @@ struct session
 	int                     read_max;
 	unsigned long long      connect_retry;
 	int                     connect_error;
-	char                    more_output[BUFFER_SIZE];
+//	char                    more_output[BUFFER_SIZE];
+	char                  * more_output;
 	int                     color;
 	char                    color_patch[100];
 	unsigned long long      packet_patch;
@@ -1631,10 +1583,8 @@ struct window_data
 	struct input_data      **buffer;
 };
 
-#define DO_ARRAY(array)       struct session *array (struct session *ses, struct listnode *list, char *arg, char *var, char *arg1, char *arg2)
 #define DO_BUFFER(buffer)               void buffer (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_CHAT(chat)                     void chat (char *arg1, char *arg2)
-#define DO_CLASS(class)       struct session *class (struct session *ses, struct listnode *node, char *arg1, char *arg2)
 #define DO_COMMAND(command) struct session *command (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3, char *arg4)
 #define DO_CONFIG(config)    struct session *config (struct session *ses, char *arg1, char *arg2, int index)
 #define DO_CURSOR(cursor)               void cursor (struct session *ses, char *arg)
@@ -1646,9 +1596,7 @@ struct window_data
 #define DO_MAP(map)                        void map (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_PATH(path)                     void path (struct session *ses, char *arg)
 #define DO_PORT(port)          struct session *port (struct session *ses, char *arg1, char *arg2, char *arg)
-#define DO_SCAN(scan)          struct session *scan (struct session *ses, FILE *fp, char *arg, char *arg1, char *arg2)
-#define DO_SCREEN(screen)               void screen (struct session *ses, int ind, char *arg, char *arg1, char *arg2)
-#define DO_DRAW(draw)                     void draw (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, long long flags, char *color, char *arg, char *arg1, char *arg2, char *arg3)
+
 
 /*
 	Typedefs
@@ -1656,15 +1604,12 @@ struct window_data
 
 typedef int             CMPFUNC (const void *a, const void *b);
 
-typedef struct session *ARRAY   (struct session *ses, struct listnode *list, char *arg, char *var, char *arg1, char *arg2);
 typedef void            BUFFER  (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            CHAT    (char *arg1, char *arg2);
-typedef struct session *CLASS   (struct session *ses, struct listnode *node, char *left, char *right);
 typedef struct session *CONFIG  (struct session *ses, char *arg1, char *arg2, int index);
 typedef struct session *COMMAND (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3, char *arg4);
 typedef void            CURSOR  (struct session *ses, char *arg);
 typedef void            DAEMON  (struct session *ses, char *arg, char *arg1, char *arg2);
-typedef void            DRAW    (struct session *ses, int top_row, int top_col, int bot_row, int bot_col, int rows, int cols, long long flags, char *color, char *arg, char *arg1, char *arg2, char *arg3);
 typedef struct session *EDIT    (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            HISTORY (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            LOG     (struct session *ses, char *arg, char *arg1, char *arg2);
@@ -1673,22 +1618,11 @@ typedef void            MAP     (struct session *ses, char *arg, char *arg1, cha
 typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
 typedef void            PATH    (struct session *ses, char *arg);
 typedef struct session *PORT    (struct session *ses, char *arg1, char *arg2, char *arg);
-typedef struct session *SCAN    (struct session *ses, FILE *fp, char *arg, char *arg1, char *arg2);
-typedef void            SCREEN  (struct session *ses, int ind, char *arg, char *arg1, char *arg2);
-
-
 
 
 /*
 	Structures for tables.c
 */
-
-struct array_type
-{
-	char                  * name;
-	ARRAY                 * fun;
-	char                  * desc;
-};
 
 struct buffer_type
 {
@@ -1704,12 +1638,6 @@ struct chat_type
 	int                     lval;
 	int                     rval;
 	char                  * desc;
-};
-
-struct class_type
-{
-	char                  * name;
-	CLASS                 * fun;
 };
 
 struct color_type
@@ -1750,14 +1678,6 @@ struct daemon_type
 	char                  * name;
 	DAEMON                * fun;
 	char                  * desc;
-};
-
-struct draw_type
-{
-	char                  * name;
-	char                  * desc;
-	int                     flags;
-	DRAW                  * fun;
 };
 
 struct edit_type
@@ -1886,25 +1806,6 @@ struct rank_type
 	int                     flags;
 };
 
-struct scan_type
-{
-	char                  * name;
-	SCAN                  * fun;
-	int                   flags;
-	char                  * desc;
-};
-
-struct screen_type
-{
-	char                  * name;
-	char                  * desc;
-	int                     get1;
-	int                     get2;
-	int                     flags;
-	SCREEN                * fun;
-};
-
-
 struct stamp_type
 {
 	char                  * name;
@@ -1930,48 +1831,12 @@ struct telopt_type
 	int                     flags;
 };
 
-
-
-
-/*
-	Various structures
-*/
-
-
 #endif
 
 
 /*
 	Function declarations
 */
-
-
-
-#ifndef __ARRAY_H__
-#define __ARRAY_H__
-
-extern DO_COMMAND(do_list);
-
-extern DO_ARRAY(array_add);
-extern DO_ARRAY(array_clear);
-extern DO_ARRAY(array_collapse);
-extern DO_ARRAY(array_create);
-extern DO_ARRAY(array_delete);
-extern DO_ARRAY(array_explode);
-extern DO_ARRAY(array_find);
-extern DO_ARRAY(array_get);
-extern DO_ARRAY(array_index);
-extern DO_ARRAY(array_insert);
-extern DO_ARRAY(array_order);
-extern DO_ARRAY(array_reverse);
-extern DO_ARRAY(array_set);
-extern DO_ARRAY(array_shuffle);
-extern DO_ARRAY(array_simplify);
-extern DO_ARRAY(array_size);
-extern DO_ARRAY(array_sort);
-extern DO_ARRAY(array_tokenize);
-
-#endif
 
 
 #ifndef __BANNER_H__
@@ -2071,33 +1936,8 @@ extern DO_CHAT(chat_zap);
 
 #endif
 
-
-#ifndef __CLASS_H__
-#define __CLASS_H__
-
-extern DO_COMMAND(do_class);
-
-extern  int count_class(struct session *ses, struct listnode *group);
-extern void parse_class(struct session *ses, char *input, struct listnode *group);
-
-extern DO_CLASS(class_assign);
-extern DO_CLASS(class_clear);
-extern DO_CLASS(class_close);
-extern DO_CLASS(class_kill);
-extern DO_CLASS(class_list);
-extern DO_CLASS(class_load);
-extern DO_CLASS(class_open);
-extern DO_CLASS(class_read);
-extern DO_CLASS(class_save);
-extern DO_CLASS(class_size);
-extern DO_CLASS(class_write);
-
-#endif
-
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
-
-extern DO_COMMAND(do_commands);
 
 extern void init_commands(void);
 
@@ -2256,8 +2096,6 @@ extern DO_MAP(map_write);
 #ifndef __TT_MATH_H__
 #define __TT_MATH_H__
 
-extern DO_COMMAND(do_math);
-
 extern int is_math(struct session *ses, char *str);
 extern int get_ellipsis(struct listroot *root, char *name, int *min, int *max);
 extern long double get_number(struct session *ses, char *str);
@@ -2341,11 +2179,6 @@ extern void winch_daemon(void);
 #define __DATA_H__
 
 extern DO_COMMAND(do_kill);
-extern DO_COMMAND(do_killall);
-extern DO_COMMAND(do_message);
-extern DO_COMMAND(do_ignore);
-extern DO_COMMAND(do_debug);
-
 
 extern void kill_list(struct listroot *root);
 extern void free_list(struct listroot *root);
@@ -2428,36 +2261,14 @@ extern void remove_line(struct edit_data *edit, int index);
 
 extern DO_COMMAND(do_draw);
 
-extern void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row, int *bot_col, int *rows, int *cols, int index, long long flags, char *arg);
-
-extern DO_DRAW(draw_blank);
-extern DO_DRAW(draw_bot_side);
-extern DO_DRAW(draw_arg);
-extern DO_DRAW(draw_box);
-extern DO_DRAW(draw_buffer);
-extern DO_DRAW(draw_corner);
-extern DO_DRAW(draw_horizontal_line);
-extern DO_DRAW(draw_left_side);
-extern DO_DRAW(draw_line);
-extern DO_DRAW(draw_map);
-extern DO_DRAW(draw_right_side);
-extern DO_DRAW(draw_side);
-extern DO_DRAW(draw_square);
-extern DO_DRAW(draw_rain);
-extern DO_DRAW(draw_table_grid);
-extern DO_DRAW(draw_text);
-extern DO_DRAW(draw_top_side);
-//extern DO_DRAW(draw_vertical_line);
-extern DO_DRAW(draw_vertical_lines);
-
 #endif
 
 
 #ifndef __EVENT_H__
 #define __EVENT_H__
 
-extern DO_COMMAND(do_event);
-extern DO_COMMAND(do_unevent);
+//extern DO_COMMAND(do_event);
+//extern DO_COMMAND(do_unevent);
 
 extern  int check_all_events(struct session *ses, int flags, int args, int vars, char *fmt, ...);
 extern void mouse_handler(struct session *ses, int val1, int val2, int val3);
@@ -2490,6 +2301,7 @@ extern DO_COMMAND(do_help);
 #define __HISTORY_H__
 
 extern DO_COMMAND(do_history);
+
 extern void add_line_history(struct session *ses, char *line);
 extern void insert_line_history(struct session *ses, char *line);
 extern struct session *repeat_history(struct session *ses, char *line);
@@ -2512,6 +2324,7 @@ DO_HISTORY(history_write);
 #define __LINE_H__
 
 extern DO_COMMAND(do_line);
+
 extern DO_LINE(line_background);
 extern DO_LINE(line_benchmark);
 extern DO_LINE(line_capture);
@@ -2537,8 +2350,6 @@ extern DO_LINE(line_verbose);
 
 #ifndef __LOG_H__
 #define __LOG_H__
-
-extern DO_COMMAND(do_log);
 
 DO_LOG(log_append);
 DO_LOG(log_info);
@@ -2626,20 +2437,9 @@ extern char *str_alloc_stack(int size);
 #ifndef __MISC_H__
 #define __MISC_H__
 
-extern DO_COMMAND(do_all);
-extern DO_COMMAND(do_bell);
-
-extern DO_COMMAND(do_cr);
-extern DO_COMMAND(do_echo);
 extern DO_COMMAND(do_end);
-extern DO_COMMAND(do_forall);
-extern DO_COMMAND(do_info);
 extern DO_COMMAND(do_nop);
-extern DO_COMMAND(do_send);
-extern DO_COMMAND(do_snoop);
-extern DO_COMMAND(do_suspend);
 extern DO_COMMAND(do_test);
-extern DO_COMMAND(do_zap);
 
 #endif
 
@@ -2691,7 +2491,7 @@ extern struct listnode *get_nest_node_key(struct listroot *root, char *variable,
 extern struct listnode *get_nest_node_val(struct listroot *root, char *variable, char **result, int def);
 extern int get_nest_index(struct listroot *root, char *variable, char **result, int def);
 extern void show_nest_node(struct listnode *node, char **result, int initialize);
-extern void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize);
+extern void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize, int color);
 extern struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
 extern struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
 extern struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, ...);
@@ -2751,9 +2551,7 @@ extern void do_one_line(char *line, struct session *ses);
 #ifndef __PATH_H__
 #define __PATH_H__
 
-extern DO_COMMAND(do_path);
 extern DO_COMMAND(do_pathdir);
-extern DO_COMMAND(do_unpathdir);
 
 int is_pathdir(struct session *ses, char *dir);
 int exit_to_dir(struct session *ses, char *name);
@@ -2793,8 +2591,6 @@ extern DO_PATH(path_end);
 #ifndef __PORT_H__
 #define __PORT_H__
 
-
-extern DO_COMMAND(do_port);
 extern DO_PORT(port_call);
 extern DO_PORT(port_color);
 extern DO_PORT(port_flag);
@@ -2831,50 +2627,10 @@ extern struct port_data *find_port_group(struct session *ses, char *arg);
 
 #endif
 
-#ifndef __SCAN_H__
-#define __SCAN_H__
-
-extern DO_COMMAND(do_scan);
-
-DO_SCAN(scan_abort);
-DO_SCAN(scan_csv);
-DO_SCAN(scan_dir);
-DO_SCAN(scan_file);
-DO_SCAN(scan_forward);
-DO_SCAN(scan_tsv);
-DO_SCAN(scan_txt);
-
-#endif
-
 #ifndef __SCREEN_H__
 #define __SCREEN_H__
 
 extern DO_COMMAND(do_screen);
-
-extern DO_SCREEN(screen_blur);
-extern DO_SCREEN(screen_clear);
-extern DO_SCREEN(screen_cursor);
-extern DO_SCREEN(screen_dump);
-extern DO_SCREEN(screen_fill);
-extern DO_SCREEN(screen_focus);
-extern DO_SCREEN(screen_fullscreen);
-extern DO_SCREEN(screen_get);
-extern DO_SCREEN(screen_info);
-extern DO_SCREEN(screen_inputregion);
-extern DO_SCREEN(screen_load);
-extern DO_SCREEN(screen_maximize);
-extern DO_SCREEN(screen_minimize);
-extern DO_SCREEN(screen_move);
-extern DO_SCREEN(screen_print);
-extern DO_SCREEN(screen_raise);
-extern DO_SCREEN(screen_refresh);
-extern DO_SCREEN(screen_resize);
-extern DO_SCREEN(screen_rescale);
-extern DO_SCREEN(screen_save);
-extern DO_SCREEN(screen_scrollbar);
-extern DO_SCREEN(screen_scrollregion);
-extern DO_SCREEN(screen_set);
-extern DO_SCREEN(screen_swap);
 
 extern void init_inputregion(struct session *ses, int top_row, int top_col, int bot_row, int bot_col);
 extern  int get_row_index(struct session *ses, int val);
@@ -2923,6 +2679,9 @@ extern void get_word_screen(char *str, int row, int col);
 #define __SESSION_H__
 
 extern DO_COMMAND(do_session);
+extern DO_COMMAND(do_snoop);
+extern DO_COMMAND(do_zap);
+
 extern struct session *session_command(char *arg, struct session *ses);
 extern void show_session(struct session *ses, struct session *ptr);
 extern struct session *find_session(char *name);
@@ -2938,8 +2697,6 @@ extern void dispose_session(struct session *ses);
 
 #ifndef __SHOW_H__
 #define __SHOW_H__
-
-extern DO_COMMAND(do_showme);
 
 extern void show_message(struct session *ses, int index, char *format, ...);
 extern void show_error(struct session *ses, int index, char *format, ...);
@@ -2988,8 +2745,6 @@ extern void split_show(struct session *ses, char *prompt, char *row, char *col);
 #ifndef __SSL_H__
 #define __SSL_H__
 
-extern DO_COMMAND(do_ssl);
-
 extern gnutls_session_t ssl_negotiate(struct session *ses);
 
 #endif
@@ -3036,12 +2791,7 @@ extern int substitute_color(char *input, char *output, int colors);
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 
-
-extern DO_COMMAND(do_run);
-
-extern DO_COMMAND(do_script);
-extern DO_COMMAND(do_system);
-extern DO_COMMAND(do_textin);
+extern DO_COMMAND(do_suspend);
 
 #endif
 
@@ -3049,18 +2799,15 @@ extern DO_COMMAND(do_textin);
 #ifndef __TABLES_H__
 #define __TABLES_H__
 
-extern struct array_type array_table[];
 extern struct buffer_type buffer_table[];
 extern struct chat_type chat_table[];
 extern   char character_table[];
-extern struct class_type class_table[];
 extern struct color_type color_table[];
 extern struct color_type map_color_table[];
-//extern struct command_type command_table[];
 extern struct config_type config_table[];
 extern struct cursor_type cursor_table[];
 extern struct daemon_type daemon_table[];
-extern struct draw_type draw_table[];
+//extern struct draw_type draw_table[];
 extern struct edit_type edit_table[];
 extern struct event_type event_table[];
 extern struct history_type history_table[];
@@ -3071,13 +2818,13 @@ extern struct map_type map_table[];
 extern struct path_type path_table[];
 extern struct port_type port_table[];
 extern struct rank_type rank_table[];
-extern struct scan_type scan_table[];
+//extern struct scan_type scan_table[];
 extern struct stamp_type huge_stamp_table[];
 extern struct substitution_type substitution_table[];
 extern struct telopt_type telopt_table[];
 extern   char *telcmds[];
 extern struct timer_type timer_table[];
-extern struct screen_type screen_table[];
+//extern struct screen_type screen_table[];
 extern struct map_legend_type map_legend_table[];
 extern struct map_legend_group_type map_legend_group_table[];
 
@@ -3167,49 +2914,15 @@ extern char *script_viewer(struct session *ses, char *str);
 #ifndef __TRIGGER_H__
 #define __TRIGGER_H__
 
-
-DO_COMMAND(do_action);
-DO_COMMAND(do_unaction);
-extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
-
-DO_COMMAND(do_alias);
-DO_COMMAND(do_unalias);
-extern int check_all_aliases(struct session *ses, char *input);
-
-DO_COMMAND(do_button);
-DO_COMMAND(do_unbutton);
-extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);
-
 extern DO_COMMAND(do_delay);
-extern DO_COMMAND(do_undelay);
 
-extern DO_COMMAND(do_function);
-extern DO_COMMAND(do_unfunction);
-
-extern DO_COMMAND(do_gag);
-extern DO_COMMAND(do_ungag);
+extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
+extern  int check_all_aliases(struct session *ses, char *input);
+extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);
 extern void check_all_gags(struct session *ses, char *original, char *line);
-
-extern DO_COMMAND(do_highlight);
-extern DO_COMMAND(do_unhighlight);
 extern void check_all_highlights(struct session *ses, char *original, char *line);
-
-extern DO_COMMAND(do_macro);
-extern DO_COMMAND(do_unmacro);
-
-extern DO_COMMAND(do_prompt);
-extern DO_COMMAND(do_unprompt);
-extern int check_all_prompts(struct session *ses, char *original, char *line);
-
-extern DO_COMMAND(do_substitute);
-extern DO_COMMAND(do_unsubstitute);
+extern  int check_all_prompts(struct session *ses, char *original, char *line);
 extern void check_all_substitutions(struct session *ses, char *original, char *line);
-
-extern DO_COMMAND(do_tab);
-extern DO_COMMAND(do_untab);
-
-extern DO_COMMAND(do_tick);
-extern DO_COMMAND(do_untick);
 
 #endif
 
@@ -3290,14 +3003,6 @@ extern int utf8_to_cp1251(char *input, char *output);
 
 #ifndef __VARIABLE_H__
 #define __VARIABLE_H__
-
-extern DO_COMMAND(do_variable);
-extern DO_COMMAND(do_unvariable);
-extern DO_COMMAND(do_local);
-extern DO_COMMAND(do_cat);
-extern DO_COMMAND(do_format);
-extern DO_COMMAND(do_replace);
-
 
 extern  int valid_variable(struct session *ses, char *arg);
 extern  int string_raw_str_len(struct session *ses, char *str, int start, int end);

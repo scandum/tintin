@@ -51,7 +51,7 @@ DO_COMMAND(do_variable)
 
 				str_result = str_alloc_stack(0);
 
-				view_nest_node(node, &str_result, 0, 1);
+				view_nest_node(node, &str_result, 0, TRUE, TRUE);
 
 				print_lines(ses, SUB_NONE, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, node->arg1, str_result);
 			}
@@ -93,6 +93,27 @@ DO_COMMAND(do_variable)
 
 		show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 	}
+	return ses;
+}
+
+DO_COMMAND(do_unvariable)
+{
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	do
+	{
+		if (delete_nest_node(ses->list[LIST_VARIABLE], arg1))
+		{
+			show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A VARIABLE.", arg1);
+		}
+		else
+		{
+			delete_node_with_wild(ses, LIST_VARIABLE, arg1);
+		}
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	}
+	while (*arg1);
+
 	return ses;
 }
 
@@ -162,19 +183,41 @@ DO_COMMAND(do_local)
 	return ses;
 }
 
-DO_COMMAND(do_unvariable)
+DO_COMMAND(do_unlocal)
 {
+	struct listroot *root;
+	int index, found;
+
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	root = local_list(ses);
 
 	do
 	{
-		if (delete_nest_node(ses->list[LIST_VARIABLE], arg1))
+		if (delete_nest_node(root, arg1))
 		{
-			show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A VARIABLE.", arg1);
+			show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A LOCAL VARIABLE.", arg1);
 		}
 		else
 		{
-			delete_node_with_wild(ses, LIST_VARIABLE, arg1);
+			found = FALSE;
+
+			for (index = root->used - 1 ; index >= 0 ; index--)
+			{
+				if (match(ses, root->list[index]->arg1, arg1, SUB_VAR|SUB_FUN))
+				{
+					show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A LOCAL VARIABLE.", root->list[index]->arg1);
+
+					delete_index_list(root, index);
+
+					found = TRUE;
+				}
+			}
+
+			if (found == 0)
+			{
+				show_message(ses, LIST_VARIABLE, "#UNLOCAL: NO MATCHES FOUND FOR {%s}.", arg1);
+			}
 		}
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 	}
@@ -185,7 +228,7 @@ DO_COMMAND(do_unvariable)
 
 DO_COMMAND(do_cat)
 {
-	char *str;
+	char *str, name[BUFFER_SIZE];
 	struct listroot *root;
 	struct listnode *node;
 
@@ -203,16 +246,18 @@ DO_COMMAND(do_cat)
 		{
 			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
-			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "%s", str);
+			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "");
 		}
 
 		root = search_nest_base_ses(ses, arg1);
 
+		get_arg_to_brackets(ses, arg1, name);
+
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, node->arg2, arg1);
+
 		while (*arg)
 		{
 			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
-
-			check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 2, "VARIABLE UPDATE %s", arg1, arg1, str);
 
 			if (*str)
 			{
@@ -227,7 +272,7 @@ DO_COMMAND(do_cat)
 			}
 		}
 
-		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 1, "VARIABLE UPDATED %s", arg1, arg1, str);
+		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, node->arg2, arg1);
 
 		show_nest_node(node, &str, 1);
 

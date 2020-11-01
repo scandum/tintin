@@ -97,7 +97,7 @@ TinTin++ 2.01.90
 
     #prompt {text} {substitution} will stay the same.
     #prompt {text} {substitution} {0} will become invalid.
-    #prompt {test] {substitution} {1} will write to the top line.
+    #prompt {text] {substitution} {1} will write to the top line.
     #prompt {text} {substitution} {-1} will write to the bottom / input line.
     #prompt {text} {substitution} {-2} will write to the 2nd line from the
        bottom, which is the default split line.
@@ -216,7 +216,7 @@ TinTin++ 1.99.1
 TinTin++ 1.96.6
 ---------------
 
-    #PATHDIR is now specificly designed to hold a direction, the opposite
+    #PATHDIR is now specifically designed to hold a direction, the opposite
     direction, and the vector of said direction for the #MAP command.
 
 
@@ -288,7 +288,6 @@ TinTin++ 1.88.0
 ---------------
 
 01) #FORMAT has been introduced and replaces a wide variety of commands.
-
 
 02) #MESSAGE, #CONFIG, #IGNORE, #DEBUG are all you need to configure tintin,
     changes made with #CONFIG are written to file with #WRITE.
