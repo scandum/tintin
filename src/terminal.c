@@ -214,6 +214,9 @@ char *get_charset(struct session *ses)
 		case CHARSET_FLAG_GBK1:
 			return "GBK-1";
 
+		case CHARSET_FLAG_CP949:
+			return "CP949";
+
 		case CHARSET_FLAG_UTF8:
 			return "UTF-8";
 
@@ -228,6 +231,9 @@ char *get_charset(struct session *ses)
 		
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8:
 			return "GBK1TOUTF8";
+
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8:
+			return "CP949TOUTF8";
 
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8:
 			return "KOI8TOUTF8";

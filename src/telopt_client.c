@@ -1378,6 +1378,21 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 						client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED BIG-5");
 					}
 				}
+				else if (!strcasecmp(var, "CP949"))
+				{
+					if (HAS_BIT(ses->charset, CHARSET_FLAG_CP949) || HAS_BIT(ses->charset, CHARSET_FLAG_CP949TOUTF8))
+					{
+						telnet_printf(ses, 12, "%c%c%c%c CP949%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
+
+						client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED CP949");
+					}
+					else
+					{
+						telnet_printf(ses, 12, "%c%c%c%c CP949%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
+
+						client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED CP949");
+					}
+				}
 				else if (!strcasecmp(var, "FANSI"))
 				{
 					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))

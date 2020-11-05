@@ -177,6 +177,11 @@ DO_CONFIG(config_charset)
 				DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 				SET_BIT(ses->charset, CHARSET_FLAG_UTF8);
 			}
+			else if (strcasestr(gtd->system->lang, "CP949"))
+			{
+				DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+				SET_BIT(ses->charset, CHARSET_FLAG_CP949);
+			}
 			else
 			{
 				DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
@@ -195,6 +200,11 @@ DO_CONFIG(config_charset)
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_GBK1);
+		}
+		else if (is_abbrev(arg2, "CP949"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_CP949);
 		}
 		else if (is_abbrev(arg2, "UTF-8"))
 		{
@@ -221,6 +231,11 @@ DO_CONFIG(config_charset)
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
 			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8);
 		}
+		else if (is_abbrev(arg2, "CP949TOUTF8"))
+		{
+			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
+			SET_BIT(ses->charset, CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8);
+		}
 		else if (is_abbrev(arg2, "ISO1TOUTF8"))
 		{
 			DEL_BIT(ses->charset, CHARSET_FLAG_ALL);
@@ -238,7 +253,7 @@ DO_CONFIG(config_charset)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <AUTO|ASCII|BIG-5|BIG5TOUTF8|CP1251TOUTF8|FANSI|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <AUTO|CP949|ASCII|BIG-5|BIG5TOUTF8|CP1251TOUTF8|FANSI|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8>", config_table[index].name);
 
 			return NULL;
 		}
@@ -251,6 +266,9 @@ DO_CONFIG(config_charset)
 			break;
 		case CHARSET_FLAG_GBK1:
 			strcpy(arg2, "GBK-1");
+			break;
+		case CHARSET_FLAG_CP949:
+			strcpy(arg2, "CP949");
 			break;
 		case CHARSET_FLAG_UTF8:
 			strcpy(arg2, "UTF-8");
@@ -266,6 +284,9 @@ DO_CONFIG(config_charset)
 			break;
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8:
 			strcpy(arg2, "GBK1TOUTF8");
+			break;
+		case CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8:
+			strcpy(arg2, "CP949TOUTF8");
 			break;
 		case CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8:
 			strcpy(arg2, "KOI8TOUTF8");

@@ -227,6 +227,7 @@ void write_html_header(struct session *ses, FILE *fp)
 		"<span style='background-color:#000'><span style='color:#FFF'>\n",
 		HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) ? "utf-8" : 
 			HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) ? "big5" : 
+				HAS_BIT(ses->charset, CHARSET_FLAG_CP949) ? "cp949" : 
 				HAS_BIT(ses->charset, CHARSET_FLAG_GBK1) ? "gb18030" : "iso-8859-1");
 
 	fputs(header, fp);

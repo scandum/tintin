@@ -1,0 +1,423 @@
+#!./tt++ -G
+
+#format start %U
+
+#math error 0
+
+#alias error
+{
+	#math error $error + 1;
+	#line ignore #showme <118>Failed test %0
+}
+
+#nop ----------
+
+#math tmp 1 + 1
+
+#if {$tmp != 2}
+{
+	error 1: math failure
+}
+
+#math tmp 7 / 11 * 100.00
+
+#if {"$tmp" != "63.64"}
+{
+	error 1.1: math failure
+}
+
+#nop ----------
+
+#alias {test} {#math tmp $tmp + 1}
+#line oneshot #alias {test%*} {#nop} {4}
+#math tmp 0
+#2 test
+#if {$tmp != 1}
+{
+	error 2: oneshot or math or alias failure
+}
+
+#nop ----------
+
+#1 {#return;error 3: #return failure}
+
+#nop ----------
+
+#buf get tmp -3 -1
+
+#if {&tmp[] != 2} error 4.1: buffer or variable or if failure ($tmp)
+#if {&tmp[%*] != 2} error 4.2: buffer or variable or if failure ($tmp)
+#if {&{tmp[]} != 2} error 4.3: buffer or variable or if failure ($tmp)
+#if {&{tmp[%*]} != 2} error 4.4: buffer or variable or if failure ($tmp)
+
+#nop ----------
+
+#switch {3} {#case 3 #return;#default error 5: switch failure}
+
+#nop ----------
+
+#class tmp open
+#unvar tmp
+#var tmp 1
+#class tmp kill
+
+#if {&{tmp} != 0}
+{
+	error 6: class or variable failure
+}
+
+#nop ----------
+
+#loop 1 2 tmp {#continue;error 7: continue failure}
+
+#nop ----------
+
+#kill variable tmp
+
+#if {&{tmp} != 0}
+{
+	error 8: kill variable %* failure
+}
+
+#line strip #if {{<128>} != {}}
+{
+	error 9: line strip failure
+}
+
+#nop ----------
+
+#act {test} {error 10: line ignore failure}
+#line gag;
+#line ignore #showme <118>Failed test 10: line gag failure
+#unact {test}
+
+#nop ----------
+
+#parse {abcd} {tmp} {#var tmp ($tmp)}
+#if {"$tmp" != "(d)"}
+{
+	error 11: parse failure
+}
+
+#nop ----------
+
+#path load {#var tmp 1}
+#path walk
+#if {$tmp != 1}
+{
+	error 12: path load or walk failure
+}
+
+#nop ----------
+
+#script tmp {echo 'test'}
+#if {{$tmp[1]} != {test}}
+{
+	error 13: script failure
+}
+
+#nop ----------
+
+#regex {test} {te%?t} {#nop}
+{
+	error 14: regex failure
+}
+
+#nop ----------
+
+#regex {bla} {bli}
+{
+	error 15: regex failure
+}
+
+#nop ----------
+
+#0 error 16: repeat failure
+
+#nop ----------
+
+#unvar tmp
+
+#1
+{
+	#local tmp 1;
+	#if {$tmp != 1}
+	{
+		error 17: local failure
+	}
+}
+
+#nop ----------
+
+#if {${tmp} == 1}
+{
+	error 18: local failure
+}
+
+#nop ----------
+
+#1
+{
+	#local tmp 2;
+
+	#regex {a} {a}
+	{
+		#if {$tmp != 2}
+		{
+			error 19: local failure
+		}
+	}
+}
+
+#nop ----------
+
+#if {"$arglebargle" != "\$arglebargle"}
+{
+	error 20: unassigned variable
+}
+
+#nop ----------
+
+#alias {bla} {error 21: unalias malfunction}
+#alias {bla%*} {#nop}
+#unalias {bla}
+bla
+#unalias {bla%*}
+
+#nop ----------
+
+#class bla open
+#var bla 2
+#var bli 2
+#alias haha hihi
+#fun bla blo
+#class bla close
+#class bla save
+#class bla clear
+#if {&{bla} != 0} {error 22: #class clear malfunction}
+#class bla load
+#if {&{bla} == 0} {error 23: #class load malfunction}
+#class bla clear
+#class bla load
+#class bla kill
+
+
+#nop ----------
+
+#if {(513 & ~1) != 512} {error 24.01: #math error}
+#if {1 << 1 != 2}	   {error 24.02: #math error}
+
+#nop ----------
+
+#var tmp 0;
+#var bla var
+#{$bla} tmp 1
+#if {$tmp != 1} {error 25.1: variable command}
+#$bla tmp 2
+#if {$tmp != 2} {error 25.2: variable command}
+
+#var bla gts
+#{$bla} #var tmp 3
+#if {$tmp != 3} {error 25.3: variable session}
+#$bla #var tmp 4
+#if {$tmp != 4} {error 25.4: variable session}
+
+#var bla #math tmp 5
+$bla
+#if {$tmp != 5} {error 25.5: variable input}
+$bla + 1
+#if {$tmp != 6} {error 25.6: variable input}
+
+#nop ----------
+
+#format bla %X ─
+#if {$bla != 2500}     {error 26.1: unicode handling}
+#format bla %x 2500
+#line sub esc #var bli \u2500
+#if {{$bla} != {$bli}} {error 26.2: unicode handling}
+
+#nop ----------
+
+#line sub esc #var bla {x\nx}
+#if {"$bla" === "x\nx"} {error 27.1: escape handling}
+#if {"$bla" != "x\nx"}  {error 27.2: escape handling}
+
+#nop ----------
+
+#var bla[1] {{bli}{2}}
+#var bla[2] {{bli}{3}}
+
+#list bla index bli
+#list bla order
+#if {$bla[1][bli] != 2} {error 28.1: 2D list handling}
+#list bla reverse
+#if {$bla[1][bli] != 3} {error 28.2: 2D list handling}
+#var bla[1][blo] 4
+#list bla[1] get 1 tmp
+#if {$tmp != 3} {error 28.3: 2D list handling: $tmp}
+#list bla[1] get -1 tmp
+#if {$tmp != 4} {error 28.4: 2D list handling: $tmp}
+#list bla[1] find {4} tmp
+#if {$tmp != 2} {error 28.5: 2D list handling: $tmp}
+#list bla[1] set 2 5
+#list bla[1] find {5} tmp
+#if {$tmp != 2} {error 28.6: 2D list handling: $tmp}
+#list bla[1] insert 2 9
+#list bla[1] get 2 tmp
+#if {$tmp != 9} {error 28.7: 2D list handling: $tmp}
+
+#nop ----------
+
+#alias {bla}
+{
+	#var bla 1;
+	#return;
+	#var bla 2
+}
+bla
+#if {$bla != 1} {error 29.1: return handling}
+
+#function {bla}
+{
+	#return 1;
+	#return 2;
+}
+#if {@bla{} != 1} {error 29.2: return handling}
+
+#function {bla}
+{
+	#if {1} #return 1;
+	#return 2
+}
+#if {@bla{} != 1} {error 29.3: return handling}
+
+#function {bla}
+{
+	#regex {1} {1} {#return 1};
+	#return 2
+}
+#if {@bla{} != 2} {error 29.4: regex return handling}
+
+#function {bla}
+{
+	#var blo 5;
+	#return $blo
+}
+
+#function {bli}
+{
+	#return @bla{}
+}
+
+#if {@bli{} != 5} {error 29.5: regex return handling (@bli{})}
+
+#nop ----------
+
+#history insert {#var bla 33}
+!
+#if {$bla != 33} {error 30.1: repeat handling}
+
+#nop ----------
+
+#var bla {{d}{4}{b}{2}{a}{1}{c}{3}}
+
+#if {$bla[+3] != 3} {error 30.1: table handling ($bla[+3] != 3)}
+#if {$bla[-2] != 3} {error 30.1: table handling ($bla[-2] != 3)}
+
+#nop ----------
+
+#nop ----------
+
+#nop command crash test
+
+#action {bla} #nop
+#unact bla
+#alias {bla} #nop
+#unalias bla
+#bell volume 8
+#buffer get bla -1 -1;
+#button {1;1;2;2} {#nop}
+#unbutton {1;1;2;2}
+#cat bla bli
+#line quiet #chat init 0
+#chat uninit
+#class bla open
+#class bla kill
+#cursor get bla
+#line quiet #daemon list
+#line quiet {#debug all on;#debug all off};
+#line quiet #dictionary bla
+#line quiet #dictionary hello
+#draw green tile 1 -1 1 -1
+#draw blue red scaled box 1 1 4 4 hello world
+#event {GAG SESSION DISCONNECTED} {#nop}
+#format bla {}
+#fun bla {#nop}
+#unfun bla
+#line quiet #help %*
+#high bla green
+#unhigh bla
+#history insert bla
+#history delete
+#info system save
+#list bla create {a;b;c}
+#kill variable bla
+#loop 0 1 bla #nop
+#macro \e\e #nop
+#unmacro \e\e
+#line quiet
+{
+	#map create;
+	#map goto 1;
+	#map dig n;
+	#map destroy world
+}
+#math bla 2+2
+#message all on
+#parse {abc} {bla} {#nop}
+#path create
+#path destroy
+#pathdir bla bli
+#unpathdir bla
+#line quiet #port init bla 0
+#snoop bla
+#bla #kill all
+#line quiet #port uninit
+#prompt bla bli
+#unprompt bla
+#regex {bla} {bla} {#nop} {#nop}
+#var bla x
+#replace bla x y
+#screen get cols bla
+#line quiet #split
+#unsplit
+#sub bla bli
+#unsub bla
+#tab bla bli
+#untab bla
+#tick bla {#nop} 1
+#untick bla
+
+#format end %U;
+
+#nop ----------
+
+#function time
+{
+	#math result ($end - $start) / 1000000.000
+}
+
+#if {$error}
+{
+	#draw White Red scroll box 1 1 3 80 End of validation with $error errors.;
+	#end \
+}
+{
+	#delay {0}
+	{
+		#info memory;
+		#info stack;
+		#draw Yellow Green scroll box 1 1 3 80 End of validation with 0 errors in @time{} seconds.;
+		#end \
+	}
+}
