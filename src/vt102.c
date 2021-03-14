@@ -140,11 +140,11 @@ void scroll_region(struct session *ses, int top, int bot)
 	{
 		if (top != 1)
 		{
-			print_stdout(0, 0, "\e[?1047h\e[?7787h\e[%d;%dr", top, bot);
+			print_stdout(0, 0, "\e[?1049h\e[?7787h\e[%d;%dr", top, bot);
 		}
 		else
 		{
-			print_stdout(0, 0, "\e[?1047l\e[?7787l\e[%d;%dr", top, bot);
+			print_stdout(0, 0, "\e[?1049l\e[?7787l\e[%d;%dr", top, bot);
 		}
 	}
 	ses->split->top_row = top;
@@ -160,7 +160,7 @@ void reset_scroll_region(struct session *ses)
 {
 	if (ses == gtd->ses)
 	{
-		print_stdout(0, 0, "\e[?1047l\e[?7787l\e[r");
+		print_stdout(0, 0, "\e[?1049l\e[?7787l\e[r");
 	}
 	ses->split->top_row = 1;
 	ses->split->top_col = 1;
@@ -1301,7 +1301,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 								pop_call();
 								return len + 1;
 							}
-							break;
+							goto end;
 
 						case 'H':
 							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH VT100 CURSOR H", ntos(val[0]), ntos(val[1])))
@@ -1309,7 +1309,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 								pop_call();
 								return len + 1;
 							}
-							break;
+							goto end;
 
 						case 'J':
 							if (val[0] == 0)
@@ -1344,7 +1344,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 									return len + 1;
 								}
 							}
-							break;
+							goto end;
 
 						case 'K':
 							if (val[0] == 0)
@@ -1371,7 +1371,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 									return len + 1;
 								}
 							}
-							break;
+							goto end;
 
 						case 'Z':
 							check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "VT100 DECID");
@@ -1379,8 +1379,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 							return len + 1;
 
 						default:
-							pop_call();
-							return 0;
+							goto end;
 					}
 				}
 			}
@@ -1405,8 +1404,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 							return 11;
 						}
 					}
-					pop_call();
-					return 0;
+					goto end;
 				}
 				else
 				{
@@ -1458,6 +1456,9 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 			}
 			break;
 	}
+
+	end:
+
 	pop_call();
 	return 0;
 }

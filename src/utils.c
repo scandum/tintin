@@ -350,16 +350,12 @@ unsigned long long utime()
 
 	utime = now_time.tv_sec * 1000000ULL + now_time.tv_usec;
 
-	if (gtd->utime >= utime)
-	{
-		gtd->utime++;
-	}
-	else
+	if (gtd->utime < utime)
 	{
 		gtd->utime = utime;
 	}
 
-	return gtd->utime;
+	return gtd->utime++;
 }
 
 time_t get_time(struct session *ses, char *str)

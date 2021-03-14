@@ -521,7 +521,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 		{
 			click[2] = click[1];
 			click[1] = click[0];
-			click[0] = utime();
+			click[0] = gtd->utime;
 
 			if (click[0] - click[1] < 500000)
 			{
@@ -541,7 +541,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 		{
 			click[2] = 0;
 			click[1] = 0;
-			click[0] = utime();
+			click[0] = gtd->utime;
 
 			sprintf(last, "PRESSED %s %d %d", arg2, col, row);
 		}
@@ -578,7 +578,7 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 			check_all_events(ses, EVENT_FLAG_MOUSE, 1, 12, "SWIPED %s", dir, dir, arg2, ntos(swipe[0]), ntos(swipe[1]), ntos(swipe[2]), ntos(swipe[3]), ntos(swipe[4]), ntos(swipe[5]), ntos(swipe[6]), ntos(swipe[7]), ntos(swipe[8]), ntos(swipe[9]));
 			check_all_events(ses, EVENT_FLAG_MOUSE, 2, 12, "SWIPED %s %s", arg2, dir, dir, arg2, ntos(swipe[0]), ntos(swipe[1]), ntos(swipe[2]), ntos(swipe[3]), ntos(swipe[4]), ntos(swipe[5]), ntos(swipe[6]), ntos(swipe[7]), ntos(swipe[8]), ntos(swipe[9]));
 		}
-		else if (utime() - click[0] >= 500000)
+		else if (gtd->utime - click[0] >= 500000)
 		{
 			mouse_event_handler(ses, "LONG-CLICKED", arg2, row, col, rev_row, rev_col, pix_row, pix_col, grid, word, line, link, name);
 		}

@@ -53,7 +53,7 @@ void kill_list(struct listroot *root)
 	{
 		delete_index_list(root, root->used - 1);
 	}
-//	root->update = 0;
+	root->update = 0;
 }
 
 void free_list(struct listroot *root)
@@ -173,7 +173,7 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 			break;
 
 		case LIST_TICKER:
-			node->val64 = gtd->utime + (long long) get_number(root->ses, node->arg3) * 1000000LL;
+			node->val64 = gtd->utime + (long long) tintoi(arg3) * 1000000.0;
 
 			if (node->val64 < gtd->utime_next_tick)
 			{
@@ -241,7 +241,7 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 		switch (root->type)
 		{
 			case LIST_TICKER:
-				node->val64 = gtd->utime + (long long) get_number(root->ses, node->arg3) * 1000000LL;
+				node->val64 = gtd->utime + (long long) tintoi(arg3) * 1000000;
 
 				if (node->val64 < gtd->utime_next_tick)
 				{
@@ -286,6 +286,7 @@ struct listnode *update_node_list(struct listroot *root, char *arg1, char *arg2,
 
 			case SORT_ALPHA:
 			case SORT_ALNUM:
+			case SORT_STABLE:
 				break;
 
 			default:
@@ -413,6 +414,7 @@ struct listnode *search_node_list(struct listroot *root, char *text)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
+		case SORT_STABLE:
 			index = bsearch_alpha_list(root, text, 0);
 			break;
 
@@ -444,6 +446,7 @@ int search_index_list(struct listroot *root, char *text, char *priority)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
+		case SORT_STABLE:
 			return bsearch_alpha_list(root, text, 0);
 		
 		case SORT_ALNUM:
@@ -472,23 +475,62 @@ int locate_index_list(struct listroot *root, char *text, char *priority)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
-			return bsearch_alpha_list(root, text, 1);
+			return bsearch_alpha_list(root, text, SEEK_REPLACE);
+
+		case SORT_STABLE:
+			return bsearch_alpha_list(root, text, SEEK_APPEND);
 
 		case SORT_ALNUM:
-			return bsearch_alnum_list(root, text, 1);
+			return bsearch_alnum_list(root, text, SEEK_REPLACE);
 
 		case SORT_DELAY:
-			return bsearch_priority_list(root, text, text, 1);
+			return bsearch_priority_list(root, text, text, SEEK_REPLACE);
 
 		case SORT_PRIORITY:
-			return bsearch_priority_list(root, text, priority, 1);
+			return bsearch_priority_list(root, text, priority, SEEK_REPLACE);
 
 		default:
 			return root->used;
 	}
 }
 
+int bsearch_alpha_list(struct listroot *root, char *text, int seek)
+{
+	int bot, mid, top;
 
+	if (root->used == 0)
+	{
+		return seek ? 0 : -1;
+	}
+
+	bot = 0;
+	top = root->used;
+
+	while (top > 1)
+	{
+		mid = top / 2;
+
+		if (strcmp(text, root->list[bot + mid]->arg1) >= 0)
+		{
+			bot += mid;
+		}
+		top -= mid;
+	}
+
+	if (strcmp(text, root->list[bot]->arg1) == 0)
+	{
+		return bot + (seek == SEEK_APPEND);
+	}
+
+	if (seek)
+	{
+		return bot += strcmp(text, root->list[bot]->arg1) > 0;
+	}
+
+	return -1;
+}
+
+/*
 int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 {
 	int bot, top, val, srt;
@@ -524,7 +566,7 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 	}
 	return -1;
 }
-
+*/
 
 int bsearch_alnum_list(struct listroot *root, char *text, int seek)
 {
@@ -776,6 +818,7 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 	switch (list_table[root->type].mode)
 	{
 		case SORT_ALPHA:
+		case SORT_STABLE:
 			index = bsearch_alpha_list(root, text, 0);
 			break;
 
@@ -885,6 +928,7 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 	switch (list_table[type].mode)
 	{
 		case SORT_ALPHA:
+		case SORT_STABLE:
 			index = bsearch_alpha_list(root, arg1, 0);
 			break;
 
@@ -1022,7 +1066,7 @@ DO_COMMAND(do_message)
 				continue;
 			}
 
-			if (!is_abbrev(arg1, list_table[index].name) && !is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
+			if (!is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
 			{
 				continue;
 			}
@@ -1045,7 +1089,7 @@ DO_COMMAND(do_message)
 				
 				return ses;
 			}
-			show_message(ses, LIST_COMMAND, "#OK: #%s MESSAGES HAVE BEEN SET TO: %s.", list_table[index].name, HAS_BIT(ses->list[index]->flags, LIST_FLAG_MESSAGE) ? "ON" : "OFF");
+			show_message(ses, LIST_COMMAND, "#OK: #MESSAGE STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_MESSAGE) ? "ON" : "OFF");
 
 			found = TRUE;
 		}
@@ -1089,7 +1133,7 @@ DO_COMMAND(do_ignore)
 				continue;
 			}
 
-			if (!is_abbrev(arg1, list_table[index].name) && !is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
+			if (!is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
 			{
 				continue;
 			}
@@ -1112,7 +1156,7 @@ DO_COMMAND(do_ignore)
 				
 				return ses;
 			}
-			show_message(ses, LIST_COMMAND, "#OK: #%s IGNORE STATUS HAS BEEN SET TO: %s.", list_table[index].name, HAS_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE) ? "ON" : "OFF");
+			show_message(ses, LIST_COMMAND, "#OK: #IGNORE STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE) ? "ON" : "OFF");
 
 			found = TRUE;
 		}
@@ -1156,7 +1200,7 @@ DO_COMMAND(do_debug)
 				continue;
 			}
 
-			if (!is_abbrev(arg1, list_table[index].name) && !is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
+			if (!is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
 			{
 				continue;
 			}
@@ -1184,7 +1228,7 @@ DO_COMMAND(do_debug)
 				
 				return ses;
 			}
-			show_message(ses, LIST_COMMAND, "#OK: #%s DEBUG STATUS HAS BEEN SET TO: %s.", list_table[index].name, is_abbrev(arg2, "LOG") ? "LOG" : HAS_BIT(ses->list[index]->flags, LIST_FLAG_DEBUG) ? "ON" : "OFF");
+			show_message(ses, LIST_COMMAND, "#OK: #DEBUG STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, is_abbrev(arg2, "LOG") ? "LOG" : HAS_BIT(ses->list[index]->flags, LIST_FLAG_DEBUG) ? "ON" : "OFF");
 
 			found = TRUE;
 		}
@@ -1235,7 +1279,7 @@ DO_COMMAND(do_info)
 				continue;
 			}
 
-			if (!is_abbrev(arg1, list_table[index].name) && !is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
+			if (!is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
 			{
 				continue;
 			}
@@ -1260,22 +1304,22 @@ DO_COMMAND(do_info)
 				{
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
-						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {arg4}{%s} {class}{%s} {shots}{%u}", list_table[index].name, cnt+1, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->shots);
+						tintin_printf2(ses, "#INFO %s %4d {arg1}{%s} {arg2}{%s} {arg3}{%s} {arg4}{%s} {class}{%s} {shots}{%u}", list_table[index].name_multi, cnt+1, root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->shots);
 					}
 				}
 				else if (is_abbrev(arg2, "SAVE"))
 				{
-					sprintf(name, "info[%s]", list_table[index].name);
+					sprintf(name, "info[%s]", list_table[index].name_multi);
 
 					set_nest_node_ses(ses, name, "");
 
 					for (cnt = 0 ; cnt < root->used ; cnt++)
 					{
-						sprintf(name, "info[%s][%d]", list_table[index].name, cnt + 1);
+						sprintf(name, "info[%s][%d]", list_table[index].name_multi, cnt + 1);
 
 						set_nest_node_ses(ses, name, "{arg1}{%s}{arg2}{%s}{arg3}{%s}{arg4}{%s}{class}{%s}{nest}{%d}{shots}{%u}", root->list[cnt]->arg1, root->list[cnt]->arg2, root->list[cnt]->arg3, root->list[cnt]->arg4, root->list[cnt]->group, root->list[cnt]->root ? root->list[cnt]->root->used : 0, root->list[cnt]->shots);
 					}
-					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[%s]}", list_table[index].name);
+					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[%s]}", list_table[index].name_multi);
 				}
 				else
 				{
@@ -1283,7 +1327,7 @@ DO_COMMAND(do_info)
 				}
 				return ses;
 			}
-			show_message(ses, LIST_COMMAND, "#OK: #%s INFO STATUS HAS BEEN SET TO: %s.", list_table[index].name, HAS_BIT(ses->list[index]->flags, LIST_FLAG_INFO) ? "ON" : "OFF");
+			show_message(ses, LIST_COMMAND, "#OK: #INFO STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_INFO) ? "ON" : "OFF");
 
 			found = TRUE;
 		}

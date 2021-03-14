@@ -140,6 +140,32 @@ int get_ellipsis(struct listroot *root, char *name, int *min, int *max)
 	return 1 + (*min < *max ? *max - *min : *min - *max);
 }
 
+long double get_root(long double value, long double power)
+{
+	long double bot, mid, top, sum;
+
+	bot = 0;
+	top = 2;
+
+	while (pow(top, power) < value)
+	{
+		top *= 2;
+	}
+
+	while (top > 0.000000000001)
+	{
+		mid = top / 2;
+		sum = bot + mid;
+		
+		if (powl(sum, power) <= value)
+		{
+			bot += mid;
+		}
+		top -= mid;
+	}
+	return bot;
+}
+
 long double get_double(struct session *ses, char *str)
 {
 	long double val;
@@ -990,7 +1016,9 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 					value = pow(tintoi(node->prev->str3), tintoi(node->next->str3));
 					break;
 				default:
-					value = tintoi(node->prev->str3) * tintoi(node->next->str3);
+//					printf("debug: precision %d prev (%s) %.*Lf * next (%s) %Lf\n", precision, node->prev->str3, precision, tintoi(node->prev->str3), node->next->str3, tintoi(node->next->str3));
+					value = (long double) tintoi(node->prev->str3) * (long double) tintoi(node->next->str3);
+//					printf("debug: value: %20Lf\n", value);
 					break;
 			}
 			break;
@@ -998,13 +1026,13 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 			switch (node->str3[1])
 			{
 				case '/':
-					if (tintoi(node->next->str3) == 3)
+					if (tintoi(node->next->str3) == 2)
 					{
-						value = cbrt(tintoi(node->prev->str3));
+						value = sqrt(tintoi(node->prev->str3));
 					}
 					else
 					{
-						value = sqrt(tintoi(node->prev->str3));
+						value = get_root(tintoi(node->prev->str3), tintoi(node->next->str3));
 					}
 					break;
 				default:
@@ -1030,6 +1058,9 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 			}
 			break;
 		case '%':
+			value = fmod(tintoi(node->prev->str3), tintoi(node->next->str3));
+
+/*
 			if (tintoi(node->next->str3) == 0)
 			{
 				show_debug(ses, LIST_VARIABLE, "#MATH ERROR: MODULO ZERO.");
@@ -1041,6 +1072,7 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 
 				value64 = tintou(node->prev->str3) % tintou(node->next->str3);
 			}
+*/
 			break;
 		case '+':
 			value = tintoi(node->prev->str3) + tintoi(node->next->str3);
@@ -1170,7 +1202,7 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 	else
 	{
 //		sprintf(temp, "%.*Lf", precision, value);
-		sprintf(temp, "%Lf", value);
+		sprintf(temp, "%.12Lf", value);
 	}
 	free(node->str3);
 	node->str3 = strdup(temp);
@@ -1256,7 +1288,7 @@ long double tintoi(char *str)
 				break;
 
 			case ':':
-//				show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.");
+				show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.");
 
 				switch (i)
 				{
@@ -1363,7 +1395,8 @@ unsigned long long tintou(char *str)
 				break;
 
 			case '.':
-				*ptr = 0;
+				value = 0;
+				m = 1;
 				break;
 
 			case ':':

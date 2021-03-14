@@ -175,9 +175,10 @@ a:active {color:#b06}
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #break
 
-         The break command can be used inside the #foreach, #loop, #parse,
-         #while and #switch statements. When #break is found, tintin will stop
-         executing the statement it is currently in and move on to the next.
+         The break command can be used inside the #else, #elseif, #if, #foreach,
+         #loop, #parse, #switch, and #while statements. When #break is found,
+         tintin will stop executing the statement it is currently in and move on
+         to the next.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #while {1} {#math cnt &dollar;cnt + 1;#if {&dollar;cnt == 20} {#break}}
 
@@ -360,8 +361,9 @@ a:active {color:#b06}
 &bsol;        An input line starting with a backslash is send verbatim if you are
          connected to a server. This character can be configured with
          #config, and is itself send verbatim when the verbatim config mode
+         is enabled.
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#IS'>is</a>, <a href='#ENABLED.'>enabled.</a>, <a href='#COLORS'>colors</a>, <a href='#ESCAPE'>escape</a>, <a href='#FUNCTION'>function</a>, <a href='#MATHEMATICS'>mathematics</a>, <a href='#PCRE'>pcre</a> and <a href='#VARIABLE'>variable</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='#ESCAPE'>escape</a>, <a href='#FUNCTION'>function</a>, <a href='#MATHEMATICS'>mathematics</a>, <a href='#PCRE'>pcre</a> and <a href='#VARIABLE'>variable</a>.
 <a name='CHAT'></a>
 
 </span><span style='color:#5F5'>         CHAT
@@ -680,12 +682,12 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>{</span><span style='color:#AAA'>name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>command</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>seconds</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
          Delay allows you to have tintin wait the given amount of seconds
-         before executing the given command. tintin won't wait before
-         executing following input commands if any.
+         before executing the given command.
 
-         Floating point precision for milliseconds is possible.
+         Nanosecond floating point precision is allowed. Delays will fire in
+         0.01 second intervals.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show first;#delay {1} {#show last}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #delay {1} {#show last};#show first
          This will print 'first', and 'last' around one second later.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: If you want to remove a delay with the #undelay command you can add
@@ -698,13 +700,13 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#5F5'>         DRAW
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #draw </span><span style='color:#FFF'>[</span><span style='color:#AAA'>color</span><span style='color:#FFF'>] [</span><span style='color:#AAA'>options</span><span style='color:#FFF'>] &lt;</span><span style='color:#AAA'>type</span><span style='color:#FFF'>&gt; &lt;</span><span style='color:#AAA'>square</span><span style='color:#FFF'>&gt; {</span><span style='color:#AAA'>text</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #draw </span><span style='color:#FFF'>[</span><span style='color:#AAA'>line color</span><span style='color:#FFF'>] [</span><span style='color:#AAA'>options</span><span style='color:#FFF'>] &lt;</span><span style='color:#AAA'>type</span><span style='color:#FFF'>&gt; &lt;</span><span style='color:#AAA'>square</span><span style='color:#FFF'>&gt; {</span><span style='color:#AAA'>text</span><span style='color:#FFF'>}
 </span><span style='color:#AAA'>
          The draw commands allows you to draw various types of lines and shapes
-         on the screen. Common options and types with a brief description are
-         provided when you type #draw without an argument.
+         on the screen. The types with a brief description are provided when you
+         type #draw without an argument.
 
-         The square arguments should exists of two coordinates defining the
+         The &lt;square&gt; arguments should exists of two coordinates defining the
          upper left and bottom right corner using row, col, row, col syntax.
 
          The square arguments can be negative, in which case the coordinates
@@ -758,24 +760,26 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          The following types are available.
 
-         </span><span style='color:#FFF'>[ASCII|UNICODE|HUGE] BOX {[TEXT1]} {[TEXT2]}
-         </span><span style='color:#AAA'>  will draw a box.
-         </span><span style='color:#FFF'>[BOXED|FOREGROUND] BUFFER
+         [HORIZONTAL] </span><span style='color:#FFF'>BAR</span><span style='color:#AAA'> {&lt;MIN&gt;;&lt;MAX&gt;;[COLOR]}
+          will draw a bar.
+         [ASCII|UNICODE|HUGE] </span><span style='color:#FFF'>BOX</span><span style='color:#AAA'> {[TEXT1]} {[TEXT2]}
+           will draw a box.
+         [BOXED|FOREGROUND] </span><span style='color:#FFF'>BUFFER
          </span><span style='color:#AAA'>  will draw the scrollback buffer.
-         </span><span style='color:#FFF'>[BLANKED|CIRCLED|CROSSED|JEWELED|ROUNDED|TEED|PRUNED] CORNER
+         [BLANKED|CIRCLED|CROSSED|JEWELED|ROUNDED|TEED|PRUNED] </span><span style='color:#FFF'>CORNER
          </span><span style='color:#AAA'>  will draw a corner.
-         </span><span style='color:#FFF'>[BLANKED|HORIZONTAL|NUMBERED|TUBED|VERTICAL] LINE {[TEXT]}
-         </span><span style='color:#AAA'>  will draw a line.
-         </span><span style='color:#FFF'>[BOXED] MAP
+         [BLANKED|HORIZONTAL|NUMBERED|TUBED|VERTICAL] </span><span style='color:#FFF'>LINE</span><span style='color:#AAA'> {[TEXT]}
+           will draw a line.
+         [BOXED] </span><span style='color:#FFF'>MAP
          </span><span style='color:#AAA'>  will draw the map
-         </span><span style='color:#FFF'>RAIN {&lt;VARIABLE&gt;} {[SPAWN]} {[FADE]} {[LEGEND]}
-         </span><span style='color:#AAA'>  will draw digital rain.
-         </span><span style='color:#FFF'>[JOINTED|TOP|LEFT|BOTTOM|RIGHT] SIDE
+         </span><span style='color:#FFF'>RAIN</span><span style='color:#AAA'> {&lt;VARIABLE&gt;} {[SPAWN]} {[FADE]} {[LEGEND]}
+           will draw digital rain.
+         [JOINTED|TOP|LEFT|BOTTOM|RIGHT] </span><span style='color:#FFF'>SIDE
          </span><span style='color:#AAA'>  will draw one or more sides of a box.
-         </span><span style='color:#FFF'>[GRID] TABLE {[LIST1]} {[LIST2]}
-         </span><span style='color:#AAA'> will draw a table.
-         </span><span style='color:#FFF'>[HUGE] TILE {[TEXT1]} {[TEXT2]}
-         </span><span style='color:#AAA'>  will draw a tile
+         [GRID] </span><span style='color:#FFF'>TABLE</span><span style='color:#AAA'> {[LIST1]} {[LIST2]}
+          will draw a table.
+         [CURSIVE|FAT|HUGE|SANSSERIF] </span><span style='color:#FFF'>TILE</span><span style='color:#AAA'> {[TEXT1]} {[TEXT2]}
+           will draw a tile
 
          All draw types take an optional text argument as long as a valid
          square with enough space has been defined. Text is automatically
@@ -1020,7 +1024,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#5F5'>         EVENT
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #event </span><span style='color:#FFF'>{</span><span style='color:#AAA'>event type</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #event </span><span style='color:#FFF'>{</span><span style='color:#AAA'>event type</span><span style='color:#FFF'>}</span><span style='color:#AAA'> </span><span style='color:#FFF'>{</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
          Events allow you to create triggers for predetermined client events.
 
@@ -1029,7 +1033,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          events. Use #info {events} {on} to see events get thrown.
 
          Events, like triggers in general, are case sensitive and event names
-         must be defined using all upper case letters.
+         must be defined using all upper case letters. Only one event can be
+         defined for each event type.
 
          To enable mouse events use #config mouse_tracking on, to see mouse
          events use #config mouse_tracking info.
@@ -1108,6 +1113,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#AAA'>  Mouse events can be prefixed with MAP to only trigger when the mouse
            event occurs inside the VT100 map region.
 
+
          </span><span style='color:#FFF'>SWIPED [DIR]
          </span><span style='color:#AAA'>  %0 dir  %1 button  %2 row  %3 col  %4 -row  %5 -col
                               %6 row  %7 col  %8 -row  %9 -col %10 rows %11 cols
@@ -1152,7 +1158,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#FFF'>IAC &lt;EVENT&gt;
          </span><span style='color:#AAA'>  IAC TELNET events are made visable using #config telnet info.
 
-         </span><span style='color:#FFF'>IAC SB GMCP [MODULE]   %0 module    %1 data  %1 plain data
+         </span><span style='color:#FFF'>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data
          IAC SB MSSP            %0 variable  %1 data
          IAC SB MSDP            %0 variable  %1 data  %2 plain data
          IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data
@@ -1177,7 +1183,9 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          </span><span style='color:#5F5'>SCREEN EVENTS</span><span style='color:#AAA'>
 
-         SCREEN FOCUS           %0 focus (0 or 1)
+         </span><span style='color:#FFF'>SCREEN FOCUS
+         </span><span style='color:#AAA'>  %0 focus (0 or 1)
+
          SCREEN LOCATION        %0 rows %1 cols  %2 height %3 width
 
          </span><span style='color:#FFF'>SCREEN MOUSE LOCATION
@@ -1199,8 +1207,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          </span><span style='color:#5F5'>VARIABLE EVENTS</span><span style='color:#AAA'>
 
-         VARIABLE UPDATE [VAR]  %0 name %1 new value
-         VARIABLE UPDATED [VAR] %0 name %1 new value
+         VARIABLE UPDATE &lt;VAR&gt;  %0 name %1 new value %2 path
+         VARIABLE UPDATED &lt;VAR&gt; %0 name %1 new value %2 path
 
          </span><span style='color:#5F5'>VT100 EVENTS</span><span style='color:#AAA'>
 
@@ -1332,7 +1340,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.04b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.06b                    </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1936,9 +1944,10 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          #list {var} {delete} {index} {number}  Delete the item at {index},
                                                 the {number} is optional.
          #list {var} {explode}                  Turn list into a character list
-         #list {var} {index}                    Index a list table for sorting
+         #list {var} {indexate}                 Index a list table for sorting
          #list {var} {insert} {index} {string}  Insert {string} at given index
-         #list {var} {find} {string} {variable} Return the found index
+         #list {var} {filter} {keep} {remove}   Filter with keep / remove regex
+         #list {var} {find} {regex} {variable}  Return the found index
          #list {var} {get} {index} {variable}   Copy an item to {variable}
          #list {var} {order} {string}           Insert item in numerical order
          #list {var} {shuffle}                  Shuffle the list
@@ -2256,6 +2265,8 @@ Terminal -&gt; Window Settings -&gt; Emulation.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias {swap} {#local x %0;#replace x {e} {u};#show &dollar;x}
 
+</span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: You can remove a local variable with the #unlocal command.
+
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#FORMAT'>format</a>, <a href='#FUNCTION'>function</a>, <a href='#MATH'>math</a>, <a href='#REPLACE'>replace</a>, <a href='#SCRIPT'>script</a> and <a href='#VARIABLE'>variable</a>.
 <a name='LOG'></a>
 
@@ -2499,11 +2510,10 @@ Terminal -&gt; Window Settings -&gt; Emulation.
            variable name.
 
          </span><span style='color:#FFF'>#map move &lt;direction&gt;
-         </span><span style='color:#AAA'>  This does the same as an actual movement
-           command, updating your location on the map and creating new
-           rooms. Useful when you are following someone and want the map
-           to follow. You will need to create actions using '#map move',
-           for this to work.
+         </span><span style='color:#AAA'>  This does the same as an actual movement command, updating your
+           location on the map and creating new rooms. Useful when you are
+           following someone and want the map to follow along. You will need
+           to create actions using '#map move', for this to work.
 
          </span><span style='color:#FFF'>#map offset &lt;row&gt; &lt;col&gt; &lt;row&gt; &lt;col&gt;
          </span><span style='color:#AAA'>  Define the offset of the vtmap as a square. Without an argument
@@ -2616,7 +2626,7 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#AAA'>  Will save the map, if you want to save a map to a .tin file
            you must provide the {force} argument.
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#PATH'>path</a> and <a href='#PATHDIR'>pathdir</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#PATH'>path</a>, <a href='#PATHDIR'>pathdir</a> and <a href='#SPEEDWALK'>speedwalk</a>.
 <a name='MAPPING'></a>
 
 </span><span style='color:#5F5'>         MAPPING
@@ -3027,7 +3037,7 @@ Website: https://tintin.mudhalla.net/protocols/mslp
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #path ins {unlock n;open n} {unlock s;open s}
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#MAP'>map</a> and <a href='#PATHDIR'>pathdir</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#MAP'>map</a>, <a href='#PATHDIR'>pathdir</a> and <a href='#SPEEDWALK'>speedwalk</a>.
 <a name='PATHDIR'></a>
 
 </span><span style='color:#5F5'>         PATHDIR
@@ -3363,7 +3373,8 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
          The expression can contain escapes, and if you want to match a literal
          &bsol; character you'll have to use &bsol;&bsol; to match a single backslash.
 
-         Variables are stored in &amp;1 to &amp;99 with &amp;0 holding the matched substring.
+         Variables are stored in &amp;1 to &amp;99 with &amp;0 holding the matched
+         substring.
 
        ^ force match of start of line.
        &dollar; force match of end of line.
@@ -3410,7 +3421,9 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #regexp {bli bla blo} {bli {.*} blo} {#show &amp;1}
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CASE'>case</a>, <a href='#DEFAULT'>default</a>, <a href='#ELSE'>else</a>, <a href='#ELSEIF'>elseif</a>, <a href='#IF'>if</a> and <a href='#SWITCH'>switch</a>.
+</span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: Like an alias or function #regex has its own scope.
+
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#REPLACE'>replace</a>
 <a name='REPEAT'></a>
 
 </span><span style='color:#5F5'>         REPEAT
@@ -3429,10 +3442,13 @@ easiest way to accomplish that.
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #replace </span><span style='color:#FFF'>{</span><span style='color:#AAA'>variable</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>oldtext</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>newtext</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
-         Searches the variable text replacing each occurrence of 'oldtext' with
-         'newtext'. The 'newtext' argument can be a regular expression.
+         Searches the given variable, replacing each occurrence of 'oldtext'
+         with 'newtext'. The 'oldtext' argument is a regular expression.
 
-         Variables are stored in &amp;1 to &amp;99 with &amp;0 holding the matched substring.
+         Variables are stored in &amp;1 to &amp;99 with &amp;0 holding the entire matched
+         substring.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #function rnd #math result 1d9;#replace test {%.} {@rnd{}}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CAT'>cat</a>, <a href='#FORMAT'>format</a>, <a href='#FUNCTION'>function</a>, <a href='#LOCAL'>local</a>, <a href='#MATH'>math</a>, <a href='#SCRIPT'>script</a> and <a href='#VARIABLE'>variable</a>.
 <a name='RETURN'></a>
@@ -3733,9 +3749,10 @@ session one will remain the active session.
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #snoop </span><span style='color:#FFF'>{</span><span style='color:#AAA'>session name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>on</span><span style='color:#FFF'>|</span><span style='color:#AAA'>off</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
-         If there are multiple sessions active, this command allows you to monitor
-         what is going on in the sessions that are not currently active.  The
-         line of text from other sessions will be prefixed by the session's name.
+         If there are multiple sessions active, this command allows you to
+         monitor what is going on in the sessions that are not currently active.
+         The line of text from other sessions will be prefixed by the session's
+         name.
 
          You can toggle off snoop mode by executing #snoop a second time.
 
@@ -3744,6 +3761,7 @@ session one will remain the active session.
 
 </span><span style='color:#5F5'>         SPEEDWALK
 
+         SPEEDWALK V1
 </span><span style='color:#AAA'>
          Speedwalking allows you to enter multiple directions without using
          semicolons. Directions should be prefixed with a number and will be
@@ -3754,9 +3772,21 @@ session one will remain the active session.
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: Without speedwalk, you have to type:
          </span><span style='color:#FFF'>s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w
          </span><span style='color:#AAA'>With speedwalk, you only have to type:
-         </span><span style='color:#FFF'>2s5w3s3w2n1w
+         </span><span style='color:#FFF'>2s5w3s3w2nw
 
-Related</span><span style='color:#AAA'>: <a href='#ALIAS'>alias</a>, <a href='#CURSOR'>cursor</a>, <a href='#HISTORY'>history</a>, <a href='#KEYPAD'>keypad</a>, <a href='#MACRO'>macro</a> and <a href='#TAB'>tab</a>.
+         </span><span style='color:#5F5'>SPEEDWALK V2
+</span><span style='color:#AAA'>
+         Modern MUDs have increasingly adopted the use of diagonal exits, like
+         ne, nw, sw, and se. To make accomodations for this the #map and #path
+         command no longer interpret nesw as a speedwalk and require this to
+         be written as 1n1e1s1w, which then allows 2ne2e to execute ne;ne;e;e.
+
+         Speedwalks entered on the input line continue to use the v1 system.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #path unzip 3n1e2nw
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #map move 3ne1d
+
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#ALIAS'>alias</a>, <a href='#CURSOR'>cursor</a>, <a href='#HISTORY'>history</a>, <a href='#KEYPAD'>keypad</a>, <a href='#MACRO'>macro</a> and <a href='#TAB'>tab</a>.
 <a name='SPLIT'></a>
 
 </span><span style='color:#5F5'>         SPLIT
@@ -3963,7 +3993,9 @@ Related</span><span style='color:#AAA'>: <a href='#ALL'>all</a>, <a href='#PORT'
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #ticker </span><span style='color:#FFF'>{</span><span style='color:#AAA'>name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>interval in seconds</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
-         Executes given command every # of seconds.
+         Executes given command every # of seconds. Floating point precision
+         for the interval is allowed. A ticker cannot fire more often than
+         10 times per second.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: Tickers don't work in the startup session.
 

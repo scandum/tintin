@@ -466,6 +466,7 @@ void init_tintin(int greeting)
 	gtd->tintin_char    = '#';
 
 	gtd->time           = time(NULL);
+	gtd->utime          = utime();
 
 	for (index = 0 ; index < 100 ; index++)
 	{

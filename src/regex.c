@@ -228,6 +228,25 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 	pti = in;
 	ptr = range;
 
+	switch (*pti)
+	{
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			*ptr++ = *pti++;
+			break;
+
+		default:
+			goto end;
+	}
+
 	while (*pti)
 	{
 		switch (*pti)

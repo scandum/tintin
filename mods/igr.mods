@@ -1,3 +1,64 @@
+Nov 2020        2.02.06
+
+------------------------------------------------------------------------------
+
+split.c         Now allowing #showme {text} {-1} to place text on the input
+                line without #split being enabled.
+
+trigger.c       Changed #tick to lazily get the second argument.
+
+files.c         Added the READ FILE [NAME] event, triggers after a file has
+                been read. %0 holds the file name.
+
+draw.c          Added color gradient support to #draw bar. To use it you
+                must specify two 256 color foreground codes for the color
+                field and based on the min;max value it will pick a color
+                somewhere in between.
+
+		#loop 1 9 i #draw <DDF> scroll bar 1 1 1 40 {$i;9;<faa><afa>}
+
+draw.c          Added the BAR drawing type. Currently only horizontal bars
+                are supported, but for forward compatibility you should draw
+                bars using #draw horizontal bar {square} {<min>;<max>;[color]}
+                The width of the bar will be that of the square coordinate.
+
+trigger.c       Added support for 10 digit precision delays. The main
+                utility of this is execution order.
+
+                #delay 0.00003 #show A;#delay 0.00002 #show B
+
+                Since delays are processed in 0.01 second intervals these will
+                both trigger within 0.01 seconds, but the display order will
+                be: B A rathern than A B.
+
+path.c          Added MAPPING and RUNNING to #path get.
+
+                MAPPING returns 1 when path mapping, otherwise 0.
+                RUNNING returns the delay until the next run, otherwise 0.00.
+
+                #path get <variable> without an argument will store the
+                length, position, mapping, and running values in a table.
+
+trigger.c       Storing the creation time of tickers and delays in arg4, can
+                be obtained using #info tickers/delays save.
+
+substitute.c    Added support to call @function{} as @{function}{}.
+
+event.c         The SCREEN FOCUS event no longer requires #config mouse to
+                be enabled.
+
+math.c          % in #math now supports floating point modulo operations.
+
+data.c          #info will save #info variables to $info[VARIABLES] rather
+                than $info[VARIABLE]. Same for other lists.
+
+list.c          Added #list {var} filter {keep} {remove}. Keep and remove
+                must be a regex pattern, the keep regex is ignored if {} is
+                used, the remove regex is optional. #list indexate must be
+                used to filter tables.
+
+utf8.c          Added #config charset cp949 for Korean.
+
 Oct 2020        2.02.05
 ------------------------------------------------------------------------------
 

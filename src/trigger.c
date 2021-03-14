@@ -48,7 +48,7 @@ DO_COMMAND(do_action)
 	{
 		if (*arg3 && (atof(arg3) < 1 || atof(arg3) >= 10))
 		{
-			show_error(ses, LIST_ACTION, "\e[1;31m#ERROR: #ACTION {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
+			show_error(ses, LIST_ACTION, "\e[1;31m#WARNING: #ACTION {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
 		}
 
 		update_node_list(ses->list[LIST_ACTION], arg1, arg2, arg3, "");
@@ -383,6 +383,7 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 DO_COMMAND(do_delay)
 {
 	char time[NUMBER_SIZE];
+	long double number;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
@@ -403,13 +404,16 @@ DO_COMMAND(do_delay)
 	{
 		if (*arg3 == 0)
 		{
-			sprintf(arg3, "%lld", utime() + (long long) (1000000 * get_number(ses, arg1)));
+			number = get_number(ses, arg1);
 
-			get_number_string(ses, arg1, time);
+			sprintf(arg3, "%lld", gtd->utime);
 
-			create_node_list(ses->list[LIST_DELAY], arg3, arg2, arg3, time);
+			sprintf(time, "%llu.%010llu", gtd->utime + (unsigned long long) (number * 1000000), (unsigned long long) (number * 10000000000) % 10000000000);
 
-			show_message(ses, LIST_DELAY, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", time, arg2);
+			create_node_list(ses->list[LIST_DELAY], time, arg2, arg1, arg3);
+
+			show_message(ses, LIST_DELAY, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", arg1, arg2);
+
 		}
 		else
 		{
@@ -417,7 +421,9 @@ DO_COMMAND(do_delay)
 
 			get_number_string(ses, arg3, time);
 
-			node = update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, "");
+			sprintf(arg3, "%lld", gtd->utime);
+
+			node = update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, arg3);
 
 			node->shots = 1;
 
@@ -977,7 +983,7 @@ DO_COMMAND(do_tick)
 	char time[NUMBER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
 	if (*arg3 == 0)
@@ -988,6 +994,8 @@ DO_COMMAND(do_tick)
 	{
 		get_number_string(ses, arg3, time);
 	}
+
+	sprintf(arg3, "%lld", ++gtd->utime);
 
 	if (*arg1 == 0)
 	{
@@ -1002,7 +1010,7 @@ DO_COMMAND(do_tick)
 	}
 	else
 	{
-		update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, "");
+		update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, arg3);
 
 		show_message(ses, LIST_TICKER, "#OK. #TICK {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, time);
 	}

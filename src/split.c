@@ -302,7 +302,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 		return;
 	}
 
-	if (inside_scroll_region(ses, row, col))
+	if (row != gtd->screen->rows && inside_scroll_region(ses, row, col))
 	{
 		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%s} [%d].", prompt, row_str, row);
 
@@ -333,7 +333,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 
 	if (row == gtd->screen->rows)
 	{
-		gtd->ses->input->str_off = len + 1;
+		gtd->ses->input->str_off = width + 1;
 
 		goto_pos(ses, row, col);
 

@@ -23,6 +23,7 @@
 *                      coded by Igor van den Hoven 2019                       *
 ******************************************************************************/
 
+// a to z, the first letter of each word is omitted to conserve space.
 
 char *wordlist[] =
 {

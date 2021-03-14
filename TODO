@@ -1,10 +1,83 @@
-* BUGS
+  - double check packet patch code, gagging patched line? Echo command?
 
-  - Look into escaped color codes in zmp, possibly msdp
+  - look into large variable handling, foreach, once again
 
-  - See about making @$var{} work.
 
+  - output from the other session remains in the input line of the new session sometimes.
+
+  - dev/test/mouse/windowmap.tin has issues with ; in chat window
+    caused by %w in format, add SUB_BRA to just substitute braces.
+
+  - #echo {%g} {10684.3609}
+
+----------------
+
+  - backspace rewrites the input line, which can confuse screen readers.
+
+  - precision is poorly handled in #math (sprintf(temp, "%.12Lf", value);) needs to be improved.
+
+  - Add #event {SESSION CONNECTED} {5.1} option.
+
+  - allow using #snoop to print to the foreground in provided square?
+
+  - #split 0 1;#screen inputregion -2 1 -2 -1;#showme bug -1
+
+  - look into using $HOME/.config/tintin
+  - look into checking XDG: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+
+  - Display directory on failed #read.
+
+  - Add the option to use + ? . and * as variable exit fields. 
+
+  - TT++ HANDBOOK for meticulous organized details.
+
+  - improve #draw bar.▪▪ ◼◼ ■■ ◆◆ ▬▬ ●● ⣿⣿⣿⣷
+    dual bar using reverse color and ██ ▀▀ ▄▄
+    128 bit flags
+    text inside bar.    
+
+  - store creation epoch in arg4 for #tick, add example script to display.
+
+  - get rid of SORT_DELAY due to one shot code.
+
+  - add #path load option to #path create
+
+  - double check script crashes on screen resize
+
+  - Add catch events for SIGUSR1 and SIGUSR2
   - See about turning window close into a program termination event.
+
+  - check out hibbmap.dat in dev/test, mudlet to tt++ conversion
+
+  - add #history filter option to filter out 1 letter commands.
+
+  - no longer works?
+
+          #event {SESSION ACTIVATED} {
+                #BUFFER end;
+                };
+
+  - Possible crash with launching 2 sessions reading a large variable.
+
+  - https://tintin.sourceforge.io/forum/viewtopic.php?f=3&t=2818 (likely a
+    telnet compatibility issue)
+
+  - https://tintin.sourceforge.io/forum/viewtopic.php?f=10&t=2811 (possible
+    issue with iniating input buffer for a new session, possibly prompt
+    related somehow)
+
+  - possible issue with sessions randomly getting activated.
+
+  - possible wordwrapping on raw string length instead of stripped length
+    in some edge case.
+
+  - Look into WSL sound handling
+
+  - CP949.TXT full table support
+
+  - Look into escaped color code handling in zmp, possibly msdp
+
+  - See about making @$var{} work. Maybe allow @{$var}{}
 
   - finish BUFFER_SIZE replacement.
 
@@ -25,7 +98,11 @@
 
   - Add a way to set env variables either 1) for the current process, and/or 2) as a parameter to #system (i.e. after fork in the child process).
 
+  - Add #info input, mainly to save the cursor position
+
 * STUFF THAT IS PROBABLY GONNA GET DONE
+
+  - #path get position saves as 1 if no path is loaded. 
 
   - Finish port proxy support: resizing, input, security
 
@@ -51,6 +128,22 @@
   - tabbing on directory structure.
   - tabbing on dictionary
 
+#0  0x00005555555a5418 in tunnel_void (ses=0x555558a97b00, from=8004, room=1931506785, dir=1684955508) at mapper.c:4220
+#1  0x00005555555a599d in searchgrid_find (ses=0x555558a97b00, from=153, search=0x555558d8f850) at mapper.c:4336
+#2  0x00005555555afb44 in map_list (ses=0x555558a97b00, arg=0x5555572e1b95 "{} {} {} {$roomarea} {variable} {area_mapped}",
+    arg1=0x555555d2d910 "", arg2=0x555555d23cb0 "") at mapper.c:6791
+#3  0x0000555555596562 in do_map (ses=0x555558a97b00, arg=0x5555572e1b95 "{} {} {} {$roomarea} {variable} {area_mapped}",
+    arg1=0x555555d2d910 "", arg2=0x555555d23cb0 "", arg3=0x0, arg4=0x0) at mapper.c:133
+#4  0x00005555555be82a in parse_script (root=0x555557f71960, lvl=0, token=0x55555c6ba230, shift=0x55555767ab10) at tokenize.c:812
+#5  0x00005555555bfded in script_driver (ses=0x555558a97b00, list=1,
+    str=0x555555d19ff0 "#map {get} {ROOMVNUM} {roomvnum};#map {get} {ROOMAREA} {roomarea};#map {get} {ROOMNAME} {roomname};#map {get} {ROOMDESC} {roomdesc};#format {roomname_len}\t{%L} {$roomname};#format {roomvnum_len}\t{%L} "...) at tokenize.c:1242
+#6  0x0000555555581ee1 in parse_input (ses=0x555558a97b00, input=0x55555767c099 "") at parse.c:226
+#7  0x00005555555bef73 in parse_script (root=0x555557680c80, lvl=0, token=0x555557f719d0, shift=0x555557f719d0) at tokenize.c:1011
+#8  0x00005555555bfded in script_driver (ses=0x555558a97b00, list=6, str=0x555558d95d10 "mapupdate") at tokenize.c:1242
+#9  0x00005555555865af in delay_update () at update.c:938
+#10 0x000055555558434d in mainloop () at update.c:159
+#11 0x000055555557df19 in main (argc=2, argv=0x7fffffffe4c8) at main.c:416
+
   - #map list {<exits>} breaks on rooms that have e mapped to eu.
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
@@ -71,6 +164,7 @@
   - more data to #map list saving, and maybe easier sorting of tables.
   - event for failed #map move.
   - look into #send triggering follow map.
+  - add {roomdata} search to #map list
 
   - truncate prompt longer than split.
 

@@ -151,6 +151,27 @@
 }
 {60}
 
+#alias {ticklist}
+{
+	#info tickers save;
+
+	#echo {<128>%+20s %+20s %+20s} {Name} {Interval} {Remaining};
+
+	#draw Yellow scroll line 1 1 1 62;
+
+	#format utime %U;
+
+	#loop 1 &info[TICKERS][] index
+	{
+		#math uval $info[TICKERS][+$index][arg3] * 1000000;
+
+		#echo {%+20s %+20s %+20m}
+			{$info[TICKERS][+$index][arg1]}
+			{$info[TICKERS][+$index][arg3]}
+			{($uval - ($utime - $info[TICKERS][+$index][arg4]) % $uval) / 1000000.00}
+	}
+}
+
 #nop -------------------------------------------------------------------------
 #nop Execute speedwalks with .
 #nop -------------------------------------------------------------------------
@@ -321,27 +342,27 @@
 
 #function spellcheck
 {
-        #format result %S %1;
-        #if {$result == 0}
-        {
-                #var result %1
-        };
-        #else
-        {
-                #var result <118>%1<900>
-        };
-        #list speedread ins -1 {$result}
+	#format result %S %1;
+	#if {$result == 0}
+	{
+		#var result %1
+	};
+	#else
+	{
+		#var result <118>%1<900>
+	};
+	#list speedread ins -1 {$result}
 }
 
 #substitute {{\b[a-zA-Z]+\b}} {@spellcheck{%1}}
 
 #tick {speedread}
 {
-        #if {&{speedread[]}}
-        {
-                #draw tile -2 1 -2 20 {$speedread[1]};
-                #list speedread delete 1
-        }
+	#if {&{speedread[]}}
+	{
+		#draw tile -2 1 -2 20 {$speedread[1]};
+		#list speedread delete 1
+	}
 }
 {0.1}
 
@@ -448,33 +469,33 @@
 #nop Move down by pressing arrow left + right simultaniously.
 #nop -------------------------------------------------------------------------
 
-#macro {\e[1;5A} {#cursor preserve;#delay {move} {#cursor reset_macro;n} {0.05}}
-#macro {\e[1;5C} {#cursor preserve;#delay {move} {#cursor reset_macro;e} {0.05}}
-#macro {\e[1;5B} {#cursor preserve;#delay {move} {#cursor reset_macro;s} {0.05}}
-#macro {\e[1;5D} {#cursor preserve;#delay {move} {#cursor reset_macro;w} {0.05}}
+#macro {\e[1;5A} {#cursor macro preserve;#delay {move} {#cursor macro reset;n} {0.05}}
+#macro {\e[1;5C} {#cursor macro preserve;#delay {move} {#cursor macro reset;e} {0.05}}
+#macro {\e[1;5B} {#cursor macro preserve;#delay {move} {#cursor macro reset;s} {0.05}}
+#macro {\e[1;5D} {#cursor macro preserve;#delay {move} {#cursor macro reset;w} {0.05}}
 
-#macro {\e[1;5A\e[1;5A} {#undelay {move};#cursor reset_macro;n;n}
-#macro {\e[1;5C\e[1;5C} {#undelay {move};#cursor reset_macro;e;e}
-#macro {\e[1;5B\e[1;5B} {#undelay {move};#cursor reset_macro;s;s}
-#macro {\e[1;5D\e[1;5D} {#undelay {move};#cursor reset_macro;w;w}
+#macro {\e[1;5A\e[1;5A} {#undelay {move};#cursor macro reset;n;n}
+#macro {\e[1;5C\e[1;5C} {#undelay {move};#cursor macro reset;e;e}
+#macro {\e[1;5B\e[1;5B} {#undelay {move};#cursor macro reset;s;s}
+#macro {\e[1;5D\e[1;5D} {#undelay {move};#cursor macro reset;w;w}
 
-#macro {\e[1;5A\e[1;5B} {#undelay {move};#cursor reset_macro;u}
-#macro {\e[1;5B\e[1;5A} {#undelay {move};#cursor reset_macro;u}
+#macro {\e[1;5A\e[1;5B} {#undelay {move};#cursor macro reset;u}
+#macro {\e[1;5B\e[1;5A} {#undelay {move};#cursor macro reset;u}
 
-#macro {\e[1;5C\e[1;5D} {#undelay {move};#cursor reset_macro;d}
-#macro {\e[1;5D\e[1;5C} {#undelay {move};#cursor reset_macro;d}
+#macro {\e[1;5C\e[1;5D} {#undelay {move};#cursor macro reset;d}
+#macro {\e[1;5D\e[1;5C} {#undelay {move};#cursor macro reset;d}
 
-#macro {\e[1;5A\e[1;5C} {#undelay {move};#cursor reset_macro;ne}
-#macro {\e[1;5C\e[1;5A} {#undelay {move};#cursor reset_macro;ne}
+#macro {\e[1;5A\e[1;5C} {#undelay {move};#cursor macro reset;ne}
+#macro {\e[1;5C\e[1;5A} {#undelay {move};#cursor macro reset;ne}
 
-#macro {\e[1;5B\e[1;5C} {#undelay {move};#cursor reset_macro;se}
-#macro {\e[1;5C\e[1;5B} {#undelay {move};#cursor reset_macro;se}
+#macro {\e[1;5B\e[1;5C} {#undelay {move};#cursor macro reset;se}
+#macro {\e[1;5C\e[1;5B} {#undelay {move};#cursor macro reset;se}
 
-#macro {\e[1;5D\e[1;5B} {#undelay {move};#cursor reset_macro;sw}
-#macro {\e[1;5B\e[1;5D} {#undelay {move};#cursor reset_macro;sw}
+#macro {\e[1;5D\e[1;5B} {#undelay {move};#cursor macro reset;sw}
+#macro {\e[1;5B\e[1;5D} {#undelay {move};#cursor macro reset;sw}
 
-#macro {\e[1;5D\e[1;5A} {#undelay {move};#cursor reset_macro;nw}
-#macro {\e[1;5A\e[1;5D} {#undelay {move};#cursor reset_macro;nw}
+#macro {\e[1;5D\e[1;5A} {#undelay {move};#cursor macro reset;nw}
+#macro {\e[1;5A\e[1;5D} {#undelay {move};#cursor macro reset;nw}
 
 #nop -------------------------------------------------------------------------
 #nop Place tells in the top 5 lines of the screen
@@ -717,13 +738,13 @@
 
 #alias {display}
 {
-        #var out {};
+	#var out {};
 
-        #loop 1 &players[] cnt
-        {
-            #var out[$cnt] {$cnt;$players[+$cnt][name];$players[+$cnt][age];$players[+$cnt][level]};
-        };
-        #draw scroll grid table 1 1 2+&players[]*2 80 $out[%*]
+	#loop 1 &players[] cnt
+	{
+	    #var out[$cnt] {$cnt;$players[+$cnt][name];$players[+$cnt][age];$players[+$cnt][level]};
+	};
+	#draw scroll grid table 1 1 2+&players[]*2 80 $out[%*]
 }
 
 #alias {test1}
@@ -798,22 +819,22 @@
 {
     #if {$SCROLL[MODE] == 0}
     {
-        #if {%0 < $ROWS / 2}
-        {
-            #var SCROLL[MODE] 1;
-            #var SCROLL[OLD_ROW] $SCROLL[BOT_ROW];
-            #math SCROLL[BOT_ROW] $SCROLL[OLD_ROW] / 2;
-            #var BUFFER {};
-            #screen scroll $SCROLL[TOP_ROW] $SCROLL[TOP_COL] $SCROLL[BOT_ROW] $SCROLL[BOT_COL];
+	#if {%0 < $ROWS / 2}
+	{
+	    #var SCROLL[MODE] 1;
+	    #var SCROLL[OLD_ROW] $SCROLL[BOT_ROW];
+	    #math SCROLL[BOT_ROW] $SCROLL[OLD_ROW] / 2;
+	    #var BUFFER {};
+	    #screen scroll $SCROLL[TOP_ROW] $SCROLL[TOP_COL] $SCROLL[BOT_ROW] $SCROLL[BOT_COL];
 
-            #draw red teed line $SCROLL[BOT_ROW]+1 $SCROLL[TOP_COL] $SCROLL[BOT_ROW]+1 $SCROLL[BOT_COL];
+	    #draw red teed line $SCROLL[BOT_ROW]+1 $SCROLL[TOP_COL] $SCROLL[BOT_ROW]+1 $SCROLL[BOT_COL];
 
-            #screen clear square $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL];
-        };
+	    #screen clear square $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL];
+	};
     };
     #if {$SCROLL[MODE] == 1}
     {
-        #buffer up 1
+	#buffer up 1
     }
 }
 
@@ -821,21 +842,21 @@
 {
     #if {$SCROLL[MODE] == 1}
     {
-        #if {%0 < $ROWS / 2}
-        {
-            #buffer down 1;
+	#if {%0 < $ROWS / 2}
+	{
+	    #buffer down 1;
 
-            #buffer info save SCROLL[INFO];
+	    #buffer info save SCROLL[INFO];
 
-            #if {$SCROLL[INFO][LINE] == -1}
-            {
-                #var SCROLL[MODE] 0;
-                #var SCROLL[BOT_ROW] $SCROLL[OLD_ROW];
+	    #if {$SCROLL[INFO][LINE] == -1}
+	    {
+		#var SCROLL[MODE] 0;
+		#var SCROLL[BOT_ROW] $SCROLL[OLD_ROW];
 
-                #split 0 1;
-                #buffer end;
-            }
-        }
+		#split 0 1;
+		#buffer end;
+	    }
+	}
     }
 }
 
@@ -843,19 +864,43 @@
 {
     #if {$SCROLL[MODE] == 1}
     {
-        #if {&BUFFER[] > $ROWS}
-        {
-            #list BUFFER del 1
-        };
-        #list BUFFER add {%0};
+	#if {&BUFFER[] > $ROWS}
+	{
+	    #list BUFFER del 1
+	};
+	#list BUFFER add {%0};
 
-        #draw tile $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL] $BUFFER[%*];
+	#draw tile $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL] $BUFFER[%*];
     }
 }
 
 #nop -------------------------------------------------------------------------
-#nop 
+#nop This is a script to connect to Gemstone 4.
+#nop Visit play.net/gs4, login, and hit the 'GO PLAY' button.
+#nop Select the Storm Front radio button and hit the 'GO PLAY' button.
+#nop Save the .sal file to your script directory and name it gemstone.sal.
+#nop Use the 'gemstone' alias to connect.
 #nop -------------------------------------------------------------------------
+
+#alias {gemstone}
+{
+    #var gemstone {};
+
+    #line oneshot #action {^GAMEHOST=%*} {#var gemstone[host] %%1};
+    #line oneshot #action {^GAMEPORT=%*} {#var gemstone[port] %%1};
+    #line oneshot #action {^KEY=%*} {#var gemstone[key] %%1};
+
+    #scan txt gemstone.sal;
+
+    #if {&gemstone[] != 3}
+    {
+        #showme Failed to load gemstone.sal file.;
+        #return
+    };
+    #ses gemstone $gemstone[host] $gemstone[port];
+    #send {$gemstone[key]};
+    #send {>/FE:JAVA}
+}
 
 #nop -------------------------------------------------------------------------
 #nop 

@@ -294,7 +294,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 	*pto++ = '\n';
 	*pto   = '\0';
 
-
 	if (lvl)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
@@ -322,8 +321,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		return ses;
 	}
-
-	check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 1, "READ FILE", filename);
 
 	sprintf(temp, "#CONFIG {TINTIN CHAR} {%c}", bufo[0]);
 
@@ -408,6 +405,9 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 	free(bufi);
 	free(bufo);
+
+	check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 1, "READ FILE", filename);
+	check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 1, "READ FILE %s", filename, filename);
 
 	return ses;
 }

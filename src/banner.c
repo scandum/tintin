@@ -106,25 +106,25 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Lost Souls", "http://lostsouls.org", arg1);
 	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
-	banner_expires(ses, "Lost Souls", "2025", arg1);
+	banner_expires(ses, "Lost Souls", "2026", arg1);
 
 
 	banner_create(ses, "Legends of Kallisti", arg1);
 
 	banner_desc(ses, "Legends of Kallisti",
-		"One of the longest running, most feature rich MUDs in the world with decades of\n"
-		"development. Kallisti boasts a massive original world, great atmosphere of long\n"
-		"time players, excellent combat system including group formations, ranged combat,\n"
-		"optional PK and arena PvP, extensive character customization options, player\n"
-		"lineages, clans, customizable player houses, item crafting, extensively\n"
-		"customizable UI, Mud Sound Protocol (MSP), MSDP, and so much more.\n"
+		"One of the longest running, most feature rich MUDs in the world with decades\n"
+		"of development. Kallisti boasts a massive original world, great atmosphere of\n"
+		"players, excellent combat system including group formations, ranged combat,\n"
+		"optional PK and arena PvP, extensive character customization, player lineages,\n"
+		"clans, customizable player houses, item crafting, extensively customizable UI,\n"
+		"Mud Sound Protocol, extensive blind player support, MSDP, and so much more.\n"
 		"\n"
-		"This is an a amazing game that you could literally play for a decade and still\n"
+		"This is an amazing game that you could literally play for a decade and still\n"
 		"discover more - you won't be disappointed!", arg1);
 
 	banner_website(ses, "Legends of Kallisti", "http://www.KallistiMUD.com", arg1);
 	banner_address(ses, "Legends of Kallisti", "LoK kallistimud.com 4000", arg1);
-	banner_expires(ses, "Legends of Kallisti", "2025", arg1);
+	banner_expires(ses, "Legends of Kallisti", "2026", arg1);
 
 
 	banner_create(ses, "3Kingdoms", arg1);
@@ -142,7 +142,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "3Kingdoms", "http://3k.org", arg1);
 	banner_address(ses, "3Kingdoms", "3K 3k.org 3000", arg1);
-	banner_expires(ses, "3Kingdoms", "2025", arg1);
+	banner_expires(ses, "3Kingdoms", "2026", arg1);
 
 
 	banner_create(ses, "New World Ateraan", arg1);
@@ -159,7 +159,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "New World Ateraan", "http://www.ateraan.com", arg1);
 	banner_address(ses, "New World Ateraan", "nwa ateraan.com 4002", arg1);
-	banner_expires(ses, "New World Ateraan", "2025", arg1);
+	banner_expires(ses, "New World Ateraan", "2026", arg1);
 
 
 	banner_create(ses, "Realm of Utopian Dreams (RUD)", arg1);
@@ -176,7 +176,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Realm of Utopian Dreams (RUD)", "http://rudmud.com", arg1);
 	banner_address(ses, "Realm of Utopian Dreams (RUD)", "rud rudmud.com 1701", arg1);
-	banner_expires(ses, "Realm of Utopian Dreams (RUD)", "2025", arg1);
+	banner_expires(ses, "Realm of Utopian Dreams (RUD)", "2026", arg1);
 
 	banner_create(ses, "Carrion Fields", arg1);
 

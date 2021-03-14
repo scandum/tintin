@@ -203,6 +203,20 @@ void loginit(struct session *ses, FILE *file, int flags)
 	return;
 }
 
+char *get_charset_html(struct session *ses)
+{
+	int index;
+
+	for (index = 0 ; *charset_table[index].name ; index++)
+	{
+		if (ses->charset == charset_table[index].flags)
+		{
+			return charset_table[index].html;
+		}
+	}
+	return "";
+}
+
 void write_html_header(struct session *ses, FILE *fp)
 {
 	char header[BUFFER_SIZE];
@@ -225,9 +239,7 @@ void write_html_header(struct session *ses, FILE *fp)
 		"</head>\n"
 		"<pre>\n"
 		"<span style='background-color:#000'><span style='color:#FFF'>\n",
-		HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) ? "utf-8" : 
-			HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) ? "big5" : 
-				HAS_BIT(ses->charset, CHARSET_FLAG_GBK1) ? "gb18030" : "iso-8859-1");
+		get_charset_html(ses));
 
 	fputs(header, fp);
 }

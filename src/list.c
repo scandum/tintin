@@ -35,6 +35,7 @@ extern DO_ARRAY(array_collapse);
 extern DO_ARRAY(array_create);
 extern DO_ARRAY(array_delete);
 extern DO_ARRAY(array_explode);
+extern DO_ARRAY(array_filter);
 extern DO_ARRAY(array_find);
 extern DO_ARRAY(array_get);
 extern DO_ARRAY(array_index);
@@ -66,6 +67,7 @@ struct array_type array_table[] =
 	{     "CREATE",           array_create,      "Create a list table with given items"    },
 	{     "DELETE",           array_delete,      "Delete a list item with given index"     },
 	{     "EXPLODE",          array_explode,     "Explode the variable into a list"        },
+	{     "FILTER",           array_filter,      "Filter a list with given regex"          },
 	{     "FIND",             array_find,        "Find a list item with given regex"       },
 	{     "FND",              array_find,        NULL                                      },
 	{     "GET",              array_get,         "Retrieve a list item with given index"   },
@@ -384,6 +386,48 @@ DO_ARRAY(array_explode)
 	return ses;
 }
 
+DO_ARRAY(array_filter)
+{
+	int index;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0 && *arg2 == 0)
+	{
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} FILTER {keep} {remove}");
+
+		return ses;
+	}
+
+	if (list->root)
+	{
+		if (*arg1)
+		{
+			for (index = 0 ; index < list->root->used ; index++)
+			{
+				if (!match(ses, list->root->list[index]->arg2, arg1, SUB_NONE))
+				{
+					delete_index_list(list->root, index--);
+				}
+			}
+		}
+
+		if (*arg2)
+		{
+			for (index = 0 ; index < list->root->used ; index++)
+			{
+				if (match(ses, list->root->list[index]->arg2, arg2, SUB_NONE))
+				{
+					delete_index_list(list->root, index--);
+				}
+			}
+		}
+	}
+
+	return ses;
+}
+
 DO_ARRAY(array_find)
 {
 	int index;
@@ -533,13 +577,13 @@ DO_ARRAY(array_order)
 
 	if (list->root->used > 1)
 	{
-		if (*list->root->list[0]->arg2 == 0)
+/*		if (*list->root->list[0]->arg2 == 0)
 		{
 			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ORDER: LIST IS NOT INDEXED.", var);
 
 			return ses;
 		}
-
+*/
 		if (list->root->list[0]->root)
 		{
 			struct listroot **root_buffer;

@@ -702,14 +702,14 @@ DO_CURSOR(cursor_check_line_modified)
 
 	if (gtd->ses->input->raw_len != str_len(gtd->ses->input->buf))
 	{
-		tintin_printf2(ses, "\e[1;31merror: cursor_check_line_modified: raw: %d vs %d", gtd->ses->input->raw_len, str_len(gtd->ses->input->buf));
+		tintin_printf2(ses, "\e[1;31merror: cursor_check_line_modified1: raw: %d vs %d", gtd->ses->input->raw_len, str_len(gtd->ses->input->buf));
 	}
 
 	strip_vt102_width(gtd->ses, gtd->ses->input->buf, &width);
 
 	if (gtd->ses->input->str_len != width)
 	{
-		tintin_printf2(ses, "\e[1;31merror: cursor_check_line_modified: str: %d vs %d", gtd->ses->input->str_len, width);
+		tintin_printf2(ses, "\e[1;31merror: cursor_check_line_modified2: str: %d vs %d", gtd->ses->input->str_len, width);
 	}
 
 	if (gtd->ses->input->str_pos > gtd->ses->input->str_len)

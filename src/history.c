@@ -104,11 +104,11 @@ struct session *repeat_history(struct session *ses, char *line)
 			add_line_history(gtd->ses, root->list[i]->arg1);
 
 			gtd->level->repeat++;
-			
-			ses = script_driver(ses, LIST_COMMAND, root->list[i]->arg1);
-			
+
+			ses = script_driver(ses, LIST_COMMAND, root->list[root->used - 1]->arg1);
+
 			gtd->level->repeat--;
-			
+
 			return ses;
 		}
 	}

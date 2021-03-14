@@ -80,7 +80,7 @@ void init_terminal(struct session *ses)
 		syserr_fatal(-1, "init_terminal: tcgetattr 2");
 	}
 
-	print_stdout(0, 0, "\e=\e[>4;1m");
+	print_stdout(0, 0, "\e[?1004h\e=\e[>4;1m");
 }
 
 void reset_terminal(struct session *ses)
@@ -95,9 +95,9 @@ void reset_terminal(struct session *ses)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
 	{
-		print_stdout(0, 0, "\e[?1000l\e[?1002l\e[?1004l\e[?1006l");
+		print_stdout(0, 0, "\e[?1000l\e[?1002l\e[?1006l");
 	}
-	print_stdout(0, 0, "\e[?25h\e[23t\e[>4n\e[?47l\e[r\e[0#t");
+	print_stdout(0, 0, "\e[?25h\e[23t\e[?1004l\e[>4n\e[?47l\e[r\e[0#t");
 }
 
 
@@ -206,39 +206,14 @@ int get_scroll_cols(struct session *ses)
 
 char *get_charset(struct session *ses)
 {
-	switch (HAS_BIT(ses->charset, CHARSET_FLAG_ALL))
+	int index;
+
+	for (index = 0 ; *charset_table[index].name ; index++)
 	{
-		case CHARSET_FLAG_BIG5:
-			return "BIG-5";
-
-		case CHARSET_FLAG_GBK1:
-			return "GBK-1";
-
-		case CHARSET_FLAG_UTF8:
-			return "UTF-8";
-
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8:
-			return "BIG5TOUTF8";
-
-	        case CHARSET_FLAG_UTF8|CHARSET_FLAG_CP1251TOUTF8:
-	        	return "CP1251TOUTF8";
-
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8:
-			return "FANSI";
-		
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8:
-			return "GBK1TOUTF8";
-
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8:
-			return "KOI8TOUTF8";
-
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8:
-			return "ISO1TOUTF8";
-
-		case CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8:
-			return "ISO2TOUTF8";
-
-		default:
-			return "ASCII";
+		if (ses->charset == charset_table[index].flags)
+		{
+			return charset_table[index].name;
+		}
 	}
+	return "ASCII";
 }

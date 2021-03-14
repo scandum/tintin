@@ -858,7 +858,7 @@ void tick_update(void)
 
 	gtd->utime_next_tick = gtd->utime + 1000000000;
 
-	for (ses = gts ; ses ; ses = gtd->update)
+	for (ses = gts->next ; ses ; ses = gtd->update)
 	{
 		gtd->update = ses->next;
 
@@ -875,7 +875,7 @@ void tick_update(void)
 
 			if (node->val64 <= gtd->utime)
 			{
-				node->val64 = gtd->utime + (long long) (get_number(ses, node->arg3) * 1000000LL);
+				node->val64 += (long long) (get_number(ses, node->arg3) * 1000000LL);
 
 				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
 
@@ -933,7 +933,7 @@ void delay_update(void)
 			{
 				show_debug(ses, LIST_DELAY, "#DEBUG DELAY {%s}", node->arg2);
 
-				delete_node_list(ses, LIST_DELAY, node);
+				delete_index_list(root, root->update);
 
 				script_driver(ses, LIST_DELAY, node->arg2);
 			}
@@ -1134,7 +1134,7 @@ void time_update(void)
 		}
 		event_time = event_second;
 
-		while (!strcmp(event_table[event_time].name, "TIME"))
+		while (strcmp(event_table[++event_time].name, "TIME "))
 		{
 		}
 	}

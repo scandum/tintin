@@ -219,7 +219,7 @@ int connect_mud(struct session *ses, char *host, char *port)
 	}
 	else
 	{
-		show_error(ses, "#CONNECT: THE PORT {%s} SHOULD BE A NUMBER.", port);
+		show_error(ses, LIST_COMMAND, "#CONNECT: THE PORT {%s} SHOULD BE A NUMBER.", port);
 		return -1;
 	}
 
@@ -487,7 +487,7 @@ void readmud(struct session *ses)
 					if (ses->packet_patch)
 					{
 						str_cat(&ses->more_output, line);
-						ses->check_output = utime() + ses->packet_patch;
+						ses->check_output = gtd->utime + ses->packet_patch;
 
 						break;
 					}
@@ -498,14 +498,14 @@ void readmud(struct session *ses)
 							if (!detect_prompt(ses, line))
 							{
 								str_cat(&ses->more_output, line);
-								ses->check_output = utime() + 500000ULL;
+								ses->check_output = gtd->utime + 500000ULL;
 								break;
 							}
 						}
 						else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT))
 						{
 							str_cat(&ses->more_output, line);
-							ses->check_output = utime() + 500000ULL;
+							ses->check_output = gtd->utime + 500000ULL;
 							break;
 						}
 					}

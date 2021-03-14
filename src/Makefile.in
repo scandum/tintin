@@ -90,9 +90,6 @@ Makefile: Makefile.in
 install: tt++
 	-mkdir -p $(bindir)
 	cp -f tt++ $(bindir)
-#	-mkdir -p $(docdir)
-#	cp ../docs/* ../[A-Z][A-Z]* $(docdir)
-
 
 # Autocompile all .c files into .o files using this rule:
 %.o: %.c $(HEADERS)

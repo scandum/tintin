@@ -830,7 +830,10 @@ DO_BUFFER(buffer_lock)
 
 	if (!strcasecmp(arg1, "ON"))
 	{
-		ses->scroll->line = ses->scroll->used + 1;
+		if (ses->scroll->line == -1)
+		{
+			ses->scroll->line = ses->scroll->used - 1;
+		}
 	}
 	else if (!strcasecmp(arg1, "OFF"))
 	{
@@ -840,7 +843,7 @@ DO_BUFFER(buffer_lock)
 	{
 		if (ses->scroll->line == -1)
 		{
-			ses->scroll->line = ses->scroll->used + 1;
+			ses->scroll->line = ses->scroll->used - 1;
 		}
 		else
 		{

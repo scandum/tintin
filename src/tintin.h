@@ -132,8 +132,13 @@
 #define SORT_PRIORITY                    0
 #define SORT_ALPHA                       1
 #define SORT_ALNUM                       2
-#define SORT_APPEND                      3
-#define SORT_DELAY                       4
+#define SORT_STABLE                      3
+#define SORT_APPEND                      4
+#define SORT_DELAY                       5
+
+#define SEEK_MATCH                       0
+#define SEEK_REPLACE                     1
+#define SEEK_APPEND                      2
 
 #define DEFAULT_OPEN                   '{'
 #define DEFAULT_CLOSE                  '}'
@@ -203,7 +208,7 @@
 #define STRING_SIZE        2 * BUFFER_SIZE
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.05 "
+#define CLIENT_VERSION           "2.02.10 "
 
 
 #define XT_E                            0x27
@@ -393,17 +398,19 @@ enum operators
 #define CHARSET_FLAG_UTF8                 BV01
 #define CHARSET_FLAG_BIG5                 BV02
 #define CHARSET_FLAG_GBK1                 BV03
+#define CHARSET_FLAG_CP949                BV04
 
-#define CHARSET_FLAG_BIG5TOUTF8           BV04
-#define CHARSET_FLAG_FANSITOUTF8          BV05
-#define CHARSET_FLAG_GBK1TOUTF8           BV06
-#define CHARSET_FLAG_ISO1TOUTF8           BV07
-#define CHARSET_FLAG_ISO2TOUTF8           BV08
-#define CHARSET_FLAG_KOI8TOUTF8           BV09
-#define CHARSET_FLAG_CP1251TOUTF8         BV10
+#define CHARSET_FLAG_BIG5TOUTF8           BV05
+#define CHARSET_FLAG_FANSITOUTF8          BV06
+#define CHARSET_FLAG_GBK1TOUTF8           BV07
+#define CHARSET_FLAG_ISO1TOUTF8           BV08
+#define CHARSET_FLAG_ISO2TOUTF8           BV09
+#define CHARSET_FLAG_KOI8TOUTF8           BV10
+#define CHARSET_FLAG_CP1251TOUTF8         BV11
+#define CHARSET_FLAG_CP949TOUTF8          BV12
 
-#define CHARSET_FLAG_EUC                  CHARSET_FLAG_BIG5|CHARSET_FLAG_GBK1
-#define CHARSET_FLAG_ALL_TOUTF8           CHARSET_FLAG_BIG5TOUTF8|CHARSET_FLAG_CP1251TOUTF8|CHARSET_FLAG_FANSITOUTF8|CHARSET_FLAG_GBK1TOUTF8|CHARSET_FLAG_ISO1TOUTF8|CHARSET_FLAG_ISO2TOUTF8|CHARSET_FLAG_KOI8TOUTF8
+#define CHARSET_FLAG_EUC                  CHARSET_FLAG_BIG5|CHARSET_FLAG_GBK1|CHARSET_FLAG_CP949
+#define CHARSET_FLAG_ALL_TOUTF8           CHARSET_FLAG_BIG5TOUTF8|CHARSET_FLAG_CP1251TOUTF8|CHARSET_FLAG_FANSITOUTF8|CHARSET_FLAG_GBK1TOUTF8|CHARSET_FLAG_ISO1TOUTF8|CHARSET_FLAG_ISO2TOUTF8|CHARSET_FLAG_KOI8TOUTF8|CHARSET_FLAG_CP949TOUTF8
 #define CHARSET_FLAG_ALL                  CHARSET_FLAG_UTF8|CHARSET_FLAG_ALL_TOUTF8|CHARSET_FLAG_EUC
 
 
@@ -1631,6 +1638,13 @@ struct buffer_type
 	char                  * desc;
 };
 
+struct charset_type
+{
+	char                  * name;
+	char                  * html;
+	int                     flags;
+};
+
 struct chat_type
 {
 	char                  * name;
@@ -2782,6 +2796,7 @@ extern  int valid_escape(struct session *ses, char *arg);
 extern char *fuzzy_color_code(struct session *ses, char *pti);
 extern char *dim_color_code(struct session *ses, char *pti, int mod);
 extern char *lit_color_code(struct session *ses, char *pti, int mod);
+extern int color_gradient(char *pti, int low, int max);
 extern int is_color_code(char *str);
 extern int is_color_name(char *str);
 extern int substitute_color(char *input, char *output, int colors);
@@ -2800,6 +2815,7 @@ extern DO_COMMAND(do_suspend);
 #define __TABLES_H__
 
 extern struct buffer_type buffer_table[];
+extern struct charset_type charset_table[];
 extern struct chat_type chat_table[];
 extern   char character_table[];
 extern struct color_type color_table[];
@@ -2807,7 +2823,6 @@ extern struct color_type map_color_table[];
 extern struct config_type config_table[];
 extern struct cursor_type cursor_table[];
 extern struct daemon_type daemon_table[];
-//extern struct draw_type draw_table[];
 extern struct edit_type edit_table[];
 extern struct event_type event_table[];
 extern struct history_type history_table[];
@@ -2818,13 +2833,11 @@ extern struct map_type map_table[];
 extern struct path_type path_table[];
 extern struct port_type port_table[];
 extern struct rank_type rank_table[];
-//extern struct scan_type scan_table[];
 extern struct stamp_type huge_stamp_table[];
 extern struct substitution_type substitution_table[];
 extern struct telopt_type telopt_table[];
 extern   char *telcmds[];
 extern struct timer_type timer_table[];
-//extern struct screen_type screen_table[];
 extern struct map_legend_type map_legend_table[];
 extern struct map_legend_group_type map_legend_group_table[];
 
@@ -2979,6 +2992,8 @@ extern int utf8_strlen(char *str, int *width);
 
 extern int utf8_to_all(struct session *ses, char *in, char *out);
 extern int all_to_utf8(struct session *ses, char *in, char *out);
+extern int cp1251_to_utf8(char *input, char *output);
+extern int utf8_to_cp1251(char *input, char *output);
 extern int iso1_to_utf8(char *input, char *output);
 extern int utf8_to_iso1(char *input, char *output);
 extern int iso2_to_utf8(char *input, char *output);
@@ -2995,9 +3010,9 @@ extern int utf8_to_big5(char *input, char *output);
 extern int is_gbk1(char *str);
 extern int gbk1_to_utf8(char *input, char *output);
 extern int utf8_to_gbk1(char *input, char *output);
-
-extern int cp1251_to_utf8(char *input, char *output);
-extern int utf8_to_cp1251(char *input, char *output);
+extern int is_cp949(char *str);
+extern int cp949_to_utf8(char *input, char *output);
+extern int utf8_to_cp949(char *input, char *output);
 
 #endif
 

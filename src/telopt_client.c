@@ -1300,7 +1300,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 {
 	char buf[BUFFER_SIZE], var[BUFFER_SIZE];
 	char *pto;
-	int i;
+	int i, j, accept;
 
 	if (client_skip_sb(ses, cplen, src) > cplen)
 	{
@@ -1348,59 +1348,46 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 		{
 			if (!strcmp(buf, "REQUEST"))
 			{
-				if (!strcasecmp(var, "UTF-8"))
+				for (j = 0 ; var[j] ; j++)
 				{
-					if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
-					{
-						telnet_printf(ses, 12, "%c%c%c%c UTF-8%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
-
-						client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED UTF-8");
-					}
-					else
-					{
-						telnet_printf(ses, 12, "%c%c%c%c UTF-8%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
-
-						client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED UTF-8");
-					}
+					var[j] = toupper((int) var[j]);
 				}
-				else if (!strcasecmp(var, "BIG-5"))
+				accept = -1;
+
+				if (!strcmp(var, "UTF-8"))
 				{
-					if (HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) || HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8))
-					{
-						telnet_printf(ses, 12, "%c%c%c%c BIG-5%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
-
-						client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED BIG-5");
-					}
-					else
-					{
-						telnet_printf(ses, 12, "%c%c%c%c BIG-5%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
-
-						client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED BIG-5");
-					}
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8);
 				}
-				else if (!strcasecmp(var, "FANSI"))
+				else if (!strcmp(var, "BIG-5"))
 				{
-					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
-					{
-						if (HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8))
-						{
-							telnet_printf(ses, 12, "%c%c%c%c FANSI%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
-
-							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED FANSI");
-						}
-						else
-						{
-							telnet_printf(ses, 12, "%c%c%c%c FANSI%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
-
-							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED FANSI");
-						}
-					}
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) || HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8);
 				}
-				else if (!strcasecmp(var, "ISO-8859-1") || !strcasecmp(var, "ISO-1"))
+				else if (!strcmp(var, "CP949"))
 				{
-					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_CP949) || HAS_BIT(ses->charset, CHARSET_FLAG_CP949TOUTF8);
+				}
+				else if (!strcmp(var, "FANSI"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8);
+				}
+				else if (!strcmp(var, "ISO-8859-1") || !strcasecmp(var, "ISO-1"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_ISO1TOUTF8);
+				}
+				else if (!strcmp(var, "ISO-8859-2") || !strcasecmp(var, "ISO-2"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_ISO2TOUTF8);
+				}
+				else if (!strcmp(var, "GBK-1") || !strcmp(var, "GB18030"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_GBK1) || HAS_BIT(ses->charset, CHARSET_FLAG_GBK1TOUTF8);
+				}
+
+				if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
+				{
+					if (accept >= 0)
 					{
-						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO1TOUTF8))
+						if (accept)
 						{
 							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
 							
@@ -1411,42 +1398,6 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, var, IAC, SE);
 
 							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED %s", var);
-						}
-					}
-				}
-				else if (!strcasecmp(var, "ISO-8859-2") || !strcasecmp(var, "ISO-2"))
-				{
-					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
-					{
-						if (HAS_BIT(ses->charset, CHARSET_FLAG_ISO2TOUTF8))
-						{
-							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
-							
-							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
-						}
-						else
-						{
-							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, var, IAC, SE);
-
-							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED %s", var);
-						}
-					}
-				}
-				else if (!strcasecmp(var, "GBK-1"))
-				{
-					if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
-					{
-						if (HAS_BIT(ses->charset, CHARSET_FLAG_GBK1TOUTF8))
-						{
-							telnet_printf(ses, 12, "%c%c%c%c GBK-1%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, IAC, SE);
-
-							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED GBK-1");
-						}
-						else
-						{
-							telnet_printf(ses, 16, "%c%c%c%c GB-18030%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
-
-							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED GBK-1");
 						}
 					}
 				}

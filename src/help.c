@@ -436,9 +436,10 @@ struct help_type help_table[] =
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #break\n"
 		"\n"
-		"         The break command can be used inside the #foreach, #loop, #parse,\n"
-		"         #while and #switch statements. When #break is found, tintin will stop\n"
-		"         executing the statement it is currently in and move on to the next.\n"
+		"         The break command can be used inside the #else, #elseif, #if, #foreach,\n"
+		"         #loop, #parse, #switch, and #while statements. When #break is found,\n"
+		"         tintin will stop executing the statement it is currently in and move on\n"
+		"         to the next.\n"
 		"\n"
 		"<178>Example<278>: #while {1} {#math cnt $cnt + 1;#if {$cnt == 20} {#break}}\n",
 		
@@ -945,12 +946,12 @@ struct help_type help_table[] =
 		"<178>Command<278>: #delay <178>{<278>name<178>} {<278>command<178>} {<278>seconds<178>}<278>\n"
 		"\n"
 		"         Delay allows you to have tintin wait the given amount of seconds\n"
-		"         before executing the given command. tintin won't wait before\n"
-		"         executing following input commands if any.\n"
+		"         before executing the given command.\n"
 		"\n"
-		"         Floating point precision for milliseconds is possible.\n"
+		"         Nanosecond floating point precision is allowed. Delays will fire in\n"
+		"         0.01 second intervals.\n"
 		"\n"
-		"<178>Example<278>: #show first;#delay {1} {#show last}\n"
+		"<178>Example<278>: #delay {1} {#show last};#show first\n"
 		"         This will print 'first', and 'last' around one second later.\n"
 		"\n"
 		"<178>Comment<278>: If you want to remove a delay with the #undelay command you can add\n"
@@ -964,13 +965,13 @@ struct help_type help_table[] =
 	{
 		"DRAW",
 		TOKEN_TYPE_COMMAND,
-		"<178>Command<278>: #draw <178>[<278>color<178>] <178>[<278>options<178>] <178><<278>type<178>> <<278>square<178>> {<278>text<178>}\n"
+		"<178>Command<278>: #draw <178>[<278>line color<178>] <178>[<278>options<178>] <178><<278>type<178>> <<278>square<178>> {<278>text<178>}\n"
 		"<278>\n"
 		"         The draw commands allows you to draw various types of lines and shapes\n"
-		"         on the screen. Common options and types with a brief description are\n"
-		"         provided when you type #draw without an argument.\n"
+		"         on the screen. The types with a brief description are provided when you\n"
+		"         type #draw without an argument.\n"
 		"\n"
-		"         The square arguments should exists of two coordinates defining the\n"
+		"         The <square> arguments should exists of two coordinates defining the\n"
 		"         upper left and bottom right corner using row, col, row, col syntax.\n"
 		"\n"
 		"         The square arguments can be negative, in which case the coordinates\n"
@@ -1024,23 +1025,25 @@ struct help_type help_table[] =
 		"\n"
 		"         The following types are available.\n"
 		"\n"
-		"         <178>[ASCII|UNICODE|HUGE] BOX {[TEXT1]} {[TEXT2]}\n"
+		"         <278>[HORIZONTAL] <178>BAR<278> {<MIN>;<MAX>;[COLOR]}\n"
+		"         <278> will draw a bar.\n"
+		"         <278>[ASCII|UNICODE|HUGE] <178>BOX<278> {[TEXT1]} {[TEXT2]}\n"
 		"         <278>  will draw a box.\n"
-		"         <178>[BOXED|FOREGROUND] BUFFER\n"
+		"         <278>[BOXED|FOREGROUND] <178>BUFFER\n"
 		"         <278>  will draw the scrollback buffer.\n"
-		"         <178>[BLANKED|CIRCLED|CROSSED|JEWELED|ROUNDED|TEED|PRUNED] CORNER\n"
+		"         <278>[BLANKED|CIRCLED|CROSSED|JEWELED|ROUNDED|TEED|PRUNED] <178>CORNER\n"
 		"         <278>  will draw a corner.\n"
-		"         <178>[BLANKED|HORIZONTAL|NUMBERED|TUBED|VERTICAL] LINE {[TEXT]}\n"
+		"         <278>[BLANKED|HORIZONTAL|NUMBERED|TUBED|VERTICAL] <178>LINE<278> {[TEXT]}\n"
 		"         <278>  will draw a line.\n"
-		"         <178>[BOXED] MAP\n"
+		"         <278>[BOXED] <178>MAP\n"
 		"         <278>  will draw the map\n"
-		"         <178>RAIN {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}\n"
+		"         <278><178>RAIN<278> {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}\n"
 		"         <278>  will draw digital rain.\n"
-		"         <178>[JOINTED|TOP|LEFT|BOTTOM|RIGHT] SIDE\n"
+		"         <278>[JOINTED|TOP|LEFT|BOTTOM|RIGHT] <178>SIDE\n"
 		"         <278>  will draw one or more sides of a box.\n"
-		"         <178>[GRID] TABLE {[LIST1]} {[LIST2]}\n"
+		"         <278>[GRID] <178>TABLE<278> {[LIST1]} {[LIST2]}\n"
 		"         <278> will draw a table.\n"
-		"         <178>[HUGE] TILE {[TEXT1]} {[TEXT2]}\n"
+		"         <278>[CURSIVE|FAT|HUGE|SANSSERIF] <178>TILE<278> {[TEXT1]} {[TEXT2]}\n"
 		"         <278>  will draw a tile\n"
 		"\n"
 		"         All draw types take an optional text argument as long as a valid\n"
@@ -1298,7 +1301,7 @@ struct help_type help_table[] =
 	{
 		"EVENT",
 		TOKEN_TYPE_CONFIG,
-		"<178>Command<278>: #event <178>{<278>event type<178>}<278>\n"
+		"<178>Command<278>: #event <178>{<278>event type<178>}<278> <178>{<278>commands<178>}<278>\n"
 		"\n"
 		"         Events allow you to create triggers for predetermined client events.\n"
 		"\n"
@@ -1307,7 +1310,8 @@ struct help_type help_table[] =
 		"         events. Use #info {events} {on} to see events get thrown.\n"
 		"\n"
 		"         Events, like triggers in general, are case sensitive and event names\n"
-		"         must be defined using all upper case letters.\n"
+		"         must be defined using all upper case letters. Only one event can be\n"
+		"         defined for each event type.\n"
 		"\n"
 		"         To enable mouse events use #config mouse_tracking on, to see mouse\n"
 		"         events use #config mouse_tracking info.\n"
@@ -1387,6 +1391,8 @@ struct help_type help_table[] =
 		"         <278>  Mouse events can be prefixed with MAP to only trigger when the mouse\n"
 		"         <278>  event occurs inside the VT100 map region.\n"
 		"\n"
+
+		"\n"
 		"         <178>SWIPED [DIR]\n"
 		"         <278>  %0 dir  %1 button  %2 row  %3 col  %4 -row  %5 -col\n"
 		"         <278>                     %6 row  %7 col  %8 -row  %9 -col %10 rows %11 cols\n"
@@ -1432,7 +1438,7 @@ struct help_type help_table[] =
 		"         <178>IAC <EVENT>\n"
 		"         <278>  IAC TELNET events are made visable using #config telnet info.\n"
 		"\n"
-		"         <178>IAC SB GMCP [MODULE]   %0 module    %1 data  %1 plain data\n"
+		"         <178>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data\n"
 		"         <178>IAC SB MSSP            %0 variable  %1 data\n"
 		"         <178>IAC SB MSDP            %0 variable  %1 data  %2 plain data\n"
 		"         <178>IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data\n"
@@ -1457,7 +1463,9 @@ struct help_type help_table[] =
 		"\n"
 		"         <128>SCREEN EVENTS<278>\n"
 		"\n"
-		"         SCREEN FOCUS           %0 focus (0 or 1)\n"
+		"         <178>SCREEN FOCUS\n"
+		"         <278>  %0 focus (0 or 1)\n"
+		"\n"
 		"         SCREEN LOCATION        %0 rows %1 cols  %2 height %3 width\n"
 		"\n"
 		"         <178>SCREEN MOUSE LOCATION\n"
@@ -1791,8 +1799,6 @@ struct help_type help_table[] =
 	{
 		"INDEX",
 		TOKEN_TYPE_STRING,
-		"<128>         INDEX\n"
-		"<278>\n"
 		"         On this page you'll find an introduction to using TinTin++. Additional\n"
 		"         information can be found in the individual help sections.\n"
 		"<128>\n"
@@ -2223,7 +2229,8 @@ struct help_type help_table[] =
 		"         #list {var} {explode}                  Turn list into a character list\n"
 		"         #list {var} {indexate}                 Index a list table for sorting\n"
 		"         #list {var} {insert} {index} {string}  Insert {string} at given index\n"
-		"         #list {var} {find} {string} {variable} Return the found index\n"
+		"         #list {var} {filter} {keep} {remove}   Filter with keep / remove regex\n"
+		"         #list {var} {find} {regex} {variable}  Return the found index\n"
 		"         #list {var} {get} {index} {variable}   Copy an item to {variable}\n"
 		"         #list {var} {order} {string}           Insert item in numerical order\n"
 		"         #list {var} {shuffle}                  Shuffle the list\n"
@@ -2790,11 +2797,10 @@ struct help_type help_table[] =
 		"         <278>  variable name.\n"
 		"\n"
 		"         <178>#map move <direction>\n"
-		"         <278>  This does the same as an actual movement\n"
-		"         <278>  command, updating your location on the map and creating new\n"
-		"         <278>  rooms. Useful when you are following someone and want the map\n"
-		"         <278>  to follow. You will need to create actions using '#map move',\n"
-		"         <278>  for this to work.\n"
+		"         <278>  This does the same as an actual movement command, updating your\n"
+		"         <278>  location on the map and creating new rooms. Useful when you are\n"
+		"         <278>  following someone and want the map to follow along. You will need\n"
+		"         <278>  to create actions using '#map move', for this to work.\n"
 		"\n"
 		"         <178>#map offset <row> <col> <row> <col>\n"
 		"         <278>  Define the offset of the vtmap as a square. Without an argument\n"
@@ -2907,7 +2913,7 @@ struct help_type help_table[] =
 		"         <278>  Will save the map, if you want to save a map to a .tin file\n"
 		"         <278>  you must provide the {force} argument.\n",
 
-		"path pathdir"
+		"path pathdir speedwalk"
 	},
 
 	{
@@ -3341,7 +3347,7 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Example<278>: #path ins {unlock n;open n} {unlock s;open s}\n",
 
-		"map pathdir"
+		"map pathdir speedwalk"
 	},
 	{
 		"PATHDIR",
@@ -3679,7 +3685,8 @@ struct help_type help_table[] =
 		"         The expression can contain escapes, and if you want to match a literal\n"
 		"         \\ character you'll have to use \\\\ to match a single backslash.\n"
 		"\n"
-		"         Variables are stored in &1 to &99 with &0 holding the matched substring.\n"
+		"         Variables are stored in &1 to &99 with &0 holding the matched\n"
+		"         substring.\n"
 		"\n"
 		"       ^ force match of start of line.\n"
 		"       $ force match of end of line.\n"
@@ -3724,9 +3731,11 @@ struct help_type help_table[] =
 		"         %15 as a regular expression, the next unnumbered regular expression\n"
 		"         would be %16. To prevent a match from being stored use %!*, %!w, etc.\n"
 		"\n"
-		"<178>Example<278>: #regexp {bli bla blo} {bli {.*} blo} {#show &1}\n",
+		"<178>Example<278>: #regexp {bli bla blo} {bli {.*} blo} {#show &1}\n"
+		"\n"
+		"<178>Comment<278>: Like an alias or function #regex has its own scope.\n",
 
-		"case default else elseif if switch"
+		"replace"
 	},
 
 	{
@@ -3746,10 +3755,13 @@ struct help_type help_table[] =
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #replace <178>{<278>variable<178>} {<278>oldtext<178>} {<278>newtext<178>}<278>\n"
 		"\n"
-		"         Searches the variable text replacing each occurrence of 'oldtext' with\n"
-		"         'newtext'. The 'newtext' argument can be a regular expression.\n"
+		"         Searches the given variable, replacing each occurrence of 'oldtext'\n"
+		"         with 'newtext'. The 'oldtext' argument is a regular expression.\n"
 		"\n"
-		"         Variables are stored in &1 to &99 with &0 holding the matched substring.\n",
+		"         Variables are stored in &1 to &99 with &0 holding the entire matched\n"
+		"         substring.\n"
+		"\n"
+		"<178>Example<278>: #function rnd #math result 1d9;#replace test {%.} {@rnd{}}\n",
 
 		"cat format function local math script variable"
 	},
@@ -4057,9 +4069,10 @@ struct help_type help_table[] =
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #snoop <178>{<278>session name<178>} <178>{<278>on<178>|<278>off<178>}<278>\n"
 		"\n"
-		"         If there are multiple sessions active, this command allows you to monitor\n"
-		"         what is going on in the sessions that are not currently active.  The\n"
-		"         line of text from other sessions will be prefixed by the session's name.\n"
+		"         If there are multiple sessions active, this command allows you to\n"
+		"         monitor what is going on in the sessions that are not currently active.\n"
+		"         The line of text from other sessions will be prefixed by the session's\n"
+		"         name.\n"
 		"\n"
 		"         You can toggle off snoop mode by executing #snoop a second time.\n",
 
@@ -4068,6 +4081,7 @@ struct help_type help_table[] =
 	{
 		"SPEEDWALK",
 		TOKEN_TYPE_STRING,
+		"<128>         SPEEDWALK V1\n"
 		"<278>\n"
 		"         Speedwalking allows you to enter multiple directions without using\n"
 		"         semicolons. Directions should be prefixed with a number and will be\n"
@@ -4078,8 +4092,19 @@ struct help_type help_table[] =
 		"<178>Example<278>: Without speedwalk, you have to type:\n"
 		"         <178>s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w\n"
 		"         <278>With speedwalk, you only have to type:\n"
-		"         <178>2s5w3s3w2n1w\n",
-
+		"         <178>2s5w3s3w2nw\n"
+		"\n"
+		"         <128>SPEEDWALK V2\n"
+		"<278>\n"
+		"         Modern MUDs have increasingly adopted the use of diagonal exits, like\n"
+		"         ne, nw, sw, and se. To make accomodations for this the #map and #path\n"
+		"         command no longer interpret nesw as a speedwalk and require this to\n"
+		"         be written as 1n1e1s1w, which then allows 2ne2e to execute ne;ne;e;e.\n"
+		"\n"
+		"         Speedwalks entered on the input line continue to use the v1 system.\n"
+		"\n"
+		"<178>Example<278>: #path unzip 3n1e2nw\n"
+		"<178>Example<278>: #map move 3ne1d\n",
 		"alias cursor history keypad macro tab"
 	},
 	{
@@ -4287,7 +4312,9 @@ struct help_type help_table[] =
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #ticker <178>{<278>name<178>} {<278>commands<178>} {<278>interval in seconds<178>}<278>\n"
 		"\n"
-		"         Executes given command every # of seconds.\n"
+		"         Executes given command every # of seconds. Floating point precision\n"
+		"         for the interval is allowed. A ticker cannot fire more often than\n"
+		"         10 times per second.\n"
 		"\n"
 		"<178>Comment<278>: Tickers don't work in the startup session.\n"
 		"\n"
