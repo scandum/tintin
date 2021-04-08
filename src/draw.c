@@ -1742,7 +1742,7 @@ DO_DRAW(draw_hbar)
 
 	if (max <= 0)
 	{
-		show_error(ses, LIST_COMMAND, "#DRAW HBAR {%d;%d;%s}: MAX MUST BE GREATER THAN 0.", min, max, arg3);
+		show_error(ses, LIST_COMMAND, "#DRAW HBAR {%Lg;%Lg;%s}: MAX MUST BE GREATER THAN 0.", min, max, arg3);
 
 		return;
 	}
