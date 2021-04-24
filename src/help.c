@@ -127,20 +127,20 @@ DO_COMMAND(do_help)
 
 			if (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING))
 			{
-				sprintf(tmp, "%.*s\e]68;6;;%s\a\e[4m%s%s\e[24m", 15 - (int) strlen(help_table[cnt].name), "                ", help_table[cnt].name, color, help_table[cnt].name);
+				sprintf(tmp, "%.*s\e]68;6;;%s\a\e[4m%s%s\e[24m", 16 - (int) strlen(help_table[cnt].name), "                ", help_table[cnt].name, color, help_table[cnt].name);
 			}
 			else
 			{
-				sprintf(tmp, "%s%15s", color, help_table[cnt].name);
+				sprintf(tmp, "%s%16s", color, help_table[cnt].name);
 			}
 
-			if (strip_vt102_strlen(ses, buf) + 15 > ses->wrap)
+			if (strip_vt102_strlen(ses, buf) + 16 > ses->wrap)
 			{
 				print_lines(ses, SUB_COL, "<088>%s<088>\n", buf);
 
 				*buf = 0;
 			}
-			cat_sprintf(buf, "%s ", tmp);
+			cat_sprintf(buf, "%s", tmp);
 		}
 
 		if (*buf)
@@ -291,12 +291,6 @@ DO_COMMAND(do_help)
 	}
 	return ses;
 }
-
-
-
-/*
-	This help table is a mess, but I got better things to do - Igor
-*/
 
 struct help_type help_table[] =
 {
@@ -986,6 +980,7 @@ struct help_type help_table[] =
 		"         You can further prefix the option as following:\n"
 		"\n"
 		"         ASCII      will draw in ASCII mode.\n"
+		"         BALIGN     will bottom align text.\n"
 		"         BLANKED    will blank the lines and corners.\n"
 		"         BOTTOM     will draw on the bottom side if possible.\n"
 		"         BOXED      will draw a box along the square.\n"
@@ -1026,7 +1021,7 @@ struct help_type help_table[] =
 		"         The following types are available.\n"
 		"\n"
 		"         <278>[HORIZONTAL] <178>BAR<278> {<MIN>;<MAX>;[COLOR]}\n"
-		"         <278> will draw a bar.\n"
+		"         <278> will draw a bar, use two 256 color codes for a color gradient.\n"
 		"         <278>[ASCII|UNICODE|HUGE] <178>BOX<278> {[TEXT1]} {[TEXT2]}\n"
 		"         <278>  will draw a box.\n"
 		"         <278>[BOXED|FOREGROUND] <178>BUFFER\n"
@@ -1071,7 +1066,7 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Example<278>: #echo {The current date is %t.} {%Y-%m-%d %H:%M:%S}\n"
 		"         #echo {[%38s][%-38s]} {Hello World} {Hello World}\n"
-		"         #echo {{this is %s on the top row} {-1}} {printed}\n",
+		"         #echo {{this is %s on the top row} {1}} {printed}\n",
 		
 		"buffer format grep showme"
 	},
@@ -1290,6 +1285,7 @@ struct help_type help_table[] =
 		"         \\x7B  send the '{' character.\n"
 		"         \\x7D  send the '}' character.\n"
 		"         \\u    print a 16 bit unicode character, \\uFFFD for example.\n"
+		"         \\u{}  print a 8-21 bit unicode character, \\u{2AF21} for example.\n"
 		"         \\U    print a 21 bit unicode character, \\U02AF21 for example.\n"
 		"         \\v    send a vertical tab\n"
 		"\n"
@@ -1416,44 +1412,6 @@ struct help_type help_table[] =
 		"         <178>PORT LOG MESSAGE       <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
 		"         <178>PORT RECEIVED MESSAGE  <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
 		"\n"
-		"         <128>SYSTEM EVENTS<278>\n"
-		"\n"
-		"         DAEMON ATTACHED        %0 file %1 pid\n"
-		"         DAEMON DETACHED        %0 file %1 pid\n"
-		"         PROGRAM START          %0 startup arguments\n"
-		"         PROGRAM TERMINATION    %0 goodbye message\n"
-		"\n"
-		"         READ ERROR             %0 filename %1 error message\n"
-		"         READ FILE              %0 filename\n"
-		"         WRITE ERROR            %0 filename %1 error message\n"
-		"         WRITE FILE             %0 filename\n"
-		"\n"
-		"         SYSTEM CRASH           %0 message\n"
-		"         SYSTEM ERROR           %0 name %1 system msg %2 error %3 error msg\n"
-		"         UNKNOWN COMMAND        %0 raw text\n"
-
-		"\n"
-		"         <128>TELNET EVENTS\n"
-		"\n"
-		"         <178>IAC <EVENT>\n"
-		"         <278>  IAC TELNET events are made visable using #config telnet info.\n"
-		"\n"
-		"         <178>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data\n"
-		"         <178>IAC SB MSSP            %0 variable  %1 data\n"
-		"         <178>IAC SB MSDP            %0 variable  %1 data  %2 plain data\n"
-		"         <178>IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data\n"
-		"         <178>IAC SB NEW-ENVIRON     %0 variable  %1 data  %2 plain data\n"
-		"         <178>IAC SB ZMP <VAR>       %0 variable  %1 data\n"
-		"         <178>IAC SB <VAR>           %0 variable  %1 raw data  %2 plain data\n"
-		"\n"
-		"         <128>TIME EVENTS\n"
-		"\n"
-		"         <178>DATE <MONTH-DAY OF MONTH> [HOUR:MINUTE], DAY [DAY OF MONTH],\n"
-		"         <178>HOUR [HOUR], MONTH [DAY OF MONTH], TIME <HOUR:MINUTE>[:SECOND],\n"
-		"         <178>WEEK [DAY OF WEEK], YEAR [YEAR]\n"
-		"         <278>  %0 year  %1 month  %2 day of week  %3 day of month  %4 hour\n"
-		"         <278>  %5 minute  %6 second\n"
-		"\n"
 		"         <128>SCAN EVENTS<278>\n"
 		"\n"
 		"         SCAN CSV HEADER        %0 all args %1 arg1 %2 arg2 .. %99 arg99\n"
@@ -1485,6 +1443,46 @@ struct help_type help_table[] =
 		"         SESSION DISCONNECTED   %0 name %1 host %2 ip %3 port\n"
 		"         SESSION TIMED OUT      %0 name %1 host %2 ip %3 port\n"
 		"\n"
+		"\n"
+		"         <128>SYSTEM EVENTS<278>\n"
+		"\n"
+		"         DAEMON ATTACHED        %0 file %1 pid\n"
+		"         DAEMON DETACHED        %0 file %1 pid\n"
+		"         PROGRAM START          %0 startup arguments\n"
+		"         PROGRAM TERMINATION    %0 goodbye message\n"
+		"\n"
+		"         READ ERROR             %0 filename %1 error message\n"
+		"         READ FILE              %0 filename\n"
+		"         WRITE ERROR            %0 filename %1 error message\n"
+		"         WRITE FILE             %0 filename\n"
+		"\n"
+		"         SYSTEM CRASH           %0 message\n"
+		"         SYSTEM ERROR           %0 name %1 system msg %2 error %3 error msg\n"
+		"         UNKNOWN COMMAND        %0 raw text\n"
+		"         SIGUSR                 %0 signal\n"
+		"\n"
+		"         <128>TELNET EVENTS\n"
+		"\n"
+		"         <178>IAC <EVENT>\n"
+		"         <278>  IAC TELNET events are made visable using #config telnet info.\n"
+		"\n"
+		"         <178>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data\n"
+		"         <178>IAC SB MSSP            %0 variable  %1 data\n"
+		"         <178>IAC SB MSDP            %0 variable  %1 data  %2 plain data\n"
+		"         <178>IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data\n"
+		"         <178>IAC SB NEW-ENVIRON     %0 variable  %1 data  %2 plain data\n"
+		"         <178>IAC SB ZMP <VAR>       %0 variable  %1 data\n"
+		"         <178>IAC SB <VAR>           %0 variable  %1 raw data  %2 plain data\n"
+		"\n"
+		"         <128>TIME EVENTS\n"
+		"\n"
+		"         <178>DATE <MONTH-DAY OF MONTH> [HOUR:MINUTE], DAY [DAY OF MONTH],\n"
+		"         <178>HOUR [HOUR], MONTH [DAY OF MONTH], TIME <HOUR:MINUTE>[:SECOND],\n"
+		"         <178>WEEK [DAY OF WEEK], YEAR [YEAR]\n"
+		"         <278>  %0 year  %1 month  %2 day of week  %3 day of month  %4 hour\n"
+		"         <278>  %5 minute  %6 second\n"
+		"\n"
+
 		"         <128>VARIABLE EVENTS<278>\n"
 		"\n"
 		"         VARIABLE UPDATE <VAR>  %0 name %1 new value %2 path\n"
@@ -1551,7 +1549,6 @@ struct help_type help_table[] =
 		"                                         optional {{string}{width}} syntax\n"
 		"         #format {test} {%x}      {hex}  print corresponding charset character\n"
 		"         #format {test} {%A}     {char}  store corresponding character value\n"
-		"         #format {test} {%C}   {number}  store number in chronological notation\n"
 		"         #format {test} {%D}      {hex}  convert hex to decimal in {test}\n"
 		"         #format {hash} {%H}   {string}  store a 64 bit string hash in {hash}\n"
 		"         #format {test} {%L}   {string}  store the string length in {test}\n"
@@ -1762,22 +1759,27 @@ struct help_type help_table[] =
 	{
 		"IF",
 		TOKEN_TYPE_COMMAND,
-		"<178>Command<278>: #if <178>{<278>conditional<178>} {<278>commands if true<178>} {<278>commands if false<178>}<278>\n"
+		"<178>Command<278>: #if <178>{<278>conditional<178>} {<278>commands if true<178>}<278>\n"
 		"\n"
-		"         The 'if' command is one of the most powerful commands added since\n"
-		"         TINTIN III. It works similar to an 'if' statement in other languages,\n"
-		"         and is strictly based on the way C handles its conditional statements.\n"
-		"         When an 'if' command is encountered, the conditional statement is\n"
+		"         The #if command is one of the most powerful commands added since\n"
+		"         TINTIN III. It works similar to an if statement in other languages,\n"
+		"         and is based on the way C handles its conditional statements.\n"
+		"         When an #if command is encountered, the conditional statement is\n"
 		"         evaluated, and if TRUE (any non-zero result) the commands are executed.\n"
 		"\n"
-		"         The 'if' statement is only evaluated if it is read, so you must nest\n"
-		"         the 'if' statement inside another statement (most likely an 'action'\n"
+		"         The if statement is only evaluated if it is read, so you must nest\n"
+		"         the if statement inside another statement (most likely an #action\n"
 		"         command). The conditional is evaluated exactly the same as in the\n"
-		"         'math' command only instead of storing the result, the result is used\n"
+		"         #math command, only instead of storing the result, the result is used\n"
 		"         to determine whether to execute the commands.\n"
 		"\n"
-		"<178>Example<278>: #action {%0 gives you %1 gold coins.} {#if {%1>5000} {thank %0}}\n"
+		"         To handle the case where an if statement is false it can be followed\n"
+		"         by the #else command.\n"
+		"\n"
+		"<178>Example<278>: #action {%0 gives you %1 gold coins.} {#if {%1 > 5000} {thank %0}}\n"
 		"         If someone gives you more than 5000 coins, thank them.\n"
+		"\n"
+		"<178>Example<278>: #alias {k} {#if {\"%0\" == \"\"} {kill $target};#else {kill %0}}\n"
 		"\n"
 		"<178>Comment<278>: See '#help math', for more information.\n",
 		
@@ -2069,12 +2071,16 @@ struct help_type help_table[] =
 		"\n"
 		"         By providing the name of a list and the LIST option it shows all\n"
 		"         triggers/variables associated with that list. With the SAVE option\n"
-		"         This data is written to the info variable.\n"
+		"         this data is written to the info variable.\n"
 		"\n"
 		"         #info cpu will show information about tintin's cpu usage.\n"
+		"         #info environ will show the environment variables.\n"
+		"         #info input will show information about the input line.\n"
 		"         #info mccp will show information about data compression.\n"
+		"         #info memory will show information about the memory stack.\n"
 		"         #info stack will show the low level debugging stack.\n"
-		"         #info session will show some session information.\n"
+		"         #info session will show information on the session.\n"
+		"         #info sessions will show information on all sessions.\n"
 		"         #info system will show some system information.\n"
 		"         #info unicode will show information on the provided character.\n",
 
@@ -2632,7 +2638,8 @@ struct help_type help_table[] =
 		"         <278>  Sets displaying center of the map viewer, default is 0 0 0.\n"
 		"\n"
 		"         <178>#map color <field> [value]\n"
-		"         <278>  Sets the map color for the given color field.\n"
+		"         <278>  Sets the map color for the given color field. Use #map color reset\n"
+		"         <278>  to restore colors to default.\n"
 		"\n"
 		"         <178>#map create <size>\n"
 		"         <278>  Creates a new map and room 1. The default size is 50000 rooms.\n"
@@ -3043,31 +3050,33 @@ struct help_type help_table[] =
 		"         ------------------------------------------------\n"
 		"         !               0            logical not\n"
 		"         ~               0            bitwise not\n"
-		"         *               1            integer multiply\n"
-		"         **              1            integer power\n"
-		"         /               1            integer divide\n"
-		"         //              1            integer sqrt // 2 or cbrt // 3\n"
-		"         %               1            integer modulo\n"
-		"         d               1            integer random dice roll\n"
-		"         +               2            integer addition\n"
-		"         -               2            integer subtraction\n"
-		"         <<              3            bitwise shift\n"
-		"         >>              3            bitwise shift\n"
-		"         ..              3            bitwise ellipsis\n"
-		"         >               4            logical greater than\n"
-		"         >=              4            logical greater than or equal\n"
-		"         <               4            logical less than\n"
-		"         <=              4            logical less than or equal\n"
-		"         ==              5            logical equal (can use regex)\n"
-		"         ===             5            logical equal (never regex)\n"
-		"         !=              5            logical not equal (can use regex)\n"
-		"         !==             5            logical not equal (never regex)\n"
-		"          &              6            bitwise and\n"
-		"          ^              7            bitwise xor\n"
-		"          |              8            bitwise or\n"
-		"         &&              9            logical and\n"
-		"         ^^             10            logical xor\n"
-		"         ||             11            logical or\n"
+		"         d               1            integer random dice\n"
+		"         *               2            integer multiply\n"
+		"         **              2            integer power\n"
+		"         /               2            integer divide\n"
+		"         //              2            integer sqrt // 2 or cbrt // 3\n"
+		"         %               2            integer modulo\n"
+		"         +               3            integer addition\n"
+		"         -               3            integer subtraction\n"
+		"         <<              4            bitwise shift\n"
+		"         >>              4            bitwise shift\n"
+		"         ..              4            bitwise ellipsis\n"
+		"         >               5            logical greater than\n"
+		"         >=              5            logical greater than or equal\n"
+		"         <               5            logical less than\n"
+		"         <=              5            logical less than or equal\n"
+		"         ==              6            logical equal (can use regex)\n"
+		"         ===             6            logical equal (never regex)\n"
+		"         !=              6            logical not equal (can use regex)\n"
+		"         !==             6            logical not equal (never regex)\n"
+		"          &              7            bitwise and\n"
+		"          ^              8            bitwise xor\n"
+		"          |              9            bitwise or\n"
+		"         &&             10            logical and\n"
+		"         ^^             11            logical xor\n"
+		"         ||             12            logical or\n"
+		"         ?              13            logical ternary if (unfinished code)\n"
+		"         :              14            logical ternary else \n"
 		"\n"
 		"         True is any non-zero number, and False is zero.  Parentheses () have\n"
 		"         highest precedence, so inside the () is always evaluated first.\n"
@@ -3282,7 +3291,7 @@ struct help_type help_table[] =
 		"\n"
 		"         This would make you start a reply when clicking on a tell.\n"
 		"\n"
-		"Website: https://tintin.mudhalla.net/protocols/mslp\n",
+		"<178>Website<278>: https://tintin.mudhalla.net/protocols/mslp\n",
 
 		"event port"
 	},
@@ -3633,7 +3642,7 @@ struct help_type help_table[] =
 		"         Prompt is a feature for split window mode, which will capture a line\n"
 		"         received from the server and display it on the status bar of your\n"
 		"         split screen terminal. You would define <text> and <new text> the\n"
-		"         same way as with a substitution.\n"
+		"         same way as you would with #substitute.\n"
 		"\n"
 		"         The row number is optional and useful if you use a non standard split\n"
 		"         mode. A positive row number draws #row lines from the top while a\n"
@@ -3644,8 +3653,8 @@ struct help_type help_table[] =
 		"         The col number is optional and can be used to set the column index.\n"
 		"         A positive col number draws the given number of columns from the left,\n"
 		"         while a negative col number draws from the right. If you leave the\n"
-		"         column argument empty tintin will clear the row before printing at\n"
-		"         the start of the row.\n"
+		"         col number empty tintin will clear the row before printing at the\n"
+		"         start of the row.\n"
 		"\n"
 		"         The #show command takes a row and col argument as well so it's also\n"
 		"         possible to place text on your split lines using #show.\n"
@@ -3701,18 +3710,21 @@ struct help_type help_table[] =
 		"\n"
 		"         Of the following the (lazy) match is available at %1-%99 + 1\n"
 		"\n"
-		"      %a match zero to any number of characters including newlines.\n"
-		"      %A match zero to any number of newlines.\n"
 		"      %d match zero to any number of digits.\n"
 		"      %D match zero to any number of non digits.\n"
-		"      %p match zero to any number of printable characters.\n"
-		"      %P match zero to any number of non printable characters.\n"
 		"      %s match zero to any number of spaces.\n"
 		"      %S match zero to any number of non spaces.\n"
-		"      %u match zero to any number of unicode characters.\n"
-		"      %U match zero to any number of non unicode characters.\n"
 		"      %w match zero to any number of word characters.\n"
 		"      %W match zero to any number of non word characters.\n"
+		"\n"
+		"      Experimental (subject to change) matches are:\n"
+		"\n"
+		"      %a match zero to any number of characters including newlines.\n"
+		"      %A match zero to any number of newlines.\n"
+		"      %p match zero to any number of printable characters.\n"
+		"      %P match zero to any number of non printable characters.\n"
+		"      %u match zero to any number of unicode characters.\n"
+		"      %U match zero to any number of non unicode characters.\n"
 		"\n"
 		"      If you want to match 1 digit use %+1d, if you want to match between 3\n"
 		"      and 5 spaces use %+3..5s, if you want to match 0 or more word\n"
@@ -3735,7 +3747,7 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Comment<278>: Like an alias or function #regex has its own scope.\n",
 
-		"replace"
+		"pcre replace"
 	},
 
 	{
@@ -3954,7 +3966,7 @@ struct help_type help_table[] =
 		"         treats the generated echos as commands if no variable is provided.\n"
 		"\n"
 		"         This is useful for running php, perl, ruby, and python scripts. You\n"
-		"         can run these scrips either from file or from within tintin if the\n"
+		"         can run these scripts either from file or from within tintin if the\n"
 		"         scripting language allows this.\n"
 		"\n"
 		"         If you provide a variable the output of the script is stored as a list.\n"
@@ -4067,14 +4079,19 @@ struct help_type help_table[] =
 	{
 		"SNOOP",
 		TOKEN_TYPE_COMMAND,
-		"<178>Command<278>: #snoop <178>{<278>session name<178>} <178>{<278>on<178>|<278>off<178>}<278>\n"
+		"<178>Command<278>: #snoop <178>{<278>session name<178>} <178>{<278>on<178>|<278>off<178>|<278>scroll<178>}<278>\n"
 		"\n"
 		"         If there are multiple sessions active, this command allows you to\n"
 		"         monitor what is going on in the sessions that are not currently active.\n"
 		"         The line of text from other sessions will be prefixed by the session's\n"
 		"         name.\n"
 		"\n"
-		"         You can toggle off snoop mode by executing #snoop a second time.\n",
+		"         You can toggle off snoop mode by executing #snoop a second time.\n"
+		"\n"
+		"         By using the scroll argument you will snoop the session's scroll\n"
+		"         region which will overwrite the display of whichever session is active.\n"
+		"         You can change the size and location of a session's scroll region by\n"
+		"         using the #split and #screen scrollregion commands.\n",
 
 		"all port run session sessionname ssl zap"
 	},
@@ -4483,3 +4500,4 @@ struct help_type help_table[] =
 		""
 	}
 };
+

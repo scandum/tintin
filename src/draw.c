@@ -70,6 +70,7 @@ static int  draw_cnt;
 #define DRAW_FLAG_RALIGN              BV38
 #define DRAW_FLAG_TALIGN              BV39
 #define DRAW_FLAG_UALIGN              BV40
+#define DRAW_FLAG_BALIGN              BV41
 
 #define DRAW_FLAG_APPENDIX            DRAW_FLAG_CIRCLED|DRAW_FLAG_CORNERED|DRAW_FLAG_CROSSED|DRAW_FLAG_JEWELED|DRAW_FLAG_PRUNED|DRAW_FLAG_ROUNDED|DRAW_FLAG_TEED
 
@@ -198,7 +199,11 @@ DO_COMMAND(do_draw)
 				}
 				continue;
 			case CTRL_B:
-				if (is_abbrev(arg1, "BLANKED"))
+				if (is_abbrev(arg1, "BALIGN"))
+				{
+					SET_BIT(flags, DRAW_FLAG_BALIGN);
+				}
+				else if (is_abbrev(arg1, "BLANKED"))
 				{
 					SET_BIT(flags, DRAW_FLAG_BLANKED);
 				}
@@ -1714,7 +1719,7 @@ DO_DRAW(draw_hbar)
 
 	if (bar <= 0)
 	{
-		show_error(ses, LIST_COMMAND, "#DRAW HBAR %d %d %d %d: DRAWING WIDTH (%d) MUST BE GREATER THAN 0.", top_row, top_col, bot_row, bot_col, bar);
+		show_error(ses, LIST_COMMAND, "#DRAW BAR %d %d %d %d: DRAWING WIDTH (%d) MUST BE GREATER THAN 0.", top_row, top_col, bot_row, bot_col, bar);
 
 		return;
 	}
@@ -1732,9 +1737,11 @@ DO_DRAW(draw_hbar)
 
 	nest = buf;
 	nest = get_arg_in_braces(ses, nest, arg1, GET_ALL);
-	if (*nest == COMMAND_SEPARATOR) nest++;
+	if (*nest == COMMAND_SEPARATOR)
+		nest++;
 	nest = get_arg_in_braces(ses, nest, arg2, GET_ALL);
-	if (*nest == COMMAND_SEPARATOR) nest++;
+	if (*nest == COMMAND_SEPARATOR)
+		nest++;
 	nest = get_arg_in_braces(ses, nest, arg3, GET_ALL);
 
 	min = get_number(ses, arg1);
@@ -1742,7 +1749,7 @@ DO_DRAW(draw_hbar)
 
 	if (max <= 0)
 	{
-		show_error(ses, LIST_COMMAND, "#DRAW HBAR {%d;%d;%s}: MAX MUST BE GREATER THAN 0.", min, max, arg3);
+		show_error(ses, LIST_COMMAND, "#DRAW BAR {%s;%s;%s}: MAX (%Lg) MUST BE GREATER THAN 0.", arg1, arg2, arg3, max);
 
 		return;
 	}
@@ -2441,6 +2448,16 @@ DO_DRAW(draw_text)
 
 	txt = buf1;
 
+	if (HAS_BIT(flags, DRAW_FLAG_BALIGN))
+	{
+		str_fix(buf1);
+
+		while (height < rows)
+		{
+			str_ins(&buf1, 0, "\n");
+			height++;
+		}
+	}
 
 	if (HAS_BIT(flags, DRAW_FLAG_TALIGN))
 	{

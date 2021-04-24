@@ -244,7 +244,7 @@ DO_COMMAND(do_button)
 	struct listnode *node;
 	int index;
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
@@ -272,7 +272,7 @@ DO_COMMAND(do_button)
 
 		for (index = 0 ; index < 4 ; index++)
 		{
-			arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+			arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 			node->val16[index] = (short) get_number(ses, arg2);
 

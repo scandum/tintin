@@ -269,6 +269,13 @@ DO_EDIT(edit_suspend)
 {
 	struct edit_data *edit = gtd->ses->input->edit;
 
+	if (!HAS_BIT(gtd->ses->input->flags, INPUT_FLAG_EDIT))
+	{
+		tintin_printf2(gtd->ses, "edit_suspend: not currently editing");
+
+		return ses;
+	}
+
 	DEL_BIT(gtd->ses->input->flags, INPUT_FLAG_EDIT);
 
 	str_cpy(&edit->line[edit->update]->str, gtd->ses->input->buf);

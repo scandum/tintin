@@ -1702,7 +1702,7 @@ void fill_split_region(struct session *ses, char *arg)
 
 DO_SCREEN(screen_info)
 {
-	int lvl;
+	int lvl, cnt, max;
 
 	if (is_abbrev(arg1, "SAVE"))
 	{
@@ -1780,7 +1780,27 @@ DO_SCREEN(screen_info)
 		tintin_printf2(ses, "SPLIT mode detected.");
 	}
 
+	for (cnt = max = 0 ; cnt < gtd->screen->max_row ; cnt++)
+	{
+		max += str_len(gtd->screen->line[cnt]->str);
+	}
+	tintin_printf2(ses, "gtd->screen->line[%4d]:  %4d", gtd->screen->max_row, max);
 
+	for (cnt = max = 0 ; cnt < gtd->screen->max_row ; cnt++)
+	{
+		max += str_len(gtd->screen->grid[cnt]->str);
+	}
+	tintin_printf2(ses, "gtd->screen->grid[%4d]:  %4d", gtd->screen->max_row, max);
+/*
+	char buf[BUFFER_SIZE];
+
+	for (cnt = 0 ; cnt < 12 && cnt < gtd->screen->max_row ; cnt++)
+	{
+		convert_meta(gtd->screen->grid[cnt]->str, buf, 0);
+
+		tintin_printf2(ses, "%2d, %s", cnt, buf);
+	}
+*/
 	return;
 }
 

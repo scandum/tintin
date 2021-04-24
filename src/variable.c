@@ -695,7 +695,7 @@ void thousandgroupingstring(struct session *ses, char *str)
 
 	get_number_string(ses, str, strold);
 
-	cnt1 = strlen(strold);
+	cnt1 = strlen(strold) - 1;
 	cnt2 = BUFFER_SIZE / 2;
 	cnt4 = strchr(strold, '.') ? 1 : 0;
 
@@ -724,6 +724,7 @@ void thousandgroupingstring(struct session *ses, char *str)
 	return;
 }
 
+/*
 void chronosgroupingstring(struct session *ses, char *str)
 {
 	char *sign = "-";
@@ -763,6 +764,7 @@ void chronosgroupingstring(struct session *ses, char *str)
 		sprintf(str, "%s%d:%02d", sign, minutes, seconds);
 	}
 }
+*/
 
 void metricgroupingstring(struct session *ses, char *str)
 {
@@ -885,7 +887,8 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 	arg1 = str_alloc_stack(0);
 	arg2 = str_alloc_stack(0);
 
-	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
+//	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
+	arg = sub_arg_in_braces(ses, str, arg1, GET_ALL, SUB_COL|SUB_ESC);
 
 	if (*arg == COMMAND_SEPARATOR)
 	{
@@ -1440,7 +1443,8 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'C':
-						chronosgroupingstring(ses, arglist[i]);
+						tintin_printf2(ses, "\e[1;31m#echo/#format %%C please use #screen {get} {cols} to get screen width.");
+//						chronosgroupingstring(ses, arglist[i]);
 						break;
 
 					case 'D':
@@ -1465,8 +1469,14 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 						break;
 
 					case 'R':
-						tintin_printf2(ses, "\e[1;31m#echo/#format %%R please use #screen {get} {rows} to get screen height.");
-						sprintf(arglist[i], "%d", gtd->screen->rows);
+						if (*arglist[i] == 0)
+						{
+							sprintf(arglist[i], "%d", gtd->screen->rows);
+						}
+						else
+						{
+							sprintf(arglist[i], "%d", get_row_index_arg(ses, arglist[i]));
+						}
 						break;
 
 					case 'S':

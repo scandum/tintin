@@ -63,14 +63,22 @@ void ttou_handler(int signal)
 	syserr_printf(gtd->ses, "ttou_handler");
 }
 
+void usr_handler(int signal)
+{
+	check_all_events(gts, EVENT_FLAG_SYSTEM, 0, 1, "SIGUSR", signal == SIGUSR1 ? "1" : "2");
+}
+
 /*
 	when the screen size changes, take note of it
 */
 
 void winch_handler(int signal)
 {
-	struct session *ses;
+	SET_BIT(gtd->flags, TINTIN_FLAG_WINCHUPDATE);
 
+	gtd->time_session = gtd->time;
+/*
+	struct session *ses;
 	init_terminal_size(gts);
 
 	for (ses = gts->next ; ses ; ses = ses->next)
@@ -84,6 +92,7 @@ void winch_handler(int signal)
 	}
 
 	winch_daemon();
+*/
 }
 
 
@@ -99,7 +108,7 @@ void child_handler(int signal)
 
 //	syserr_fatal(signal, "child_handler");
 }
-
+/*
 void interrupt_handler(int signal)
 {
 	if (gtd->ses->connect_retry > utime())
@@ -108,7 +117,7 @@ void interrupt_handler(int signal)
 	}
 	else if (HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_SGA) && !HAS_BIT(gtd->ses->telopts, TELOPT_FLAG_ECHO))
 	{
-		socket_printf(gtd->ses, 1, "%c", 4);
+		socket_printf(gtd->ses, 1, "\004");
 	}
 	else if (gtd->attach_sock)
 	{
@@ -121,7 +130,7 @@ void interrupt_handler(int signal)
 		cursor_delete_or_exit(gtd->ses, "");
 	}
 }
-
+*/
 void suspend_handler(int signal)
 {
 	show_message(gtd->ses, LIST_COMMAND, "#SIGNAL: SIGTSTP");
@@ -219,6 +228,16 @@ int main(int argc, char **argv)
 		syserr_fatal(-1, "signal SIGTTOU");
 	}
 */
+	if (signal(SIGUSR1, usr_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGUSR1");
+	}
+
+	if (signal(SIGUSR2, usr_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGUSR1");
+	}
+
 	if (signal(SIGWINCH, winch_handler) == BADSIG)
 	{
 		syserr_fatal(-1, "signal SIGWINCH");
@@ -533,8 +552,8 @@ void init_tintin(int greeting)
 
 	gtd->banner_list    = init_list(gts, LIST_CONFIG, 32);
 
-	gts->split          = calloc(1, sizeof(struct split_data));
 	gts->scroll         = calloc(1, sizeof(struct scroll_data));
+	gts->split          = calloc(1, sizeof(struct split_data));
 	gts->input          = calloc(1, sizeof(struct input_data));
 
 	init_local(gts);
@@ -785,6 +804,15 @@ void syserr_fatal(int signal, char *msg)
 		fflush(NULL);
 
 		exit(-1);
+	}
+
+	if (signal == SIGHUP)
+	{
+		crashed--;
+
+		check_all_events(gts, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 0, "SIGHUB");
+
+		crashed++;
 	}
 
 	if (signal <= 0)

@@ -422,10 +422,6 @@ struct listnode *search_node_list(struct listroot *root, char *text)
 			index = bsearch_alnum_list(root, text, 0);
 			break;
 
-		case SORT_DELAY:
-			index = bsearch_priority_list(root, text, text, 0);
-			break;
-
 		default:
 			index = nsearch_list(root, text);
 			break;
@@ -451,9 +447,6 @@ int search_index_list(struct listroot *root, char *text, char *priority)
 		
 		case SORT_ALNUM:
 			return bsearch_alnum_list(root, text, 0);
-
-		case SORT_DELAY:
-			return bsearch_priority_list(root, text, text, 0);
 
 		case SORT_PRIORITY:
 			if (priority)
@@ -482,9 +475,6 @@ int locate_index_list(struct listroot *root, char *text, char *priority)
 
 		case SORT_ALNUM:
 			return bsearch_alnum_list(root, text, SEEK_REPLACE);
-
-		case SORT_DELAY:
-			return bsearch_priority_list(root, text, text, SEEK_REPLACE);
 
 		case SORT_PRIORITY:
 			return bsearch_priority_list(root, text, priority, SEEK_REPLACE);
@@ -524,7 +514,7 @@ int bsearch_alpha_list(struct listroot *root, char *text, int seek)
 
 	if (seek)
 	{
-		return bot += strcmp(text, root->list[bot]->arg1) > 0;
+		return bot + (strcmp(text, root->list[bot]->arg1) > 0);
 	}
 
 	return -1;
@@ -826,10 +816,6 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 			index = bsearch_alnum_list(root, text, 0);
 			break;
 
-		case SORT_DELAY:
-			index = bsearch_priority_list(root, text, text, 0);
-			break;
-
 		default:
 			index = nsearch_list(root, text);
 			break;
@@ -934,10 +920,6 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 
 		case SORT_ALNUM:
 			index = bsearch_alnum_list(root, arg1, 0);
-			break;
-
-		case SORT_DELAY:
-			index = bsearch_priority_list(root, arg1, arg1, 0);
 			break;
 
 		default:
@@ -1258,14 +1240,14 @@ DO_COMMAND(do_info)
 		{
 			if (!HAS_BIT(ses->list[index]->flags, LIST_FLAG_HIDE))
 			{
-				tintin_printf2(ses, "%-15s %5d   IGNORE %3s   MESSAGE %3s   INFO %3s   DEBUG %3s %3s",
+				tintin_printf2(ses, "%-15s %5d   IGNORE %3s   MESSAGE %3s   INFO %3s   DEBUG %3s%s",
 					list_table[index].name_multi,
 					ses->list[index]->used,
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE)  ?  "ON" : "OFF",
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_MESSAGE) ?  "ON" : "OFF",
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_INFO)    ?  "ON" : "OFF",
 					HAS_BIT(ses->list[index]->flags, LIST_FLAG_DEBUG)   ?  "ON" : "OFF",
-					HAS_BIT(ses->list[index]->flags, LIST_FLAG_LOG)     ? "LOG" : "   ");
+					HAS_BIT(ses->list[index]->flags, LIST_FLAG_LOG)     ? " LOG" : "");
 			}
 		}
 		tintin_header(ses, 80, "");
@@ -1329,240 +1311,322 @@ DO_COMMAND(do_info)
 			}
 			show_message(ses, LIST_COMMAND, "#OK: #INFO STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_INFO) ? "ON" : "OFF");
 
+			if (strcasecmp(arg1, "ALL"))
+			{
+				return ses;
+			}
 			found = TRUE;
 		}
 
-		if (found == FALSE)
+		if (found)
 		{
-			if (is_abbrev(arg1, "CPU"))
-			{
-				show_cpu(ses);
-			}
-			else if (is_abbrev(arg1, "MCCP"))
-			{
-				if (ses->mccp2)
+			return ses;
+		}
+
+		*gtd->is_result = 0;
+
+		switch (*arg1 % 32)
+		{
+			case CTRL_C:
+				if (is_abbrev(arg1, "CPU"))
 				{
-					tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0);
+					show_cpu(ses);
 				}
-				if (ses->mccp3)
+				break;
+
+			case CTRL_E:
+				if (is_abbrev(arg1, "ENVIRON"))
 				{
-					tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0);
-				}
-			}
-			else if (is_abbrev(arg1, "MEMORY"))
-			{
-				struct str_data *str_ptr;
+					char **env, *sep;
 
-				long long quan, used, max;
-
-				max  = 0;
-				quan = 0;
-				used = 0;
-
-				for (index = 0 ; index < gtd->memory->stack_cap ; index++)
-				{
-					max++;
-					quan += gtd->memory->stack[index]->max;
-					used += gtd->memory->stack[index]->len;
-				}
-
-				tintin_printf2(ses, "#INFO MEMORY: STACK SIZE: %d", quan);
-
-				tintin_printf2(ses, "#INFO MEMORY: STACK  MAX: %d", gtd->memory->stack_max);
-				tintin_printf2(ses, "#INFO MEMORY: STACK  CAP: %d", gtd->memory->stack_cap);
-				tintin_printf2(ses, "#INFO MEMORY: STACK  LEN: %d", gtd->memory->stack_len);
-
-				tintin_printf2(ses, "");
-
-				max  = 0;
-				quan = 0;
-				used = 0;
-
-				for (index = 0 ; index < gtd->memory->list_len ; index++)
-				{
-					str_ptr = gtd->memory->list[index];
-
-					if (str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
+					if (is_abbrev(arg2, "SAVE"))
 					{
-						tintin_printf2(ses, "#ERROR: index %d len = %d/%d max = %d flags = %d (%s)", index, strlen(get_str_str(str_ptr)), str_ptr->len, str_ptr->max, str_ptr->flags, get_str_str(str_ptr));
-					}
+						set_nest_node_ses(ses, "info[ENVIRON]", "");
 
-					if (!HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
-					{
-						max++;
-						quan += str_ptr->max;
-						used += str_ptr->len;
-					}
-				}
+						for (env = environ ; *env ; env++)
+						{
+							sep = strchr(*env, '=');
 
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC SIZE: %d", quan);
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC USED: %d", used);
+							*sep = 0;
 
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC  MAX: %d", gtd->memory->list_max);
-				tintin_printf2(ses, "#INFO MEMORY: ALLOC  LEN: %d", gtd->memory->list_len);
+							add_nest_node_ses(ses, "info[ENVIRON]", "{%s}{%s}", *env, sep + 1);
 
-				tintin_printf2(ses, "");
-
-				quan = 0;
-				used = 0;
-
-				for (index = 0 ; index < gtd->memory->free_len ; index++)
-				{
-					str_ptr = gtd->memory->list[gtd->memory->free[index]];
-
-					if (HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
-					{
-						quan += str_ptr->max;
-						used += str_ptr->len;
+							*sep = '=';
+						}
 					}
 					else
 					{
-						tintin_printf2(ses, "error: found freed memory not marked as free.");
+						for (env = environ ; *env ; env++)
+						{
+							tintin_printf2(ses, "%s", *env);
+						}
 					}
 				}
+				break;
 
-				tintin_printf2(ses, "#INFO MEMORY: FREED SIZE: %d", quan);
-
-				tintin_printf2(ses, "#INFO MEMORY: FREED  MAX: %d", gtd->memory->free_max);
-				tintin_printf2(ses, "#INFO MEMORY: FREED  LEN: %d", gtd->memory->free_len);
-
-				tintin_printf2(ses, "");
-
-				quan = 0;
-				used = 0;
-
-				for (index = 0 ; index < gtd->memory->debug_len ; index++)
+			case CTRL_I:
+				if (is_abbrev(arg1, "INPUT"))
 				{
-					quan += NAME_SIZE;
-				}
-
-				tintin_printf2(ses, "#INFO MEMORY: DEBUG SIZE: %d", quan);
-
-				tintin_printf2(ses, "#INFO MEMORY: DEBUG  MAX: %d", gtd->memory->debug_max);
-				tintin_printf2(ses, "#INFO MEMORY: DEBUG  LEN: %d", gtd->memory->debug_len);
-			}
-			else if (is_abbrev(arg1, "SESSION"))
-			{
-				if (is_abbrev(arg2, "SAVE"))
-				{
-					sprintf(name, "info[SESSION]");
-
-					set_nest_node_ses(ses, name, "{NAME}{%s}", ses->name);
-					add_nest_node_ses(ses, name, "{ACTIVE}{%d}", gtd->ses == ses);
-					add_nest_node_ses(ses, name, "{CLASS}{%s}", ses->group);
-					add_nest_node_ses(ses, name, "{CREATED}{%d}", ses->created);
-					add_nest_node_ses(ses, name, "{HOST} {%s}", ses->session_host);
-					add_nest_node_ses(ses, name, "{IP} {%s}", ses->session_ip);
-					add_nest_node_ses(ses, name, "{PORT} {%s}", ses->session_port);
-
-					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
-				}
-				else
-				{
-					tintin_printf2(ses, "{NAME}{%s}", ses->name);
-					tintin_printf2(ses, "{ACTIVE}{%d}", gtd->ses == ses);
-					tintin_printf2(ses, "{CLASS}{%s}", ses->group);
-					tintin_printf2(ses, "{CREATED}{%d}", ses->created);
-					tintin_printf2(ses, "{HOST} {%s}", ses->session_host);
-					tintin_printf2(ses, "{IP} {%s}", ses->session_ip);
-					tintin_printf2(ses, "{PORT} {%s}", ses->session_port);
-				}
-			}
-			else if (is_abbrev(arg1, "SESSIONS"))
-			{
-				struct session *sesptr;
-
-				if (is_abbrev(arg2, "SAVE"))
-				{
-					set_nest_node_ses(ses, "info[SESSIONS]", "");
-
-					for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+					if (is_abbrev(arg2, "SAVE"))
 					{
-						sprintf(name, "info[SESSIONS][%s]", sesptr->name);
-
-						add_nest_node_ses(ses, name, "{NAME}{%s}", sesptr->name);
-						add_nest_node_ses(ses, name, "{ACTIVE}{%d}", gtd->ses == sesptr);
-						add_nest_node_ses(ses, name, "{CLASS}{%s}", sesptr->group);
-						add_nest_node_ses(ses, name, "{CREATED}{%d}", sesptr->created);
-						add_nest_node_ses(ses, name, "{HOST} {%s}", sesptr->session_host);
-						add_nest_node_ses(ses, name, "{IP} {%s}", sesptr->session_ip);
-						add_nest_node_ses(ses, name, "{PORT} {%s}", sesptr->session_port);
+						set_nest_node_ses(ses, "info[INPUT]", "{BUFFER}{%s}", gtd->ses->input->buf);
+						add_nest_node_ses(ses, "info[INPUT]", "{CUT}{%s}", gtd->ses->input->cut);
+						add_nest_node_ses(ses, "info[INPUT]", "{COL}{%d}", inputline_cur_col());
+						add_nest_node_ses(ses, "info[INPUT]", "{HEIGHT}{%d}", inputline_max_row());
+						add_nest_node_ses(ses, "info[INPUT]", "{LENGTH}{%d}", inputline_cur_str_len());
+						add_nest_node_ses(ses, "info[INPUT]", "{NAME}{%s}", gtd->ses->input->line_name);
+						add_nest_node_ses(ses, "info[INPUT]", "{OFFSET}{%d}", inputline_cur_off());
+						add_nest_node_ses(ses, "info[INPUT]", "{ROW}{%d}", inputline_cur_row());
+						add_nest_node_ses(ses, "info[INPUT]", "{WIDTH}{%d}", inputline_max_str_len());
 					}
-					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
-				}
-				else
-				{
-					for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+					else
 					{
-						tintin_printf2(ses, "{%s}{NAME}{%s}", sesptr->name, sesptr->name);
-						tintin_printf2(ses, "{%s}{ACTIVE}{%d}", sesptr->name, gtd->ses == sesptr);
-						tintin_printf2(ses, "{%s}{CLASS}{%s}", sesptr->name, sesptr->group);
-						tintin_printf2(ses, "{%s}{CREATED}{%d}", sesptr->name, sesptr->created);
-						tintin_printf2(ses, "{%s}{HOST} {%s}", sesptr->name, sesptr->session_host);
-						tintin_printf2(ses, "{%s}{IP} {%s}", sesptr->name, sesptr->session_ip);
-						tintin_printf2(ses, "{%s}{PORT} {%s}", sesptr->name, sesptr->session_port);
+						tintin_printf2(ses, "#INFO INPUT: BUFFER: %s", gtd->ses->input->buf);
+						tintin_printf2(ses, "#INFO INPUT: CUT: %s", gtd->ses->input->cut);
+						tintin_printf2(ses, "#INFO INPUT: COL: %d", inputline_cur_col());
+						tintin_printf2(ses, "#INFO INPUT: HEIGHT: %d", inputline_max_row());
+						tintin_printf2(ses, "#INFO INPUT: LENGTH: %d", inputline_cur_str_len());
+						tintin_printf2(ses, "#INFO INPUT: NAME: %s", gtd->ses->input->line_name);
+						tintin_printf2(ses, "#INFO INPUT: OFFSET: %d", inputline_cur_off());
+						tintin_printf2(ses, "#INFO INPUT: ROW: %d", inputline_cur_row());
+						tintin_printf2(ses, "#INFO INPUT: WIDTH: %d", inputline_max_str_len());
 					}
 				}
-			}
-			else if (is_abbrev(arg1, "STACK"))
-			{
-				dump_stack();
-			}
-			else if (is_abbrev(arg1, "SYSTEM"))
-			{
-				char cwd[PATH_MAX];
+				break;
 
-				if (getcwd(cwd, PATH_MAX) == NULL)
+			case CTRL_M:
+				if (is_abbrev(arg1, "MCCP"))
 				{
-					syserr_printf(ses, "do_info: getcwd:");
+					if (ses->mccp2)
+					{
+						tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0);
+					}
+					if (ses->mccp3)
+					{
+						tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0);
+					}
 				}
-
-				if (is_abbrev(arg2, "SAVE"))
+				else if (is_abbrev(arg1, "MEMORY"))
 				{
-					sprintf(name, "info[SYSTEM]");
+					struct str_data *str_ptr;
 
-					set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
-//					add_nest_node_ses(ses, name, "{CLIENT}{{NAME}{%s}{VERSION}{%s}}", CLIENT_NAME, CLIENT_VERSION);
-					add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{TERM}{%s}{TINTIN}{%s}", cwd, gtd->system->exec, gtd->system->home, gtd->system->lang, gtd->system->os, gtd->system->term, gtd->system->tt_dir);
-					add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
+					long long quan, used, max;
 
-					show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
+					max  = 0;
+					quan = 0;
+					used = 0;
+
+					for (index = 0 ; index < gtd->memory->stack_cap ; index++)
+					{
+						max++;
+						quan += gtd->memory->stack[index]->max;
+						used += gtd->memory->stack[index]->len;
+					}
+
+					tintin_printf2(ses, "#INFO MEMORY: STACK SIZE: %d", quan);
+
+					tintin_printf2(ses, "#INFO MEMORY: STACK  MAX: %d", gtd->memory->stack_max);
+					tintin_printf2(ses, "#INFO MEMORY: STACK  CAP: %d", gtd->memory->stack_cap);
+					tintin_printf2(ses, "#INFO MEMORY: STACK  LEN: %d", gtd->memory->stack_len);
+
+					tintin_printf2(ses, "");
+
+					max  = 0;
+					quan = 0;
+					used = 0;
+
+					for (index = 0 ; index < gtd->memory->list_len ; index++)
+					{
+						str_ptr = gtd->memory->list[index];
+
+						if (str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
+						{
+							tintin_printf2(ses, "#ERROR: index %d len = %d/%d max = %d flags = %d (%s)", index, strlen(get_str_str(str_ptr)), str_ptr->len, str_ptr->max, str_ptr->flags, get_str_str(str_ptr));
+						}
+
+						if (!HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
+						{
+							max++;
+							quan += str_ptr->max;
+							used += str_ptr->len;
+						}
+					}
+
+					tintin_printf2(ses, "#INFO MEMORY: ALLOC SIZE: %d", quan);
+					tintin_printf2(ses, "#INFO MEMORY: ALLOC USED: %d", used);
+
+					tintin_printf2(ses, "#INFO MEMORY: ALLOC  MAX: %d", gtd->memory->list_max);
+					tintin_printf2(ses, "#INFO MEMORY: ALLOC  LEN: %d", gtd->memory->list_len);
+
+					tintin_printf2(ses, "");
+
+					quan = 0;
+					used = 0;
+
+					for (index = 0 ; index < gtd->memory->free_len ; index++)
+					{
+						str_ptr = gtd->memory->list[gtd->memory->free[index]];
+
+						if (HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
+						{
+							quan += str_ptr->max;
+							used += str_ptr->len;
+						}
+						else
+						{
+							tintin_printf2(ses, "error: found freed memory not marked as free.");
+						}
+					}
+
+					tintin_printf2(ses, "#INFO MEMORY: FREED SIZE: %d", quan);
+
+					tintin_printf2(ses, "#INFO MEMORY: FREED  MAX: %d", gtd->memory->free_max);
+					tintin_printf2(ses, "#INFO MEMORY: FREED  LEN: %d", gtd->memory->free_len);
+
+					tintin_printf2(ses, "");
+
+					quan = 0;
+					used = 0;
+
+					for (index = 0 ; index < gtd->memory->debug_len ; index++)
+					{
+						quan += NAME_SIZE;
+					}
+
+					tintin_printf2(ses, "#INFO MEMORY: DEBUG SIZE: %d", quan);
+
+					tintin_printf2(ses, "#INFO MEMORY: DEBUG  MAX: %d", gtd->memory->debug_max);
+					tintin_printf2(ses, "#INFO MEMORY: DEBUG  LEN: %d", gtd->memory->debug_len);
 				}
-				else
+				break;
+
+			case CTRL_S:
+				if (is_abbrev(arg1, "SESSION"))
 				{
-					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
-					tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
-					tintin_printf2(ses, "#INFO SYSTEM: CWD            = %s", cwd);
-					tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->system->exec);
-					tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->system->home);
-					tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->system->lang);
-					tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->system->os);
-					tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->system->term);
-					tintin_printf2(ses, "#INFO SYSTEM: TINTIN         = %s", gtd->system->tt_dir);
-					tintin_printf2(ses, "#INFO SYSTEM: DETACH_PORT    = %d", gtd->detach_port);
-					tintin_printf2(ses, "#INFO SYSTEM: DETACH_FILE    = %s", gtd->detach_port ? gtd->detach_file : "");
-					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_SOCK    = %d", gtd->attach_sock);
-					tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_sock ? gtd->attach_file : "");
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						set_nest_node_ses(ses, "info[SESSION]", "{NAME}{%s}", ses->name);
+						add_nest_node_ses(ses, "info[SESSION]", "{ACTIVE}{%d}", gtd->ses == ses);
+						add_nest_node_ses(ses, "info[SESSION]", "{CLASS}{%s}", ses->group);
+						add_nest_node_ses(ses, "info[SESSION]", "{CREATED}{%d}", ses->created);
+						add_nest_node_ses(ses, "info[SESSION]", "{HOST} {%s}", ses->session_host);
+						add_nest_node_ses(ses, "info[SESSION]", "{IP} {%s}", ses->session_ip);
+						add_nest_node_ses(ses, "info[SESSION]", "{PORT} {%s}", ses->session_port);
+
+						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
+					}
+					else
+					{
+						tintin_printf2(ses, "{NAME}{%s}", ses->name);
+						tintin_printf2(ses, "{ACTIVE}{%d}", gtd->ses == ses);
+						tintin_printf2(ses, "{CLASS}{%s}", ses->group);
+						tintin_printf2(ses, "{CREATED}{%d}", ses->created);
+						tintin_printf2(ses, "{HOST} {%s}", ses->session_host);
+						tintin_printf2(ses, "{IP} {%s}", ses->session_ip);
+						tintin_printf2(ses, "{PORT} {%s}", ses->session_port);
+					}
 				}
-			}
-			else if (is_abbrev(arg1, "UNICODE"))
-			{
-				int size, width, index;
+				else if (is_abbrev(arg1, "SESSIONS"))
+				{
+					struct session *sesptr;
 
-				size = get_utf8_size(arg2);
-				get_utf8_width(arg2, &width);
-				get_utf8_index(arg2, &index);
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						set_nest_node_ses(ses, "info[SESSIONS]", "");
 
-				tintin_printf2(ses, "#INFO UNICODE: %s:  is_utf8_head  = %d (%s)", arg2, is_utf8_head(arg2), is_utf8_head(arg2) ? "true" : "false");
-				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_size  = %d", arg2, size);
-				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_width = %d", arg2, width);
-				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %d (decimal)", arg2, index);
-				tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %x (hexadecimal)", arg2, index);
-			}
-			else
-			{
-				show_error(ses, LIST_COMMAND, "#INFO {%s} - NO MATCH FOUND.", arg1);
-			}
+						for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+						{
+							sprintf(name, "info[SESSIONS][%s]", sesptr->name);
+
+							add_nest_node_ses(ses, name, "{NAME}{%s}", sesptr->name);
+							add_nest_node_ses(ses, name, "{ACTIVE}{%d}", gtd->ses == sesptr);
+							add_nest_node_ses(ses, name, "{CLASS}{%s}", sesptr->group);
+							add_nest_node_ses(ses, name, "{CREATED}{%d}", sesptr->created);
+							add_nest_node_ses(ses, name, "{HOST} {%s}", sesptr->session_host);
+							add_nest_node_ses(ses, name, "{IP} {%s}", sesptr->session_ip);
+							add_nest_node_ses(ses, name, "{PORT} {%s}", sesptr->session_port);
+						}
+						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
+					}
+					else
+					{
+						for (sesptr = gts ; sesptr ; sesptr = sesptr->next)
+						{
+							tintin_printf2(ses, "{%s}{NAME}{%s}", sesptr->name, sesptr->name);
+							tintin_printf2(ses, "{%s}{ACTIVE}{%d}", sesptr->name, gtd->ses == sesptr);
+							tintin_printf2(ses, "{%s}{CLASS}{%s}", sesptr->name, sesptr->group);
+							tintin_printf2(ses, "{%s}{CREATED}{%d}", sesptr->name, sesptr->created);
+							tintin_printf2(ses, "{%s}{HOST} {%s}", sesptr->name, sesptr->session_host);
+							tintin_printf2(ses, "{%s}{IP} {%s}", sesptr->name, sesptr->session_ip);
+							tintin_printf2(ses, "{%s}{PORT} {%s}", sesptr->name, sesptr->session_port);
+						}
+					}
+				}
+				else if (is_abbrev(arg1, "STACK"))
+				{
+					dump_stack();
+				}
+				else if (is_abbrev(arg1, "SYSTEM"))
+				{
+					char cwd[PATH_MAX];
+
+					if (getcwd(cwd, PATH_MAX) == NULL)
+					{
+						syserr_printf(ses, "do_info: getcwd:");
+
+						cwd[0] = 0;
+					}
+
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						sprintf(name, "info[SYSTEM]");
+
+						set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
+						add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{PID}{%d}{TERM}{%s}{TINTIN}{%s}", cwd, gtd->system->exec, gtd->system->home, gtd->system->lang, gtd->system->os, getpid(), gtd->system->term, gtd->system->tt_dir);
+						add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
+
+						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
+					}
+					else
+					{
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
+						tintin_printf2(ses, "#INFO SYSTEM: CWD            = %s", cwd);
+						tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->system->exec);
+						tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->system->home);
+						tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->system->lang);
+						tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->system->os);
+						tintin_printf2(ses, "#INFO SYSTEM: PID            = %d", getpid());
+						tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->system->term);
+						tintin_printf2(ses, "#INFO SYSTEM: TINTIN         = %s", gtd->system->tt_dir);
+						tintin_printf2(ses, "#INFO SYSTEM: DETACH_PORT    = %d", gtd->detach_port);
+						tintin_printf2(ses, "#INFO SYSTEM: DETACH_FILE    = %s", gtd->detach_port ? gtd->detach_file : "");
+						tintin_printf2(ses, "#INFO SYSTEM: ATTACH_SOCK    = %d", gtd->attach_sock);
+						tintin_printf2(ses, "#INFO SYSTEM: ATTACH_FILE    = %s", gtd->attach_sock ? gtd->attach_file : "");
+					}
+				}
+				break;
+
+			case CTRL_U:
+				if (is_abbrev(arg1, "UNICODE"))
+				{
+					int size, width, index;
+
+					size = get_utf8_size(arg2);
+					get_utf8_width(arg2, &width);
+					get_utf8_index(arg2, &index);
+
+					tintin_printf2(ses, "#INFO UNICODE: %s:  is_utf8_head  = %d (%s)", arg2, is_utf8_head(arg2), is_utf8_head(arg2) ? "true" : "false");
+					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_size  = %d", arg2, size);
+					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_width = %d", arg2, width);
+					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %d (decimal)", arg2, index);
+					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %x (hexadecimal)", arg2, index);
+				}
+				break;
+		}
+		if (*gtd->is_result == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#INFO {%s} - NO MATCH FOUND.", arg1);
 		}
 	}
 	return ses;

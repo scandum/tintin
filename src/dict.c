@@ -29,8 +29,8 @@
 
 struct dictionary_data
 {
-	unsigned int  * wordindex[26];
-	int             listsize[26];
+	unsigned int * wordindex[26];
+	unsigned int   listsize[26];
 };
 
 struct dictionary_data *dictionary;
@@ -83,11 +83,12 @@ void dictionary_init()
 		}
 		while (*pta);
 	}
-
-//	for (hash = 0 ; hash < 26 ; hash++)
-//	{
-//		printf("hash %2d = %d\n", hash, dictionary->listsize[hash]);
-//	}
+/*
+	for (hash = 0 ; hash < 26 ; hash++)
+	{
+		printf("hash %c = %d\n", 'A' + hash, dictionary->listsize[hash]);
+	}
+*/
 }
 
 int dictionary_search(int hash, char *key)
@@ -189,6 +190,8 @@ DO_COMMAND(do_dictionary)
 	if (*arg1 == 0 || !is_alpha(*arg1))
 	{
 		show_message(ses, LIST_COMMAND, "#SYNTAX: #DICTIONARY {WORD}");
+
+		wordlist[0][0] = 0;
 
 		return ses;
 	}

@@ -220,6 +220,8 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 		{
 			cur_height++;
 
+//			printf("cur_col %d tab %d wrap %d pti %d\n", ses->cur_col, tab, wrap, *pti);
+
 			if (HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))
 			{
 				if (ses->cur_col - cur_space >= 15 || wrap <= 20 || !SCROLL(ses))

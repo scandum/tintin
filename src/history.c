@@ -119,7 +119,7 @@ struct session *repeat_history(struct session *ses, char *line)
 
 DO_HISTORY(history_character)
 {
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	gtd->repeat_char = *arg1;
 
@@ -217,7 +217,7 @@ DO_HISTORY(history_get)
 
 DO_HISTORY(history_list)
 {
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
@@ -235,7 +235,7 @@ DO_HISTORY(history_read)
 	struct listroot *root = ses->list[LIST_HISTORY];
 	FILE *file;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	file = fopen(arg1, "r");
 
@@ -269,7 +269,7 @@ DO_HISTORY(history_read)
 
 DO_HISTORY(history_size)
 {
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if (atoi(arg1) < 1 || atoi(arg1) > 100000)
 	{
@@ -288,7 +288,7 @@ DO_HISTORY(history_write)
 	FILE *file;
 	int i;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
 	file = fopen(arg1, "w");
 

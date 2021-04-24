@@ -721,6 +721,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          You can further prefix the option as following:
 
          ASCII      will draw in ASCII mode.
+         BALIGN     will bottom align text.
          BLANKED    will blank the lines and corners.
          BOTTOM     will draw on the bottom side if possible.
          BOXED      will draw a box along the square.
@@ -761,7 +762,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          The following types are available.
 
          [HORIZONTAL] </span><span style='color:#FFF'>BAR</span><span style='color:#AAA'> {&lt;MIN&gt;;&lt;MAX&gt;;[COLOR]}
-          will draw a bar.
+          will draw a bar, use two 256 color codes for a color gradient.
          [ASCII|UNICODE|HUGE] </span><span style='color:#FFF'>BOX</span><span style='color:#AAA'> {[TEXT1]} {[TEXT2]}
            will draw a box.
          [BOXED|FOREGROUND] </span><span style='color:#FFF'>BUFFER
@@ -805,7 +806,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #echo {The current date is %t.} {%Y-%m-%d %H:%M:%S}
          #echo {[%38s][%-38s]} {Hello World} {Hello World}
-         #echo {{this is %s on the top row} {-1}} {printed}
+         #echo {{this is %s on the top row} {1}} {printed}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#BUFFER'>buffer</a>, <a href='#FORMAT'>format</a>, <a href='#GREP'>grep</a> and <a href='#SHOWME'>showme</a>.
 <a name='EDIT'></a>
@@ -1013,6 +1014,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          &bsol;x7B  send the '{' character.
          &bsol;x7D  send the '}' character.
          &bsol;u    print a 16 bit unicode character, &bsol;uFFFD for example.
+         &bsol;u{}  print a 8-21 bit unicode character, &bsol;u{2AF21} for example.
          &bsol;U    print a 21 bit unicode character, &bsol;U02AF21 for example.
          &bsol;v    send a vertical tab
 
@@ -1137,43 +1139,6 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#FFF'>PORT LOG MESSAGE       </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
          </span><span style='color:#FFF'>PORT RECEIVED MESSAGE  </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
 
-         </span><span style='color:#5F5'>SYSTEM EVENTS</span><span style='color:#AAA'>
-
-         DAEMON ATTACHED        %0 file %1 pid
-         DAEMON DETACHED        %0 file %1 pid
-         PROGRAM START          %0 startup arguments
-         PROGRAM TERMINATION    %0 goodbye message
-
-         READ ERROR             %0 filename %1 error message
-         READ FILE              %0 filename
-         WRITE ERROR            %0 filename %1 error message
-         WRITE FILE             %0 filename
-
-         SYSTEM CRASH           %0 message
-         SYSTEM ERROR           %0 name %1 system msg %2 error %3 error msg
-         UNKNOWN COMMAND        %0 raw text
-
-         </span><span style='color:#5F5'>TELNET EVENTS
-
-         </span><span style='color:#FFF'>IAC &lt;EVENT&gt;
-         </span><span style='color:#AAA'>  IAC TELNET events are made visable using #config telnet info.
-
-         </span><span style='color:#FFF'>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data
-         IAC SB MSSP            %0 variable  %1 data
-         IAC SB MSDP            %0 variable  %1 data  %2 plain data
-         IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data
-         IAC SB NEW-ENVIRON     %0 variable  %1 data  %2 plain data
-         IAC SB ZMP &lt;VAR&gt;       %0 variable  %1 data
-         IAC SB &lt;VAR&gt;           %0 variable  %1 raw data  %2 plain data
-
-         </span><span style='color:#5F5'>TIME EVENTS
-
-         </span><span style='color:#FFF'>DATE &lt;MONTH-DAY OF MONTH&gt; [HOUR:MINUTE], DAY [DAY OF MONTH],
-         HOUR [HOUR], MONTH [DAY OF MONTH], TIME &lt;HOUR:MINUTE&gt;[:SECOND],
-         WEEK [DAY OF WEEK], YEAR [YEAR]
-         </span><span style='color:#AAA'>  %0 year  %1 month  %2 day of week  %3 day of month  %4 hour
-           %5 minute  %6 second
-
          </span><span style='color:#5F5'>SCAN EVENTS</span><span style='color:#AAA'>
 
          SCAN CSV HEADER        %0 all args %1 arg1 %2 arg2 .. %99 arg99
@@ -1204,6 +1169,45 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          SESSION DEACTIVATED    %0 name
          SESSION DISCONNECTED   %0 name %1 host %2 ip %3 port
          SESSION TIMED OUT      %0 name %1 host %2 ip %3 port
+
+
+         </span><span style='color:#5F5'>SYSTEM EVENTS</span><span style='color:#AAA'>
+
+         DAEMON ATTACHED        %0 file %1 pid
+         DAEMON DETACHED        %0 file %1 pid
+         PROGRAM START          %0 startup arguments
+         PROGRAM TERMINATION    %0 goodbye message
+
+         READ ERROR             %0 filename %1 error message
+         READ FILE              %0 filename
+         WRITE ERROR            %0 filename %1 error message
+         WRITE FILE             %0 filename
+
+         SYSTEM CRASH           %0 message
+         SYSTEM ERROR           %0 name %1 system msg %2 error %3 error msg
+         UNKNOWN COMMAND        %0 raw text
+         SIGUSR                 %0 signal
+
+         </span><span style='color:#5F5'>TELNET EVENTS
+
+         </span><span style='color:#FFF'>IAC &lt;EVENT&gt;
+         </span><span style='color:#AAA'>  IAC TELNET events are made visable using #config telnet info.
+
+         </span><span style='color:#FFF'>IAC SB GMCP [MODULE]   %0 module    %1 data  %2 plain data
+         IAC SB MSSP            %0 variable  %1 data
+         IAC SB MSDP            %0 variable  %1 data  %2 plain data
+         IAC SB MSDP [VAR]      %0 variable  %1 data  %2 plain data
+         IAC SB NEW-ENVIRON     %0 variable  %1 data  %2 plain data
+         IAC SB ZMP &lt;VAR&gt;       %0 variable  %1 data
+         IAC SB &lt;VAR&gt;           %0 variable  %1 raw data  %2 plain data
+
+         </span><span style='color:#5F5'>TIME EVENTS
+
+         </span><span style='color:#FFF'>DATE &lt;MONTH-DAY OF MONTH&gt; [HOUR:MINUTE], DAY [DAY OF MONTH],
+         HOUR [HOUR], MONTH [DAY OF MONTH], TIME &lt;HOUR:MINUTE&gt;[:SECOND],
+         WEEK [DAY OF WEEK], YEAR [YEAR]
+         </span><span style='color:#AAA'>  %0 year  %1 month  %2 day of week  %3 day of month  %4 hour
+           %5 minute  %6 second
 
          </span><span style='color:#5F5'>VARIABLE EVENTS</span><span style='color:#AAA'>
 
@@ -1271,7 +1275,6 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
                                          optional {{string}{width}} syntax
          #format {test} {%x}      {hex}  print corresponding charset character
          #format {test} {%A}     {char}  store corresponding character value
-         #format {test} {%C}   {number}  store number in chronological notation
          #format {test} {%D}      {hex}  convert hex to decimal in {test}
          #format {hash} {%H}   {string}  store a 64 bit string hash in {hash}
          #format {test} {%L}   {string}  store the string length in {test}
@@ -1340,7 +1343,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.06b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.11b                    </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1478,22 +1481,27 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#5F5'>         IF
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #if </span><span style='color:#FFF'>{</span><span style='color:#AAA'>conditional</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if true</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if false</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #if </span><span style='color:#FFF'>{</span><span style='color:#AAA'>conditional</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if true</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
-         The 'if' command is one of the most powerful commands added since
-         TINTIN III. It works similar to an 'if' statement in other languages,
-         and is strictly based on the way C handles its conditional statements.
-         When an 'if' command is encountered, the conditional statement is
+         The #if command is one of the most powerful commands added since
+         TINTIN III. It works similar to an if statement in other languages,
+         and is based on the way C handles its conditional statements.
+         When an #if command is encountered, the conditional statement is
          evaluated, and if TRUE (any non-zero result) the commands are executed.
 
-         The 'if' statement is only evaluated if it is read, so you must nest
-         the 'if' statement inside another statement (most likely an 'action'
+         The if statement is only evaluated if it is read, so you must nest
+         the if statement inside another statement (most likely an #action
          command). The conditional is evaluated exactly the same as in the
-         'math' command only instead of storing the result, the result is used
+         #math command, only instead of storing the result, the result is used
          to determine whether to execute the commands.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action {%0 gives you %1 gold coins.} {#if {%1&gt;5000} {thank %0}}
+         To handle the case where an if statement is false it can be followed
+         by the #else command.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action {%0 gives you %1 gold coins.} {#if {%1 &gt; 5000} {thank %0}}
          If someone gives you more than 5000 coins, thank them.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias {k} {#if {&quot;%0&quot; == &quot;&quot;} {kill &dollar;target};#else {kill %0}}
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: See '#help math', for more information.
 
@@ -1515,11 +1523,9 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#5F5'>         INDEX
 
-         INDEX
-</span><span style='color:#AAA'>
          On this page you'll find an introduction to using TinTin++. Additional
          information can be found in the individual help sections.
-</span><span style='color:#5F5'>
+
          Starting and Ending
 </span><span style='color:#AAA'>
          The syntax for starting TinTin++ is: ./tt++ [command file]
@@ -1787,12 +1793,16 @@ Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>
 
          By providing the name of a list and the LIST option it shows all
          triggers/variables associated with that list. With the SAVE option
-         This data is written to the info variable.
+         this data is written to the info variable.
 
          #info cpu will show information about tintin's cpu usage.
+         #info environ will show the environment variables.
+         #info input will show information about the input line.
          #info mccp will show information about data compression.
+         #info memory will show information about the memory stack.
          #info stack will show the low level debugging stack.
-         #info session will show some session information.
+         #info session will show information on the session.
+         #info sessions will show information on all sessions.
          #info system will show some system information.
          #info unicode will show information on the provided character.
 
@@ -2345,7 +2355,8 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#AAA'>  Sets displaying center of the map viewer, default is 0 0 0.
 
          </span><span style='color:#FFF'>#map color &lt;field&gt; [value]
-         </span><span style='color:#AAA'>  Sets the map color for the given color field.
+         </span><span style='color:#AAA'>  Sets the map color for the given color field. Use #map color reset
+           to restore colors to default.
 
          </span><span style='color:#FFF'>#map create &lt;size&gt;
          </span><span style='color:#AAA'>  Creates a new map and room 1. The default size is 50000 rooms.
@@ -2754,31 +2765,33 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          ------------------------------------------------
          !               0            logical not
          ~               0            bitwise not
-         *               1            integer multiply
-         **              1            integer power
-         /               1            integer divide
-         //              1            integer sqrt // 2 or cbrt // 3
-         %               1            integer modulo
-         d               1            integer random dice roll
-         +               2            integer addition
-         -               2            integer subtraction
-         &lt;&lt;              3            bitwise shift
-         &gt;&gt;              3            bitwise shift
-         ..              3            bitwise ellipsis
-         &gt;               4            logical greater than
-         &gt;=              4            logical greater than or equal
-         &lt;               4            logical less than
-         &lt;=              4            logical less than or equal
-         ==              5            logical equal (can use regex)
-         ===             5            logical equal (never regex)
-         !=              5            logical not equal (can use regex)
-         !==             5            logical not equal (never regex)
-          &amp;              6            bitwise and
-          ^              7            bitwise xor
-          |              8            bitwise or
-         &amp;&amp;              9            logical and
-         ^^             10            logical xor
-         ||             11            logical or
+         d               1            integer random dice
+         *               2            integer multiply
+         **              2            integer power
+         /               2            integer divide
+         //              2            integer sqrt // 2 or cbrt // 3
+         %               2            integer modulo
+         +               3            integer addition
+         -               3            integer subtraction
+         &lt;&lt;              4            bitwise shift
+         &gt;&gt;              4            bitwise shift
+         ..              4            bitwise ellipsis
+         &gt;               5            logical greater than
+         &gt;=              5            logical greater than or equal
+         &lt;               5            logical less than
+         &lt;=              5            logical less than or equal
+         ==              6            logical equal (can use regex)
+         ===             6            logical equal (never regex)
+         !=              6            logical not equal (can use regex)
+         !==             6            logical not equal (never regex)
+          &amp;              7            bitwise and
+          ^              8            bitwise xor
+          |              9            bitwise or
+         &amp;&amp;             10            logical and
+         ^^             11            logical xor
+         ||             12            logical or
+         ?              13            logical ternary if (unfinished code)
+         :              14            logical ternary else 
 
          True is any non-zero number, and False is zero.  Parentheses () have
          highest precedence, so inside the () is always evaluated first.
@@ -2973,7 +2986,7 @@ Related</span><span style='color:#AAA'>: <a href='#EVENT'>event</a> and <a href=
 
          This would make you start a reply when clicking on a tell.
 
-Website: https://tintin.mudhalla.net/protocols/mslp
+</span><span style='color:#FFF'>Website</span><span style='color:#AAA'>: https://tintin.mudhalla.net/protocols/mslp
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#EVENT'>event</a> and <a href='#PORT'>port</a>.
 <a name='NOP'></a>
@@ -3321,7 +3334,7 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
          Prompt is a feature for split window mode, which will capture a line
          received from the server and display it on the status bar of your
          split screen terminal. You would define &lt;text&gt; and &lt;new text&gt; the
-         same way as with a substitution.
+         same way as you would with #substitute.
 
          The row number is optional and useful if you use a non standard split
          mode. A positive row number draws #row lines from the top while a
@@ -3332,8 +3345,8 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
          The col number is optional and can be used to set the column index.
          A positive col number draws the given number of columns from the left,
          while a negative col number draws from the right. If you leave the
-         column argument empty tintin will clear the row before printing at
-         the start of the row.
+         col number empty tintin will clear the row before printing at the
+         start of the row.
 
          The #show command takes a row and col argument as well so it's also
          possible to place text on your split lines using #show.
@@ -3389,18 +3402,21 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
 
          Of the following the (lazy) match is available at %1-%99 + 1
 
-      %a match zero to any number of characters including newlines.
-      %A match zero to any number of newlines.
       %d match zero to any number of digits.
       %D match zero to any number of non digits.
-      %p match zero to any number of printable characters.
-      %P match zero to any number of non printable characters.
       %s match zero to any number of spaces.
       %S match zero to any number of non spaces.
-      %u match zero to any number of unicode characters.
-      %U match zero to any number of non unicode characters.
       %w match zero to any number of word characters.
       %W match zero to any number of non word characters.
+
+      Experimental (subject to change) matches are:
+
+      %a match zero to any number of characters including newlines.
+      %A match zero to any number of newlines.
+      %p match zero to any number of printable characters.
+      %P match zero to any number of non printable characters.
+      %u match zero to any number of unicode characters.
+      %U match zero to any number of non unicode characters.
 
       If you want to match 1 digit use %+1d, if you want to match between 3
       and 5 spaces use %+3..5s, if you want to match 0 or more word
@@ -3423,7 +3439,7 @@ Example: #action {~&bsol;e[1;37m%1} {#var roomname %1}
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: Like an alias or function #regex has its own scope.
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#REPLACE'>replace</a>
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#PCRE'>pcre</a> and <a href='#REPLACE'>replace</a>.
 <a name='REPEAT'></a>
 
 </span><span style='color:#5F5'>         REPEAT
@@ -3638,7 +3654,7 @@ easiest way to accomplish that.
          treats the generated echos as commands if no variable is provided.
 
          This is useful for running php, perl, ruby, and python scripts. You
-         can run these scrips either from file or from within tintin if the
+         can run these scripts either from file or from within tintin if the
          scripting language allows this.
 
          If you provide a variable the output of the script is stored as a list.
@@ -3747,7 +3763,7 @@ session one will remain the active session.
 
 </span><span style='color:#5F5'>         SNOOP
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #snoop </span><span style='color:#FFF'>{</span><span style='color:#AAA'>session name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>on</span><span style='color:#FFF'>|</span><span style='color:#AAA'>off</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #snoop </span><span style='color:#FFF'>{</span><span style='color:#AAA'>session name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>on</span><span style='color:#FFF'>|</span><span style='color:#AAA'>off</span><span style='color:#FFF'>|</span><span style='color:#AAA'>scroll</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
          If there are multiple sessions active, this command allows you to
          monitor what is going on in the sessions that are not currently active.
@@ -3755,6 +3771,11 @@ session one will remain the active session.
          name.
 
          You can toggle off snoop mode by executing #snoop a second time.
+
+         By using the scroll argument you will snoop the session's scroll
+         region which will overwrite the display of whichever session is active.
+         You can change the size and location of a session's scroll region by
+         using the #split and #screen scrollregion commands.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#ALL'>all</a>, <a href='#PORT'>port</a>, <a href='#RUN'>run</a>, <a href='#SESSION'>session</a>, <a href='#SESSIONNAME'>sessionname</a>, <a href='#SSL'>ssl</a> and <a href='#ZAP'>zap</a>.
 <a name='SPEEDWALK'></a>

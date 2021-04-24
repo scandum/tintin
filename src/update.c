@@ -374,6 +374,24 @@ void update_sessions(void)
 		sleep = 0;
 	}
 
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_WINCHUPDATE))
+	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_WINCHUPDATE);
+
+		init_terminal_size(gts);
+
+		for (ses = gts->next ; ses ; ses = ses->next)
+		{
+			init_terminal_size(ses);
+
+			if (HAS_BIT(ses->telopts, TELOPT_FLAG_NAWS))
+			{
+				SET_BIT(ses->telopts, TELOPT_FLAG_UPDATENAWS);
+			}
+		}
+		winch_daemon();
+	}
+
 	if (gts->next)
 	{
 		FD_ZERO(&read_fd);
@@ -474,6 +492,17 @@ void update_sessions(void)
 				}
 				else
 				{
+					if (HAS_BIT(ses->flags, SES_FLAG_SNOOPSCROLL))
+					{
+						if (HAS_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE))
+						{
+							buffer_refresh(ses, "", "", "");
+						}
+						else
+						{
+							print_scroll_region(ses);
+						}
+					}
 					buffer_end(ses, "", "", "");
 				}
 

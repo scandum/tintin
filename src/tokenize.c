@@ -289,6 +289,8 @@ void handleswitchtoken(struct session *ses, struct scriptnode *token)
 {
 	char arg[BUFFER_SIZE];
 
+//	substitute(ses, token->str, arg, SUB_VAR|SUB_FUN);
+
 	mathexp(ses, token->str, arg, 0);
 
 	RESTRING(token->data->str, arg);

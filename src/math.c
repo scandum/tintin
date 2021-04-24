@@ -25,33 +25,84 @@
 
 #include "tintin.h"
 
-#define EXP_VARIABLE         0
-#define EXP_STRING           1
-#define EXP_BRACE            2
-#define EXP_OPERATOR         3
+#define EXP_NUMBER             0
+#define EXP_STRING             1
+#define EXP_BRACE              2
+#define EXP_OPERATOR           3
+#define EXP_PARANTHESES        4
 
-#define EXP_PR_DICE          0
-#define EXP_PR_INTMUL        1
-#define EXP_PR_INTADD        2
-#define EXP_PR_BITSHIFT      3
-#define EXP_PR_LOGLTGT       4
-#define EXP_PR_LOGCOMP       5
-#define EXP_PR_BITAND        6
-#define EXP_PR_BITXOR        7
-#define EXP_PR_BITOR         8
-#define EXP_PR_LOGAND        9
-#define EXP_PR_LOGXOR       10
-#define EXP_PR_LOGOR        11
-#define EXP_PR_TERNARY      12
-#define EXP_PR_VAR          13
-#define EXP_PR_LVL          14
+#define EXP_PR_CONSTANT        0
+#define EXP_PR_DICE            1
+#define EXP_PR_INTMUL          2
+#define EXP_PR_INTADD          3
+#define EXP_PR_BITSHIFT        4
+#define EXP_PR_LOGLTGT         5
+#define EXP_PR_LOGCOMP         6
+#define EXP_PR_BITAND          7
+#define EXP_PR_BITXOR          8
+#define EXP_PR_BITOR           9
+#define EXP_PR_LOGAND         10
+#define EXP_PR_LOGXOR         11
+#define EXP_PR_LOGOR          12
+#define EXP_PR_TERNARY        13
+#define EXP_PR_VAR            14
+#define EXP_PR_LVL            15
 
-struct link_data *math_head;
-struct link_data *math_tail;
-struct link_data *mathnode_s;
-struct link_data *mathnode_e;
 
-int precision;
+#define EXP_OP_MULTIPLY        '*'
+#define EXP_OP_POWER           '*' + 128 * '*'
+#define EXP_OP_DIVIDE          '/'
+#define EXP_OP_ROOT            '/' + 128 * '/'
+#define EXP_OP_MODULO          '%'
+#define EXP_OP_DICE            'd'
+#define EXP_OP_ADDITION        '+'
+#define EXP_OP_SUBTRACTION     '-'
+#define EXP_OP_LEFT_SHIFT      '<' + 128 * '<'
+#define EXP_OP_RIGHT_SHIFT     '>' + 128 * '>'
+#define EXP_OP_ELLIPSIS        '.' + 128 * '.'
+#define EXP_OP_GREATER         '>'
+#define EXP_OP_GREATER_EQUAL   '>' + 128 * '='
+#define EXP_OP_LESSER          '<'
+#define EXP_OP_LESSER_EQUAL    '<' + 128 * '='
+#define EXP_OP_EQUAL           '=' + 128 * '='
+#define EXP_OP_COMPARE         '=' + 128 * '=' + 128 * 128 * '='
+#define EXP_OP_NOT_EQUAL       '!' + 128 * '='
+#define EXP_OP_NOT_COMPARE     '!' + 128 * '=' + 128 * 128 * '='
+#define EXP_OP_AND             '&'
+#define EXP_OP_XOR             '^'
+#define EXP_OP_OR              '|'
+#define EXP_OP_LOGICAL_AND     '&' + 128 * '&'
+#define EXP_OP_LOGICAL_XOR     '^' + 128 * '^'
+#define EXP_OP_LOGICAL_OR      '|' + 128 * '|'
+#define EXP_OP_TERNARY_IF      '?'
+#define EXP_OP_TERNARY_ELSE    ':'
+
+struct math_node
+{
+	struct math_node     * next;
+	struct math_node     * prev;
+	unsigned short         level;
+	unsigned char          priority;
+	unsigned char          type;
+	long double            val;
+	char                 * str3;
+};
+
+struct math_node *math_head;
+struct math_node *math_tail;
+struct math_node *mathnode_s;
+struct math_node *mathnode_e;
+
+int precision, wonky;
+
+//long double mathexp(struct session *ses, char *str, char *result, int seed);
+void mathexp_level(struct session *ses, struct math_node *node);
+void mathexp_compute(struct session *ses, struct math_node *node);
+int mathexp_tokenize(struct session *ses, char *str, int seed, int debug);
+long double tinternary(struct math_node *left, struct math_node *right);
+long double tincmp(struct math_node *left, struct math_node *right);
+long double tineval(struct session *ses, struct math_node *left, struct math_node *right);
+long double tindice(struct session *ses, struct math_node *left, struct math_node *right);
 
 DO_COMMAND(do_math)
 {
@@ -90,11 +141,9 @@ long double get_number(struct session *ses, char *str)
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER);
 
-	mathexp(ses, str, result, 0);
+	val = mathexp(ses, str, result, 0);
 
 	DEL_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER);
-
-	val = tintoi(result);
 
 	return val;
 }
@@ -104,19 +153,17 @@ unsigned long long get_ulong(struct session *ses, char *str)
 	unsigned long long val;
 	char result[BUFFER_SIZE];
 
-	mathexp(ses, str, result, 0);
-
-	val = tintou(result);
+	val = (unsigned long long) mathexp(ses, str, result, 0);
 
 	return val;
 }
 
-int get_ellipsis(struct listroot *root, char *name, int *min, int *max)
+int get_ellipsis(struct session *ses, unsigned int size, char *name, int *min, int *max)
 {
 	size_t len;
 	unsigned long long range;
 
-	push_call("get_ellipsis(%p,%p,%p,%p)",root,name,min,max);
+	push_call("get_ellipsis(%p,%d,%p,%p,%p)",ses,size,name,min,max);
 
 	len = strlen(name);
 
@@ -125,16 +172,16 @@ int get_ellipsis(struct listroot *root, char *name, int *min, int *max)
 		strcpy(name + len, "-1");
 	}
 
-	range = get_ulong(root->ses, name);
+	range = get_ulong(ses, name);
 
 	*min = (int) (HAS_BIT(range, 0x00000000FFFFFFFFLL));
 	*max = (int) (HAS_BIT(range, 0xFFFFFFFF00000000ULL) >> 32ULL);
 
-	*min = *min > 0 ? *min - 1 : root->used + *min;
-	*max = *max > 0 ? *max - 1 : root->used + *max;
+	*min = *min > 0 ? *min - 1 : size + *min;
+	*max = *max > 0 ? *max - 1 : size + *max;
 
-	*min = URANGE(0, *min, root->used - 1);
-	*max = URANGE(0, *max, root->used - 1);
+	*min = URANGE(0, *min, size - 1);
+	*max = URANGE(0, *max, size - 1);
 
 	pop_call();
 	return 1 + (*min < *max ? *max - *min : *min - *max);
@@ -171,9 +218,7 @@ long double get_double(struct session *ses, char *str)
 	long double val;
 	char result[BUFFER_SIZE];
 
-	mathexp(ses, str, result, 1);
-
-	val = tintoi(result);
+	val = mathexp(ses, str, result, 1);
 
 	return val;
 }
@@ -200,22 +245,22 @@ long double mathswitch(struct session *ses, char *left, char *right)
 	If seed is set it forces floating point math
 */
 
-void mathexp(struct session *ses, char *str, char *result, int seed)
+long double mathexp(struct session *ses, char *str, char *result, int seed)
 {
-	struct link_data *node;
+	struct math_node *node;
 
 	substitute(ses, str, result, SUB_VAR|SUB_FUN);
 
 	if (mathexp_tokenize(ses, result, seed, TRUE) == FALSE)
 	{
-		return;
+		return 0;
 	}
 
 	node = math_head;
 
 	while (node->prev || node->next)
 	{
-		if (node->next == NULL || atoi(node->next->str1) < atoi(node->str1))
+		if (node->next == NULL || node->next->level < node->level)
 		{
 			mathexp_level(ses, node);
 
@@ -227,74 +272,97 @@ void mathexp(struct session *ses, char *str, char *result, int seed)
 		}
 	}
 
-	strcpy(result, node->str3);
+	if (node->type != EXP_STRING)
+	{
+		sprintf(result, "%.*Lf", precision, node->val);
+	}
+	return node->val;
 }
 
-#define MATH_NODE(buffercheck, priority, newstatus)             \
+#define MATH_NODE(type, priority, newstatus)                    \
 {                                                               \
-	if (buffercheck && pta == buf3)                         \
-	{                                                       \
-		pop_call( );                                    \
-		return FALSE;                                   \
-	}                                                       \
-	if (badnumber && debug)                                 \
-	{                                                       \
-		badnumber = 0;                                  \
-		precision = 0;                                  \
-		show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3); \
-	}                                                       \
 	*pta = 0;                                               \
-	sprintf(buf1, "%02d", level);                           \
-	sprintf(buf2, "%02d", priority);                        \
-	add_math_node(buf1, buf2, buf3);                        \
+	add_math_node(type, level, priority, buf3);             \
 	status = newstatus;                                     \
 	pta = buf3;                                             \
 	point = -1;                                             \
-	metric = 0;                                             \
 }
 
-void add_math_node(char *arg1, char *arg2, char *arg3)
+void add_math_node(int type, int level, int priority, char *arg3)
 {
-	struct link_data *link;
+	struct math_node *link;
 
-	link = (struct link_data *) calloc(1, sizeof(struct link_data));
+	link = (struct math_node *) calloc(1, sizeof(struct math_node));
 
-	link->str1 = strdup(arg1);
-	link->str2 = strdup(arg2);
+	link->level = level;
+	link->priority = priority;
+	link->type = type;
+
+	switch (type)
+	{
+		case EXP_NUMBER:
+			if (wonky)
+			{
+				link->val = --wonky;
+			}
+			else
+			{
+				link->val = tintoi(arg3);
+			}
+			break;
+
+		case EXP_OPERATOR:
+			link->val = (int) arg3[0];
+			if (arg3[1])
+			{
+				link->val += (int) 128 * arg3[1];
+				if (arg3[2])
+				{
+					link->val += (int) 128 * 128 * arg3[2];
+				}
+			}
+			break;
+
+//		case EXP_STRING:
+//		case EXP_BRACE:
+//			link->str3 = strdup(arg3);
+//			break;
+	}
+
 	link->str3 = strdup(arg3);
 
 	LINK(link, math_head, math_tail);
 }
 
-void del_math_node(struct link_data *node)
+void del_math_node(struct math_node *node)
 {
 	UNLINK(node, math_head, math_tail);
 
-	free(node->str1);
-	free(node->str2);
+//	switch (node->type)
+//	{
+//		case EXP_STRING:
+//		case EXP_BRACE:
+//			free(node->str3);
+//	}
 	free(node->str3);
-
 	free(node);
 }
 
 int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 {
-	char *buf1, *buf2, *buf3, *pti, *pta;
-	int level, status, point, badnumber, metric, nest;
+	char *buf3, *pti, *pta;
+	int level, status, point, nest;
 
 	push_call("mathexp_tokenize(%p,%s,%d,%d)",ses,str,seed,debug);
 
-	buf1 = str_alloc_stack(0);
-	buf2 = str_alloc_stack(0);
 	buf3 = str_alloc_stack(0);
 
 	nest      = 0;
 	level     = 0;
-	metric    = 0;
+	wonky     = 0;
 	point     = -1;
-	status    = EXP_VARIABLE;
+	status    = EXP_NUMBER;
 	precision = seed;
-	badnumber = 0;
 
 	pta = buf3;
 	pti = str;
@@ -308,7 +376,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 	{
 		switch (status)
 		{
-			case EXP_VARIABLE:
+			case EXP_NUMBER:
 				switch (*pti)
 				{
 					case '0':
@@ -322,17 +390,6 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '8':
 					case '9':
 						*pta++ = *pti++;
-
-						if (metric)
-						{
-							badnumber = 1;
-
-							if (debug == 0)
-							{
-								pop_call();
-								return FALSE;
-							}
-						}
 
 						if (point >= 0)
 						{
@@ -348,12 +405,12 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '!':
 						if (pta != buf3)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						else
 						{
-							add_math_node(ntos(level), ntos(EXP_PR_VAR), "0");
-							add_math_node(ntos(level), ntos(EXP_PR_LOGCOMP), "==");
+							add_math_node(EXP_NUMBER, level, EXP_PR_VAR, "0");
+							add_math_node(EXP_OPERATOR, level, EXP_PR_CONSTANT, "==");
 
 							*pta++ = *pti++;
 
@@ -364,12 +421,12 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '~':
 						if (pta != buf3)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						else
 						{
-							add_math_node(ntos(level), ntos(EXP_PR_VAR), "-1");
-							add_math_node(ntos(level), ntos(EXP_PR_INTADD), "-");
+							add_math_node(EXP_NUMBER, level, EXP_PR_VAR, "-1");
+							add_math_node(EXP_OPERATOR, level, EXP_PR_INTADD, "-");
 
 							*pta++ = *pti++;
 
@@ -380,14 +437,15 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '+':
 						if (pta != buf3)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						else
 						{
-							add_math_node(ntos(level), ntos(EXP_PR_VAR), "1");
-							add_math_node(ntos(level), ntos(EXP_PR_INTMUL), "*");
+//							add_math_node(EXP_NUMBER, level, EXP_PR_VAR, "1");
+//							add_math_node(EXP_OPERATOR, level, EXP_PR_INTMUL, "*");
+//							*pta++ = *pti++;
 
-							*pta++ = *pti++;
+							pti++;
 
 							pta = buf3;
 						}
@@ -396,12 +454,12 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case '-':
 						if (pta != buf3)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						else
 						{
-							add_math_node(ntos(level), ntos(EXP_PR_VAR), "-1");
-							add_math_node(ntos(level), ntos(EXP_PR_INTMUL), "*");
+							add_math_node(EXP_NUMBER, level, EXP_PR_VAR, "-1");
+							add_math_node(EXP_OPERATOR, level, EXP_PR_INTMUL, "*");
 
 							*pta++ = *pti++;
 
@@ -419,7 +477,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							pop_call();
 							return FALSE;
 						}
-						*pta++ = *pti++;
+						pti++;
 						status = EXP_BRACE;
 						nest++;
 						break;
@@ -434,7 +492,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							pop_call();
 							return FALSE;
 						}
-						*pta++ = *pti++;
+						pti++;
 						nest++;
 						status = EXP_STRING;
 						break;
@@ -452,7 +510,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						else
 						{
 							*pta++ = *pti++;
-							MATH_NODE(FALSE, EXP_PR_LVL, EXP_VARIABLE);
+							MATH_NODE(EXP_PARANTHESES, EXP_PR_LVL, EXP_NUMBER);
 						}
 						level++;
 						break;
@@ -462,6 +520,10 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						break;
 
 					case ':':
+						if (debug && wonky == 0)
+						{
+							show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.");
+						}
 						*pta++ = *pti++;
 						break;
 						
@@ -473,15 +535,15 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 								*pta++ = '1';
 							}
 
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 
 							if (pti[2] == 0)
 							{
 								*pta++ = *pti++;
 								*pta++ = *pti++;
 
-								MATH_NODE(FALSE, EXP_PR_LOGCOMP, EXP_VARIABLE);
-								
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGCOMP, EXP_NUMBER);
+
 								*pta++ = '-';
 								*pta++ = '1';
 							}
@@ -532,40 +594,53 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 
 						if (pta != buf3)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
+							if (*pti == '?')
+							{
+								wonky = 1;
+							}
 						}
 						else
 						{
 							*pta++ = *pti++;
+							*pta = 0;
+
+							if (debug)
+							{
+								show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: FOUND OPERATOR %s WHILE EXPECTING A VALUE.", str, buf3);
+							}
+							pop_call();
+							return FALSE;
 						}
 						break;
 
 					case 'K':
 					case 'M':
-//					case 'G':
-//					case 'T':
+					case 'G':
+					case 'T':
 //					case 'P':
 //					case 'E':
 //					case 'Z':
 //					case 'Y':
-						if (pta == buf3 || metric == 1)
+						if (pta == buf3)
 						{
-							badnumber = 1;
-
-							if (debug == 0)
-							{
-								pop_call();
-								return FALSE;
-							}
 							*pta++ = *pti++;
 							*pta = 0;
+
+							if (debug)
+							{
+								show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3);
+							}
+
+							pop_call();
+							return FALSE;
 						}
-						else if (badnumber == 0)
+						else
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 
 							*pta++ = '*';
-							MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+							MATH_NODE(EXP_OPERATOR, EXP_PR_CONSTANT, EXP_NUMBER);
 
 							switch (*pti++)
 							{
@@ -573,46 +648,42 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 								case 'M': pta += sprintf(pta, "1000000"); break;
 								case 'G': pta += sprintf(pta, "1000000000"); break;
 								case 'T': pta += sprintf(pta, "1000000000000"); break;
-								case 'P': pta += sprintf(pta, "1000000000000000"); break;
-								case 'E': pta += sprintf(pta, "1000000000000000000"); break;
-								case 'Z': pta += sprintf(pta, "1000000000000000000000"); break;
-								case 'Y': pta += sprintf(pta, "1000000000000000000000000"); break;
+//								case 'P': pta += sprintf(pta, "1000000000000000"); break;
+//								case 'E': pta += sprintf(pta, "1000000000000000000"); break;
+//								case 'Z': pta += sprintf(pta, "1000000000000000000000"); break;
+//								case 'Y': pta += sprintf(pta, "1000000000000000000000000"); break;
 							}
-							metric = 1;
-						}
-						else
-						{
-							*pta++ = *pti++;
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						break;
 
 					case 'm':
 					case 'u':
-//					case 'n':
-//					case 'p':
+					case 'n':
+					case 'p':
 //					case 'f':
 //					case 'a':
 //					case 'z':
 //					case 'y':
-						if (pta == buf3 || metric == 1)
+						if (pta == buf3)
 						{
-							badnumber = 1;
-
-							if (debug == 0)
-							{
-								pop_call();
-								return FALSE;
-							}
 							*pta++ = *pti++;
 							*pta = 0;
+
+
+
+							pop_call();
+							return FALSE;
 						}
-						else if (badnumber == 0)
+						else
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 
 							*pta++ = '/';
 
-							MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+							MATH_NODE(EXP_OPERATOR, EXP_PR_CONSTANT, EXP_NUMBER);
+
+							pta = buf3;
 
 							switch (*pti++)
 							{
@@ -620,17 +691,14 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 								case 'u': pta += sprintf(pta, "1000000"); break;
 								case 'n': pta += sprintf(pta, "1000000000"); break;
 								case 'p': pta += sprintf(pta, "1000000000000"); break;
-								case 'f': pta += sprintf(pta, "1000000000000000"); break;
-								case 'a': pta += sprintf(pta, "1000000000000000000"); break;
-								case 'z': pta += sprintf(pta, "1000000000000000000000"); break;
-								case 'y': pta += sprintf(pta, "1000000000000000000000000"); break;
+//								case 'f': pta += sprintf(pta, "1000000000000000"); break;
+//								case 'a': pta += sprintf(pta, "1000000000000000000"); break;
+//								case 'z': pta += sprintf(pta, "1000000000000000000000"); break;
+//								case 'y': pta += sprintf(pta, "1000000000000000000000000"); break;
 							}
-							metric = 1;
-							precision = UMAX(precision, strlen(buf3) -1);
-						}
-						else
-						{
-							*pta++ = *pti++;
+							precision = UMAX(precision, pta - buf3 - 1);
+
+							MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 						}
 						break;
 
@@ -638,14 +706,12 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						*pta++ = *pti++;
 						*pta = 0;
 
-						badnumber = 1;
-
-						if (debug == 0)
+						if (debug)
 						{
-							pop_call();
-							return FALSE;
+							show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3);
 						}
-						break;
+						pop_call();
+						return FALSE;
 				}
 				break;
 
@@ -653,11 +719,14 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 				switch (*pti)
 				{
 					case '"':
-						*pta++ = *pti++;
-						nest--;
-						if (nest == 0)
+						if (--nest == 0)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							pti++;
+							MATH_NODE(EXP_STRING, EXP_PR_VAR, EXP_OPERATOR);
+						}
+						else
+						{
+							*pta++ = *pti++;
 						}
 						break;
 
@@ -676,11 +745,14 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						break;
 
 					case '}':
-						*pta++ = *pti++;
-						nest--;
-						if (nest == 0)
+						if (--nest == 0)
 						{
-							MATH_NODE(FALSE, EXP_PR_VAR, EXP_OPERATOR);
+							pti++;
+							MATH_NODE(EXP_STRING, EXP_PR_VAR, EXP_OPERATOR);
+						}
+						else
+						{
+							*pta++ = *pti++;
 						}
 						break;
 
@@ -703,7 +775,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							*pta++ = *pti++;
 							*pta++ = *pti++;
 
-							MATH_NODE(FALSE, EXP_PR_LOGCOMP, EXP_VARIABLE);
+							MATH_NODE(EXP_OPERATOR, EXP_PR_LOGCOMP, EXP_NUMBER);
 							break;
 						}
 						else
@@ -720,17 +792,17 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case ')':
 						*pta++ = *pti++;
 						level--;
-						MATH_NODE(FALSE, EXP_PR_LVL, EXP_OPERATOR);
+						MATH_NODE(EXP_PARANTHESES, EXP_PR_LVL, EXP_OPERATOR);
 						break;
 
 					case '?':
 						*pta++ = *pti++;
-						MATH_NODE(FALSE, EXP_PR_TERNARY, EXP_VARIABLE);
+						MATH_NODE(EXP_OPERATOR, EXP_PR_TERNARY, EXP_NUMBER);
 						break;
 
 					case 'd':
 						*pta++ = *pti++;
-						MATH_NODE(FALSE, EXP_PR_DICE, EXP_VARIABLE);
+						MATH_NODE(EXP_OPERATOR, EXP_PR_DICE, EXP_NUMBER);
 						break;
 
 					case '*':
@@ -740,11 +812,11 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '*':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_INTMUL, EXP_NUMBER);
 								break;
 							
 							default:
-								MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_INTMUL, EXP_NUMBER);
 								break;
 						}
 						break;
@@ -756,23 +828,23 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '/':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_INTMUL, EXP_NUMBER);
 								break;
 							default:
-								MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_INTMUL, EXP_NUMBER);
 								break;
 						}
 						break;
 
 					case '%':
 						*pta++ = *pti++;
-						MATH_NODE(FALSE, EXP_PR_INTMUL, EXP_VARIABLE);
+						MATH_NODE(EXP_OPERATOR, EXP_PR_INTMUL, EXP_NUMBER);
 						break;
 
 					case '+':
 					case '-':
 						*pta++ = *pti++;
-						MATH_NODE(FALSE, EXP_PR_INTADD, EXP_VARIABLE);
+						MATH_NODE(EXP_OPERATOR, EXP_PR_INTADD, EXP_NUMBER);
 						break;
 
 					case '<':
@@ -782,16 +854,16 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '<':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_BITSHIFT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_BITSHIFT, EXP_NUMBER);
 								break;
 
 							case '=':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_LOGLTGT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGLTGT, EXP_NUMBER);
 								break;
 
 							default:
-								MATH_NODE(FALSE, EXP_PR_LOGLTGT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGLTGT, EXP_NUMBER);
 								break;
 						}
 						break;
@@ -803,16 +875,16 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '>':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_BITSHIFT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_BITSHIFT, EXP_NUMBER);
 								break;
 
 							case '=':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_LOGLTGT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGLTGT, EXP_NUMBER);
 								break;
 
 							default:
-								MATH_NODE(FALSE, EXP_PR_LOGLTGT, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGLTGT, EXP_NUMBER);
 								break;
 						}
 						break;
@@ -824,11 +896,11 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '&':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_LOGAND, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGAND, EXP_NUMBER);
 								break;
 
 							default:
-								MATH_NODE(FALSE, EXP_PR_BITAND, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_BITAND, EXP_NUMBER);
 								break;
 						}
 						break;
@@ -840,11 +912,11 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '^':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_LOGXOR, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGXOR, EXP_NUMBER);
 								break;
 
 							default:
-								MATH_NODE(FALSE, EXP_PR_BITXOR, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_BITXOR, EXP_NUMBER);
 								break;
 
 						}
@@ -857,11 +929,11 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							case '|':
 								*pta++ = *pti++;
-								MATH_NODE(FALSE, EXP_PR_LOGOR, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGOR, EXP_NUMBER);
 								break;
 
 							default:
-								MATH_NODE(FALSE, EXP_PR_BITOR, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_BITOR, EXP_NUMBER);
 								break;
 						}
 						break;
@@ -877,7 +949,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 								{
 									*pta++ = *pti++;
 								}
-								MATH_NODE(FALSE, EXP_PR_LOGCOMP, EXP_VARIABLE);
+								MATH_NODE(EXP_OPERATOR, EXP_PR_LOGCOMP, EXP_NUMBER);
 								break;
 
 							default:
@@ -914,7 +986,12 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 
 	if (status != EXP_OPERATOR)
 	{
-		MATH_NODE(TRUE, EXP_PR_VAR, EXP_OPERATOR);
+		if (pta == buf3)
+		{
+			pop_call();
+			return FALSE;
+		}
+		MATH_NODE(EXP_NUMBER, EXP_PR_VAR, EXP_OPERATOR);
 	}
 
 	pop_call();
@@ -922,15 +999,15 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 }
 
 
-void mathexp_level(struct session *ses, struct link_data *node)
+void mathexp_level(struct session *ses, struct math_node *node)
 {
-	int priority;
+	int priority, lowest;
 
 	mathnode_e = node;
 
 	while (node->prev)
 	{
-		if (atoi(node->prev->str1) < atoi(node->str1))
+		if (node->prev->level < node->level)
 		{
 			break;
 		}
@@ -939,13 +1016,19 @@ void mathexp_level(struct session *ses, struct link_data *node)
 
 	mathnode_s = node;
 
-	for (priority = 0 ; priority < EXP_PR_VAR ; priority++)
+	for (priority = 0 ; priority < EXP_PR_VAR ; priority = lowest)
 	{
+		lowest = EXP_PR_VAR;
+
 		for (node = mathnode_s ; node ; node = node->next)
 		{
-			if (atoi(node->str2) == priority)
+			if (node->priority == priority)
 			{
 				mathexp_compute(ses, node);
+			}
+			else if (node->priority < lowest)
+			{
+				lowest = node->priority;
 			}
 			if (node == mathnode_e)
 			{
@@ -958,10 +1041,9 @@ void mathexp_level(struct session *ses, struct link_data *node)
 
 	while (node->prev && node->next)
 	{
-		if (atoi(node->prev->str2) == EXP_PR_LVL && atoi(node->next->str2) == EXP_PR_LVL)
+		if (node->prev->priority == EXP_PR_LVL && node->next->priority == EXP_PR_LVL)
 		{
-			free(node->str1);
-			node->str1 = strdup(node->next->str1);
+			node->level = node->next->level;
 
 			del_math_node(node->next);
 			del_math_node(node->prev);
@@ -974,206 +1056,154 @@ void mathexp_level(struct session *ses, struct link_data *node)
 	return;
 }
 
-void mathexp_compute(struct session *ses, struct link_data *node)
+void mathexp_compute(struct session *ses, struct math_node *node)
 {
-	char temp[BUFFER_SIZE];
 	int integer64 = 0;
 	long double value = 0;
 	unsigned long long min = 0, max = 0;
 	unsigned long long value64 = 0;
 
-	switch (node->str3[0])
+	switch ((int) node->val)
 	{
-		case '.':
+		case EXP_OP_ELLIPSIS:
 			integer64 = 1;
 
-                        SET_BIT(max, (unsigned int) tintoi(node->next->str3));
+                        SET_BIT(max, (unsigned int) node->next->val);
                         max = max << 32ULL;
-                        SET_BIT(min, (unsigned int) tintoi(node->prev->str3));
+                        SET_BIT(min, (unsigned int) node->prev->val);
                         value64 = max | min;
                         break;
 
-		case 'd':
-			if (tintoi(node->next->str3) <= 0)
+		case EXP_OP_DICE:
+			if (node->next->val <= 0)
 			{
-				show_debug(ses, LIST_VARIABLE, "#MATHEXP: INVALID DICE: %s", node->next->str3);
+				show_debug(ses, LIST_VARIABLE, "#MATHEXP: INVALID DICE: %lld", (long long) node->next->val);
 				value = 0;
 			}
 			else
 			{
-				value = tindice(ses, node->prev->str3, node->next->str3);
+				value = tindice(ses, node->prev, node->next);
 			}
 			break;
 
-		case '?':
-			value = tinternary(node->prev->str3, node->next->str3);
+		case EXP_OP_TERNARY_IF:
+			value = tinternary(node->prev, node->next);
 			break;
 
-		case '*':
-			switch (node->str3[1])
-			{
-				case '*':
-					value = pow(tintoi(node->prev->str3), tintoi(node->next->str3));
-					break;
-				default:
-//					printf("debug: precision %d prev (%s) %.*Lf * next (%s) %Lf\n", precision, node->prev->str3, precision, tintoi(node->prev->str3), node->next->str3, tintoi(node->next->str3));
-					value = (long double) tintoi(node->prev->str3) * (long double) tintoi(node->next->str3);
-//					printf("debug: value: %20Lf\n", value);
-					break;
-			}
+		case EXP_OP_MULTIPLY:
+			value = node->prev->val * node->next->val;
 			break;
-		case '/':
-			switch (node->str3[1])
-			{
-				case '/':
-					if (tintoi(node->next->str3) == 2)
-					{
-						value = sqrt(tintoi(node->prev->str3));
-					}
-					else
-					{
-						value = get_root(tintoi(node->prev->str3), tintoi(node->next->str3));
-					}
-					break;
-				default:
-					if (tintoi(node->next->str3) == 0)
-					{
-						show_debug(ses, LIST_VARIABLE, "#MATH ERROR: DIVISION ZERO.");
-						value = 0;
-						precision = 0;
-//						value = tintoi(node->prev->str3);
-					}
-					else
-					{
-						if (precision)
-						{
-							value = tintoi(node->prev->str3) / tintoi(node->next->str3);
-						}
-						else
-						{
-							value = (long long) tintoi(node->prev->str3) / (long long) tintoi(node->next->str3);
-						}
-					}
-					break;
-			}
-			break;
-		case '%':
-			value = fmod(tintoi(node->prev->str3), tintoi(node->next->str3));
 
-/*
-			if (tintoi(node->next->str3) == 0)
+		case EXP_OP_POWER:
+			value = pow(node->prev->val, node->next->val);
+			break;
+
+		case EXP_OP_DIVIDE:
+			if (node->next->val == 0)
 			{
-				show_debug(ses, LIST_VARIABLE, "#MATH ERROR: MODULO ZERO.");
-				value = tintoi(node->prev->str3);
+				show_debug(ses, LIST_VARIABLE, "#MATH ERROR: DIVISION ZERO.");
+				value = 0;
+				precision = 0;
 			}
 			else
 			{
-				integer64 = 1;
-
-				value64 = tintou(node->prev->str3) % tintou(node->next->str3);
-			}
-*/
-			break;
-		case '+':
-			value = tintoi(node->prev->str3) + tintoi(node->next->str3);
-			break;
-		case '-':
-			value = tintoi(node->prev->str3) - tintoi(node->next->str3);
-			break;
-
-		case '<':
-			switch (node->str3[1])
-			{
-				case '=':
-					value = tincmp(node->prev->str3, node->next->str3) <= 0;
-					break;
-
-				case '<':
-					value = (long long) tintoi(node->prev->str3) << (long long) tintoi(node->next->str3);
-					break;
-
-				default:
-					value = tincmp(node->prev->str3, node->next->str3) < 0;
-					break;
-			}
-			break;
-		case '>':
-			switch (node->str3[1])
-			{
-				case '=':
-					value = tincmp(node->prev->str3, node->next->str3) >= 0;
-					break;
-
-				case '>':
-					value = (long long) tintoi(node->prev->str3) >> (long long) tintoi(node->next->str3);
-					break;
-
-				default:
-					value = tincmp(node->prev->str3, node->next->str3) > 0;
-					break;
+				if (precision)
+				{
+					value = node->prev->val / node->next->val;
+				}
+				else
+				{
+					value = (long long) node->prev->val / (long long) node->next->val;
+				}
 			}
 			break;
 
-		case '&':
-			switch (node->str3[1])
+		case EXP_OP_ROOT:
+			if (node->next->val == 2)
 			{
-				case '&':
-					value = tintoi(node->prev->str3) && tintoi(node->next->str3);
-					break;
-
-				default:
-					value = (long long) tintoi(node->prev->str3) & (long long) tintoi(node->next->str3);
-					break;
-			}
-			break;
-		case '^':
-			switch (node->str3[1])
-			{
-				case '^':
-					value = ((tintoi(node->prev->str3) || tintoi(node->next->str3)) && (!tintoi(node->prev->str3) != !tintoi(node->next->str3)));
-					break;
-
-				default:
-					value = (long long) tintoi(node->prev->str3) ^ (long long) tintoi(node->next->str3);
-					break;
-			}
-			break;
-		case '|':
-			switch (node->str3[1])
-			{
-				case '|':
-					value = tintoi(node->prev->str3) || tintoi(node->next->str3);
-					break;
-
-				default:
-					value = (long long) tintoi(node->prev->str3) | (long long) tintoi(node->next->str3);
-					break;
-			}
-			break;
-		case '=':
-			if (node->str3[1] == '=' && node->str3[2] == '=')
-			{
-				
-				value = tincmp(node->prev->str3, node->next->str3) == 0;
+				value = sqrt(node->prev->val);
 			}
 			else
 			{
-				value = tineval(ses, node->prev->str3, node->next->str3) != 0;
+				value = get_root(node->prev->val, node->next->val);
 			}
 			break;
-		case '!':
-			if (node->str3[1] == '=' && node->str3[2] == '=')
-			{
-				value = tincmp(node->prev->str3, node->next->str3) != 0;
-			}
-			else
-			{
-				value = tineval(ses, node->prev->str3, node->next->str3) == 0;
-			}
+		case EXP_OP_MODULO:
+			value = fmod(node->prev->val, node->next->val);
+			break;
+		case EXP_OP_ADDITION:
+			value = node->prev->val + node->next->val;
+			break;
+		case EXP_OP_SUBTRACTION:
+			value = node->prev->val - node->next->val;
+			break;
+
+		case EXP_OP_LESSER:
+			value = tincmp(node->prev, node->next) < 0;
+			break;
+
+		case EXP_OP_LESSER_EQUAL:
+			value = tincmp(node->prev, node->next) <= 0;
+			break;
+
+		case EXP_OP_LEFT_SHIFT:
+			value = (long long) node->prev->val << (long long) node->next->val;
+			break;
+
+		case EXP_OP_GREATER:
+			value = tincmp(node->prev, node->next) > 0;
+			break;
+
+		case EXP_OP_GREATER_EQUAL:
+			value = tincmp(node->prev, node->next) >= 0;
+			break;
+
+		case EXP_OP_RIGHT_SHIFT:
+			value = (long long) node->prev->val >> (long long) node->next->val;
+			break;
+
+		case EXP_OP_AND:
+			value = (long long) node->prev->val & (long long) node->next->val;
+			break;
+
+		case EXP_OP_LOGICAL_AND:
+			value = node->prev->val && node->next->val;
+			break;
+
+		case EXP_OP_XOR:
+			value = (long long) node->prev->val ^ (long long) node->next->val;
+			break;
+
+		case EXP_OP_LOGICAL_XOR:
+			value = ((node->prev->val || node->next->val) && (!node->prev->val != !node->next->val));
+			break;
+
+		case EXP_OP_OR:
+			value = (long long) node->prev->val | (long long) node->next->val;
+			break;
+
+		case EXP_OP_LOGICAL_OR:
+			value = node->prev->val || node->next->val;
+			break;
+
+		case EXP_OP_EQUAL:
+			value = tineval(ses, node->prev, node->next) != 0;
+			break;
+		
+		case EXP_OP_COMPARE:
+			value = tincmp(node->prev, node->next) == 0;
+			break;
+
+		case EXP_OP_NOT_EQUAL:
+			value = tineval(ses, node->prev, node->next) == 0;
+			break;
+		
+		case EXP_OP_NOT_COMPARE:
+			value = tincmp(node->prev, node->next) != 0;
 			break;
 
 		default:
-			show_debug(ses, LIST_VARIABLE, "#COMPUTE EXP: UNKNOWN OPERATOR: %c%c", node->str3[0], node->str3[1]);
+			show_debug(ses, LIST_VARIABLE, "#MATH COMPUTE EXP: UNKNOWN OPERATOR: %c%c%c", (int) node->val % 128, (int) node->val % 16384 / 128, (int) node->val % 2097152 / 16384);
 			value = 0;
 			break;
 	}
@@ -1191,26 +1221,22 @@ void mathexp_compute(struct session *ses, struct link_data *node)
 	del_math_node(node->next);
 	del_math_node(node->prev);
 
-	sprintf(temp, "%d", EXP_PR_VAR);
-	free(node->str2);
-	node->str2 = strdup(temp);
+	node->priority = EXP_PR_VAR;
+	node->type = EXP_NUMBER;
 
 	if (integer64)
 	{
-		sprintf(temp, "%llu", value64);
+		node->val = (long double) value64;
 	}
 	else
 	{
-//		sprintf(temp, "%.*Lf", precision, value);
-		sprintf(temp, "%.12Lf", value);
+		node->val = value;
 	}
-	free(node->str3);
-	node->str3 = strdup(temp);
 }
 
-long double tinternary(char *arg1, char *arg2)
+long double tinternary(struct math_node *left, struct math_node *right)
 {
-	char *arg3 = strchr(arg2, ':');
+	char *arg3 = strchr(right->str3, ':');
 
 	if (arg3 == NULL)
 	{
@@ -1218,9 +1244,9 @@ long double tinternary(char *arg1, char *arg2)
 	}
 	*arg3++ = 0;
 
-	if (tintoi(arg1))
+	if (left->val)
 	{
-		return tintoi(arg2);
+		return tintoi(right->str3);
 	}
 	else
 	{
@@ -1288,8 +1314,6 @@ long double tintoi(char *str)
 				break;
 
 			case ':':
-				show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.");
-
 				switch (i)
 				{
 					case 2:
@@ -1512,54 +1536,51 @@ int is_number(char *str)
 	return valid;
 }
 
-long double tincmp(char *left, char *right)
+long double tincmp(struct math_node *left, struct math_node *right)
 {
-	long double left_val, right_val;
-
-	switch (left[0])
+	if (left->type != right->type)
 	{
-		case '{':
-		case '"':
-			return strcmp(left, right);
+		show_debug(NULL, LIST_VARIABLE, "#MATH COMPUTE: COMPARING STRING WITH A NUMBER.");
+
+		return 0;
+	}
+
+	switch (left->type)
+	{
+		case EXP_STRING:
+			return strcmp(left->str3, right->str3);
 
 		default:
-			left_val = tintoi(left);
-			right_val = tintoi(right);
-
-			return left_val - right_val;
+			return left->val - right->val;
 	}
 }
 
-long double tineval(struct session *ses, char *left, char *right)
+long double tineval(struct session *ses, struct math_node *left, struct math_node *right)
 {
-	long double left_val, right_val;
-
-	switch (left[0])
+	if (left->type != right->type)
 	{
-		case '{':
-			get_arg_in_braces(ses, left, left, GET_ALL);
-			get_arg_in_braces(ses, right, right, GET_ALL);
+		show_debug(ses, LIST_VARIABLE, "#MATH COMPUTE: COMPARING %s WITH %s.", left->type == EXP_NUMBER ? "NUMBER" : "STRING", right->type == EXP_NUMBER ? "NUMBER" : "STRING");
 
-			return match(ses, left, right, SUB_NONE);
+		return 0;
+	}
 
-		case '"':
-			return match(ses, left, right, SUB_NONE);
+	switch (left->type)
+	{
+		case EXP_STRING:
+			return match(ses, left->str3, right->str3, SUB_NONE);
 
 		default:
-			left_val = tintoi(left);
-			right_val = tintoi(right);
-
-			return left_val == right_val;
+			return left->val == right->val;
 	}
 }
 
-long double tindice(struct session *ses, char *left, char *right)
+long double tindice(struct session *ses, struct math_node *left, struct math_node *right)
 {
 	unsigned long long cnt, numdice, sizedice, sum;
 	long double estimate;
 
-	numdice  = (unsigned long long) tintoi(left);
-	sizedice = (unsigned long long) tintoi(right);
+	numdice  = (unsigned long long) left->val;
+	sizedice = (unsigned long long) right->val;
 
 	if (sizedice == 0)
 	{

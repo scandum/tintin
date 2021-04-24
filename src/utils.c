@@ -83,30 +83,14 @@ int hex_number_8bit(char *str)
 {
 	int value = 0;
 
-	if (str)
+	if (*str)
 	{
-		if (is_digit(*str))
-		{
-			value += 16 * (*str - '0');
-		}
-		else
-		{
-			value += 16 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
+		value += 16 * hex_digit(str++);
 	}
 
-	if (str)
+	if (*str)
 	{
-		if (is_digit(*str))
-		{
-			value += *str - '0';
-		}
-		else
-		{
-			value += toupper((int) *str) - 'A' + 10;
-		}
-		str++;
+		value += hex_digit(str++);
 	}
 
 	return value;
@@ -116,7 +100,7 @@ int oct_number(char *str)
 {
 	int value = 0;
 
-	if (str)
+	if (*str)
 	{
 		if (is_digit(*str))
 		{
@@ -125,7 +109,7 @@ int oct_number(char *str)
 		str++;
 	}
 
-	if (str)
+	if (*str)
 	{
 		if (is_digit(*str))
 		{
@@ -137,64 +121,63 @@ int oct_number(char *str)
 	return value;
 }
 
+int unicode_8_bit(char *str, char *out)
+{
+	int val = 0;
+	unsigned char *pto = (unsigned char *) out;
+
+	val += 16 * hex_digit(str++);
+	val += hex_digit(str++);
+
+	if (val < 128)
+	{
+		*pto++ = val;
+		*pto++ = 0;
+		return 1;
+	}
+	else
+	{
+		*pto++ = 192 + val / 64;
+		*pto++ = 128 + val % 64;
+		*pto++ = 0;
+		return 2;
+	}
+}
+
+int unicode_12_bit(char *str, char *out)
+{
+	int val = 0;
+	unsigned char *pto = (unsigned char *) out;
+
+	val += 256 * hex_digit(str++);
+	val += 16 * hex_digit(str++);
+	val += hex_digit(str++);
+
+	if (val < 128)
+	{
+		*pto++ = val;
+		*pto++ = 0;
+		return 1;
+	}
+	else
+	{
+		*pto++ = 192 + val / 64;
+		*pto++ = 128 + val % 64;
+		*pto++ = 0;
+		return 2;
+	}
+}
+
+
 int unicode_16_bit(char *str, char *out)
 {
 	int val = 0;
 	unsigned char *pto = (unsigned char *) out;
 
-	val += 4096 * hex_digit(str);
-
-/*
-	if (is_digit(*str))
-	{
-		val += 4096 * (*str - '0');
-	}
-	else
-	{
-		val += 4096 * (toupper((int) *str) - 'A' + 10);
-	}
-*/
-	str++;
-
-	val += 256 * hex_digit(str);
-
-/*
-	if (is_digit(*str))
-	{
-		val += 256 * (*str - '0');
-	}
-	else
-	{
-		val += 256 * (toupper((int) *str) - 'A' + 10);
-	}
-*/
-	str++;
-
-	val += 16 * hex_digit(str);
-/*
-	if (is_digit(*str))
-	{
-		val += 16 * (*str - '0');
-	}
-	else
-	{
-		val += 16 * (toupper((int) *str) - 'A' + 10);
-	}
-*/
-	str++;
-
-	val += hex_digit(str);
-/*
-	if (is_digit(*str))
-	{
-		val += (*str - '0');
-	}
-	else
-	{
-		val += (toupper((int) *str) - 'A' + 10);
-	}
-*/
-	str++;
+	val += 4096 * hex_digit(str++);
+	val += 256 * hex_digit(str++);
+	val += 16 * hex_digit(str++);
+	val += hex_digit(str++);
 
 	if (val < 128)
 	{
@@ -219,88 +202,59 @@ int unicode_16_bit(char *str, char *out)
 	}
 }
 
+int unicode_20_bit(char *str, char *out)
+{
+	int val = 0;
+	unsigned char *pto = (unsigned char *) out;
+
+	val += 65536 * hex_digit(str++);
+	val += 4096 * hex_digit(str++);
+	val += 256 * hex_digit(str++);
+	val += 16 * hex_digit(str++);
+	val += hex_digit(str++);
+
+	if (val < 128)
+	{
+		*pto++ = val;
+		return 1;
+	}
+	else if (val < 4096)
+	{
+		*pto++ = 192 + val / 64;
+		*pto++ = 128 + val % 64;
+		*pto++ = 0;
+		return 2;
+	}
+	else if (val < 65536)
+	{
+		*pto++ = 224 + val / 4096;
+		*pto++ = 128 + val / 64 % 64;
+		*pto++ = 128 + val % 64;
+		*pto++ = 0;
+		return 3;
+	}
+	else
+	{
+		*pto++ = 240 + val / 262144;
+		*pto++ = 128 + val / 4096 % 64;
+		*pto++ = 128 + val / 64 % 64;
+	        *pto++ = 128 + val % 64;
+		*pto++ = 0;
+	        return 4;
+	}
+}
+
 int unicode_21_bit(char *str, char *out)
 {
 	int val = 0;
 	unsigned char *pto = (unsigned char *) out;
 
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += 1048576 * (*str - '0');
-		}
-		else
-		{
-			val += 1048576 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
-
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += 65536 * (*str - '0');
-		}
-		else
-		{
-			val += 65536 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
-
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += 4096 * (*str - '0');
-		}
-		else
-		{
-			val += 4096 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
-
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += 256 * (*str - '0');
-		}
-		else
-		{
-			val += 256 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
-
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += 16 * (*str - '0');
-		}
-		else
-		{
-			val += 16 * (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
-
-	if (str)
-	{
-		if (is_digit(*str))
-		{
-			val += (*str - '0');
-		}
-		else
-		{
-			val += (toupper((int) *str) - 'A' + 10);
-		}
-		str++;
-	}
+	val += 1048576 * hex_digit(str++);
+	val += 65536 * hex_digit(str++);
+	val += 4096 * hex_digit(str++);
+	val += 256 * hex_digit(str++);
+	val += 16 * hex_digit(str++);
+	val += hex_digit(str++);
 
 	if (val < 128)
 	{

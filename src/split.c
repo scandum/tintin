@@ -247,6 +247,7 @@ void dirty_screen(struct session *ses)
 	if (IS_SPLIT(ses) && ses == gtd->ses)
 	{
 		init_pos(ses, ses->input->top_row, ses->input->top_col);
+		cursor_redraw_input(ses, "");
 	}
 
 	pop_call();
@@ -302,7 +303,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 		return;
 	}
 
-	if (row != gtd->screen->rows && inside_scroll_region(ses, row, col))
+	if (row > ses->input->top_row && inside_scroll_region(ses, row, col))
 	{
 		show_error(ses, LIST_PROMPT, "#ERROR: PROMPT ROW IS INSIDE THE SCROLLING REGION: {%s} {%s} [%d].", prompt, row_str, row);
 
@@ -331,7 +332,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 
 	save_pos(ses);
 
-	if (row == gtd->screen->rows)
+	if (row == ses->input->top_row)
 	{
 		gtd->ses->input->str_off = width + 1;
 

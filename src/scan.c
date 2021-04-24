@@ -62,7 +62,7 @@ struct scan_type scan_table[] =
 {
 	{       "ABORT",            scan_abort,   SCAN_FLAG_NONE,                "Abort a scan currently in progress."},
 	{       "CSV",              scan_csv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a comma separated value file." },
-	{       "DIR",              scan_dir,     SCAN_FLAG_FILE,                "Scan a directory to a variable."    },
+	{       "DIR",              scan_dir,     SCAN_FLAG_NONE,                "Scan a directory to a variable."    },
 	{       "FILE",             scan_file,    SCAN_FLAG_FILE,                "Scan a file all at once."           },
 	{       "FORWARD",          scan_forward, SCAN_FLAG_FILE,                "Scan a file and send each line."    },
 	{       "TSV",              scan_tsv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a tab separated value file."   },
@@ -303,7 +303,7 @@ DO_SCAN(scan_csv)
 
 DO_SCAN(scan_dir)
 {
-	char filename[PATH_SIZE];
+	char cwd[PATH_SIZE], filename[PATH_SIZE * 2];
 	struct dirent **dirlist;
 	struct stat info;
 	int size, index;
@@ -319,14 +319,25 @@ DO_SCAN(scan_dir)
 
 	set_nest_node_ses(ses, arg2, "");
 
+	if (*arg1 == 0)
+	{
+		if (getcwd(cwd, PATH_MAX) == NULL)
+		{
+			syserr_printf(ses, "scan_dir: getcwd:");
+
+			cwd[0] = 0;
+		}
+		arg1 = cwd;
+	}
+
 	size = scandir(arg1, &dirlist, 0, NULL);
 
 	if (size == -1)
 	{
 		if (stat(arg1, &info) == -1)
 		{
-			syserr_printf(ses, "scan_dir: stat:");
-			
+			syserr_printf(ses, "scan_dir: stat(%s): error:", arg1);
+
 			return ses;
 		}
 
@@ -353,9 +364,9 @@ DO_SCAN(scan_dir)
 
 		if (stat(filename, &info) == -1)
 		{
-			syserr_printf(ses, "scan_dir: stat:");
-			
-			return ses;
+			syserr_printf(ses, "scan_dir: stat(%s): error:", filename);
+
+			continue;
 		}
 
 		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%u}{TIME}{%lld}}",

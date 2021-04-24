@@ -1,4 +1,46 @@
-Nov 2020        2.02.06
+Mar 2021        2.02.11
+------------------------------------------------------------------------------
+draw.c          #draw BALIGN will push text to the bottom if there aren't
+                enough lines to fill the entire square.
+
+main.c          Synchronized terminal resize handling which might fix some odd
+                crashes.
+
+variable.c      Getting rid of #format %C for chronological formatting since
+                I'm abandoning chronological notation support. While it was
+                a cute feature it's more important to support the ? : ternary
+                operation. This frees up the %C argument for a more complex
+                column operation.
+
+mapper.c        Added support to use #map list 1..6 to provide a vnum range.
+
+substitute.c    Added \u{} which supports between 2 and 6 hexadecimals.
+
+data.c          Added the #info input and #info input save option.
+
+data.c          Added the #info environ and #info environ save option.
+
+main.c          Added SIGUSR event. %0 will contain either 1 or 2.
+                #event {SIGUSR} {#showme RECEIVED SIGUSR %0}
+		#info system save
+		#system {kill -USR1 $info[SYSTEM][PID]
+
+main.c          Added SIGHUB event which should trigger when the terminal is
+                closed with TinTin++ still running inside. You can use
+                #event {SIGHUB} {#end} to have tintin close normally.
+
+session.c       Added #snoop {session} scroll {on|off} to snoop a session's
+                scroll region, which will be printed on top of the active
+                session's screen.
+
+math.c          Made #math / #if about 3x faster.
+
+math.c          Updated // to support powers other than 2 and 3.
+
+regex.c         Changed %w to match any letter, number, or undescore instead
+                of just letters, to make it match \w. Same for %W.
+
+Nov 2020        2.02.10
 
 ------------------------------------------------------------------------------
 

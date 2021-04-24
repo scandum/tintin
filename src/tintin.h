@@ -134,7 +134,6 @@
 #define SORT_ALNUM                       2
 #define SORT_STABLE                      3
 #define SORT_APPEND                      4
-#define SORT_DELAY                       5
 
 #define SEEK_MATCH                       0
 #define SEEK_REPLACE                     1
@@ -208,7 +207,7 @@
 #define STRING_SIZE        2 * BUFFER_SIZE
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.10 "
+#define CLIENT_VERSION           "2.02.11 "
 
 
 #define XT_E                            0x27
@@ -381,6 +380,7 @@ enum operators
 #define BV38 (1LL << 37)
 #define BV39 (1LL << 38)
 #define BV40 (1LL << 39)
+#define BV41 (1LL << 40)
 
 
 #define BUFFER_FLAG_GREP                  BV01
@@ -609,7 +609,7 @@ enum operators
 #define TINTIN_FLAG_HIDDENCURSOR      BV11
 #define TINTIN_FLAG_LOCAL             BV12
 #define TINTIN_FLAG_PRESERVEMACRO     BV13
-
+#define TINTIN_FLAG_WINCHUPDATE       BV14
 
 #define CONFIG_FLAG_AUTOPATCH         BV01
 #define CONFIG_FLAG_AUTOPROMPT        BV02
@@ -642,8 +642,9 @@ enum operators
 #define SES_FLAG_SCANABORT            BV10
 #define SES_FLAG_SCROLLSPLIT          BV11
 #define SES_FLAG_SNOOP                BV12
-#define SES_FLAG_SPLIT                BV13
-#define SES_FLAG_UPDATEVTMAP          BV14
+#define SES_FLAG_SNOOPSCROLL          BV13
+#define SES_FLAG_SPLIT                BV14
+#define SES_FLAG_UPDATEVTMAP          BV15
 
 
 #define TELOPT_FLAG_TELNET            BV01
@@ -1289,7 +1290,6 @@ struct split_data
 	int                     bot_col;
 };
 
-
 struct scroll_data
 {
 	struct buffer_data   ** buffer;
@@ -1475,6 +1475,8 @@ struct exit_data
 struct search_data
 {
 	int                     vnum;
+	int                     min;
+	int                     max;
 	unsigned short          stamp;
 	char                  * arg;
 	pcre                  * name;
@@ -1602,7 +1604,7 @@ struct window_data
 #define DO_LOG(log)                        void log (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_MAP(map)                        void map (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_PATH(path)                     void path (struct session *ses, char *arg)
-#define DO_PORT(port)          struct session *port (struct session *ses, char *arg1, char *arg2, char *arg)
+#define DO_PORT(port)          struct session *port (struct session *ses, char *arg, char *arg1, char *arg2)
 
 
 /*
@@ -1624,7 +1626,7 @@ typedef struct session *LINE    (struct session *ses, char *arg, char *arg1, cha
 typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
 typedef void            PATH    (struct session *ses, char *arg);
-typedef struct session *PORT    (struct session *ses, char *arg1, char *arg2, char *arg);
+typedef struct session *PORT    (struct session *ses, char *arg, char *arg1, char *arg2);
 
 
 /*
@@ -1964,6 +1966,9 @@ extern DO_COMMAND(do_cursor);
 
 int inputline_cur_row(void);
 int inputline_cur_col(void);
+int inputline_cur_off(void);
+int inputline_cur_str_len(void);
+int inputline_max_str_len(void);
 int inputline_max_row(void);
 int inputline_editor(void);
 int inputline_rows(struct session *ses);
@@ -2110,23 +2115,16 @@ extern DO_MAP(map_write);
 #ifndef __TT_MATH_H__
 #define __TT_MATH_H__
 
+extern long double mathexp(struct session *ses, char *str, char *result, int seed);
 extern int is_math(struct session *ses, char *str);
-extern int get_ellipsis(struct listroot *root, char *name, int *min, int *max);
+extern int get_ellipsis(struct session *ses, unsigned int size, char *name, int *min, int *max);
 extern long double get_number(struct session *ses, char *str);
 extern unsigned long long get_ulong(struct session *ses, char *str);
 extern long double get_double(struct session *ses, char *str);
 extern void get_number_string(struct session *ses, char *str, char *result);
 extern long double mathswitch(struct session *ses, char *left, char *right);
-extern void mathexp(struct session *ses, char *str, char *result, int seed);
-extern int mathexp_tokenize(struct session *ses, char *str, int seed, int debug);
-extern void mathexp_level(struct session *ses, struct link_data *node);
-extern void mathexp_compute(struct session *ses, struct link_data *node);
-extern long double tinternary(char *arg1, char *arg2);
 extern long double tintoi(char *str);
 extern unsigned long long tintou(char *str);
-extern long double tincmp(char *left, char *right);
-extern long double tineval(struct session *ses, char *left, char *right);
-extern long double tindice(struct session *ses, char *left, char *right);
 
 
 #endif
@@ -2697,7 +2695,6 @@ extern DO_COMMAND(do_snoop);
 extern DO_COMMAND(do_zap);
 
 extern struct session *session_command(char *arg, struct session *ses);
-extern void show_session(struct session *ses, struct session *ptr);
 extern struct session *find_session(char *name);
 extern struct session *newactive_session(void);
 extern struct session *activate_session(struct session *ses);
@@ -2955,7 +2952,10 @@ extern unsigned long long hex_number_64bit(char *str);
 extern unsigned int hex_number_32bit(char *str);
 extern int hex_number_8bit(char *str);
 extern int oct_number(char *str);
+extern int unicode_8_bit(char *str, char *out);
+extern int unicode_12_bit(char *str, char *out);
 extern int unicode_16_bit(char *str, char *out);
+extern int unicode_20_bit(char *str, char *out);
 extern int unicode_21_bit(char *str, char *out);
 extern unsigned long long utime(void);
 extern time_t get_time(struct session *ses, char *str);

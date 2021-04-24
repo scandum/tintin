@@ -72,7 +72,15 @@ DO_COMMAND(do_session)
 
 		for (sesptr = gts->next ; sesptr ; sesptr = sesptr->next)
 		{
-			show_session(ses, sesptr);
+			tintin_printf2(ses, "%-10s %18s:%-5s %5s %6s %10s %7s %5s",
+				sesptr->name,
+				sesptr->session_host,
+				sesptr->session_port,
+				sesptr == gtd->ses ? "(ats)" : "",
+				sesptr->ssl ? "(ssl)" : sesptr->port ? "(port)" : HAS_BIT(sesptr->flags, SES_FLAG_RUN) ? " (run)" : "",
+				sesptr->mccp2 && sesptr->mccp3 ? "(mccp 2+3)" : sesptr->mccp2 ? "(mccp 2)" : sesptr->mccp3 ? "(mccp 3)" : "",
+				HAS_BIT(sesptr->flags, SES_FLAG_SNOOP|SES_FLAG_SNOOPSCROLL) ? "(snoop)" : "",
+				sesptr->logfile ? "(log)" : "");
 		}
 	}
 	else if (*arg1 && *arg == 0)
@@ -124,6 +132,13 @@ DO_COMMAND(do_session)
 					return activate_session(sesptr);
 				}
 			}
+		}
+
+		sesptr = find_session(arg1);
+
+		if (sesptr)
+		{
+			return activate_session(sesptr);
 		}
 
 		tintin_puts2(ses, "#THAT SESSION IS NOT DEFINED.");
@@ -180,12 +195,43 @@ DO_COMMAND(do_snoop)
 	else if (is_abbrev(arg2, "OFF"))
 	{
 		show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SESSION '%s'", sesptr->name);
-
 		DEL_BIT(sesptr->flags, SES_FLAG_SNOOP);
+	}
+	else if (is_abbrev(arg2, "SCROLL"))
+	{
+		arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+		if (*arg2 == 0)
+		{
+			if (HAS_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL))
+			{
+				show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+			}
+			else
+			{
+				show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+			}
+			TOG_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
+		}
+		else if (is_abbrev(arg2, "ON"))
+		{
+			show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+
+			SET_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+			DEL_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP {session} {SCROLL} {ON|OFF}");
+		}
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP {session} {ON|OFF}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP {session} {ON|OFF|SCROLL}");
 	}
 	return ses;
 }
@@ -242,27 +288,6 @@ DO_COMMAND(do_zap)
 
 	pop_call();
 	return ses;
-}
-
-
-void show_session(struct session *ses, struct session *ptr)
-{
-	char temp[BUFFER_SIZE];
-
-	sprintf(temp, "%-10s %18s:%-5s %5s %6s",
-		ptr->name,
-		ptr->session_host,
-		ptr->session_port,
-		ptr == gtd->ses ? "(ats)" : "",
-		ptr->ssl ? "(ssl)" : ptr->port ? "(port)" : HAS_BIT(ptr->flags, SES_FLAG_RUN) ? " (run)" : "");
-
-	cat_sprintf(temp, " %10s", ptr->mccp2 && ptr->mccp3 ? "(mccp 2+3)" : ptr->mccp2 ? "(mccp 2)" : ptr->mccp3 ? "(mccp 3)" : "");
-
-	cat_sprintf(temp, " %7s", HAS_BIT(ptr->flags, SES_FLAG_SNOOP) ? "(snoop)" : "");
-
-	cat_sprintf(temp, " %5s", ptr->logfile ? "(log)" : "");
-
-	tintin_puts2(ses, temp);
 }
 
 struct session *find_session(char *name)
@@ -433,7 +458,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 	newses->wrap          = gts->wrap;
 
-        newses->scroll        = calloc(1, sizeof(struct scroll_data));
+	newses->scroll        = calloc(1, sizeof(struct scroll_data));
 	init_buffer(newses, gts->scroll->size);
 
 	newses->input         = calloc(1, sizeof(struct input_data));

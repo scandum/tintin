@@ -908,8 +908,15 @@ DO_CURSOR(cursor_delete)
 		}
 	}
 
-	cursor_redraw_line(ses, "");
-
+	if (gtd->ses->input->raw_len == gtd->ses->input->raw_pos)
+	{
+		input_printf("\e[1X");
+		cursor_check_line(ses, arg);
+	}
+	else
+	{
+		cursor_redraw_line(ses, "");
+	}
 	modified_input();
 }
 

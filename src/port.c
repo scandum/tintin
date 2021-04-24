@@ -74,7 +74,7 @@ DO_COMMAND(do_port)
 
 		arg = sub_arg_in_braces(ses, arg, arg2, port_table[cnt].rval, SUB_VAR|SUB_FUN);
 
-		ses = port_table[cnt].fun(ses, arg1, arg2, arg);
+		ses = port_table[cnt].fun(ses, arg, arg1, arg2);
 
 		return ses;
 	}

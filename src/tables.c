@@ -36,7 +36,7 @@ struct list_type list_table[LIST_MAX] =
 	{    "CLASS",             "CLASSES",            SORT_PRIORITY,    2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_INHERIT                                 },
 	{    "COMMAND",           "COMMANDS",           SORT_APPEND,      1, 0, 0, LIST_FLAG_MESSAGE                                                                  },
 	{    "CONFIG",            "CONFIGS",            SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
-	{    "DELAY",             "DELAYS",             SORT_STABLE,       2, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
+	{    "DELAY",             "DELAYS",             SORT_STABLE,      2, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
 	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "GAG",               "GAGS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
@@ -1084,6 +1084,8 @@ struct event_type event_table[] =
 	{    "SESSION DISCONNECTED",                   0, EVENT_FLAG_SESSION,  "SESSION",   "a session disconnects"      },
 	{    "SESSION TIMED OUT",                      0, EVENT_FLAG_SESSION,  "SESSION",   "a session doesn't connect"  },
 	{    "SHORT-CLICKED",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is short-clicked"     },
+	{    "SIGHUB",                                 0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "Terminal has closed"        },
+	{    "SIGUSR",                                 0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "Raised SIGUSR1 or SIGUSR2"  },
 	{    "SWIPED",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse swipe"                },
 	{    "SYSTEM CRASH",                           0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "system crash"               },
 	{    "SYSTEM ERROR",                           0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "system errors"              },
@@ -1157,7 +1159,7 @@ struct line_type line_table[] =
 
 struct log_type log_table[] =
 {
-	{    "APPEND",            log_append,          "Start logging, appending to give file."         },
+	{    "APPEND",            log_append,          "Start logging, appending to given file."        },
 	{    "INFO",              log_info,            "Some logging related info."                     },
 	{    "OFF",               log_off,             "Stop logging."                                  },
 	{    "OVERWRITE",         log_overwrite,       "Start logging, overwriting the given file."     },

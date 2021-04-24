@@ -1,6 +1,17 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.11
+----------------
+
+01) %w now translates to {[a-zA-Z0-9_]*} instead of {[a-zA-Z]*} so it matches
+    the behavior of \w. Same for %W.
+
+02) The : time operator in #math should no longer be used since that is
+    going to be changed to c style ? : ternary operator support.
+
+03) #math and #if no longer recognize .1 as a number, you need to use 0.1.
+
 TinTin++ 2.02.04
 ----------------
 
@@ -32,7 +43,7 @@ TinTin++ 2.02.00
 03) $variable() *variable() and &variable() are reserved until further notice,
     use ${variable}( for proper behavior.
 
-04) %+ should no longer be used in regular expressions.
+04) %+ now has different behavior when followed by a number.
 
     You can replace '%+' with '%+1..a', see #help regex for more information.
 

@@ -326,7 +326,8 @@ int get_nest_size(struct listroot *root, char *variable)
 
 					if (root->used)
 					{
-						range = get_ellipsis(root, name, &min, &max);
+						range = get_ellipsis(root->ses, root->used, name, &min, &max);
+
 
 						return range + 1;
 					}
@@ -407,7 +408,7 @@ int get_nest_size_index(struct listroot *root, char *variable, char **result)
 
 					if (root->used)
 					{
-						range = get_ellipsis(root, name, &min, &max);
+						range = get_ellipsis(root->ses, root->used, name, &min, &max);
 
 						return range + 1;
 					}
@@ -493,7 +494,9 @@ int get_nest_size_key(struct listroot *root, char *variable, char **result)
 
 					if (root->used)
 					{
-						range = get_ellipsis(root, name, &min, &max);
+						range = get_ellipsis(root->ses, root->used, name, &min, &max);
+
+//						tintin_printf2(root->ses, "debug: %d %d %d\n", min, max, range);
 
 						if (min < max)
 						{
@@ -598,7 +601,7 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 
 					if (root->used)
 					{
-						range = get_ellipsis(root, name, &min, &max);
+						range = get_ellipsis(root->ses, root->used, name, &min, &max);
 
 						if (min < max)
 						{
@@ -974,7 +977,10 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
+		arg = get_arg_to_brackets(ses, arg1, name);
+
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
 	}
 	free(arg2);
 
@@ -1063,7 +1069,10 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
+		arg = get_arg_to_brackets(ses, arg1, name);
+
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
 	}
 	free(arg2);
 
@@ -1147,7 +1156,10 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
+		arg = get_arg_to_brackets(root->ses, arg1, name);
+
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
 	}
 
 	free(arg2);

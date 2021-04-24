@@ -4,9 +4,10 @@ CHARACTERS
 
 #         The hashtag is the default character for starting a command and is
           subsequently known as the command character or tintin character.
+
           When loading a command file the command character is set to the
           first character in the file. The character can also be redefined
-          using #config.
+          using #config. It's adviced not to redefine the command character.
 
 ;         The semi-colon is used as the command separator and can be used to
           separate two commands. Multiple commands can be strung together as
@@ -18,8 +19,9 @@ CHARACTERS
           easily be escaped and must always be used in pairs.
 
 " "       Quote characters are used for strings in the #math, #if, #switch,
-          and #case commands. It is however suggested to use an extra
-          set of braces { } to define strings.
+          and #case commands. Instead of " " you can use an extra set of
+          braces { } to define strings, this is suggested if you are
+          expecting input to contain " characters.
 
 !         The exclamation sign is used to repeat commands, see #help history.
           The character can be redefined using #config.
@@ -27,7 +29,6 @@ CHARACTERS
 \         An input line starting with a backslash is send verbatim if you are
           connected to a server. This character can be configured with
           #config.
-
 
 
 SUBSTITUTIONS
@@ -49,13 +50,19 @@ $         The dollar sign is used to retrieve the value of a variable.
           associative array. Associative arrays are also known as tables and
           maps. Regex can be used within brackets to match multiple variables.
 
-&0- &99   The ampersand sign followed by a number is used for arguments in the
-          regex command.
+          Variables are ordered alphanumerically.
+
++ -       The plus and minus sign is used to access variables by their index,
+          with the first variable having index 1, and the last variable
+          having index -1.
 
 %0- %99   The percent sign followed by a number is used for arguments by the
           following triggers:
 
           alias, action, button, delay, event, function, substitute, and tick.
+
+&0- &99   The ampersand sign followed by a number is used for arguments in the
+          regex and replace commands.
 
 <000>     Three alphanumeric characters encapsulated by the less- and greater-
           than signs are used for 4 and 8 bit color codes.
@@ -73,8 +80,10 @@ $         The dollar sign is used to retrieve the value of a variable.
 \         The back slash is used to escape a character. All available options
           are listed at #help escape. Escapes are typically escaped when text
           leaves the client, by being send to a server, the shell, or being
-          displayed on the screen.
+          displayed on the screen. Escapes try to mimic escapes in PCRE when
+          possible.
 
+\a        07  bell character.
 \t        08  horizontal tab character.
 \n        10  line feed character.
 \v        11  vertical tab character.
@@ -83,42 +92,49 @@ $         The dollar sign is used to retrieve the value of a variable.
 \c            6 bit control character, \ca for ctrl-a.
 \x            8 bit character using 2 hexadecimal numbers.
 \u            16 bit unicode character, \uFFFD for example.
+\U            21 bit unicode character, \U02AF21 for example.
 
           All variables and functions can be escaped by doubling the sign,
           like $$variable_name or @@function_name. To escape a variable
           twice use $$$var_name. One escape is removed each time tintin
           needs to substitute a variable or function.
 
+          All trigger arguments can be escaped by double the ampersand,
+          like %%1. One escape is removed each time tintin substitutes
+          trigger arguments.
+
           All command arguments can be escaped by doubling the ampersand,
           like &&1. One escape is removed each time tintin substitutes
           command arguments.
 
-          All trigger arguments can be escaped by double the ampersand,
-          like %%1. One escape is removed each time tintin substitutes
-          trigger arguments.
 
 COORDINATES
 -----------
 
           When the 0,0 coordinate is in the upper left corner TinTin++ uses
           a y,x / rows,cols notation, starting at 1,1. Subsequently -1,-1
-          will indicate the bottom right corner.
+          will indicate the bottom right corner. This type of argument is
+          used by the #showme command.
 
           When the 0,0 coordinate is in the bottom left corner tintin uses
-          a standard x,y notation.
+          a standard x,y notation. This type of argument is used by the
+          #map jump command.
 
 SQUARES
 -------
 
           A square argument takes 4 coordinates. The first two coordinates
           define the upper left corner, the last two coordinates define the
-          bottom right corner.
+          bottom right corner. The upper left corner of the terminal is
+          defined as 1,1 and the bottom right corner as -1,-1. This type
+          of argument is use by the #draw, #button, #map offset, 
 
 PANES
 -----
           A panes argument takes 4 size values, which are: top pane, bottom
           pane, left pane, right pane. When a negative value is provided the
-          size is the maximum size, minus the value.
+          size is the maximum size, minus the value. This type of argument
+          is used by the #split command.
 
 MATH
 ----
@@ -129,7 +145,7 @@ MATH
           *               1            integer multiply
           **              1            integer power
           /               1            integer divide
-          //              1            integer sqrt // 2 or cbrt // 3
+          //              1            integer root
           %               1            integer modulo
           d               1            integer random dice roll
           +               2            integer addition
@@ -151,11 +167,7 @@ MATH
           ^^             10            logical xor
           ||             11            logical or
 
-:         The colon can be used in #math to indicate a time value.
-1:30      This means 1 minute and 30 seconds and equals 90 seconds.
-2:1:30    This means 2 hours, 1 minute and 30 seconds.
-6:2:1:30  This means 6 days, 2 hours, 1 minute and 30 seconds.
-          #math time 6:2:1:30 equals 525690
+? :       The ? : symbols can be used for simple ternary operations.
 
 M,K,m,u   These four metric suffixes are allowed for numbers.
 
