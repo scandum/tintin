@@ -194,6 +194,17 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Carrion Fields", "http://carrionfields.net", arg1);
 	banner_address(ses, "Carrion Fields", "cf carrionfields.net 4449", arg1);
 	banner_expires(ses, "Carrion Fields", "2026", arg1);
+
+	banner_create(ses, "RetroMUD", arg1);
+
+	banner_desc(ses, "RetroMUD",
+		"RetroMUD features over 100 levels of play, a huge array of character advancement\n"
+		"options, and dozens of quests across six different worlds. It's like six games\n"
+		"in one.", arg1);
+
+	banner_website(ses, "RetroMUD", "http://www.retromud.org", arg1);
+	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
+	banner_expires(ses, "RetroMUD", "2027", arg1);
 }
 
 int total_banners()

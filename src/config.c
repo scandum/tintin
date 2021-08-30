@@ -477,11 +477,11 @@ DO_CONFIG(config_loglevel)
 	{
 		if (is_abbrev(arg2, "LOW"))
 		{
-			SET_BIT(ses->logmode, LOG_FLAG_LOW);
+			SET_BIT(ses->log->mode, LOG_FLAG_LOW);
 		}
 		else if (is_abbrev(arg2, "HIGH"))
 		{
-			DEL_BIT(ses->logmode, LOG_FLAG_LOW);
+			DEL_BIT(ses->log->mode, LOG_FLAG_LOW);
 		}
 		else
 		{
@@ -490,7 +490,7 @@ DO_CONFIG(config_loglevel)
 			return NULL;
 		}
 	}
-	strcpy(arg2, HAS_BIT(ses->logmode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
+	strcpy(arg2, HAS_BIT(ses->log->mode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
 
 	return ses;
 }
@@ -502,21 +502,21 @@ DO_CONFIG(config_logmode)
 	{
 		if (is_abbrev(arg2, "HTML"))
 		{
-			SET_BIT(ses->logmode, LOG_FLAG_HTML);
-			DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
-			DEL_BIT(ses->logmode, LOG_FLAG_RAW);
+			SET_BIT(ses->log->mode, LOG_FLAG_HTML);
+			DEL_BIT(ses->log->mode, LOG_FLAG_PLAIN);
+			DEL_BIT(ses->log->mode, LOG_FLAG_RAW);
 		}
 		else if (is_abbrev(arg2, "PLAIN"))
 		{
-			DEL_BIT(ses->logmode, LOG_FLAG_HTML);
-			SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
-			DEL_BIT(ses->logmode, LOG_FLAG_RAW);
+			DEL_BIT(ses->log->mode, LOG_FLAG_HTML);
+			SET_BIT(ses->log->mode, LOG_FLAG_PLAIN);
+			DEL_BIT(ses->log->mode, LOG_FLAG_RAW);
 		}
 		else if (is_abbrev(arg2, "RAW"))
 		{
-			DEL_BIT(ses->logmode, LOG_FLAG_HTML);
-			DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
-			SET_BIT(ses->logmode, LOG_FLAG_RAW);
+			DEL_BIT(ses->log->mode, LOG_FLAG_HTML);
+			DEL_BIT(ses->log->mode, LOG_FLAG_PLAIN);
+			SET_BIT(ses->log->mode, LOG_FLAG_RAW);
 		}
 		else
 		{
@@ -525,7 +525,7 @@ DO_CONFIG(config_logmode)
 			return NULL;
 		}
 	}
-	strcpy(arg2, HAS_BIT(ses->logmode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->logmode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
+	strcpy(arg2, HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
 
 	return ses;
 }

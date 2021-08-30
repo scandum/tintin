@@ -616,8 +616,30 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          with macros. Subsequently many cursor commands only work properly when
          used within a macro or event.
 
-         </span><span style='color:#FFF'>#cursor tab &lt;list;scrollback&gt; &lt;backward|forward&gt;
-         </span><span style='color:#AAA'>  Tab through the given option(s) going forward or backward.
+         </span><span style='color:#FFF'>#cursor flag
+
+         </span><span style='color:#AAA'>EOL         end of line character(s)
+         ECHO        local echo
+         OVERTYPE    overtype mode
+
+         </span><span style='color:#FFF'>#cursor macro
+
+         </span><span style='color:#AAA'>PRESERVE    do not erase the macro from the macro input buffer
+         RESET       erase the macro input buffer
+
+         </span><span style='color:#FFF'>#cursor tab
+
+         </span><span style='color:#AAA'>CASELESS    makes tab completion caseless
+         COMPLETE    makes tab completion work while editing
+
+         DICTIONARY  performs tab completion on the dictionary
+         LIST        performs tab completion on the tab completion list
+         SCROLLBACK  performs tab completion on the scrollback buffer
+
+         BACKWARD    specifies tab completion to go backward
+         FORWARD     specifies tab completion to go forward
+
+         Multiple options can/must be specified at once.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#ALIAS'>alias</a>, <a href='#HISTORY'>history</a>, <a href='#KEYPAD'>keypad</a>, <a href='#MACRO'>macro</a>, <a href='#SPEEDWALK'>speedwalk</a> and <a href='#TAB'>tab</a>.
 <a name='DAEMON'></a>
@@ -686,6 +708,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          Nanosecond floating point precision is allowed. Delays will fire in
          0.01 second intervals.
+
+         Named delays are treated as one-shot tickers, see #help tick.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #delay {1} {#show last};#show first
          This will print 'first', and 'last' around one second later.
@@ -1071,6 +1095,9 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#FFF'>RECEIVED INPUT [NAME]
          </span><span style='color:#AAA'>  %0 raw text
 
+         </span><span style='color:#FFF'>RECEIVED INPUT CHARACTER
+         </span><span style='color:#AAA'>  %0 character  %1 unicode index  %2 size  %3 width
+
          SEND OUTPUT            %0 raw text %1 size
          SENT OUTPUT            %0 raw text %1 size
 
@@ -1343,7 +1370,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.11b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.12                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1523,9 +1550,9 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#5F5'>         INDEX
 
-         On this page you'll find an introduction to using TinTin++. Additional
+</span><span style='color:#AAA'>         On this page you'll find an introduction to using TinTin++. Additional
          information can be found in the individual help sections.
-
+</span><span style='color:#5F5'>
          Starting and Ending
 </span><span style='color:#AAA'>
          The syntax for starting TinTin++ is: ./tt++ [command file]
@@ -1804,6 +1831,7 @@ Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>
          #info session will show information on the session.
          #info sessions will show information on all sessions.
          #info system will show some system information.
+         #info tokenizer will show information about the script stack.
          #info unicode will show information on the provided character.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CLASS'>class</a>, <a href='#DEBUG'>debug</a>, <a href='#IGNORE'>ignore</a>, <a href='#KILL'>kill</a> and <a href='#MESSAGE'>message</a>.
@@ -1871,19 +1899,19 @@ Terminal -&gt; Window Settings -&gt; Emulation.
 </span><span style='color:#5F5'>         LINE
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #line </span><span style='color:#FFF'>{</span><span style='color:#AAA'>option</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
-</span><span style='color:#5F5'>
-         Line sub commands that alter the argument.
-</span><span style='color:#AAA'>
+
+         </span><span style='color:#5F5'>Line options that alter the argument.
+
          </span><span style='color:#FFF'>#line strip &lt;argument&gt;
          </span><span style='color:#AAA'>  Argument is executed with all color codes stripped.
 
          </span><span style='color:#FFF'>#line substitute &lt;options&gt; &lt;argument&gt;
          </span><span style='color:#AAA'>  Argument is executed using the provided substitutions, available
-           options are: arguments, colors, escapes, functions, secure, and
-           variables.
-</span><span style='color:#5F5'>
-         Line sub commands that alter how the line is executed.
-</span><span style='color:#AAA'>
+           options are: arguments, braces, colors, escapes, functions, secure,
+           and variables.
+
+         </span><span style='color:#5F5'>Line options that alter how the line is executed.
+
          </span><span style='color:#FFF'>#line background &lt;argument&gt;
          </span><span style='color:#AAA'>  Prevent new session activation.
 
@@ -2282,12 +2310,36 @@ Terminal -&gt; Window Settings -&gt; Emulation.
 
 </span><span style='color:#5F5'>         LOG
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #log </span><span style='color:#FFF'>{</span><span style='color:#AAA'>append</span><span style='color:#FFF'>|</span><span style='color:#AAA'>overwrite</span><span style='color:#FFF'>|</span><span style='color:#AAA'>off</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>[filename]</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #log </span><span style='color:#FFF'>{</span><span style='color:#AAA'>option</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
 
-         Logs session output to a file, you can set the data type to either
-         plain, raw, or html with the config command.
+         The log command allows logging session output to file. You can set the
+         data type to either plain, raw, or html with the config command.
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#READ'>read</a>, <a href='#SCAN'>scan</a>, <a href='#TEXTIN'>textin</a> and <a href='#WRITE'>write</a>.
+         </span><span style='color:#FFF'>#log append &lt;filename&gt;
+         </span><span style='color:#AAA'>  Start logging to the given file, if the file already exists it won't
+           be overwritten and data will be appended to the end.
+
+         </span><span style='color:#FFF'>#log move &lt;filename_1&gt; &lt;filename_2&gt;
+         </span><span style='color:#AAA'>  Move filename_1 to filename_2. This can be any file and doesn't need
+           to be a log file.
+
+         </span><span style='color:#FFF'>#log overwrite &lt;filename&gt;
+         </span><span style='color:#AAA'>  Start logging to the given file, if the file already exists it will
+           be overwritten.
+
+         </span><span style='color:#FFF'>#log off
+         </span><span style='color:#AAA'>  Stop logging.
+
+         </span><span style='color:#FFF'>#log remove &lt;filename&gt;
+         </span><span style='color:#AAA'>  Remove the file. This can be any file and doesn't need to be a log
+           file.
+
+         </span><span style='color:#FFF'>#log timestamp &lt;format&gt;
+         </span><span style='color:#AAA'>  When set the timestamp will be prepended to each line logged to file.
+           The format will be formatted as a date using the strftime format
+           specifiers as described in #help time.
+
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#READ'>read</a>, <a href='#SCAN'>scan</a>, <a href='#TEXTIN'>textin</a>, <a href='#TIME'>time</a> and <a href='#WRITE'>write</a>.
 <a name='LOOP'></a>
 
 </span><span style='color:#5F5'>         LOOP
@@ -2493,9 +2545,11 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#AAA'>  Lists all matching rooms and their distance. The following
            search keywords are supported.
 
+           {distance}    &lt;arg&gt; will list rooms within given distance.
            {roomarea}    &lt;arg&gt; will list rooms with matching area name.
            {roomdesc}    &lt;arg&gt; will list rooms with matching room desc.
            {roomexits}   &lt;arg&gt; will list rooms with identical room exits.
+                               Use * as an exit to ignore non pathdir exits.
            {roomflag}    &lt;arg&gt; will list rooms with matching room flags.
            {roomid}      &lt;arg&gt; will list rooms with identical id name.
            {roomname}    &lt;arg&gt; will list rooms with matching room name.
@@ -3988,8 +4042,11 @@ Related</span><span style='color:#AAA'>: <a href='#ALL'>all</a>, <a href='#PORT'
 
          Adds a word to the tab completion list, alphabetically sorted.
 
-         If no tabs are defined tintin will use the scrollback buffer
-         for auto tab completion.
+         If no tabs are defined tintin will use the scrollback buffer for auto
+         tab completion.
+
+         Tabbing behavior can be modified with the #cursor tab command which
+         by default is bound to the tab key.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: You can remove a tab with the #untab command.
 

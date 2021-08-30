@@ -89,6 +89,9 @@
 #define gnutls_session_t int
 #endif
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -207,7 +210,7 @@
 #define STRING_SIZE        2 * BUFFER_SIZE
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.11 "
+#define CLIENT_VERSION           "2.02.12 "
 
 
 #define XT_E                            0x27
@@ -549,45 +552,47 @@ enum operators
 
 #define SUB_ARG                       BV01
 #define SUB_SEC                       BV02
-#define SUB_CMD                       BV03
-#define SUB_VAR                       BV04
-#define SUB_FUN                       BV05
-#define SUB_COL                       BV06
-#define SUB_ESC                       BV07
-#define SUB_EOL                       BV08 // telnet
-#define SUB_LNF                       BV09
-#define SUB_SIL                       BV10 // silent
-#define SUB_LIT                       BV11 // no soft escaping
-
+#define SUB_BRA                       BV03
+#define SUB_CMD                       BV04
+#define SUB_VAR                       BV05
+#define SUB_FUN                       BV06
+#define SUB_COL                       BV07
+#define SUB_ESC                       BV08
+#define SUB_EOL                       BV09 // telnet
+#define SUB_LNF                       BV10
+#define SUB_SIL                       BV11 // silent
+#define SUB_LIT                       BV12 // no soft escaping
 
 /*
 #define SUB_ARG                       BV01
 #define SUB_SEC                       BV02
+#define SUB_BRA                       BV03
 */
-#define EVENT_FLAG_CATCH              BV03
-#define EVENT_FLAG_CLASS              BV04
-#define EVENT_FLAG_GAG                BV05
-#define EVENT_FLAG_INPUT              BV06
-#define EVENT_FLAG_MAP                BV07
-#define EVENT_FLAG_MOUSE              BV08
-#define EVENT_FLAG_OUTPUT             BV09
-#define EVENT_FLAG_PORT               BV10
-#define EVENT_FLAG_SCAN               BV11
-#define EVENT_FLAG_SCREEN             BV12
-#define EVENT_FLAG_SESSION            BV13
-#define EVENT_FLAG_SYSTEM             BV14
-#define EVENT_FLAG_TELNET             BV15
-#define EVENT_FLAG_TIME               BV16
-#define EVENT_FLAG_UPDATE             BV17
-#define EVENT_FLAG_VARIABLE           BV18
-#define EVENT_FLAG_VT100              BV19
-
+#define EVENT_FLAG_CATCH              BV04
+#define EVENT_FLAG_CLASS              BV05
+#define EVENT_FLAG_GAG                BV06
+#define EVENT_FLAG_INPUT              BV07
+#define EVENT_FLAG_MAP                BV08
+#define EVENT_FLAG_MOUSE              BV09
+#define EVENT_FLAG_OUTPUT             BV10
+#define EVENT_FLAG_PORT               BV11
+#define EVENT_FLAG_SCAN               BV12
+#define EVENT_FLAG_SCREEN             BV13
+#define EVENT_FLAG_SESSION            BV14
+#define EVENT_FLAG_SYSTEM             BV15
+#define EVENT_FLAG_TELNET             BV16
+#define EVENT_FLAG_TIME               BV17
+#define EVENT_FLAG_UPDATE             BV18
+#define EVENT_FLAG_VARIABLE           BV19
+#define EVENT_FLAG_VT100              BV20
 
 #define TAB_FLAG_FORWARD              BV01
 #define TAB_FLAG_BACKWARD             BV02
 #define TAB_FLAG_COMPLETE             BV03
-#define TAB_FLAG_LIST                 BV04
-#define TAB_FLAG_SCROLLBACK           BV05
+#define TAB_FLAG_CASELESS             BV04
+#define TAB_FLAG_DICTIONARY           BV05
+#define TAB_FLAG_LIST                 BV06
+#define TAB_FLAG_SCROLLBACK           BV07
 
 #define REGEX_FLAG_NONE                  0
 #define REGEX_FLAG_FIX                BV01
@@ -596,7 +601,7 @@ enum operators
 
 
 
-#define TINTIN_FLAG_GETNUMBER         BV01
+#define TINTIN_FLAG_GETNUMBER         BV01 // UNUSED
 #define TINTIN_FLAG_SESSIONUPDATE     BV02
 #define TINTIN_FLAG_PROCESSINPUT      BV03
 #define TINTIN_FLAG_INHERITANCE       BV04
@@ -657,6 +662,9 @@ enum operators
 #define TELOPT_FLAG_TTYPE             BV08
 #define TELOPT_FLAG_MTTS              BV09
 #define TELOPT_FLAG_UPDATENAWS        BV10
+#define TELOPT_FLAG_CR                BV11
+#define TELOPT_FLAG_LF                BV12
+#define TELOPT_FLAG_NUL               BV13
 
 #define LIST_FLAG_IGNORE              BV01
 #define LIST_FLAG_PRIORITY            BV02
@@ -761,7 +769,8 @@ enum operators
 #define MAP_SEARCH_TERRAIN             5
 #define MAP_SEARCH_FLAG                6
 #define MAP_SEARCH_ID                  7
-#define MAP_SEARCH_MAX                 8
+#define MAP_SEARCH_DISTANCE            8
+#define MAP_SEARCH_MAX                 9
 
 #define MAP_EXIT_N                     1
 #define MAP_EXIT_E                     2
@@ -1084,7 +1093,6 @@ struct tintin_data
 {
 	struct session        * ses;
 	struct session        * update;
-	struct session        * all;
 	struct session        * dispose_next;
 	struct session        * dispose_prev;
 	struct listroot       * dispose_list;
@@ -1148,20 +1156,12 @@ struct session
 	z_stream              * mccp3;
 	gnutls_session_t        ssl;
 	struct termios          cur_terminal;
+	struct log_data       * log;
 	struct scroll_data    * scroll;
 	struct split_data     * split;
 	struct input_data     * input;
 	char                  * name;
 	char                  * group;
-	FILE                  * logfile;
-	char                  * logname;
-	int                     logmode;
-	FILE                  * lognext_file;
-	char                  * lognext_name;
-	time_t                  lognext_time;
-	FILE                  * logline_file;
-	char                  * logline_name;
-	time_t                  logline_time;
 	char                  * line_capturefile;
 	int                     line_captureindex;
 	int                     gagline;
@@ -1276,6 +1276,22 @@ struct level_data
 	unsigned int            shots;
 	unsigned int            verbatim;
 	unsigned int            verbose;
+};
+
+struct log_data
+{
+	FILE                  * file;
+	char                  * name;
+	int                     mode;
+	FILE                  * next_file;
+	char                  * next_name;
+	time_t                  next_time;
+	FILE                  * line_file;
+	char                  * line_name;
+	time_t                  line_time;
+	char                    stamp_text[100];
+	char                  * stamp_strf;
+	time_t                  stamp_time;
 };
 
 struct split_data
@@ -1488,7 +1504,9 @@ struct search_data
 	pcre                  * note;
 	pcre                  * terrain;
 	long long               flag;
+	long long               galf;
 	char                  * id;
+	float                   distance;
 };
 
 struct msdp_data
@@ -1601,7 +1619,6 @@ struct window_data
 #define DO_EDIT(edit)          struct session *edit (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_HISTORY(history)            void history (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_LINE(line)          struct session *line (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3)
-#define DO_LOG(log)                        void log (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_MAP(map)                        void map (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_PATH(path)                     void path (struct session *ses, char *arg)
 #define DO_PORT(port)          struct session *port (struct session *ses, char *arg, char *arg1, char *arg2)
@@ -1621,7 +1638,6 @@ typedef void            CURSOR  (struct session *ses, char *arg);
 typedef void            DAEMON  (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef struct session *EDIT    (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            HISTORY (struct session *ses, char *arg, char *arg1, char *arg2);
-typedef void            LOG     (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef struct session *LINE    (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3);
 typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
@@ -1735,13 +1751,6 @@ struct line_type
 {
 	char                  * name;
 	LINE                  * fun;
-	char                  * desc;
-};
-
-struct log_type
-{
-	char                  * name;
-	LOG                   * fun;
 	char                  * desc;
 };
 
@@ -2027,8 +2036,6 @@ extern DO_CURSOR(cursor_set);
 extern DO_CURSOR(cursor_soft_enter);
 extern DO_CURSOR(cursor_suspend);
 extern DO_CURSOR(cursor_tab);
-extern DO_CURSOR(cursor_tab_backward);
-extern DO_CURSOR(cursor_tab_forward);
 
 #endif
 
@@ -2238,6 +2245,7 @@ extern void dump_stack(void);
 extern DO_COMMAND(do_dictionary);
 
 extern int spellcheck_count(struct session *ses, char *in);
+extern int cursor_dictionary_tab_add(int stop_after_first);
 
 #endif
 
@@ -2363,13 +2371,10 @@ extern DO_LINE(line_verbose);
 #ifndef __LOG_H__
 #define __LOG_H__
 
-DO_LOG(log_append);
-DO_LOG(log_info);
-DO_LOG(log_overwrite);
-DO_LOG(log_off);
-DO_LOG(log_remove);
+extern void logheader(struct session *ses, FILE *file, int newline);
+extern void init_log(struct session *ses);
+extern void free_log(struct session *ses);
 
-extern void loginit(struct session *ses, FILE *file, int newline);
 extern void logit(struct session *ses, char *txt, FILE *file, int newline);
 extern void write_html_header(struct session *ses, FILE *fp);
 extern void vt102_to_html(struct session *ses, char *txt, char *out);
@@ -2570,7 +2575,7 @@ int exit_to_dir(struct session *ses, char *name);
 unsigned char pdir(struct listnode *node);
 char *dir_to_exit(struct session *ses, int dir);
 
-extern void check_append_path(struct session *ses, char *forward, char *backward, float delay, int follow);
+extern void check_append_path(struct session *ses, char *forward, char *backward, float delay, int force, int follow);
 
 extern DO_PATH(path_create);
 extern DO_PATH(path_describe);
@@ -2722,7 +2727,7 @@ extern void telnet_printf(struct session *ses, int length, char *format, ...);
 extern void tintin_printf2(struct session *ses, char *format, ...);
 extern void tintin_printf(struct session *ses, char *format, ...);
 
-extern void tintin_puts3(struct session *ses, char *string);
+extern void tintin_puts3(struct session *ses, char *string, int prompt);
 extern void tintin_puts2(struct session *ses, char *string);
 extern void tintin_puts(struct session *ses, char *string);
 
@@ -2765,6 +2770,9 @@ extern gnutls_session_t ssl_negotiate(struct session *ses);
 
 extern int get_raw_len_str_range_str_width(struct session *ses, char *str, int start, int end, int *raw_width);
 extern int get_raw_off_str_range_raw_width(struct session *ses, char *str, int start, int end, int *raw_width);
+
+extern int raw_len_str(struct session *ses, char *str, int start, int end);
+extern int str_len_raw(struct session *ses, char *str, int start, int end);
 
 extern char *str_ins_str(struct session *ses, char **str, char *ins, int str_start, int str_end);
 
@@ -2825,7 +2833,6 @@ extern struct event_type event_table[];
 extern struct history_type history_table[];
 extern struct line_type line_table[];
 extern struct list_type list_table[LIST_MAX];
-extern struct log_type log_table[];
 extern struct map_type map_table[];
 extern struct path_type path_table[];
 extern struct port_type port_table[];
@@ -2916,6 +2923,7 @@ extern struct scriptroot *push_script_stack(struct session *ses, int list);
 extern void pop_script_stack();
 extern struct listroot *local_list(struct session *ses);
 extern struct session *script_driver(struct session *ses, int list, char *str);
+extern char *view_script(struct session *ses, struct scriptroot *root);
 extern char *script_writer(struct session *ses, char *str);
 extern char *script_viewer(struct session *ses, char *str);
 #endif
@@ -2980,12 +2988,15 @@ extern int is_suffix(char *str1, char *str2);
 #ifndef __UTF8_H__
 #define __UTF8_H__
 
+extern void big5toutf8_info(struct session *ses);
+extern void utf8tobig5_info(struct session *ses);
+
 extern int get_ascii_width(char *str, int *width);
 
 extern int is_utf8_head(char *str);
 extern int is_utf8_tail(char *str);
 extern int get_utf8_size(char *str);
-extern int get_utf8_width(char *str, int *width);
+extern int get_utf8_width(char *str, int *width, int *index);
 extern int get_utf8_index(char *str, int *index);
 extern int unicode_to_utf8(int index, char *out);
 extern int utf8_strlen(char *str, int *width);

@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <signal.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 
 /*

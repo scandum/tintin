@@ -1219,12 +1219,6 @@ char *view_script(struct session *ses, struct scriptroot *root)
 		token = token->next;
 	}
 
-	while (root->next)
-	{
-		deltoken(root, root->next);
-	}
-
-	free(root);
 
 	return buf;
 }
@@ -1278,6 +1272,7 @@ char *script_writer(struct session *ses, char *str)
 char *script_viewer(struct session *ses, char *str)
 {
 	struct scriptroot *root;
+	char *pts;
 
 	root = (struct scriptroot *) calloc(1, sizeof(struct scriptroot));
 
@@ -1285,5 +1280,14 @@ char *script_viewer(struct session *ses, char *str)
 
 	tokenize_script(root, 1, str);
 
-	return view_script(ses, root);
+	pts = view_script(ses, root);
+
+	while (root->next)
+	{
+		deltoken(root, root->next);
+	}
+
+	free(root);
+
+	return pts;
 }

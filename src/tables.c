@@ -57,15 +57,16 @@ struct list_type list_table[LIST_MAX] =
 struct substitution_type substitution_table[] =
 {
 	{    "ARGUMENTS",            SUB_ARG },
-	{    "VARIABLES",            SUB_VAR },
-	{    "FUNCTIONS",            SUB_FUN },
+	{    "BRACES",               SUB_BRA },
 	{    "COLORS",               SUB_COL },
-	{    "ESCAPES",              SUB_ESC },
 //	{    "COMMANDS",             SUB_CMD },
-	{    "SECURE",               SUB_SEC },
 	{    "EOL",                  SUB_EOL },
-	{    "LNF",                  SUB_LNF },
+	{    "ESCAPES",              SUB_ESC },
+	{    "FUNCTIONS",            SUB_FUN },
         {    "LITERAL",              SUB_LIT },
+	{    "LNF",                  SUB_LNF },
+	{    "SECURE",               SUB_SEC },
+	{    "VARIABLES",            SUB_VAR },
 	{    "",                     0       }
 };
 
@@ -927,7 +928,7 @@ struct cursor_type cursor_table[] =
 	{     "",                   "",                                               "\e[1;2a",                        0,    cursor_buffer_up,             ""          },
 	{     "",                   "",                                               "\e[1;2b",                        0,    cursor_buffer_down,           ""          },
 	{     "",                   "",                                               "",                              0,    cursor_buffer_lock,           ""          },
-//	{     "",                   "",                                               "\e[13;2u",                       0,    cursor_enter,                 ""          },
+	{     "",                   "",                                               "\e[13;129u",                     0,    cursor_enter,                 ""          },
 	{     "",                   "",                                               "\eOM",                           0,    cursor_enter,                 ""          },
 	{     "",                   "",                                               "\e[7~",                          0,    cursor_home,                  ""          },
 	{     "",                   "",                                               "\e[1~",                          0,    cursor_home,                  ""          },
@@ -935,15 +936,20 @@ struct cursor_type cursor_table[] =
 	{     "",                   "",                                               "\e[H",                           0,    cursor_home,                  ""          },
 	{     "",                   "",                                               "\eOD",                           0,    cursor_move_left,             ""          },
 	{     "",                   "",                                               "\e[D",                           0,    cursor_move_left,             ""          },
+	{     "",                   "",                                               "\e[1;129D",                      0,    cursor_move_left,             ""          },
 	{     "",                   "",                                               "\e[8~",                          0,    cursor_end,                   ""          },
 	{     "",                   "",                                               "\e[4~",                          0,    cursor_end,                   ""          },
 	{     "",                   "",                                               "\eOF",                           0,    cursor_end,                   ""          },
 	{     "",                   "",                                               "\e[F",                           0,    cursor_end,                   ""          },
 	{     "",                   "",                                               "\eOC",                           0,    cursor_move_right,            ""          },
 	{     "",                   "",                                               "\e[C",                           0,    cursor_move_right,            ""          },
+	{     "",                   "",                                               "\e[1;129C",                      0,    cursor_move_right,            ""          },
 	{     "",                   "",                                               "\x7F",                           0,    cursor_backspace,             ""          },
+	{     "",                   "",                                               "\e[127;129u",                    0,    cursor_backspace,             ""          },
 	{     "",                   "",                                               "\eOB",                           0,    cursor_move_down,             ""          },
+	{     "",                   "",                                               "\e[1;129B",                      0,    cursor_move_down,             ""          },
 	{     "",                   "",                                               "\eOA",                           0,    cursor_move_up,               ""          },
+	{     "",                   "",                                               "\e[1;129A",                      0,    cursor_move_up,               ""          },
 	{     "",                   "",                                               "\e[1;5D",                        0,    cursor_move_left_word,        ""          },
 	{     "",                   "",                                               "\e[1;5C",                        0,    cursor_move_right_word,       ""          },
 	{     "",                   "",                                               "\e[1;5B",                        0,    cursor_move_page_down,        ""          },
@@ -1044,6 +1050,7 @@ struct event_type event_table[] =
 	{    "READ FILE",                              0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "the read command finished"  },
 	{    "RECEIVED ERROR",                         0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "an error is received"       },
 	{    "RECEIVED INPUT",                         0, EVENT_FLAG_INPUT,    "INPUT",     "keyboard input is received" },
+	{    "RECEIVED INPUT CHARACTER",               0, EVENT_FLAG_INPUT,    "INPUT",     "keyboard input character"   },
 	{    "RECEIVED KEYPRESS",                      0, EVENT_FLAG_INPUT,    "INPUT",     "a keypress is received"     },
 	{    "RECEIVED LINE",                          0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "a new line is received"     },
 	{    "RECEIVED OUTPUT",                        0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "bulk output is received"    },
@@ -1154,15 +1161,6 @@ struct line_type line_table[] =
 	{    "SUBSTITUTE",        line_substitute,     "Execute line with given substitution."          },
 	{    "VERBATIM",          line_verbatim,       "Execute line as plain text."                    },
 	{    "VERBOSE",           line_verbose,        "Execute line with all system messages on."      },
-	{    "",                  NULL,                ""                                               }
-};
-
-struct log_type log_table[] =
-{
-	{    "APPEND",            log_append,          "Start logging, appending to given file."        },
-	{    "INFO",              log_info,            "Some logging related info."                     },
-	{    "OFF",               log_off,             "Stop logging."                                  },
-	{    "OVERWRITE",         log_overwrite,       "Start logging, overwriting the given file."     },
 	{    "",                  NULL,                ""                                               }
 };
 

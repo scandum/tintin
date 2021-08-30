@@ -363,6 +363,8 @@ nocert:
 		{
 			tintin_printf(ses, "#SSL ERROR: %s", err);
 
+			get_cert_file(ses, filename);
+
 			tintin_printf(ses, "#SSL ALERT: THE SERVER'S SETTINGS WERE CHANGED IN AN UNEXPECTED WAY.");
 			tintin_printf(ses, "#SSL ALERT: YOU MAY BE VULNERABLE TO MAN-IN-THE-MIDDLE ATTACKS.");
 			tintin_printf(ses, "#SSL ALERT: TO CONTINUE, PLEASE DELETE THE FILE:");

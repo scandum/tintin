@@ -216,9 +216,9 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 		cpsrc = src;
 	}
 
-	if (HAS_BIT(ses->logmode, LOG_FLAG_LOW) && ses->logfile)
+	if (HAS_BIT(ses->log->mode, LOG_FLAG_LOW) && ses->log->file)
 	{
-		fwrite(cpsrc, 1, cplen, ses->logfile);
+		fwrite(cpsrc, 1, cplen, ses->log->file);
 	}
 
  	if (ses->read_len + cplen >= ses->read_max)

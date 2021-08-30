@@ -655,27 +655,49 @@ void hexstring(char *str)
 
 void reversestring(char *str)
 {
-	char t;
-	int a = 0, z = strlen(str) - 1;
+	char *pts, *ptz, *dup = str_mim(str);
+	int skip;
 
-	while (z > a)
+	pts = str;
+	ptz = dup + strlen(str);
+
+	*ptz-- = 0;
+
+	while (*pts)
 	{
-		t = str[z];
-		str[z--] = str[a];
-		str[a++] = t;
-	}
-
-	z = strlen(str) - 1;
-
-	for (a = 1 ; a < z ; a++)
-	{
-		if (str[a] == '\\' && str[a + 1] != '\\')
+		switch (*pts)
 		{
-			str[a] = str[a - 1];
-			str[a - 1] = '\\';
+			case '\\':
+				skip = pts[1] ? 2 : 0;
+				break;
+
+			case '\e':
+				skip = skip_vt102_codes(pts);
+				break;
+
+			case '<':
+				skip = is_color_code(pts);
+				break;
+
+			default:
+				skip = 0;
+				break;
+		}
+
+		if (skip)
+		{
+			ptz -= skip;
+			memcpy(ptz + 1, pts, skip);
+			pts += skip;
+		}
+		else
+		{
+			*ptz-- = *pts++;
 		}
 	}
+	strcpy(str, dup);
 
+	str_free(dup);
 }
 
 void mathstring(struct session *ses, char *str)
@@ -935,7 +957,7 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 		{
 			*pte++ = 0;
 
-			substitute(ses, pts, arg1, SUB_SEC);
+			substitute(ses, pts, arg1, SUB_BRA);
 
 			cat_sprintf(str, "{%d}{%s}", ++cnt, arg1);
 
@@ -946,7 +968,7 @@ void wrapstring(struct session *ses, char *str, char *wrap)
 			pte++;
 		}
 	}
-	substitute(ses, pts, arg1, SUB_SEC);
+	substitute(ses, pts, arg1, SUB_BRA);
 
 	cat_sprintf(str, "{%d}{%s}", ++cnt, arg1);
 
@@ -1039,7 +1061,7 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
-			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
+			tmp_cnt = get_utf8_width(&str[raw_cnt], &width, NULL);
 
 			if (str_cnt >= start)
 			{
@@ -1115,7 +1137,7 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
-			raw_cnt += get_utf8_width(&str[raw_cnt], &width);
+			raw_cnt += get_utf8_width(&str[raw_cnt], &width, NULL);
 
 			ret_cnt += width;
 		}

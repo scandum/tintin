@@ -1,3 +1,60 @@
+May 2022        2.02.12
+------------------------------------------------------------------------------
+input.c         Added RECEIVED INPUT CHARACTER event that triggers on each
+                character added to the input buffer. %0 holds the character,
+                %1 the unicode index, %2 the byte size, %3 the character's
+                display width.
+
+cursor.c        Added #cursor tab caseless option to make tab completion case
+                incensitive.
+
+dict.c          Added #cursor tab dictionary option to tab through the
+                dictionary.
+
+log.c           Added #log timestamp <format>. The format follows strftime as
+                described in #help time. Timestamps will be prepended to each
+                line of log output.
+
+log.c           Added #log move <filename> <filename> to move files.
+
+log.c           Added #log remove <filename> to remove files.
+
+variable.c      #format %r now ignores color and escape codes.
+
+data.c          Added the #info tokenizer option to have a peek at the stack
+                of the scripting engine. Use case example:
+
+                #event {RECEIVED ERROR}
+                {
+                    #echo <118>%h { TOKENIZER };
+                    #info tokenizer -1;
+                    #echo <118>%h
+                }
+
+path.c          #path load now automatically adds reverse directions.
+
+map.c           Added support for #map list {roomflag} {!void} etc.
+
+line.c          Added #line substitute braces which will turn { and } into
+                \x7B and \x7D.
+
+map.c           Added #map list {{distance}{5}} to list all rooms within a
+                weighted distance of 5. Keep in mind this goes by weight,
+                which starts at 1.0 and increases by 2.0 per room by default.
+
+cursor.c        Added #cursor flag eol {cr|lf|crlf|crnul|off} to change the
+                default end of line character between \r \n \r\n and \r\0.
+
+log.c           Changed logging to where it logs data before it's wrapped by
+                the client.
+
+map.c           Added support for roomsymbol lengths up to 5 characters in
+                unicode, and 6 characters in ascii graphics mode.
+
+map.c           Added the option to #map list/find to use * as a roomexit.
+                This will make the search ignore non-pathdir exits without
+                an exit direction.
+
 Mar 2021        2.02.11
 ------------------------------------------------------------------------------
 draw.c          #draw BALIGN will push text to the bottom if there aren't
@@ -37,7 +94,7 @@ math.c          Made #math / #if about 3x faster.
 
 math.c          Updated // to support powers other than 2 and 3.
 
-regex.c         Changed %w to match any letter, number, or undescore instead
+regex.c         Changed %w to match any letter, number, or underscore instead
                 of just letters, to make it match \w. Same for %W.
 
 Nov 2020        2.02.10

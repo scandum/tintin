@@ -896,7 +896,7 @@ DO_CURSOR(cursor_delete)
 			{
 				break;
 			}
-			size = get_utf8_width(&gtd->ses->input->buf[gtd->ses->input->raw_pos], &width);
+			size = get_utf8_width(&gtd->ses->input->buf[gtd->ses->input->raw_pos], &width, NULL);
 
 			if (width)
 			{
@@ -950,7 +950,7 @@ DO_CURSOR(cursor_delete_word_left)
 
 	while (span_raw < index_raw)
 	{
-		span_raw += get_vt102_width(gtd->ses, &gtd->ses->input->buf[gtd->ses->input->raw_pos], &width);
+		span_raw += get_vt102_width(gtd->ses, &gtd->ses->input->buf[span_raw], &width);
 
 		gtd->ses->input->str_pos -= width;
 	}
@@ -1180,9 +1180,17 @@ DO_CURSOR(cursor_enter_finish)
 	ses->input->raw_pos = 0;
 	ses->input->str_pos = 0;
 
+	ses->input->str_off = 1;
 	ses->input->str_hid = 0;
 
 	DEL_BIT(gtd->ses->input->flags, INPUT_FLAG_EDIT);
+
+	if (ses == gtd->ses && gtd->ses->scroll->line != -1)
+	{
+		cursor_check_line(gtd->ses, "");
+
+		buffer_end(gtd->ses, "", "", "");
+	}
 
 	if (ses == gtd->ses && HAS_BIT(gtd->ses->flags, SES_FLAG_SPLIT))
 	{
@@ -1196,6 +1204,57 @@ DO_CURSOR(cursor_flag)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (is_abbrev(arg1, "EOL"))
+	{
+		if (*arg2 == 0)
+		{
+			TOG_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF);
+		}
+		else if (!strcasecmp(arg2, "CR"))
+		{
+			SET_BIT(ses->telopts, TELOPT_FLAG_CR);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_LF);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_NUL);
+		}
+		else if (!strcasecmp(arg2, "LF"))
+		{
+			DEL_BIT(ses->telopts, TELOPT_FLAG_CR);
+			SET_BIT(ses->telopts, TELOPT_FLAG_LF);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_NUL);
+		}
+		else if (!strcasecmp(arg2, "CRLF") || !strcasecmp(arg2, "ON"))
+		{
+			SET_BIT(ses->telopts, TELOPT_FLAG_CR);
+			SET_BIT(ses->telopts, TELOPT_FLAG_LF);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_NUL);
+		}
+		else if (!strcasecmp(arg2, "CRNUL"))
+		{
+			SET_BIT(ses->telopts, TELOPT_FLAG_CR);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_LF);
+			SET_BIT(ses->telopts, TELOPT_FLAG_NUL);
+		}
+		else if (!strcasecmp(arg2, "OFF"))
+		{
+			DEL_BIT(ses->telopts, TELOPT_FLAG_CR);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_LF);
+			DEL_BIT(ses->telopts, TELOPT_FLAG_NUL);
+		}
+		else
+		{
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {EOL} {CR|LF|CRLF|CRNUL|OFF}.");
+			return;
+		}
+
+		show_message(gtd->ses, LIST_COMMAND, "#CURSOR FLAG EOL HAS BEEN SET TO: %s",
+			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF) == 0 ? "OFF" :
+			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_NUL) == (TELOPT_FLAG_CR|TELOPT_FLAG_NUL) ? "CRNUL" :
+			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF) == TELOPT_FLAG_CR ? "CR" :
+			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF) == TELOPT_FLAG_LF ? "LF" : "CRLF");
+
+		return;
+	}
 
 	if (is_abbrev(arg1, "ECHO"))
 	{
@@ -1218,7 +1277,7 @@ DO_CURSOR(cursor_flag)
 		return;
 	}
 
-	if (is_abbrev(arg1, "INSERT"))
+	if (is_abbrev(arg1, "INSERT") || is_abbrev(arg1, "OVERTYPE"))
 	{
 		if (*arg2 == 0)
 		{
@@ -1239,7 +1298,7 @@ DO_CURSOR(cursor_flag)
 		return;
 	}
 
-	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|INSERT} {ON|OFF}.");
+	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|EOL|INSERT} {ON|OFF}.");
 }
 
 DO_CURSOR(cursor_get)
@@ -1765,7 +1824,7 @@ DO_CURSOR(cursor_move_left_word)
 
 	while (span_raw < index_raw)
 	{
-		span_raw += get_vt102_width(gtd->ses, &gtd->ses->input->buf[gtd->ses->input->raw_pos], &width);
+		span_raw += get_vt102_width(gtd->ses, &gtd->ses->input->buf[span_raw], &width);
 
 		gtd->ses->input->str_pos -= width;
 	}
@@ -1805,7 +1864,7 @@ DO_CURSOR(cursor_move_right)
 				{
 					break;
 				}
-				size = get_utf8_width(&gtd->ses->input->buf[gtd->ses->input->raw_pos], &width);
+				size = get_utf8_width(&gtd->ses->input->buf[gtd->ses->input->raw_pos], &width, NULL);
 
 				if (width)
 				{
@@ -2336,86 +2395,7 @@ DO_CURSOR(cursor_info)
 	original tab cycling by Ben Love
 */
 
-
-DO_CURSOR(cursor_tab)
-{
-	char arg1[BUFFER_SIZE];
-	int flags = 0;
-
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-	while (*arg)
-	{
-		if (is_abbrev(arg1, "LIST"))
-		{
-			SET_BIT(flags, TAB_FLAG_LIST);
-		}
-		else if (is_abbrev(arg1, "SCROLLBACK"))
-		{
-			SET_BIT(flags, TAB_FLAG_SCROLLBACK);
-		}
-		else if (is_abbrev(arg1, "COMPLETE"))
-		{
-			SET_BIT(flags, TAB_FLAG_COMPLETE);
-		}
-
-		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-		if (*arg == COMMAND_SEPARATOR)
-		{
-			arg++;
-		}
-	}
-
-	if (is_abbrev(arg1, "FORWARD"))
-	{
-		if (!HAS_BIT(flags, TAB_FLAG_COMPLETE) && inputline_editor())
-		{
-			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
-
-			inputline_insert(arg1, -1);
-
-			return cursor_redraw_line(ses, arg);
-		}
-
-		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
-		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST|SCROLLBACK} FORWARD");
-		}
-		else
-		{
-			cursor_tab_forward(ses, ntos(flags));
-		}
-		SET_BIT(flags, TAB_FLAG_FORWARD);
-	}
-	else if (is_abbrev(arg1, "BACKWARD"))
-	{
-		if (!HAS_BIT(flags, TAB_FLAG_COMPLETE) && inputline_editor())
-		{
-			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
-			
-			inputline_insert(arg1, 0);
-
-			return cursor_redraw_line(ses, arg);
-		}
-
-		if (!HAS_BIT(flags, TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
-		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST|SCROLLBACK} BACKWARD");
-		}
-		else
-		{
-			cursor_tab_backward(ses, ntos(flags));
-		}
-		SET_BIT(flags, TAB_FLAG_BACKWARD);
-	}
-	else
-	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {LIST;SCROLLBACK} <BACKWARD|FORWARD>");
-	}
-}
-
-int cursor_tab_add(int stop_after_first)
+int cursor_tab_add(int flag)
 {
 	struct listroot *tab_root = gtd->ses->list[LIST_TAB];
 	struct listroot *cmd_root = gtd->ses->list[LIST_COMMAND];
@@ -2432,31 +2412,42 @@ int cursor_tab_add(int stop_after_first)
 		{
 			node = tab_root->list[tab_root->update];
 
-			if (*node->arg1 == *tail && !strncmp(node->arg1, tail, tail_len))
+			if (HAS_BIT(flag, TAB_FLAG_CASELESS))
 			{
-				if (search_node_list(cmd_root, node->arg1))
+				if (strncasecmp(node->arg1, tail, tail_len) != 0)
 				{
 					continue;
 				}
-				create_node_list(cmd_root, node->arg1, "", "", "");
-
-				if (node->shots && --node->shots == 0)
+			}
+			else
+			{
+				if (*node->arg1 != *tail || strncmp(node->arg1, tail, tail_len) != 0)
 				{
-					delete_node_list(gtd->ses, LIST_TAB, node);
+					continue;
 				}
+			}
 
-				if (stop_after_first)
-				{
-					return TRUE;
-				}
+			if (search_node_list(cmd_root, node->arg1))
+			{
+				continue;
+			}
+			create_node_list(cmd_root, node->arg1, "", "", "");
+
+			if (node->shots && --node->shots == 0)
+			{
+				delete_node_list(gtd->ses, LIST_TAB, node);
+			}
+
+			if (HAS_BIT(flag, TAB_FLAG_FORWARD))
+			{
+				return TRUE;
 			}
 		}
 	}
 	return FALSE;
 }
 
-
-int cursor_scrollback_tab_add(int stop_after_first)
+int cursor_scrollback_tab_add(int flag)
 {
 	char tab[BUFFER_SIZE], buf[BUFFER_SIZE];
 	struct listroot *root = gtd->ses->list[LIST_COMMAND];
@@ -2494,56 +2485,69 @@ int cursor_scrollback_tab_add(int stop_after_first)
 				ptb++;
 			}
 
-			if (*ptb == *tail && !strncmp(ptb, tail, tail_len))
+			if (HAS_BIT(flag, TAB_FLAG_CASELESS))
 			{
-				ptt = tab;
-
-				for (tab_len = 0 ; tab_len < tail_len ; tab_len++)
+				if (strncasecmp(ptb, tail, tail_len) != 0)
 				{
-					*ptt++ = *ptb++;
-				}
-
-				while (*ptb && *ptb != ' ')
-				{
-					switch (*ptb)
-					{
-						case ';':
-						case '.':
-						case ',':
-						case '!':
-						case '?':
-						case ':':
-						case '"':
-							*ptt++ = 0;
-							ptb++;
-							break;
-
-						default:
-							*ptt++ = *ptb++;
-							break;
-					}
-				}
-				*ptt = 0;
-
-				if (search_node_list(gtd->ses->list[LIST_COMMAND], tab))
-				{
-					continue;
-				}
-
-				node = create_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
-
-				node->val32[0] = scroll_cnt;
-
-				if (stop_after_first)
-				{
-					return TRUE;
-				}
-
-				if (root->used > 100)
-				{
-					return FALSE;
+					goto end;
 				}
 			}
+			else
+			{
+				if (*ptb != *tail || strncmp(ptb, tail, tail_len) != 0)
+				{
+					goto end;
+				}
+			}
+			ptt = tab;
+
+			for (tab_len = 0 ; tab_len < tail_len ; tab_len++)
+			{
+				*ptt++ = *ptb++;
+			}
+
+			while (*ptb && *ptb != ' ')
+			{
+				switch (*ptb)
+				{
+					case ';':
+					case '.':
+					case ',':
+					case '!':
+					case '?':
+					case ':':
+					case '"':
+						*ptt++ = 0;
+						ptb++;
+						break;
+
+					default:
+						*ptt++ = *ptb++;
+						break;
+				}
+			}
+			*ptt = 0;
+
+			if (search_node_list(gtd->ses->list[LIST_COMMAND], tab))
+			{
+				goto end;
+			}
+
+			node = create_node_list(gtd->ses->list[LIST_COMMAND], tab, "", "", "");
+
+			node->val32[0] = scroll_cnt;
+
+			if (HAS_BIT(flag, TAB_FLAG_FORWARD))
+			{
+				return TRUE;
+			}
+
+			if (root->used > 100)
+			{
+				return FALSE;
+			}
+
+			end:
 
 			while (*ptb && !is_space(*ptb))
 			{
@@ -2551,14 +2555,13 @@ int cursor_scrollback_tab_add(int stop_after_first)
 			}
 		}
 	}
-
 	return FALSE;
 }
 
-DO_CURSOR(cursor_tab_forward)
+void cursor_tab_forward(struct session *ses, int flag)
 {
 	struct listroot *root = gtd->ses->list[LIST_COMMAND];
-	int tab_found, flags;
+	int tab_found;
 
 	if (inputline_tab_valid() == FALSE)
 	{
@@ -2576,16 +2579,19 @@ DO_CURSOR(cursor_tab_forward)
 
 	tab_found = 0;
 
-	flags = atoi(arg);
-
-	if (tab_found == 0 && HAS_BIT(flags, TAB_FLAG_LIST))
+	if (tab_found == 0 && HAS_BIT(flag, TAB_FLAG_LIST))
 	{
-		tab_found = cursor_tab_add(TRUE);
+		tab_found = cursor_tab_add(flag);
 	}
 
-	if (tab_found == 0 && HAS_BIT(flags, TAB_FLAG_SCROLLBACK))
+	if (tab_found == 0 && HAS_BIT(flag, TAB_FLAG_SCROLLBACK))
 	{
-		tab_found = cursor_scrollback_tab_add(TRUE);
+		tab_found = cursor_scrollback_tab_add(flag);
+	}
+
+	if (tab_found == 0 && HAS_BIT(flag, TAB_FLAG_DICTIONARY))
+	{
+		tab_found = cursor_dictionary_tab_add(flag);
 	}
 
 	if (tab_found == 0)
@@ -2601,10 +2607,9 @@ DO_CURSOR(cursor_tab_forward)
 	cursor_end(ses, "");
 }
 
-DO_CURSOR(cursor_tab_backward)
+void cursor_tab_backward(struct session *ses, int flag)
 {
 	struct listroot *root = ses->list[LIST_COMMAND];
-	int flags;
 
 	if (inputline_tab_valid() == FALSE)
 	{
@@ -2624,16 +2629,19 @@ DO_CURSOR(cursor_tab_backward)
 
 		inputline_cap("");
 
-		flags = atoi(arg);
-
-		if (HAS_BIT(flags, TAB_FLAG_LIST))
+		if (HAS_BIT(flag, TAB_FLAG_LIST))
 		{
-			cursor_tab_add(FALSE);
+			cursor_tab_add(flag);
 		}
 
-		if (HAS_BIT(flags, TAB_FLAG_SCROLLBACK))
+		if (HAS_BIT(flag, TAB_FLAG_SCROLLBACK))
 		{
-			cursor_scrollback_tab_add(FALSE);
+			cursor_scrollback_tab_add(flag);
+		}
+
+		if (HAS_BIT(flag, TAB_FLAG_DICTIONARY))
+		{
+			cursor_dictionary_tab_add(flag);
 		}
 	}
 	else
@@ -2644,4 +2652,92 @@ DO_CURSOR(cursor_tab_backward)
 	inputline_insert(root->list[root->used - 1]->arg1, -1);
 
 	cursor_end(ses, "");
+}
+
+DO_CURSOR(cursor_tab)
+{
+	char arg1[BUFFER_SIZE];
+	int flag = 0;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	while (*arg)
+	{
+		if (is_abbrev(arg1, "CASELESS"))
+		{
+			SET_BIT(flag, TAB_FLAG_CASELESS);
+		}
+		else if (is_abbrev(arg1, "COMPLETE"))
+		{
+			SET_BIT(flag, TAB_FLAG_COMPLETE);
+		}
+		else if (is_abbrev(arg1, "DICTIONARY"))
+		{
+			SET_BIT(flag, TAB_FLAG_DICTIONARY);
+		}
+		else if (is_abbrev(arg1, "LIST"))
+		{
+			SET_BIT(flag, TAB_FLAG_LIST);
+		}
+		else if (is_abbrev(arg1, "SCROLLBACK"))
+		{
+			SET_BIT(flag, TAB_FLAG_SCROLLBACK);
+		}
+
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
+		}
+	}
+
+	if (is_abbrev(arg1, "FORWARD"))
+	{
+		SET_BIT(flag, TAB_FLAG_FORWARD);
+
+		if (!HAS_BIT(flag, TAB_FLAG_COMPLETE) && inputline_editor())
+		{
+			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
+
+			inputline_insert(arg1, -1);
+
+			return cursor_redraw_line(ses, arg);
+		}
+
+		if (!HAS_BIT(flag, TAB_FLAG_DICTIONARY|TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY|LIST|SCROLLBACK} FORWARD");
+		}
+		else
+		{
+			cursor_tab_forward(ses, flag);
+		}
+	}
+	else if (is_abbrev(arg1, "BACKWARD"))
+	{
+		SET_BIT(flag, TAB_FLAG_BACKWARD);
+
+		if (!HAS_BIT(flag, TAB_FLAG_COMPLETE) && inputline_editor())
+		{
+			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
+			
+			inputline_insert(arg1, 0);
+
+			return cursor_redraw_line(ses, arg);
+		}
+
+		if (!HAS_BIT(flag, TAB_FLAG_DICTIONARY|TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
+		{
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY|LIST|SCROLLBACK} BACKWARD");
+		}
+		else
+		{
+			cursor_tab_backward(ses, flag);
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY;LIST;SCROLLBACK} <BACKWARD|FORWARD>");
+	}
 }

@@ -409,7 +409,7 @@ int get_vt102_width(struct session *ses, char *str, int *str_len)
 
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 		{
-			return get_utf8_width(str, str_len);
+			return get_utf8_width(str, str_len, NULL);
 		}
 
 		return get_ascii_width(str, str_len);
@@ -1015,7 +1015,7 @@ int strip_vt102_strlen(struct session *ses, char *str)
 */
 			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 			{
-				size = get_utf8_width(pti, &width);
+				size = get_utf8_width(pti, &width, NULL);
 			}
 			else
 			{

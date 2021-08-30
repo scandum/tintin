@@ -84,7 +84,7 @@ int str_len_str(struct session *ses, char *str, int start, int end)
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(str))
 		{
-			tmp_cnt = get_utf8_width(str, &width);
+			tmp_cnt = get_utf8_width(str, &width, NULL);
 
 			if (str_cnt >= start)
 			{
@@ -133,7 +133,7 @@ int str_len_raw(struct session *ses, char *str, int start, int end)
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{
-			raw_cnt += get_utf8_width(&str[raw_cnt], &width);
+			raw_cnt += get_utf8_width(&str[raw_cnt], &width, NULL);
 			ret_cnt += width;
 		}
 		else
@@ -170,7 +170,7 @@ int raw_len_str(struct session *ses, char *str, int start, int end)
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{ 
-			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
+			tmp_cnt = get_utf8_width(&str[raw_cnt], &width, NULL);
 
 			if (str_cnt >= start)
 			{
@@ -229,7 +229,7 @@ int raw_len_str_min(struct session *ses, char *str, int start, int end)
 		}
 		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{    
-			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
+			tmp_cnt = get_utf8_width(&str[raw_cnt], &width, NULL);
 
 			if (str_cnt >= start)
 			{
@@ -288,7 +288,7 @@ int raw_len_str_opt(struct session *ses, char *str, int start, int end)
 
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&str[raw_cnt]))
 		{    
-			tmp_cnt = get_utf8_width(&str[raw_cnt], &width);
+			tmp_cnt = get_utf8_width(&str[raw_cnt], &width, NULL);
 
 			if (str_cnt >= start)
 			{

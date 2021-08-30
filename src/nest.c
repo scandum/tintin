@@ -549,7 +549,6 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 {
 	char name[BUFFER_SIZE], *arg;
 	int index, count;
-	static int warning;
 
 	arg = get_arg_to_brackets(root->ses, variable, name);
 
@@ -637,14 +636,9 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 		{
 			if (!strcmp(arg, "[]"))
 			{
-				if (++warning < 100)
-				{
-					tintin_printf2(root->ses, "\n\e[1;5;31mdebug: please use *%s instead of $%s.\n", variable, variable);
-				}
-
 				for (index = 0 ; index < root->used ; index++)
 				{
-					str_cat_printf(result, "{%s}", root->list[index]->arg1);
+					str_cat_printf(result, "{%s}", root->list[index]->arg2);
 				}
 				return root->used + 1;
 			}
@@ -980,7 +974,6 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 		arg = get_arg_to_brackets(ses, arg1, name);
 
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
 	}
 	free(arg2);
 

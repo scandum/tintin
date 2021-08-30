@@ -139,11 +139,7 @@ long double get_number(struct session *ses, char *str)
 	long double val;
 	char result[BUFFER_SIZE];
 
-	SET_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER);
-
 	val = mathexp(ses, str, result, 0);
-
-	DEL_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER);
 
 	return val;
 }

@@ -1190,7 +1190,7 @@ void tintin_macro_compile(char *input, char *output)
 
 					case 'n':
 						*pto++ = ASCII_LF;
-						*pti += 2;
+						pti  += 2;
 						break;
 
 					case 'r':

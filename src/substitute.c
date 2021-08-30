@@ -329,19 +329,11 @@ int is_variable(struct session *ses, char *str)
 
 	if (root == NULL)
 	{
-		if (str[0] == '&' && HAS_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER))
-		{
-			show_error(ses, LIST_VARIABLE, "\e[1;31m#WARNING: FOUND %c%s. USE %c{%s} INSTEAD?", str[0], temp, str[0], temp);
-		}
 		return FALSE;
 	}
 
 	if (search_node_list(root, temp) == NULL)
 	{
-		if (str[0] == '&' && HAS_BIT(gtd->flags, TINTIN_FLAG_GETNUMBER))
-		{
-			show_error(ses, LIST_VARIABLE, "\e[1;31m#WARNING: FOUND %c%s. USE %c{%s} INSTEAD?", str[0], temp, str[0], temp);
-		}
 		return FALSE;
 	}
 
@@ -1069,7 +1061,22 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 			case '\0':
 				if (HAS_BIT(flags, SUB_EOL))
 				{
-					if (HAS_BIT(ses->flags, SES_FLAG_RUN))
+					if (HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF))
+					{
+						if (HAS_BIT(ses->telopts, TELOPT_FLAG_CR))
+						{
+							*pto++ = '\r';
+						}
+						if (HAS_BIT(ses->telopts, TELOPT_FLAG_LF))
+						{
+							*pto++ = '\n';
+						}
+						if (HAS_BIT(ses->telopts, TELOPT_FLAG_NUL))
+						{
+							*pto++ = '\0';
+						}
+					}
+					else if (HAS_BIT(ses->flags, SES_FLAG_RUN))
 					{
 						*pto++ = '\r';
 					}
@@ -1703,6 +1710,30 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 								}
 								ptt++;
 							}
+							else if (HAS_BIT(flags, SUB_BRA))
+							{
+								switch (*ptt)
+								{
+									case '{':
+										*pto++ = '\\';
+										*pto++ = 'x';
+										*pto++ = '7';
+										*pto++ = 'B';
+										break;
+
+									case '}':
+										*pto++ = '\\';
+										*pto++ = 'x';
+										*pto++ = '7';
+										*pto++ = 'D';
+										break;
+
+									default:
+										*pto++ = *ptt;
+										break;
+								}
+								ptt++;
+							}
 							else
 							{
 								*pto++ = *ptt++;
@@ -2133,6 +2164,34 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				}
 				break;
 
+			case '{':
+			case '}':
+				if (HAS_BIT(flags, SUB_SEC|SUB_BRA) && !HAS_BIT(flags, SUB_ARG))
+				{
+					switch (*pti)
+					{
+						case '{':
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'B';
+							break;
+
+						case '}':
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'D';
+							break;
+					}
+					pti++;
+				}
+				else
+				{
+					*pto++ = *pti++;
+				}
+				break;	
+
 			default:
 				if (HAS_BIT(flags, SUB_SEC) && !HAS_BIT(flags, SUB_ARG))
 				{
@@ -2150,20 +2209,6 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							{
 								*pto++ = *pti++;
 							}
-							break;
-
-						case '{':
-							*pto++ = '\\';
-							*pto++ = 'x';
-							*pto++ = '7';
-							*pto++ = 'B';
-							break;
-
-						case '}':
-							*pto++ = '\\';
-							*pto++ = 'x';
-							*pto++ = '7';
-							*pto++ = 'D';
 							break;
 
 						case COMMAND_SEPARATOR:

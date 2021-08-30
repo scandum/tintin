@@ -267,31 +267,31 @@ DO_LINE(line_log)
 	{
 		substitute(ses, arg2, arg2, SUB_ESC|SUB_COL|SUB_LNF);
 
-		if (ses->logfile && !strcmp(ses->logname, arg1))
+		if (ses->log->file && !strcmp(ses->log->name, arg1))
 		{
-			logit(ses, arg2, ses->logfile, LOG_FLAG_NONE);
+			logit(ses, arg2, ses->log->file, LOG_FLAG_NONE);
 		}
-		else if (ses->logline_time == gtd->time && !strcmp(ses->logline_name, arg1))
+		else if (ses->log->line_time == gtd->time && !strcmp(ses->log->line_name, arg1))
 		{
-			logit(ses, arg2, ses->logline_file, LOG_FLAG_NONE);
+			logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE);
 		}
 		else
 		{
 			if ((logfile = fopen(arg1, "a")))
 			{
-				if (ses->logline_file)
+				if (ses->log->line_file)
 				{
-					fclose(ses->logline_file);
+					fclose(ses->log->line_file);
 				}
-				free(ses->logline_name);
+				free(ses->log->line_name);
 
-				ses->logline_name = strdup(arg1);
-				ses->logline_file = logfile;
-				ses->logline_time = gtd->time;
+				ses->log->line_name = strdup(arg1);
+				ses->log->line_file = logfile;
+				ses->log->line_time = gtd->time;
 
-				loginit(ses, ses->logline_file, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
+				logheader(ses, ses->log->line_file, LOG_FLAG_APPEND | HAS_BIT(ses->log->mode, LOG_FLAG_HTML));
 
-				logit(ses, arg2, ses->logline_file, LOG_FLAG_NONE);
+				logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE);
 			}
 			else
 			{
@@ -301,23 +301,23 @@ DO_LINE(line_log)
 	}
 	else
 	{
-		if (ses->lognext_time == gtd->time && !strcmp(ses->lognext_name, arg1))
+		if (ses->log->next_time == gtd->time && !strcmp(ses->log->next_name, arg1))
 		{
-			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
 		else if ((logfile = fopen(arg1, "a")))
 		{
-			if (ses->lognext_file)
+			if (ses->log->next_file)
 			{
-				fclose(ses->lognext_file);
+				fclose(ses->log->next_file);
 			}
-			free(ses->lognext_name);
+			free(ses->log->next_name);
 
-			ses->lognext_name = strdup(arg1);
-			ses->lognext_file = logfile;
-			ses->lognext_time = gtd->time;
+			ses->log->next_name = strdup(arg1);
+			ses->log->next_file = logfile;
+			ses->log->next_time = gtd->time;
 
-			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
 		else
 		{
@@ -333,38 +333,38 @@ DO_LINE(line_logmode)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	DEL_BIT(ses->logmode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW);
+	DEL_BIT(ses->log->mode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW);
 
-	switch (HAS_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW))
+	switch (HAS_BIT(ses->log->mode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW))
 	{
 		case LOG_FLAG_HTML:
-			SET_BIT(ses->logmode, LOG_FLAG_OLD_HTML);
+			SET_BIT(ses->log->mode, LOG_FLAG_OLD_HTML);
 			break;
 		case LOG_FLAG_PLAIN:
-			SET_BIT(ses->logmode, LOG_FLAG_OLD_PLAIN);
+			SET_BIT(ses->log->mode, LOG_FLAG_OLD_PLAIN);
 			break;
 		case LOG_FLAG_RAW:
-			SET_BIT(ses->logmode, LOG_FLAG_OLD_RAW);
+			SET_BIT(ses->log->mode, LOG_FLAG_OLD_RAW);
 			break;
 	}
 
 	if (is_abbrev(arg1, "HTML"))
 	{
-		SET_BIT(ses->logmode, LOG_FLAG_HTML);
-		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
-		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
+		SET_BIT(ses->log->mode, LOG_FLAG_HTML);
+		DEL_BIT(ses->log->mode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->log->mode, LOG_FLAG_RAW);
 	}
 	else if (is_abbrev(arg1, "PLAIN"))
 	{
-		SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
-		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
-		DEL_BIT(ses->logmode, LOG_FLAG_RAW);
+		SET_BIT(ses->log->mode, LOG_FLAG_PLAIN);
+		DEL_BIT(ses->log->mode, LOG_FLAG_HTML);
+		DEL_BIT(ses->log->mode, LOG_FLAG_RAW);
 	}
 	else if (is_abbrev(arg1, "RAW"))
 	{
-		SET_BIT(ses->logmode, LOG_FLAG_RAW);
-		DEL_BIT(ses->logmode, LOG_FLAG_HTML);
-		DEL_BIT(ses->logmode, LOG_FLAG_PLAIN);
+		SET_BIT(ses->log->mode, LOG_FLAG_RAW);
+		DEL_BIT(ses->log->mode, LOG_FLAG_HTML);
+		DEL_BIT(ses->log->mode, LOG_FLAG_PLAIN);
 	}
 	else
 	{
@@ -377,18 +377,18 @@ DO_LINE(line_logmode)
 
 	active_ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	DEL_BIT(ses->logmode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
+	DEL_BIT(ses->log->mode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
 
-	switch (HAS_BIT(ses->logmode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW))
+	switch (HAS_BIT(ses->log->mode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW))
 	{
 		case LOG_FLAG_OLD_HTML:
-			SET_BIT(ses->logmode, LOG_FLAG_HTML);
+			SET_BIT(ses->log->mode, LOG_FLAG_HTML);
 			break;
 		case LOG_FLAG_OLD_PLAIN:
-			SET_BIT(ses->logmode, LOG_FLAG_PLAIN);
+			SET_BIT(ses->log->mode, LOG_FLAG_PLAIN);
 			break;
 		case LOG_FLAG_OLD_RAW:
-			SET_BIT(ses->logmode, LOG_FLAG_RAW);
+			SET_BIT(ses->log->mode, LOG_FLAG_RAW);
 			break;
 	}
 
@@ -404,25 +404,25 @@ DO_LINE(line_logverbatim)
 
 	if (*arg1 && *arg2)
 	{
-		if (!strcmp(ses->logline_name, arg1))
+		if (!strcmp(ses->log->line_name, arg1))
 		{
-			logit(ses, arg2, ses->logline_file, LOG_FLAG_LINEFEED);
+			logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED);
 		}
 		else
 		{
 			if ((logfile = fopen(arg1, "a")))
 			{
-				if (ses->logline_file)
+				if (ses->log->line_file)
 				{
-					fclose(ses->logline_file);
+					fclose(ses->log->line_file);
 				}
-				free(ses->logline_name);
-				ses->logline_name = strdup(arg1);
-				ses->logline_file = logfile;
+				free(ses->log->line_name);
+				ses->log->line_name = strdup(arg1);
+				ses->log->line_file = logfile;
 
-				loginit(ses, ses->logline_file, LOG_FLAG_APPEND | HAS_BIT(ses->logmode, LOG_FLAG_HTML));
+				logheader(ses, ses->log->line_file, LOG_FLAG_APPEND | HAS_BIT(ses->log->mode, LOG_FLAG_HTML));
 
-				logit(ses, arg2, ses->logline_file, LOG_FLAG_LINEFEED);
+				logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED);
 			}
 			else
 			{
@@ -432,21 +432,21 @@ DO_LINE(line_logverbatim)
 	}
 	else
 	{
-		if (!strcmp(ses->lognext_name, arg1))
+		if (!strcmp(ses->log->next_name, arg1))
 		{
-			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
 		else if ((logfile = fopen(arg1, "a")))
 		{
-			if (ses->lognext_file)
+			if (ses->log->next_file)
 			{
-				fclose(ses->lognext_file);
+				fclose(ses->log->next_file);
 			}
-			free(ses->lognext_name);
-			ses->lognext_name = strdup(arg1);
-			ses->lognext_file = logfile;
+			free(ses->log->next_name);
+			ses->log->next_name = strdup(arg1);
+			ses->log->next_file = logfile;
 
-			SET_BIT(ses->logmode, LOG_FLAG_NEXT);
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
 		else
 		{
@@ -478,7 +478,7 @@ DO_LINE(line_multishot)
 {
 	unsigned int shots;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
 	shots = (unsigned int) get_number(ses, arg1);

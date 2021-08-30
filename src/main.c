@@ -77,22 +77,6 @@ void winch_handler(int signal)
 	SET_BIT(gtd->flags, TINTIN_FLAG_WINCHUPDATE);
 
 	gtd->time_session = gtd->time;
-/*
-	struct session *ses;
-	init_terminal_size(gts);
-
-	for (ses = gts->next ; ses ; ses = ses->next)
-	{
-		init_terminal_size(ses);
-
-		if (HAS_BIT(ses->telopts, TELOPT_FLAG_NAWS))
-		{
-			SET_BIT(ses->telopts, TELOPT_FLAG_UPDATENAWS);
-		}
-	}
-
-	winch_daemon();
-*/
 }
 
 
@@ -104,9 +88,8 @@ void abort_handler(int signal)
 void child_handler(int signal)
 {
 	return;
-	syserr_printf(gtd->ses, "child_handler");
 
-//	syserr_fatal(signal, "child_handler");
+	syserr_printf(gtd->ses, "child_handler");
 }
 /*
 void interrupt_handler(int signal)
@@ -537,9 +520,6 @@ void init_tintin(int greeting)
 	gts->config_flags   = CONFIG_FLAG_MCCP;
 	gts->socket         = 1;
 	gts->read_max       = 16384;
-	gts->logname        = strdup("");
-	gts->lognext_name   = strdup("");
-	gts->logline_name   = strdup("");
 
 	gts->more_output    = str_dup("");
 
@@ -552,13 +532,16 @@ void init_tintin(int greeting)
 
 	gtd->banner_list    = init_list(gts, LIST_CONFIG, 32);
 
+	gts->log            = calloc(1, sizeof(struct log_data));
+	gts->input          = calloc(1, sizeof(struct input_data));
 	gts->scroll         = calloc(1, sizeof(struct scroll_data));
 	gts->split          = calloc(1, sizeof(struct split_data));
-	gts->input          = calloc(1, sizeof(struct input_data));
 
 	init_local(gts);
 
 	init_terminal_size(gts);
+
+	init_log(gts);
 
 	init_input(gts, 0, 0, 0, 0);
 

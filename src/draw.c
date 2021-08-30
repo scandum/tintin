@@ -117,7 +117,7 @@ struct draw_type draw_table[] =
 	{       "LINE",      "Draw a line.",                      DRAW_FLAG_NONE, draw_line },
 	{       "MAP",       "Draw the map.",                     DRAW_FLAG_NONE, draw_map },
 	{       "RAIN",      "Draw digital rain.",                DRAW_FLAG_NONE, draw_rain },
-	{       "SIDE",      "Draw a line with corners.",         DRAW_FLAG_BOXED, draw_side },
+	{       "SIDE",      "Draw a line with corners.",         DRAW_FLAG_CORNERED, draw_side },
 	{       "TABLE",     "Draw a table.",                     DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT|DRAW_FLAG_TOP|DRAW_FLAG_BOT, draw_table_grid },
 	{       "TILE",      "Draw a tile.",                      DRAW_FLAG_NONE, draw_square },
 	{       "",          "",                                  DRAW_FLAG_NONE, NULL }
@@ -444,8 +444,10 @@ DO_COMMAND(do_draw)
 	{
 		if (is_abbrev(arg1, draw_table[index].name))
 		{
-			arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-			arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+			arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+			arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+//			arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+//			arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 			top_row = get_row_index_arg(ses, arg1);
 			top_col = get_col_index_arg(ses, arg2);

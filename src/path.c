@@ -300,6 +300,10 @@ DO_PATH(path_get)
 	}
 	else if (*arg2 == 0)
 	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH GET <INFO|LENGTH|MAPPING|POSITION|RUNNING> <VARIABLE NAME>");
+	}
+	else if (is_abbrev(arg1, "INFO"))
+	{
 		set_nest_node_ses(ses, arg2, "{length}{%d}", root->used);
 
 		add_nest_node_ses(ses, arg2, "{position}{%d}", root->update + 1);
@@ -350,7 +354,7 @@ DO_PATH(path_get)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH GET <LENGTH|POSITION> <VARIABLE NAME>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #PATH GET <INFO|LENGTH|MAPPING|POSITION|RUNNING> <VARIABLE NAME>");
 	}
 }
 
@@ -510,7 +514,6 @@ DO_PATH(path_delete)
 
 DO_PATH(path_insert)
 {
-	struct listroot *root = ses->list[LIST_PATH];
 	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE], arg3[BUFFER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
@@ -523,14 +526,9 @@ DO_PATH(path_insert)
 	}
 	else
 	{
-		create_node_list(root, arg1, arg2, arg3, "");
-
 		show_message(ses, LIST_COMMAND, "#PATH INSERT: FORWARD {%s} BACKWARD {%s} DELAY {%s}.", arg1, arg2, arg3);
 
-		if (HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
-		{
-			root->update = root->used;
-		}
+		check_append_path(ses, arg1, arg2, (float) get_number(ses, arg3), 1, HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING));
 	}
 }
 
@@ -835,59 +833,6 @@ DO_PATH(path_unzip)
 			}
 		}
 	}
-/*
-		arg = get_arg_in_braces(ses, arg, temp, GET_ALL);
-
-		if (is_speedwalk(ses, temp))
-		{
-			char dir[2];
-			int cnt, i;
-
-			str = temp;
-
-			for (dir[1] = 0 ; *str ; str++)
-			{
-				if (is_digit(*str))
-				{
-					sscanf(str, "%d%c", &cnt, dir);
-
-					while (*str != dir[0])
-					{
-						str++;
-					}
-				}
-				else
-				{
-					cnt = 1;
-					dir[0] = *str;
-				}
-
-				for (i = 0 ; i < cnt ; i++)
-				{
-					if ((node = search_node_list(ses->list[LIST_PATHDIR], dir)))
-					{
-						create_node_list(root, node->arg1, node->arg2, "0", "");
-					}
-					else
-					{
-						create_node_list(root, dir, dir, "0", "");
-					}
-				}
-			}
-		}
-		else
-		{
-			if ((node = search_node_list(ses->list[LIST_PATHDIR], temp)))
-			{
-				create_node_list(root, node->arg1, node->arg2, "0", "");
-			}
-			else
-			{
-				create_node_list(root, temp, temp, "0", "");
-			}
-		}
-	}
-*/
 	show_message(ses, LIST_COMMAND, "#PATH UNZIP: PATH WITH %d NODES UNZIPPED.", root->used);
 }
 
@@ -1009,7 +954,7 @@ DO_PATH(path_undo)
 	show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 }
 
-void check_append_path(struct session *ses, char *forward, char *backward, float delay, int follow)
+void check_append_path(struct session *ses, char *forward, char *backward, float delay, int force, int follow)
 {
 	struct listroot *root = ses->list[LIST_PATH];
 	struct listnode *node;
@@ -1024,6 +969,15 @@ void check_append_path(struct session *ses, char *forward, char *backward, float
 
 			root->update = root->used;
 		}
+		else if (force)
+		{
+			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
+				
+			create_node_list(root, forward, backward, ftos(delay), "");
+
+			root->update = root->used;
+		}
+				
 	}
 	else
 	{

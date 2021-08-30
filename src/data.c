@@ -27,6 +27,8 @@
 
 #include <limits.h>
 
+extern char **environ;
+
 struct listroot *init_list(struct session *ses, int type, int size)
 {
 	struct listroot *listhead;
@@ -102,21 +104,23 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 					break;
 
 				case LIST_BUTTON:
-				case LIST_DELAY:
 				case LIST_EVENT:
-				case LIST_TICKER:
+//				case LIST_TICKER:
 				case LIST_PATHDIR:
 					node->val64 = sourcelist->list[i]->val64;
-/*
-					node->val16[0] = sourcelist->list[i]->val16[0];
-					node->val16[1] = sourcelist->list[i]->val16[1];
-					node->val16[2] = sourcelist->list[i]->val16[2];
-					node->val16[3] = sourcelist->list[i]->val16[3];
-*/
 					break;
 
 				case LIST_VARIABLE:
 					copy_nest_node(ses->list[type], node, sourcelist->list[i]);
+					break;
+
+				case LIST_TICKER:
+					node->val64 = gtd->utime + (long long) (tintoi(node->arg3) * 1000000.0);
+
+					if (node->val64 < gtd->utime_next_tick)
+					{
+						gtd->utime_next_tick = node->val64;
+					}
 					break;
 
 				default:
@@ -161,26 +165,6 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 
 //	printf("debug: %p [%p] (%d) (%s) (%s)\n", root, root->ses, root->type, node->arg1, node->arg3);
 
-	switch (root->type)
-	{
-		case LIST_DELAY:
-			node->val64 = (long long) tintoi(node->arg1);
-
-			if (node->val64 < gtd->utime_next_delay)
-			{
-				gtd->utime_next_delay = node->val64;
-			}
-			break;
-
-		case LIST_TICKER:
-			node->val64 = gtd->utime + (long long) tintoi(arg3) * 1000000.0;
-
-			if (node->val64 < gtd->utime_next_tick)
-			{
-				gtd->utime_next_tick = node->val64;
-			}
-			break;
-	}
 
 	if (gtd->level->shots)
 	{
@@ -202,6 +186,25 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 		case LIST_SUBSTITUTE:
 			node->regex = tintin_regexp_compile(root->ses, node, node->arg1, 0);
 			break;
+
+		case LIST_DELAY:
+			node->val64 = (long long) tintoi(node->arg1);
+
+			if (node->val64 < gtd->utime_next_delay)
+			{
+				gtd->utime_next_delay = node->val64;
+			}
+			break;
+
+		case LIST_TICKER:
+			node->val64 = gtd->utime + (long long) (tintoi(arg3) * 1000000.0);
+
+			if (node->val64 < gtd->utime_next_tick)
+			{
+				gtd->utime_next_tick = node->val64;
+			}
+			break;
+
 	}
 
 	return insert_node_list(root, node);
@@ -1327,6 +1330,13 @@ DO_COMMAND(do_info)
 
 		switch (*arg1 % 32)
 		{
+			case CTRL_B:
+				if (is_abbrev(arg1, "BIG5TOUTF8"))
+				{
+					big5toutf8_info(ses);
+				}
+				break;
+
 			case CTRL_C:
 				if (is_abbrev(arg1, "CPU"))
 				{
@@ -1607,13 +1617,26 @@ DO_COMMAND(do_info)
 				}
 				break;
 
+			case CTRL_T:
+				if (is_abbrev(arg1, "TOKENIZER"))
+				{
+					int index = URANGE(0, gtd->script_index + atoi(arg2), gtd->script_index);
+					struct scriptroot *root = gtd->script_stack[index];
+
+					tintin_printf2(ses, "#INFO TOKENIZER: SCRIPT_INDEX = %d", index);
+					tintin_printf2(ses, "#INFO TOKENIZER: SESSION_NAME = %s", root->ses->name);
+					tintin_printf2(ses, "#INFO TOKENIZER: LIST_TYPE    = %s", list_table[root->list].name);
+					tintin_printf2(ses, "#INFO TOKENIZER: LOCAL_VARS   = %d", root->local->used);
+					tintin_printf2(ses, "#INFO TOKENIZER: SCRIPT       =\n%s", view_script(ses, root));
+				}
+				break;
 			case CTRL_U:
 				if (is_abbrev(arg1, "UNICODE"))
 				{
 					int size, width, index;
 
 					size = get_utf8_size(arg2);
-					get_utf8_width(arg2, &width);
+					get_utf8_width(arg2, &width, NULL);
 					get_utf8_index(arg2, &index);
 
 					tintin_printf2(ses, "#INFO UNICODE: %s:  is_utf8_head  = %d (%s)", arg2, is_utf8_head(arg2), is_utf8_head(arg2) ? "true" : "false");
@@ -1621,6 +1644,10 @@ DO_COMMAND(do_info)
 					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_width = %d", arg2, width);
 					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %d (decimal)", arg2, index);
 					tintin_printf2(ses, "#INFO UNICODE: %s: get_utf8_index = %x (hexadecimal)", arg2, index);
+				}
+				else if (is_abbrev(arg1, "UTF8TOBIG5"))
+				{
+					utf8tobig5_info(ses);
 				}
 				break;
 		}

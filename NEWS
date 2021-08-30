@@ -1,6 +1,10 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.12
+----------------
+01) The behavior of $variable[] is now identical to $variable[%*].
+
 TinTin++ 2.02.11
 ----------------
 

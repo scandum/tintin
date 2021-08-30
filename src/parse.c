@@ -171,7 +171,7 @@ struct session *parse_input(struct session *ses, char *input)
 	char *line;
 
 	push_call("parse_input(%s,%s)",ses->name,input);
-
+/*
 	if (*input == 0)
 	{
 		write_mud(ses, input, SUB_EOL);
@@ -179,7 +179,7 @@ struct session *parse_input(struct session *ses, char *input)
 		pop_call();
 		return ses;
 	}
-
+*/
 	line = str_alloc_stack(0);
 
 	if (VERBATIM(ses))
@@ -211,7 +211,7 @@ struct session *parse_input(struct session *ses, char *input)
 		return ses;
 	}
 
-	while (*input)
+	do
 	{
 		input = space_out(input);
 
@@ -239,6 +239,7 @@ struct session *parse_input(struct session *ses, char *input)
 			input++;
 		}
 	}
+	while (*input);
 
 	pop_call();
 	return ses;
@@ -664,7 +665,7 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 
 	if (*pti == 0)
 	{
-		tintin_printf2(ses, "#ERROR: GET BRACED ARGUMENT: UNMATCHED BRACE.");
+		show_error(ses, LIST_COMMAND, "#ERROR: GET BRACED ARGUMENT: UNMATCHED BRACE.");
 	}
 	else
 	{
@@ -1025,7 +1026,7 @@ char *get_arg_at_brackets(struct session *ses, char *string, char *result)
 
 	if (nest)
 	{
-		tintin_printf2(NULL, "#ERROR: GET BRACKETED VARIABLE: UNMATCHED BRACKET.");
+		show_error(ses, LIST_COMMAND, "#ERROR: GET BRACKETED VARIABLE: UNMATCHED BRACKET.");
 	}
 	*pto = 0;
 
@@ -1076,7 +1077,7 @@ char *get_arg_in_brackets(struct session *ses, char *string, char *result)
 
 	if (*pti == 0)
 	{
-		tintin_printf2(NULL, "#ERROR: GET BRACKETED ARGUMENT: UNMATCHED BRACKET.");
+		show_error(ses, LIST_COMMAND, "#ERROR: GET BRACKETED ARGUMENT: UNMATCHED BRACKET.");
 	}
 	else
 	{
@@ -1122,7 +1123,7 @@ void write_mud(struct session *ses, char *command, int flags)
 	{
 		if (ses->map == NULL || ses->map->nofollow == 0)
 		{
-			check_append_path(ses, command, NULL, 0.0, 1);
+			check_append_path(ses, command, NULL, 0.0, 0, 1);
 		}
 	}
 
@@ -1195,11 +1196,11 @@ void do_one_line(char *line, struct session *ses)
 		check_all_highlights(ses, line, strip);
 	}
 
-	if (HAS_BIT(ses->logmode, LOG_FLAG_NEXT))
+	if (HAS_BIT(ses->log->mode, LOG_FLAG_NEXT))
 	{
-		logit(ses, line, ses->lognext_file, LOG_FLAG_LINEFEED);
+		logit(ses, line, ses->log->next_file, LOG_FLAG_LINEFEED);
 
-		DEL_BIT(ses->logmode, LOG_FLAG_NEXT);
+		DEL_BIT(ses->log->mode, LOG_FLAG_NEXT);
 	}
 
 	pop_script_stack();

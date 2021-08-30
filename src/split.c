@@ -258,7 +258,7 @@ void dirty_screen(struct session *ses)
 void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 {
 	char buf1[BUFFER_SIZE];
-	int row, col, len, width, clear;
+	int row, col, width, clear;
 
 	row = 0;
 
@@ -315,7 +315,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 		return;
 	}
 
-	len = strip_vt102_width(ses, prompt, &width);
+	strip_vt102_width(ses, prompt, &width);
 
 	if (col - 1 + width <= gtd->screen->cols)
 	{
@@ -323,11 +323,10 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 	}
 	else
 	{
+		sprintf(buf1, "%.*s", raw_len_str(ses, prompt, 0, gtd->screen->cols - col), prompt);
+
 		show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", prompt);
-
 		show_debug(ses, LIST_PROMPT, "#PROMPT WIDTH %d WITH OFFSET %d LONGER THAN ROW SIZE %d.", width, col, gtd->screen->cols);
-
-		sprintf(buf1, "#PROMPT WIDTH %d WITH OFFSET %d LONGER THAN ROW SIZE %d.", len, col, gtd->screen->cols);
 	}
 
 	save_pos(ses);

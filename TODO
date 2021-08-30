@@ -1,19 +1,33 @@
   - look into large variable handling, foreach, once again
 
-  - tab window, add tab ordering and garbage collection
-
 ----------------
-  - ãã is messing up
+  - GMCP: MG.room.info { "exits": [ ] } gets parsed into {exits} {{1}{}}
+
+  - #map info save option
+
+  - check: #var bla { x};#draw scroll box 1 1 3 40 $bla
+
+  - set_line_screen stack call triggered on android
+
+  - input spell checking, #cursor display ?
+
+  - cp949toutf8 is missing some characters
+
+  - look into named actions as a 4th argument
+
+  - look into adding #line quiet support to #buffer
+
+  - pruned tile handling
+
+  - Get discworld / aardwolf mxp to work for @sentix
+
+  - look into default input color
 
   - Add RECEIVED INPUT CHARACTER event / filter mouse input sequences.
-
-  - handle signals in the mainloop.
 
   - add ctrl-r support for scrollback
 
   - Add #event {SESSION CONNECTED} {5.1} option.
-
-  - Add the option to use + ? . and * as variable exit fields. 
 
   - TT++ HANDBOOK for meticulous organized details.
 
@@ -25,6 +39,8 @@
 
   - finish BUFFER_SIZE replacement.
 
+  - WSL sound, double check soundpack scripts for lag/stutter
+
   - WSL faq: #system cmd.exe /c start notepad
 
   - update msdp scripts with #line msdp feature
@@ -35,6 +51,10 @@
 
 * STUFF THAT IS PROBABLY GONNA GET DONE
 
+  - #line timeshot to auto destroy a trigger after given interval.
+
+  - make named delays proper delays
+
   - Finish port proxy support: resizing, input, security
 
   - look into transparent drawing
@@ -44,41 +64,25 @@
   - Work on VT2020 protocol (mouse click)
 
   - $var[%*][%*] support.
-  - make list sorting move nests as well
 
   - better #draw font support
 
-  - case insensitive tabbing (partial start with rewrite)
-  - tabbing on directory structure.
-  - tabbing on dictionary
+  - tab completion on directory structure.
 
-#0  0x00005555555a5418 in tunnel_void (ses=0x555558a97b00, from=8004, room=1931506785, dir=1684955508) at mapper.c:4220
-#1  0x00005555555a599d in searchgrid_find (ses=0x555558a97b00, from=153, search=0x555558d8f850) at mapper.c:4336
-#2  0x00005555555afb44 in map_list (ses=0x555558a97b00, arg=0x5555572e1b95 "{} {} {} {$roomarea} {variable} {area_mapped}",
-
+  - pancake mode to display rooms at all levels and annotations
+  - Store the map filename to differentiate between maps.
   - #map list {<exits>} breaks on rooms that have e mapped to eu.
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
-  ! #map legend support for unicode graphics.
-  - multi-line room symbols
-  - pancake mode to display rooms at all levels and annotations
-  - there might be a terrain density bug
-  - provide the coordinate of the X on the vtmap.
-  - add maze flag for maze handling.
   - Request: aura around the character position. Something similar to terrain dense narrow. Could improve visibility of the character position on big resolutions. Furthermor config to allow modification of the character terrain. 
   - vt map doesn't utilize all available space.
   - Request: 'stop' #map center command, so i could see how the 'user' moves, rather map moves around him? 
   - #map uninsert <vnum>
   - make map spacing easier
-  - add configurable default symbol
-  - exit symbol?
-  - more data to #map list saving, and maybe easier sorting of tables.
   - event for failed #map move.
   - look into #send triggering follow map.
   - add {roomdata} search to #map list
-
-  - truncate prompt longer than split.
 
   - Make actions with a priority of 0. trigger always
 
@@ -105,8 +109,6 @@
 
   - better color syntax highlighting configuration.
 
-  - Add #log delete/remove option.
-
   - See about adding SESSIONS to the list table.
 
   - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
@@ -131,13 +133,15 @@
 
   - http://tintin.sourceforge.net/board/viewtopic.php?p=8766#8766 (global verbose toggle?)
 
-  - http://tintin.sourceforge.net/board/viewtopic.php?p=8745#8745 (verbose logging?)
-
   - See about adding ~/ handling for file names.
+
+  - Look into adding basic EUC-KR support.
 
 --------------------------------------------------------------------------------
 
 * LOW PRIORITY
+
+  - ./configure might error on /dev/ptmx
 
   - Add a file handler.
 

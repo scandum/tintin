@@ -31,14 +31,14 @@
 DO_COMMAND(do_showme)
 {
 	char *out, *tmp;
-	int lnf;
+	int prompt;
 
 	out = str_alloc_stack(0);
 	tmp = str_alloc_stack(0);
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
-	lnf = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
+	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
 
 	substitute(ses, arg1, tmp, SUB_VAR|SUB_FUN);
 	substitute(ses, tmp, arg1, SUB_COL|SUB_ESC);
@@ -64,33 +64,45 @@ DO_COMMAND(do_showme)
 		return ses;
 	}
 
-	if (strip_vt102_strlen(ses, ses->more_output) != 0)
+	str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
+
+	tintin_puts3(ses, out, prompt);
+
+	return ses;
+}
+
+DO_COMMAND(do_echo)
+{
+	char *result, *out;
+	int prompt;
+
+	result = arg2;
+
+	out = str_alloc_stack(0);
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+
+	format_string(ses, arg1, arg, result);
+
+	arg = get_arg_in_braces(ses, result, arg1, GET_ALL);
+
+	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
+
+	substitute(ses, arg1, arg1, SUB_COL|SUB_ESC);
+
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg2)
 	{
-		str_cpy_printf(&out, "\n%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
-	}
-	else
-	{
-		str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
+		split_show(ses, arg1, arg2, arg3);
+
+		return ses;
 	}
 
-	add_line_buffer(ses, out, lnf);
+	str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
 
-	if (ses == gtd->ses)
-	{
-		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-		{
-			save_pos(ses);
-
-			goto_pos(ses, ses->split->bot_row, ses->split->top_col);
-		}
-
-		print_line(ses, &out, lnf);
-
-		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
-		{
-			restore_pos(ses);
-		}
-	}
+	tintin_puts3(ses, out, prompt);
 
 	return ses;
 }
@@ -150,7 +162,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 	if (HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
-		if (ses->logfile)
+		if (ses->log->file)
 		{
 			va_start(args, format);
 
@@ -163,7 +175,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 			}
 			va_end(args);
 
-			logit(ses, buffer, ses->logfile, LOG_FLAG_LINEFEED);
+			logit(ses, buffer, ses->log->file, LOG_FLAG_LINEFEED);
 
 			free(buffer);
 		}
@@ -218,9 +230,9 @@ void show_error(struct session *ses, int index, char *format, ...)
 
 	if (HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
-		if (ses->logfile)
+		if (ses->log->file)
 		{
-			logit(ses, buffer, ses->logfile, LOG_FLAG_LINEFEED);
+			logit(ses, buffer, ses->log->file, LOG_FLAG_LINEFEED);
 		}
 	}
 
@@ -268,9 +280,9 @@ void show_debug(struct session *ses, int index, char *format, ...)
 
 	if (HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
-		if (ses->logfile)
+		if (ses->log->file)
 		{
-			logit(ses, buf, ses->logfile, LOG_FLAG_LINEFEED);
+			logit(ses, buf, ses->log->file, LOG_FLAG_LINEFEED);
 		}
 	}
 	pop_call();
@@ -363,7 +375,7 @@ void show_lines(struct session *ses, char *str)
 		}
 		*ptf++ = 0;
 
-		tintin_puts3(ses, str);
+		tintin_puts3(ses, str, FALSE);
 
 		str = ptf;
 	}
@@ -503,7 +515,7 @@ void tintin_puts2(struct session *ses, char *string)
 
 	str_cpy_printf(&output, "%s%s%s", COLOR_TEXT, string, COLOR_TEXT);
 
-	tintin_puts3(ses, output);
+	tintin_puts3(ses, output, FALSE);
 
 	pop_call();
 	return;
@@ -515,11 +527,11 @@ void tintin_puts2(struct session *ses, char *string)
 	show string, no triggers, no color reset
 */
 
-void tintin_puts3(struct session *ses, char *string)
+void tintin_puts3(struct session *ses, char *string, int prompt)
 {
 	char *output;
 
-	push_call("tintin_puts3(%p,%p)",ses,string);
+	push_call("tintin_puts3(%p,%p,%d)",ses,string,prompt);
 
 	if (ses == NULL)
 	{
@@ -552,10 +564,10 @@ void tintin_puts3(struct session *ses, char *string)
 	}
 	else
 	{
-		str_cpy_printf(&output, "%s", string);
+		str_cpy(&output, string);
 	}
 
-	add_line_buffer(ses, output, FALSE);
+	add_line_buffer(ses, output, prompt);
 
 	if (ses == gtd->ses)
 	{
@@ -566,7 +578,7 @@ void tintin_puts3(struct session *ses, char *string)
 			goto_pos(ses, ses->split->bot_row, ses->split->top_col);
 		}
 
-		print_line(ses, &output, FALSE);
+		print_line(ses, &output, prompt);
 
 		if (!HAS_BIT(ses->flags, SES_FLAG_READMUD) && IS_SPLIT(ses))
 		{

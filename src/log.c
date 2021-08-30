@@ -25,6 +25,37 @@
 
 #include "tintin.h"
 
+#define DO_LOG(log) void log (struct session *ses, char *arg, char *arg1, char *arg2)
+
+DO_LOG(log_append);
+DO_LOG(log_info);
+DO_LOG(log_move);
+DO_LOG(log_overwrite);
+DO_LOG(log_off);
+DO_LOG(log_remove);
+DO_LOG(log_timestamp);
+
+typedef void LOG (struct session *ses, char *arg, char *arg1, char *arg2);
+
+struct log_type
+{
+	char                  * name;
+	LOG                   * fun;
+	char                  * desc;
+};
+
+struct log_type log_table[] =
+{
+	{    "APPEND",            log_append,          "Start logging, appending to given file."        },
+	{    "INFO",              log_info,            "Some logging related info."                     },
+	{    "MOVE",              log_move,            "Move the given file."                           },
+	{    "OFF",               log_off,             "Stop logging."                                  },
+	{    "OVERWRITE",         log_overwrite,       "Start logging, overwriting the given file."     },
+	{    "REMOVE",            log_remove,          "Remove the given file."                         },
+	{    "TIMESTAMP",         log_timestamp,       "Timestamp prepended to each log line."          },
+	{    "",                  NULL,                ""                                               }
+};
+
 DO_COMMAND(do_log)
 {
 	int cnt;
@@ -32,7 +63,7 @@ DO_COMMAND(do_log)
 	push_call("do_log(%p,%p)",ses,arg);
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN|SUB_ESC);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC);
 
 	if (*arg1 == 0)
 	{
@@ -75,20 +106,20 @@ DO_COMMAND(do_log)
 
 DO_LOG(log_append)
 {
-	if (ses->logfile)
+	if (ses->log->file)
 	{
-		fclose(ses->logfile);
+		fclose(ses->log->file);
 	}
 
-	if ((ses->logfile = fopen(arg2, "a")))
+	if ((ses->log->file = fopen(arg2, "a")))
 	{
-		SET_BIT(ses->logmode, LOG_FLAG_APPEND);
+		SET_BIT(ses->log->mode, LOG_FLAG_APPEND);
 
-		RESTRING(ses->logname, arg2);
+		RESTRING(ses->log->name, arg2);
 
-		loginit(ses, ses->logfile, ses->logmode);
+		logheader(ses, ses->log->file, ses->log->mode);
 
-		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->logfile));
+		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->log->file));
 	}
 	else
 	{
@@ -98,27 +129,48 @@ DO_LOG(log_append)
 
 DO_LOG(log_info)
 {
-	tintin_printf2(ses, "#LOG INFO: FILE  = %s", ses->logfile ? ses->logname : "");
-	tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(ses->logmode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
-	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->logmode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->logmode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
-	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->logline_file ? ses->logline_name : "");
-	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->lognext_file ? ses->lognext_name : "");
+	tintin_printf2(ses, "#LOG INFO: FILE  = %s", ses->log->file ? ses->log->name : "");
+	tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(ses->log->mode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
+	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
+	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->log->line_file ? ses->log->line_name : "");
+	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->log->next_file ? ses->log->next_name : "");
+}
+
+DO_LOG(log_move)
+{
+	char *arg3;
+	int result;
+
+	arg3 = str_alloc_stack(0);
+
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
+
+	result = rename(arg2, arg3);
+
+	if (result == 0)
+	{
+		show_message(ses, LIST_COMMAND, "#LOG MOVE: FILE '%s' MOVED TO '%s'.", arg2, arg3);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#LOG MOVE: COULDN'T MOVE FILE '%s' TO '%s'.", arg2, arg3);
+	}
 }
 
 DO_LOG(log_overwrite)
 {
-	if (ses->logfile)
+	if (ses->log->file)
 	{
-		fclose(ses->logfile);
+		fclose(ses->log->file);
 	}
 
-	if ((ses->logfile = fopen(arg2, "w")))
+	if ((ses->log->file = fopen(arg2, "w")))
 	{
-		SET_BIT(ses->logmode, LOG_FLAG_OVERWRITE);
+		SET_BIT(ses->log->mode, LOG_FLAG_OVERWRITE);
 
-		RESTRING(ses->logname, arg2);
+		RESTRING(ses->log->name, arg2);
 
-		loginit(ses, ses->logfile, ses->logmode);
+		logheader(ses, ses->log->file, ses->log->mode);
 
 		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", arg2);
 	}
@@ -130,12 +182,12 @@ DO_LOG(log_overwrite)
 
 DO_LOG(log_off)
 {
-	if (ses->logfile)
+	if (ses->log->file)
 	{
-		DEL_BIT(ses->logmode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+		DEL_BIT(ses->log->mode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
 
-		fclose(ses->logfile);
-		ses->logfile = NULL;
+		fclose(ses->log->file);
+		ses->log->file = NULL;
 
 		show_message(ses, LIST_COMMAND, "#LOG {OFF}: LOGGING TURNED OFF.");
 	}
@@ -145,17 +197,72 @@ DO_LOG(log_off)
 	}
 }
 
+DO_LOG(log_remove)
+{
+	int result = remove(arg2);
+
+	if (result == 0)
+	{
+		show_message(ses, LIST_COMMAND, "#LOG REMOVE: FILE '%s' REMOVED.", arg2);
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#LOG REMOVE: COULDN'T REMOVE FILE '%s'.", arg2);
+	}
+}
+
+DO_LOG(log_timestamp)
+{
+	RESTRING(ses->log->stamp_strf, arg2);
+	ses->log->stamp_time = 0;
+
+	show_message(ses, LIST_COMMAND, "#LOG TIMESTAMP: FORMAT SET TO '%s'.", arg2);
+}
+
+void init_log(struct session *ses)
+{
+	ses->log->name        = strdup("");
+	ses->log->next_name   = strdup("");
+	ses->log->line_name   = strdup("");
+	ses->log->stamp_strf  = strdup("");
+}
+
+void free_log(struct session *ses)
+{
+	free(ses->log->name);
+	free(ses->log->next_name);
+	free(ses->log->line_name);
+	free(ses->log->stamp_strf);
+
+	free(ses->log);
+}
+
 void logit(struct session *ses, char *txt, FILE *file, int flags)
 {
 	char out[BUFFER_SIZE];
 
 	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
 
-	if (HAS_BIT(ses->logmode, LOG_FLAG_PLAIN))
+	if (*ses->log->stamp_strf)
+	{
+		if (ses->log->stamp_time != gtd->time)
+		{
+			struct tm timeval_tm = *localtime(&gtd->time);
+
+			ses->log->stamp_time = gtd->time;
+
+			substitute(ses, ses->log->stamp_strf, out, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
+
+			strftime(ses->log->stamp_text, 99, out, &timeval_tm);
+		}
+		fputs(ses->log->stamp_text, file);
+	}
+			
+	if (HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN))
 	{
 		strip_vt102_codes(txt, out);
 	}
-	else if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
+	else if (HAS_BIT(ses->log->mode, LOG_FLAG_HTML))
 	{
 		vt102_to_html(ses, txt, out);
 	}
@@ -176,9 +283,9 @@ void logit(struct session *ses, char *txt, FILE *file, int flags)
 	return;
 }
 
-void loginit(struct session *ses, FILE *file, int flags)
+void logheader(struct session *ses, FILE *file, int flags)
 {
-	push_call("loginit(%p,%p,%d)",ses,file,flags);
+	push_call("logheader(%p,%p,%d)",ses,file,flags);
 
 	if (HAS_BIT(flags, LOG_FLAG_APPEND))
 	{
@@ -194,7 +301,7 @@ void loginit(struct session *ses, FILE *file, int flags)
 	}
 	else if (HAS_BIT(flags, LOG_FLAG_OVERWRITE) && HAS_BIT(flags, LOG_FLAG_HTML))
 	{
-		if (HAS_BIT(ses->logmode, LOG_FLAG_HTML))
+		if (HAS_BIT(ses->log->mode, LOG_FLAG_HTML))
 		{
 			write_html_header(ses, file);
 		}

@@ -176,6 +176,82 @@ int spellcheck_count(struct session *ses, char *in)
 	return cnt;
 }
 
+int cursor_dictionary_tab_add(int flag)
+{
+	struct listroot *cmd_root = gtd->ses->list[LIST_COMMAND];
+	struct listnode *node;
+	char *tail, *word, buf[50];
+	int tail_len, i, hash, val;
+
+	if (dictionary == NULL)
+	{
+		dictionary_init();
+	}
+
+	tail     = cmd_root->list[0]->arg1;
+	tail_len = str_len(tail);
+
+	if (!is_alpha(*tail))
+	{
+		return FALSE;
+	}
+
+	hash = tolower((int) *tail) - 'a';
+
+	i = URANGE(0, cmd_root->list[cmd_root->used - 1]->val32[1], cmd_root->used - 1);
+
+	for ( ; i < dictionary->listsize[hash] ; i++)
+	{
+		word = wordlist[hash] + dictionary->wordindex[hash][i];
+
+		if (HAS_BIT(flag, TAB_FLAG_CASELESS))
+		{
+			val = strncasecmp(word, tail + 1, tail_len - 1);
+		}
+		else
+		{
+			if (*word < tail[1])
+			{
+				continue;
+			}
+			val = strncmp(word, tail + 1, tail_len - 1);
+		}
+
+		if (val < 0)
+		{
+			continue;
+		}
+
+		if (val > 0)
+		{
+			return FALSE;
+		}
+
+		buf[0] = tail[0];
+		strcpy(buf + 1, word);
+
+		if (search_node_list(cmd_root, buf))
+		{
+			continue;
+		}
+
+		node = create_node_list(cmd_root, buf, "", "", "");
+
+		node->val32[1] = i;
+
+		if (HAS_BIT(flag, TAB_FLAG_FORWARD))
+		{
+			return TRUE;
+		}
+
+		if (cmd_root->used > 100)
+		{
+			return FALSE;
+		}
+	}
+	return FALSE;
+}
+
 DO_COMMAND(do_dictionary)
 {
 	int hash, index;
@@ -191,7 +267,10 @@ DO_COMMAND(do_dictionary)
 	{
 		show_message(ses, LIST_COMMAND, "#SYNTAX: #DICTIONARY {WORD}");
 
-		wordlist[0][0] = 0;
+		for (hash = 0 ; hash < 26 ; hash++)
+		{
+			printf("hash %c = %d\n", 'A' + hash, dictionary->listsize[hash]);
+		}
 
 		return ses;
 	}

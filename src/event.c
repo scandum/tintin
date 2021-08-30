@@ -182,9 +182,9 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 		return 0;
 	}
 
-	sub = HAS_BIT(flags, SUB_SEC) ? SUB_ARG|SUB_SEC : SUB_ARG;
+	sub = HAS_BIT(flags, SUB_SEC) ? SUB_ARG|SUB_SEC : HAS_BIT(flags, SUB_BRA) ? SUB_ARG|SUB_BRA : SUB_ARG;
 
-	DEL_BIT(flags, SUB_ARG|SUB_SEC);
+	DEL_BIT(flags, SUB_ARG|SUB_SEC|SUB_BRA);
 
 	if (flags == 0)
 	{

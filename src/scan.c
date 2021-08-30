@@ -33,6 +33,7 @@
   #endif
 #endif
 #include <dirent.h>
+#include <limits.h>
 
 #define DO_SCAN(scan) struct session *scan(struct session *ses, FILE *fp, char *arg, char *arg1, char *arg2)
 

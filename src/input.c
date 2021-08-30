@@ -143,11 +143,6 @@ void process_input(void)
 		echo_command(gtd->ses, "");
 	}
 
-	if (gtd->ses->scroll->line != -1)
-	{
-		buffer_end(gtd->ses, "", "", "");
-	}
-
 	input_ses = gtd->ses;
 
 	check_all_events(gtd->ses, SUB_SEC|EVENT_FLAG_INPUT, 0, 1, "RECEIVED INPUT", gtd->ses->input->buf);
@@ -233,11 +228,14 @@ void read_line(char *input, int len)
 
 	if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
 	{
-		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 2, "RECEIVED KEYPRESS", input, ntos(index));
+		check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 2, "RECEIVED KEYPRESS", input, ntos(index));
+	}
 
-		if (check_all_events(gtd->ses, EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED KEYPRESS", input, ntos(index)) == 1)
+	if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_CATCH))
+	{
+		if (check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED KEYPRESS", input, ntos(index)) == 1)
 		{
-			check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
+			check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
 
 			return;
 		}
@@ -247,7 +245,7 @@ void read_line(char *input, int len)
 	{
 		if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
 		{
-			check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
+			check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
 		}
 		return;
 	}
@@ -282,7 +280,7 @@ void read_line(char *input, int len)
 			default:
 				if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(gtd->macro_buf) && gtd->macro_buf[1])
 				{
-					size = get_utf8_width(gtd->macro_buf, &width);
+					size = get_utf8_width(gtd->macro_buf, &width, &index);
 				}
 				else if (HAS_BIT(gtd->ses->charset, CHARSET_FLAG_EUC) && is_euc_head(gtd->ses, gtd->macro_buf) && gtd->macro_buf[1])
 				{
@@ -291,11 +289,17 @@ void read_line(char *input, int len)
 				else
 				{
 					size = get_ascii_width(gtd->macro_buf, &width);
+					index = (int) gtd->macro_buf[0];
 				}
 
 				sprintf(buf, "%.*s", size, gtd->macro_buf);
 
 				inputline_insert(buf, -1);
+
+				if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
+				{
+					check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 4, "RECEIVED INPUT CHARACTER", buf, ntos(index), ntos(size), ntos(width));
+				}
 /*
 				if (width && HAS_BIT(gtd->flags, TINTIN_FLAG_INSERTINPUT) && gtd->ses->input->raw_len != gtd->ses->input->raw_pos)
 				{
@@ -337,7 +341,7 @@ void read_line(char *input, int len)
 	}
 	if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
 	{
-		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
+		check_all_events(gtd->ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 4, "PROCESSED KEYPRESS", input, ntos(index), ntos(gtd->ses->input->edit->update + 1), ntos(gtd->ses->input->str_pos + 1));
 	}
 }
 
