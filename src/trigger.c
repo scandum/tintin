@@ -581,7 +581,7 @@ DO_COMMAND(do_highlight)
 	{
 		if (!is_color_name(arg2))
 		{
-			tintin_printf2(ses, "#HIGHLIGHT: VALID COLORS ARE:\n");
+			tintin_printf2(ses, "#HIGHLIGHT: INVALID COLOR {%s}. VALID COLORS ARE:\n", arg2);
 			tintin_printf2(ses, "reset, bold, light, faint, dim, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white, azure, ebony, jade, lime, orange, pink, silver, tan, violet.");
 		}
 		else
@@ -994,6 +994,8 @@ DO_COMMAND(do_tick)
 	{
 		get_number_string(ses, arg3, time);
 	}
+
+	// store creation time for #info tickers save
 
 	sprintf(arg3, "%lld", ++gtd->utime);
 

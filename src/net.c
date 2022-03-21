@@ -158,6 +158,8 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
+//	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
+
 	if (ses->connect_error)
 	{
 //		ses->connect_error = wait_on_connect(ses, sock, ses->connect_error);

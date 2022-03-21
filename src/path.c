@@ -377,7 +377,7 @@ DO_PATH(path_save)
 	}
 	else if (*arg2 == 0)
 	{
-		sprintf(result, "BOTH {%s}", arg1);
+		snprintf(result, STRING_SIZE, "BOTH {%s}", arg1);
 
 		path_save(ses, result);
 	}

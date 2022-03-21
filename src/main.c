@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 
 	if (argc > 1)
 	{
-		while ((c = getopt(argc, argv, "a: e: g G h M:: r: R:: s t: T v V")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: g G h H M:: r: R:: s t: T v V")) != EOF)
 		{
 			switch (c)
 			{
@@ -253,6 +253,7 @@ int main(int argc, char **argv)
 					printf("  -g  Enable the startup user interface.\n");
 					printf("  -G  Don't show the greeting screen.\n");
 					printf("  -h  This help section.\n");
+					printf("  -H  Nohup compatible mode.\n");
 					printf("  -M  Matrix Digital Rain.\n");
 					printf("  -r  Read given file.\n");
 					printf("  -R  Reattach to daemonized process.\n");
@@ -263,6 +264,10 @@ int main(int argc, char **argv)
 					printf("  -V  Show version information.\n");
 
 					exit(1);
+
+				case 'H':
+					SET_BIT(greeting, STARTUP_FLAG_NOHUP);
+					break;
 
 				case 'M':
 				case 'G':
@@ -288,7 +293,6 @@ int main(int argc, char **argv)
 
 	init_tintin(greeting);
 
-
 	RESTRING(gtd->vars[1], argv[0]);
 
 	if (argc > 1)
@@ -297,7 +301,7 @@ int main(int argc, char **argv)
 
 		RESTRING(gtd->vars[2], argv[1]);
 
-		while ((c = getopt(argc, argv, "a: e: g G h M:: r: R:: s t: T v")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: g G h H M:: r: R:: s t: T v")) != EOF)
 		{
 			switch (c)
 			{
@@ -396,6 +400,8 @@ int main(int argc, char **argv)
 			RESTRING(gtd->vars[0], arg);
 		}
 	}
+
+	gtd->varc = UMIN(argc + 1, 100);
 
 	if (argv[optind] != NULL)
 	{
@@ -600,9 +606,14 @@ void init_tintin(int greeting)
 
 	gtd->level->input--;
 
-	if (HAS_BIT(greeting,  STARTUP_FLAG_VERBOSE))
+	if (HAS_BIT(greeting, STARTUP_FLAG_VERBOSE))
 	{
 		gtd->level->verbose--;
+	}
+
+	if (HAS_BIT(greeting, STARTUP_FLAG_NOHUP))
+	{
+		SET_BIT(gtd->flags, TINTIN_FLAG_NOHUP);
 	}
 
 	init_terminal(gts);
@@ -678,7 +689,7 @@ void quitmsg(char *message)
 
 	check_all_events(gts, EVENT_FLAG_SYSTEM, 0, 1, "PROGRAM TERMINATION", message ? message : "");
 
-	if (gtd->history_size)
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_HISTORYUPDATE) && gtd->history_size)
 	{
 		command(gts, do_history, "write %s/%s", gtd->system->tt_dir, HISTORY_FILE);
 	}
@@ -734,7 +745,7 @@ void syserr_printf(struct session *ses, char *fmt, ...)
 
 		if (ses && ses != gts)
 		{
-			tintin_printf2(ses, "#SYSTEM ERROR: %s %s (%d: %s)\e[0m", name, buf, errno, errstr);		
+			tintin_printf2(ses, "#SYSTEM ERROR: %s %s (%d: %s)\e[0m", name, buf, errno, errstr);
 		}
 
 		if (ses && gtd->ses != ses && gtd->ses != gts)

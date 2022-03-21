@@ -131,7 +131,7 @@ DO_LOG(log_info)
 {
 	tintin_printf2(ses, "#LOG INFO: FILE  = %s", ses->log->file ? ses->log->name : "");
 	tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(ses->log->mode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
-	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
+	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : HAS_BIT(ses->log->mode, LOG_FLAG_RAW) ? "RAW" : "UNSET");
 	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->log->line_file ? ses->log->line_name : "");
 	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->log->next_file ? ses->log->next_name : "");
 }

@@ -1185,13 +1185,6 @@ DO_CURSOR(cursor_enter_finish)
 
 	DEL_BIT(gtd->ses->input->flags, INPUT_FLAG_EDIT);
 
-	if (ses == gtd->ses && gtd->ses->scroll->line != -1)
-	{
-		cursor_check_line(gtd->ses, "");
-
-		buffer_end(gtd->ses, "", "", "");
-	}
-
 	if (ses == gtd->ses && HAS_BIT(gtd->ses->flags, SES_FLAG_SPLIT))
 	{
 		cursor_redraw_line(gtd->ses, "");
@@ -2698,7 +2691,7 @@ DO_CURSOR(cursor_tab)
 
 		if (!HAS_BIT(flag, TAB_FLAG_COMPLETE) && inputline_editor())
 		{
-			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
+			snprintf(arg1, BUFFER_SIZE, "%*s", gtd->ses->tab_width, "");
 
 			inputline_insert(arg1, -1);
 
@@ -2720,7 +2713,7 @@ DO_CURSOR(cursor_tab)
 
 		if (!HAS_BIT(flag, TAB_FLAG_COMPLETE) && inputline_editor())
 		{
-			sprintf(arg1, "%*s", gtd->ses->tab_width, "");
+			snprintf(arg1, BUFFER_SIZE, "%*s", gtd->ses->tab_width, "");
 			
 			inputline_insert(arg1, 0);
 

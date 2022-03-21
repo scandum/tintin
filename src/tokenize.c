@@ -247,13 +247,22 @@ char *addforeachtoken(struct scriptroot *root, int lvl, int opr, int cmd, char *
 
 void resetforeachtoken(struct session *ses, struct scriptnode *token)
 {
-	char *str, arg[BUFFER_SIZE];
+	char *str, *arg;
+
+	arg = malloc(MALLOC_SIZE);
+
+	if (arg == NULL)
+	{
+		arg = malloc(BUFFER_SIZE);
+	}
 
 	str = token->data->cpy;
 
 	str = sub_arg_in_braces(ses, str, arg, GET_ONE, SUB_VAR|SUB_FUN);
 
 	RESTRING(token->data->str, arg);
+
+	free(arg);
 
 	token->data->arg = token->data->str;
 }
@@ -359,11 +368,11 @@ char *get_arg_parse(struct session *ses, struct scriptnode *token)
 
 	if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, token->data->arg))
 	{
-		token->data->arg += sprintf(buf, "%.*s", get_euc_size(ses, token->data->arg), token->data->arg);
+		token->data->arg += snprintf(buf, 5, "%.*s", get_euc_size(ses, token->data->arg), token->data->arg);
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(token->data->arg))
 	{
-		token->data->arg += sprintf(buf, "%.*s", get_utf8_size(token->data->arg), token->data->arg);
+		token->data->arg += snprintf(buf, 5, "%.*s", get_utf8_size(token->data->arg), token->data->arg);
 	}
 	else
 	{
@@ -1071,6 +1080,10 @@ char *write_script(struct session *ses, struct scriptroot *root)
 	{
 		switch (token->type)
 		{
+			case TOKEN_TYPE_REPEAT:
+				cat_sprintf(buf, "%s%c%s", indent(token->lvl + 1), gtd->repeat_char, token->str);
+				break;
+
 			case TOKEN_TYPE_STRING:
 				cat_sprintf(buf, "%s%s", indent(token->lvl), token->str);
 				break;
@@ -1155,6 +1168,10 @@ char *view_script(struct session *ses, struct scriptroot *root)
 	{
 		switch (token->type)
 		{
+			case TOKEN_TYPE_REPEAT:
+				cat_sprintf(buf, "%s" COLOR_REPEAT "%c" COLOR_STRING "%s", indent(token->lvl + 1), gtd->repeat_char, token->str);
+				break;
+
 			case TOKEN_TYPE_STRING:
 				cat_sprintf(buf, "%s" COLOR_STRING "%s", indent(token->lvl), token->str);
 				break;
@@ -1195,7 +1212,7 @@ char *view_script(struct session *ses, struct scriptroot *root)
 				break;
 
 			case TOKEN_TYPE_REGEX:
-				cat_sprintf(buf, "%s" COLOR_TINTIN "%c" COLOR_STATEMENT "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}\n%s{\n%s" COLOR_STRING "%s\n" COLOR_BRACE "%s}", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, token->str, token->regex->str, indent(token->lvl), indent(token->lvl + 1), token->regex->bod, indent(token->lvl));
+				cat_sprintf(buf, "%s" COLOR_TINTIN "%c" COLOR_STATEMENT "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}\n%s" COLOR_BRACE "{\n%s" COLOR_STRING "%s\n" COLOR_BRACE "%s}", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, token->str, token->regex->str, indent(token->lvl), indent(token->lvl + 1), token->regex->bod, indent(token->lvl));
 				break;
 
 			case TOKEN_TYPE_END:

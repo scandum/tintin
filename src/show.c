@@ -84,7 +84,7 @@ DO_COMMAND(do_echo)
 
 	format_string(ses, arg1, arg, result);
 
-	arg = get_arg_in_braces(ses, result, arg1, GET_ALL);
+	arg = get_arg_in_braces(ses, result, arg1, GET_ALL|GET_SPC);
 
 	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
 
@@ -168,8 +168,8 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 			if (vasprintf(&buffer, format, args) == -1)
 			{
-				syserr_printf(ses, "print_lines: vasprintf2:");
-				
+				syserr_printf(ses, "show_message: vasprintf2:");
+
 				pop_call();
 				return;
 			}
@@ -247,7 +247,7 @@ void show_error(struct session *ses, int index, char *format, ...)
 void show_debug(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
-	char buf[STRING_SIZE];
+	char *buffer;
 	va_list args;
 
 	push_call("show_debug(%p,%p,%p)",ses,index,format);
@@ -261,30 +261,31 @@ void show_debug(struct session *ses, int index, char *format, ...)
 	}
 
 	va_start(args, format);
-
-	vsprintf(buf, format, args);
-
+	vasprintf(&buffer, format, args);
 	va_end(args);
 
 	if (gtd->level->debug || HAS_BIT(root->flags, LIST_FLAG_DEBUG))
 	{
 		gtd->level->verbose++;
 
-		tintin_puts2(ses, buf);
+		tintin_puts2(ses, buffer);
 
 		gtd->level->verbose--;
 
-		pop_call();
-		return;
+		goto end;
 	}
 
 	if (HAS_BIT(root->flags, LIST_FLAG_LOG))
 	{
 		if (ses->log->file)
 		{
-			logit(ses, buf, ses->log->file, LOG_FLAG_LINEFEED);
+			logit(ses, buffer, ses->log->file, LOG_FLAG_LINEFEED);
 		}
 	}
+	end:
+	
+	free(buffer);
+
 	pop_call();
 	return;
 }
@@ -292,7 +293,7 @@ void show_debug(struct session *ses, int index, char *format, ...)
 void show_info(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
-	char buf[STRING_SIZE];
+	char *buffer;
 	va_list args;
 
 	push_call("show_info(%p,%p,%p)",ses,index,format);
@@ -304,16 +305,15 @@ void show_info(struct session *ses, int index, char *format, ...)
 		pop_call();
 		return;
 	}
+	buffer = str_alloc_stack(0);
 
 	va_start(args, format);
-
-	vsprintf(buf, format, args);
-
+	vsprintf(buffer, format, args);
 	va_end(args);
 
 	gtd->level->verbose++;
 
-	tintin_puts(ses, buf);
+	tintin_puts(ses, buffer);
 
 	gtd->level->verbose--;
 
@@ -383,18 +383,13 @@ void show_lines(struct session *ses, char *str)
 	return;
 }
 
-
 void tintin_header(struct session *ses, int width, char *format, ...)
 {
-	char arg[BUFFER_SIZE], buf[BUFFER_SIZE];
+	char *title, *buffer;
 	va_list args;
 	int cols;
 
 	push_call("tintin_header(%p,%p)",ses,format);
-
-	va_start(args, format);
-	vsprintf(arg, format, args);
-	va_end(args);
 
 	if (width)
 	{
@@ -411,25 +406,32 @@ void tintin_header(struct session *ses, int width, char *format, ...)
 		return;
 	}
 
-	if ((int) strlen(arg) > cols - 2)
+	va_start(args, format);
+	vasprintf(&title, format, args);
+	va_end(args);
+
+	if ((int) strlen(title) > cols - 2)
 	{
-		arg[cols - 2] = 0;
+		title[cols - 2] = 0;
 	}
+
+	buffer = calloc(1, cols + 1);
 
 	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER))
 	{
-		memset(buf, ' ', cols);
+		memset(buffer, ' ', cols);
 	}
 	else
 	{
-		memset(buf, '#', cols);
+		memset(buffer, '#', cols);
 	}
 
-	memcpy(&buf[(cols - strlen(arg)) / 2], arg, strlen(arg));
+	memcpy(&buffer[(cols - strlen(title)) / 2], title, strlen(title));
 
-	buf[cols] = 0;
+	tintin_puts2(ses, buffer);
 
-	tintin_puts2(ses, buf);
+	free(title);
+	free(buffer);
 
 	pop_call();
 	return;
@@ -462,14 +464,21 @@ void tintin_printf2(struct session *ses, char *format, ...)
 
 void tintin_printf(struct session *ses, char *format, ...)
 {
-	char buffer[BUFFER_SIZE];
+	char *buffer;
 	va_list args;
+
+	push_call("tintin_printf(%p,%p,...)",ses,format);
+
+	buffer = str_alloc_stack(0);
 
 	va_start(args, format);
 	vsprintf(buffer, format, args);
 	va_end(args);
 
 	tintin_puts(ses, buffer);
+
+	pop_call();
+	return;
 }
 
 /*

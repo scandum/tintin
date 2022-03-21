@@ -2088,7 +2088,7 @@ int get_link_screen(struct session *ses, char *var, char *val, int flags, int ro
 				{
 					if (*val == 0)
 					{
-						sprintf(val, "%.*s", (int) (pts - ptl), ptl);
+						snprintf(val, BUFFER_SIZE, "%.*s", (int) (pts - ptl), ptl);
 					}
 					return opt ? opt : 1;
 				}
@@ -2118,12 +2118,12 @@ int get_link_screen(struct session *ses, char *var, char *val, int flags, int ro
 	{
 		if (*val == 0)
 		{
-			sprintf(val, "%.*s", (int) (pts - ptl), ptl);
+			snprintf(val, BUFFER_SIZE, "%.*s", (int) (pts - ptl), ptl);
 		}
 		return opt ? opt : 1;
 	}
 
-	sprintf(val, "%.*s", (int) (pts - ptw), ptw);
+	snprintf(val, BUFFER_SIZE, "%.*s", (int) (pts - ptw), ptw);
 
 	return FALSE;
 }

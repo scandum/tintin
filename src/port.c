@@ -117,7 +117,7 @@ DO_PORT(port_initialize)
 
 	tintin_printf(ses, "#TRYING TO LAUNCH '%s' ON PORT '%s'.", arg1, arg2);
 
-	sprintf(temp, "{localhost} {%d} {%.*s}", atoi(arg2), PATH_SIZE, file);
+	snprintf(temp, BUFFER_SIZE, "{localhost} {%d} {%.*s}", atoi(arg2), PATH_SIZE, file);
 
 	port = atoi(arg2);
 
@@ -479,11 +479,11 @@ void port_printf(struct session *ses, char *format, ...)
 	vsnprintf(buf, len, format, args);
 	va_end(args);
 
-	sprintf(tmp, "%s%s", ses->port->prefix, buf);
+	snprintf(tmp, BUFFER_SIZE, "%s%s", ses->port->prefix, buf);
 
 	strip_vt102_codes_non_graph(tmp, buf);
 
-	sprintf(tmp, "%s%s\e[0m", ses->port->color, buf);
+	snprintf(tmp, BUFFER_SIZE, "%s%s\e[0m", ses->port->color, buf);
 
 	check_all_events(ses, SUB_SEC|EVENT_FLAG_PORT, 0, 2, "PORT MESSAGE", tmp, buf);
 
@@ -505,11 +505,11 @@ void port_log_printf(struct session *ses, struct port_data *buddy, char *format,
 	vsnprintf(buf, len, format, args);
 	va_end(args);
 
-	sprintf(tmp, "%s%s@%s %s", ses->port->prefix, buddy->name, buddy->ip, buf);
+	snprintf(tmp, BUFFER_SIZE, "%s%s@%s %s", ses->port->prefix, buddy->name, buddy->ip, buf);
 
 	strip_vt102_codes_non_graph(tmp, buf);
 
-	sprintf(tmp, "%s%s\e[0m", ses->port->color, buf);
+	snprintf(tmp, BUFFER_SIZE, "%s%s\e[0m", ses->port->color, buf);
 
 	check_all_events(ses, EVENT_FLAG_PORT, 0, 5, "PORT LOG MESSAGE", buddy->name, buddy->ip, ntos(buddy->fd), tmp, buf);
 

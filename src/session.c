@@ -456,7 +456,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 
 	newses->log           = calloc(1, sizeof(struct log_data));
 	init_log(newses);
-	ses->log->mode        = gts->log->mode;
+	newses->log->mode     = gts->log->mode;
 
 	newses->input         = calloc(1, sizeof(struct input_data));
 	init_input(newses, 0, 0, 0, 0);
@@ -536,7 +536,17 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 		newses = command(newses, do_read, "%s", file);
 	}
 
-	check_all_events(newses, EVENT_FLAG_SESSION, 0, 4, "SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port);
+	check_all_events(newses, EVENT_FLAG_SESSION, 0, 5, "SESSION CREATED", newses->name, newses->session_host, newses->session_ip, newses->session_port, file);
+
+	if (HAS_BIT(newses->flags, SES_FLAG_CONNECTED) && !HAS_BIT(newses->flags, SES_FLAG_RUN))
+	{
+		if (!check_all_events(newses, EVENT_FLAG_GAG, 0, 4, "GAG SESSION CONNECTED", newses->name, newses->session_host, newses->session_ip, newses->session_port))
+		{
+			tintin_printf(newses, "\n#SESSION '%s' CONNECTED TO '%s' PORT '%s'", newses->name, newses->session_host, newses->session_port);
+		}
+
+		check_all_events(newses, EVENT_FLAG_SESSION, 0, 5, "SESSION CONNECTED", newses->name, newses->session_host, newses->session_ip, newses->session_port, file);
+	}
 
 	if (gtd->level->background == 0)
 	{
@@ -554,7 +564,9 @@ struct session *connect_session(struct session *ses)
 
 	push_call("connect_session(%p)",ses);
 
-	ses->connect_retry = ++gtd->time + gts->connect_retry;
+	ses->connect_retry = ++gtd->utime + gts->connect_retry;
+
+	to.tv_sec = 0;
 
 	reconnect:
 
@@ -584,18 +596,11 @@ struct session *connect_session(struct session *ses)
 
 		SET_BIT(ses->flags, SES_FLAG_CONNECTED);
 
-		if (!check_all_events(ses, EVENT_FLAG_GAG, 0, 4, "GAG SESSION CONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port))
-		{
-			tintin_printf(ses, "\n#SESSION '%s' CONNECTED TO '%s' PORT '%s'", ses->name, ses->session_host, ses->session_port);
-		}
-
-		check_all_events(ses, EVENT_FLAG_SESSION, 0, 4, "SESSION CONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port);
-
 		pop_call();
 		return ses;
 	}
 
-	if (ses->connect_retry > gtd->utime)
+	if (ses->connect_retry > utime())
 	{
 		fd_set readfds;
 
@@ -606,7 +611,7 @@ struct session *connect_session(struct session *ses)
 		{
 			if (to.tv_sec == 0)
 			{
-				to.tv_sec = 1;
+				to.tv_sec = 2;
 
 				tintin_printf(ses, "#SESSION '%s' FAILED TO CONNECT. RETRYING FOR %d SECONDS.", ses->name, (ses->connect_retry - gtd->utime) / 1000000);
 			}
@@ -617,8 +622,6 @@ struct session *connect_session(struct session *ses)
 
 	if (ses->connect_error)
 	{
-		to.tv_sec = 0;
-
 		tintin_printf(ses, "#SESSION '%s' FAILED TO CONNECT.", ses->name);
 	}
 
@@ -644,6 +647,7 @@ void cleanup_session(struct session *ses)
 		pop_call();
 		return;
 	}
+	SET_BIT(ses->flags, SES_FLAG_CLOSED);
 
 	if (ses == gtd->update)
 	{
@@ -682,8 +686,6 @@ void cleanup_session(struct session *ses)
 
 	}
 
-	SET_BIT(ses->flags, SES_FLAG_CLOSED);
-
 	client_end_mccp2(ses);
 	client_end_mccp3(ses);
 
@@ -691,12 +693,15 @@ void cleanup_session(struct session *ses)
 	{
 		DEL_BIT(ses->flags, SES_FLAG_CONNECTED);
 
-		if (!check_all_events(ses, EVENT_FLAG_GAG, 0, 4, "GAG SESSION DISCONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port))
+		if (!check_all_events(ses, EVENT_FLAG_GAG, 0, 4, "GAG SESSION DESTROYED", ses->name, ses->session_host, ses->session_ip, ses->session_port))
 		{
 			tintin_printf(gtd->ses, "#SESSION '%s' DIED.", ses->name);
 		}
 
-		check_all_events(ses, EVENT_FLAG_SESSION, 0, 4, "SESSION DISCONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port);
+		if (!HAS_BIT(ses->flags, SES_FLAG_RUN))
+		{
+			check_all_events(ses, EVENT_FLAG_SESSION, 0, 4, "SESSION DISCONNECTED", ses->name, ses->session_host, ses->session_ip, ses->session_port);
+		}
 	}
 	else if (ses->port)
 	{

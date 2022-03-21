@@ -416,7 +416,7 @@ char *calign(struct session *ses, char *in, char *out, int width)
 
 	width = UMAX(0, width - width_in);
 
-	sprintf(out, "%*s%s%*s", width / 2, "", in, width - width / 2, "");
+	snprintf(out, BUFFER_SIZE, "%*s%s%*s", width / 2, "", in, width - width / 2, "");
 
 	return out;
 }
@@ -441,7 +441,7 @@ char *lalign(struct session *ses, char *in, char *out, int width)
 
 	width = UMAX(0, width - width_in);
 
-	sprintf(out, "%s%*s", in, width, "");
+	snprintf(out, BUFFER_SIZE, "%s%*s", in, width, "");
 
 	return out;
 }
@@ -466,7 +466,7 @@ char *ralign(struct session *ses, char *in, char *out, int width)
 
 	width = UMAX(0, width - width_in);
 
-	sprintf(out, "%*s%s", width, "", in);
+	snprintf(out, BUFFER_SIZE, "%*s%s", width, "", in);
 
 	return out;
 }

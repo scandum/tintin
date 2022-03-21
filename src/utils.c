@@ -403,7 +403,7 @@ char *ftos(float number)
 
 	sprintf(outbuf[cnt], "%f", number);
 
-	for (len = strlen(outbuf[cnt]) - 1 ; len ; len--)
+	for (len = strlen(outbuf[cnt]) - 1 ; len > 0 ; len--)
 	{
 		if (outbuf[cnt][len] == '0')
 		{

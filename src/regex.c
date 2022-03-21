@@ -125,35 +125,59 @@ int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, in
 	switch (flag)
 	{
 		case REGEX_FLAG_CMD:
+			for (i = matches ; i < gtd->cmdc ; i++)
+			{
+				gtd->cmds[i] = restring(gtd->cmds[i], "");
+			}
+
 			for (i = 0 ; i < matches ; i++)
 			{
 				gtd->cmds[i] = restringf(gtd->cmds[i], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
+			gtd->cmdc = matches;
 			break;
 
 		case REGEX_FLAG_CMD + REGEX_FLAG_FIX:
+			for (i = matches ; i < gtd->cmdc ; i++)
+			{
+				gtd->cmds[i] = restring(gtd->cmds[i], "");
+			}
+
 			for (i = 0 ; i < matches ; i++)
 			{
 				j = gtd->args[i];
 
 				gtd->cmds[j] = restringf(gtd->cmds[j], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
+			gtd->cmdc = matches;
 			break;
 
 		case REGEX_FLAG_ARG:
+			for (i = matches ; i < gtd->varc ; i++)
+			{
+				gtd->vars[i] = restring(gtd->vars[i], "");
+			}
+
 			for (i = 0 ; i < matches ; i++)
 			{
 				gtd->vars[i] = restringf(gtd->vars[i], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
+			gtd->varc = matches;
 			break;
 
 		case REGEX_FLAG_ARG + REGEX_FLAG_FIX:
+			for (i = matches ; i < gtd->varc ; i++)
+			{
+				gtd->vars[i] = restring(gtd->vars[i], "");
+			}
+
 			for (i = 0 ; i < matches ; i++)
 			{
 				j = gtd->args[i];
 
 				gtd->vars[j] = restringf(gtd->vars[j], "%.*s", match[i*2+1] - match[i*2], &str[match[i*2]]);
 			}
+			gtd->varc = matches;
 			break;
 	}
 

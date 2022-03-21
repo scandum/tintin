@@ -190,7 +190,7 @@ DO_DAEMON(daemon_attach)
 		return;
 	}
 
-	sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
+	sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE - 1, filename, NAME_SIZE, arg2);
 
 	if (access(sock_file, F_OK) == -1)
 	{
@@ -547,7 +547,7 @@ DO_DAEMON(daemon_kill)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE - 1, filename, NAME_SIZE, arg2);
 
 					show_message(ses, LIST_COMMAND, "#DAEMON {%s} KILLED.", sock_file, pid);
 
@@ -617,7 +617,7 @@ DO_DAEMON(daemon_list)
 				{
 					pid = atoi(arg + 1);
 
-					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE, filename, NAME_SIZE, arg2);
+					sprintf(sock_file, "%.*s/%.*s.s", PATH_SIZE - 1, filename, NAME_SIZE, arg2);
 
 					tintin_printf2(ses, "%-40s [%6d]", sock_file, pid);
 				}

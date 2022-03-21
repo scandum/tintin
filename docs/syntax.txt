@@ -16,7 +16,7 @@ CHARACTERS
 
 { }       Curly brackets aka braces are used for seperating multi word command
           arguments, nesting commands, and nesting variables. Braces cannot
-          easily be escaped and must always be used in pairs.
+          be escaped using \{ \}, to escape { } use \x7B \x7D
 
 " "       Quote characters are used for strings in the #math, #if, #switch,
           and #case commands. Instead of " " you can use an extra set of
@@ -123,18 +123,19 @@ COORDINATES
 SQUARES
 -------
 
-          A square argument takes 4 coordinates. The first two coordinates
-          define the upper left corner, the last two coordinates define the
-          bottom right corner. The upper left corner of the terminal is
-          defined as 1,1 and the bottom right corner as -1,-1. This type
-          of argument is use by the #draw, #button, #map offset, 
+          A square argument takes 2 coordinates. The first coordinate defines
+          the upper left corner, the last two coordinates define the bottom
+          right corner. The upper left corner of the terminal is defines as
+          1,1 and the bottom right corner as -1,-1. This type of argument is
+          used by #draw, #button and #map offset.
 
 PANES
 -----
-          A panes argument takes 4 size values, which are: top pane, bottom
+          A pane argument takes 4 size values, which are: top pane, bottom
           pane, left pane, right pane. When a negative value is provided the
           size is the maximum size, minus the value. This type of argument
           is used by the #split command.
+
 
 MATH
 ----
@@ -172,6 +173,7 @@ MATH
 M,K,m,u   These four metric suffixes are allowed for numbers.
 
 { }       Braces can be used in #math to perform string operations.
+
 {a} > {b} This checks if the string "a" is greater than "b".
 
 ,         Commas in numbers are ignored, as well as spaces and tabs.
@@ -289,9 +291,8 @@ Example: #showme <cfa>Lime     <fac>Pink     <fca>Orange
          For 12 bit truecolor use <F000> to <FFFF> for foreground colors and
          <B000> to <BFFF> for background colors.
 
-         For 24 bit truecolor use \e[38;2;R;G;Bm where R G B are red/green/blue
-         intensities between 0 and 255. For example: \e[37;2;50;100;150m. Use
-         \e[48;2;R;G;Bm for background colors.
+         For 24 bit truecolor use <F000000> to <FFFFFFF> for foreground
+         colors and <B000000> to <BFFFFFF> for background colors.
 
 HELP
 ----

@@ -67,6 +67,7 @@ DO_COMMAND(do_history)
 void add_line_history(struct session *ses, char *line)
 {
 	struct listroot *root;
+	int last;
 
 	root = ses->list[LIST_HISTORY];
 
@@ -82,7 +83,14 @@ void add_line_history(struct session *ses, char *line)
 		return;
 	}
 
+	last = root->used;
+
 	update_node_list(ses->list[LIST_HISTORY], line, "", "", "");
+
+	if (last < root->used)
+	{
+		SET_BIT(gtd->flags, TINTIN_FLAG_HISTORYUPDATE);
+	}
 
 	while (root->used > gtd->history_size)
 	{

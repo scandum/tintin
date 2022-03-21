@@ -292,7 +292,7 @@ void read_line(char *input, int len)
 					index = (int) gtd->macro_buf[0];
 				}
 
-				sprintf(buf, "%.*s", size, gtd->macro_buf);
+				snprintf(buf, BUFFER_SIZE, "%.*s", size, gtd->macro_buf);
 
 				inputline_insert(buf, -1);
 
@@ -921,6 +921,16 @@ void echo_command(struct session *ses, char *line)
 	else
 	{
 		strcpy(output, "");
+	}
+
+	if (ses->scroll->line != -1)
+	{
+		buffer_end(gtd->ses, "", "", "");
+
+		if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+		{
+			printf("%s\n", line);
+		}
 	}
 
 	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))

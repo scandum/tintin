@@ -983,6 +983,11 @@ DO_COMMAND(do_kill)
 	{
 		for (index = 0 ; index < LIST_MAX ; index++)
 		{
+			if (index == LIST_PATHDIR)
+			{
+				continue;
+			}
+
 			if (!HAS_BIT(ses->list[index]->flags, LIST_FLAG_HIDE))
 			{
 				kill_list(ses->list[index]);
@@ -1330,6 +1335,28 @@ DO_COMMAND(do_info)
 
 		switch (*arg1 % 32)
 		{
+			case CTRL_A:
+				if (is_abbrev(arg1, "ARGUMENTS"))
+				{
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						set_nest_node_ses(ses, "info[ARGUMENTS]", "");
+
+						for (index = 0 ; index < gtd->varc ; index++)
+						{
+							add_nest_node_ses(ses, "info[ARGUMENTS]", "{%d}{%s}", index, gtd->vars[index]);
+						}
+					}
+					else
+					{
+						for (index = 0 ; index < gtd->varc ; index++)
+						{
+							tintin_printf2(ses, "#INFO ARGUMENTS: %2d: %s", index, gtd->vars[index]);
+						}
+					}
+				}
+				break;
+
 			case CTRL_B:
 				if (is_abbrev(arg1, "BIG5TOUTF8"))
 				{
@@ -1405,7 +1432,26 @@ DO_COMMAND(do_info)
 				break;
 
 			case CTRL_M:
-				if (is_abbrev(arg1, "MCCP"))
+				if (is_abbrev(arg1, "MATCHES"))
+				{
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						set_nest_node_ses(ses, "info[MATCHES]", "");
+
+						for (index = 0 ; index < gtd->cmdc ; index++)
+						{
+							add_nest_node_ses(ses, "info[MATCHES]", "{%d}{%s}", index, gtd->cmds[index]);
+						}
+					}
+					else
+					{
+						for (index = 0 ; index < gtd->cmdc ; index++)
+						{
+							tintin_printf2(ses, "#INFO MATCHES: %2d: %s", index, gtd->cmds[index]);
+						}
+					}
+				}
+				else if (is_abbrev(arg1, "MCCP"))
 				{
 					if (ses->mccp2)
 					{
@@ -1556,7 +1602,7 @@ DO_COMMAND(do_info)
 							add_nest_node_ses(ses, name, "{IP} {%s}", sesptr->session_ip);
 							add_nest_node_ses(ses, name, "{PORT} {%s}", sesptr->session_port);
 						}
-						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
+						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSIONS]}");
 					}
 					else
 					{

@@ -38,8 +38,9 @@ extern DO_ARRAY(array_explode);
 extern DO_ARRAY(array_filter);
 extern DO_ARRAY(array_find);
 extern DO_ARRAY(array_get);
-extern DO_ARRAY(array_index);
+extern DO_ARRAY(array_indexate);
 extern DO_ARRAY(array_insert);
+extern DO_ARRAY(array_numerate);
 extern DO_ARRAY(array_order);
 extern DO_ARRAY(array_reverse);
 extern DO_ARRAY(array_set);
@@ -60,19 +61,20 @@ struct array_type
 
 struct array_type array_table[] =
 {
-	{     "ADD",              array_add,         "Add an item to a list table"             },
+	{     "ADD",              array_add,         "Add items to a list"                     },
 	{     "CLEAR",            array_clear,       "Clear a list"                            },
 	{     "CLR",              array_clear,       NULL                                      },
 	{     "COLLAPSE",         array_collapse,    "Collapse the list into a variable"       },
-	{     "CREATE",           array_create,      "Create a list table with given items"    },
+	{     "CREATE",           array_create,      "Create a list with given items"          },
 	{     "DELETE",           array_delete,      "Delete a list item with given index"     },
 	{     "EXPLODE",          array_explode,     "Explode the variable into a list"        },
 	{     "FILTER",           array_filter,      "Filter a list with given regex"          },
 	{     "FIND",             array_find,        "Find a list item with given regex"       },
 	{     "FND",              array_find,        NULL                                      },
 	{     "GET",              array_get,         "Retrieve a list item with given index"   },
-	{     "INDEXATE",         array_index,       "Indexate a list table for sorting"       },
-	{     "INSERT",           array_insert,      "Insert a list item at given index"       },
+	{     "INDEXATE",         array_indexate,    "Indexate a list table for sorting"       },
+	{     "INSERT",           array_insert,      "Insert an item at given index"           },
+	{     "NUMERATE",         array_numerate,    "Turn a table into a list"                },
 	{     "ORDER",            array_order,       "Sort a list table numerically"           },
 	{     "LENGTH",           array_size,        NULL                                      },
 	{     "REVERSE",          array_reverse,     "Sort a list table in reverse order"      },
@@ -177,7 +179,7 @@ DO_ARRAY(array_add)
 	char *str;
 	int index;
 
-	if (!list->root)
+	if (list->root == NULL)
 	{
 		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 	}
@@ -228,12 +230,19 @@ DO_ARRAY(array_collapse)
 {
 	int index;
 
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC);
+
 	if (list->root)
 	{
-		str_cpy(&list->arg2, "");
-
-		for (index = 0 ; index < list->root->used ; index++)
+		if (list->root->used)
 		{
+			str_cpy(&list->arg2, list->root->list[0]->arg2);
+		}
+
+		for (index = 1 ; index < list->root->used ; index++)
+		{
+			str_cat(&list->arg2, arg1);
+
 			str_cat(&list->arg2, list->root->list[index]->arg2);
 		}
 		free_list(list->root);
@@ -309,7 +318,7 @@ DO_ARRAY(array_delete)
 
 		if (index == -1)
 		{
-			show_error(ses, LIST_VARIABLE, "#LIST {%s} DEL: Invalid index: %s", var, arg1);
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} DELETE: INVALID INDEX: {%s}.", var, arg1);
 
 			return ses;
 		}
@@ -326,63 +335,65 @@ DO_ARRAY(array_delete)
 	}
 	else
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST DEL: {%s} is not a list.", var);
+		show_error(ses, LIST_VARIABLE, "#LIST DELETE: {%s} is not a list.", var);
 	}
 	return ses;
 }
 
 DO_ARRAY(array_explode)
 {
-	char *pti;
+	char *str;
 	int index = 1;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {%s} EXPLODE {<SEPARATOR>}.", var);
+
+		return ses;
+	}
 
 	if (list->root)
 	{
-		array_collapse(ses, list, arg, var, arg1, arg2);
-	}
+		if (*arg2 == 0)
+		{
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} EXPLODE: VARIABLE %s IS ALREADY A LIST.", var, var);
 
+			return ses;
+		}
+		free_list(list->root);
+
+		list->root = NULL;
+	}
 	list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 
-	pti = list->arg2;
-
-	while (*pti)
+	if (*arg2)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
-		{
-			pti += sprintf(arg2, "%.*s", get_euc_size(ses, pti), pti);
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-		{
-			pti += sprintf(arg2, "%.*s", get_utf8_size(pti), pti);
-		}
-		else
-		{
-			pti += sprintf(arg2, "%c", *pti);
-		}
-
-		set_nest_node(list->root, ntos(index++), "%s", arg2);
+		str_cpy(&list->arg2, arg2);
 	}
-	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	arg = list->arg2;
 
-	pti = arg1;
-
-	while (*pti)
+	while (1)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
-		{
-			pti += sprintf(arg2, "%.*s", get_euc_size(ses, pti), pti);
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
-		{
-			pti += sprintf(arg2, "%.*s", get_utf8_size(pti), pti);
-		}
-		else
-		{
-			pti += sprintf(arg2, "%c", *pti);
-		}
+		str = strstr(arg, arg1);
 
-		set_nest_node(list->root, ntos(index++), "%s", arg2);
+		if (str == NULL)
+		{
+			if (*arg)
+			{
+				set_nest_node(list->root, ntos(index++), "%s", arg);
+			}
+			break;
+		}
+		*str = 0;
+
+		set_nest_node(list->root, ntos(index++), "%s", arg);
+
+		arg = str + strlen(arg1);
 	}
+
 	return ses;
 }
 
@@ -490,7 +501,7 @@ DO_ARRAY(array_get)
 	return ses;
 }
 
-DO_ARRAY(array_index)
+DO_ARRAY(array_indexate)
 {
 	int cnt;
 
@@ -498,18 +509,35 @@ DO_ARRAY(array_index)
 
 	if (list->root == NULL || list->root->list[0]->root == NULL)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX: NOT AN INDEXABLE LIST TABLE.", var);
+		show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: NOT AN INDEXABLE LIST TABLE.", var);
 
 		return ses;
 	}
 
-	if (list->root->used > 1)
+	if (*arg1 == 0)
+	{
+		for (cnt = 0 ; cnt < list->root->used ; cnt++)
+		{
+			if (list->root->list[cnt]->root)
+			{
+				str_cpy(&list->root->list[cnt]->arg2, list->root->list[cnt]->arg1);
+			}
+			else
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
+				break;
+			}
+		}
+		return ses;
+	}
+
+	if (list->root->used)
 	{
 		int index = search_index_list(list->root->list[0]->root, arg1, "");
 
 		if (index == -1)
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX {%s}: FAILED TO FIND NEST.", var, arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO FIND NEST {%s}.", var, arg1);
 
 			return ses;
 		}
@@ -522,7 +550,7 @@ DO_ARRAY(array_index)
 			}
 			else
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEX: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
 				break;
 			}
 		}
@@ -537,7 +565,7 @@ DO_ARRAY(array_insert)
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
-	if (!list->root)
+	if (list->root == NULL)
 	{
 		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 	}
@@ -546,7 +574,7 @@ DO_ARRAY(array_insert)
 
 	if (toi == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST INS: Invalid index: %s", arg1);
+		show_error(ses, LIST_VARIABLE, "#LIST INSERT: INVALID INDEX: {%s}.", arg1);
 
 		return ses;
 	}
@@ -564,6 +592,25 @@ DO_ARRAY(array_insert)
 	}
 
 	set_nest_node(list->root, ntos(index + 1), "%s", arg2);
+
+	return ses;
+}
+
+DO_ARRAY(array_numerate)
+{
+	int index;
+
+	if (list->root == NULL)
+	{
+		show_error(ses, LIST_VARIABLE, "#LIST {%s} NUMERATE: VARIABLE IS NOT A TABLE.", var);
+
+		return ses;
+	}
+
+	for (index = 0 ; index < list->root->used ; index++)
+	{
+		str_cpy_printf(&list->root->list[index]->arg1, "%d", index + 1);
+	}
 
 	return ses;
 }
@@ -838,9 +885,14 @@ DO_ARRAY(array_sort)
 
 DO_ARRAY(array_tokenize)
 {
+	char *buf;
 	int index = 1, i;
 
-	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+	buf = str_alloc_stack(0);
+
+	substitute(ses, arg, buf, SUB_VAR|SUB_FUN);
+
+	arg = buf;
 
 	if (list->root)
 	{
@@ -849,24 +901,46 @@ DO_ARRAY(array_tokenize)
 
 	list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
 
-	i = 0;
-
-	while (arg1[i] != 0)
+	while (*arg)
 	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &arg1[i]))
+		arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+
+		i = 0;
+
+		while (arg1[i] != 0)
 		{
-			i += sprintf(arg2, "%.*s", get_euc_size(ses, &arg1[i]), &arg1[i]);
-		}
-		else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&arg1[i]))
-		{
-			i += sprintf(arg2, "%.*s", get_utf8_size(&arg1[i]), &arg1[i]);
-		}
-		else
-		{
-			i += sprintf(arg2, "%c", arg1[i]);
+			if (arg1[i] == '{')
+			{
+				strcpy(arg2, "\\x7B"); i++;
+			}
+			else if (arg1[i] == '}')
+			{
+				strcpy(arg2, "\\x7D"); i++;
+			}
+			else if (arg1[i] == '\\' && arg1[i+1] == 'x' && is_hex(arg1[i+2]) && is_hex(arg1[i+3]))
+			{
+				i += sprintf(arg2, "%.4s", &arg1[i]);
+			}
+			else if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, &arg1[i]))
+			{
+				i += sprintf(arg2, "%.*s", get_euc_size(ses, &arg1[i]), &arg1[i]);
+			}
+			else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(&arg1[i]))
+			{
+				i += sprintf(arg2, "%.*s", get_utf8_size(&arg1[i]), &arg1[i]);
+			}
+			else
+			{
+				i += sprintf(arg2, "%c", arg1[i]);
+			}
+
+			set_nest_node(list->root, ntos(index++), "%s", arg2);
 		}
 
-		set_nest_node(list->root, ntos(index++), "%s", arg2);
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
+		}
 	}
 	return ses;
 }

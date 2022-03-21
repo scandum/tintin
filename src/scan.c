@@ -414,6 +414,8 @@ DO_SCAN(scan_file)
 	RESTRING(gtd->cmds[3], ntos(strlen(str_rip)));
 	RESTRING(gtd->cmds[4], ntos(cnt));
 
+	gtd->cmdc = 5;
+
 	str_sub = str_alloc_stack(strlen(arg) * 2);
 
 	substitute(ses, arg2, str_sub, SUB_CMD);
@@ -573,7 +575,7 @@ DO_SCAN(scan_txt)
 {
 	char line[STRING_SIZE];
 
-	while (fgets(line, BUFFER_SIZE - 1, fp))
+	while (fgets(line, BUFFER_SIZE / 2, fp))
 	{
 		arg = strchr(line, '\r');
 
@@ -591,6 +593,7 @@ DO_SCAN(scan_txt)
 				*arg = 0;
 			}
 		}
+		line[BUFFER_SIZE / 2] = 0;
 
 		process_mud_output(ses, line, FALSE);
 

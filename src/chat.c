@@ -453,7 +453,7 @@ DO_CHAT(chat_call)
 
 		return;
 	}
-	sprintf(buf[i], "{%s} {%s}", arg1, arg2);
+	snprintf(buf[i], 200, "{%s} {%s}", arg1, arg2);
 
 	pthread_create(&thread, NULL, threaded_chat_call, (void *) buf[i]);
 
@@ -952,9 +952,8 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 }
 
 
-void chat_name_change(struct chat_data *buddy, char *txt)
+void chat_name_change(struct chat_data *buddy, char *name)
 {
-	char name[BUFFER_SIZE];
 	struct chat_data *node;
 
 	if (strlen(name) > 20)

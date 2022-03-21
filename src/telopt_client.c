@@ -782,7 +782,7 @@ int client_recv_will_echo(struct session *ses, int cplen, unsigned char *cpsrc)
 
 		telnet_printf(ses, 3, "%c%c%c", IAC, DO, TELOPT_ECHO);
 
-		client_telopt_debug(ses, "SENT IAC DO ECHO (SKIPPED)");
+		client_telopt_debug(ses, "SENT IAC DO ECHO");
 	}
 	else
 	{
@@ -1300,7 +1300,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 {
 	char buf[BUFFER_SIZE], var[BUFFER_SIZE];
 	char *pto;
-	int i, j, accept;
+	int i, j, accept, found = 0, request = 0;
 
 	if (client_skip_sb(ses, cplen, src) > cplen)
 	{
@@ -1309,14 +1309,26 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 
 //	client_telopt_debug(ses, "RCVD IAC SB CHARSET %d %d", src[3], src[4]);
 
-	i = 5;
+	if (src[3] == CHARSET_REQUEST)
+	{
+		i = 5;
+		request = 1;
+	}
+	else
+	{
+		i = 4;
+	}
 
 	while (i < cplen && src[i] != SE)
 	{
 		pto = buf;
 
-		while (i < cplen && src[i] != src[4] && src[i] != IAC)
+		while (i < cplen && src[i] != IAC)
 		{
+			if (request && src[i] == src[4])
+			{
+				break;
+			}
 			*pto++ = src[i++];
 		}
 		*pto = 0;
@@ -1366,7 +1378,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_CP949) || HAS_BIT(ses->charset, CHARSET_FLAG_CP949TOUTF8);
 				}
-				else if (!strcmp(var, "FANSI"))
+				else if (!strcmp(var, "FANSI") || !strcmp(var, "CP437"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8);
 				}
@@ -1385,20 +1397,13 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 
 				if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
 				{
-					if (accept >= 0)
+					if (accept > 0 && found == 0)
 					{
-						if (accept)
-						{
-							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
+						telnet_printf(ses, -1, "%c%c%c%c%s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
 							
-							client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
-						}
-						else
-						{
-							telnet_printf(ses, -1, "%c%c%c%c %s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, var, IAC, SE);
+						client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
 
-							client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED %s", var);
-						}
+						found = 1;
 					}
 				}
 			}
@@ -1406,6 +1411,12 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 		i++;
 	}
 
+	if (request == 1 && found == 0)
+	{
+		telnet_printf(ses, -1, "%c%c%c%c%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_REJECTED, IAC, SE);
+
+		client_telopt_debug(ses, "SENT IAC SB CHARSET REJECTED");
+	}
 	client_telopt_debug(ses, "RCVD IAC SB CHARSET IAC SE");
 
 	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC SB CHARSET IAC SE");
@@ -1653,6 +1664,7 @@ int client_recv_sb_zmp(struct session *ses, int cplen, unsigned char *src)
 	return UMIN(i + 1, cplen);
 }
 
+
 int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 {
 	char mod[BUFFER_SIZE], val[BUFFER_SIZE], json[BUFFER_SIZE], *pto;
@@ -1705,6 +1717,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			case '{':
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
 				if (nest != 0)
 				{
 					*pto++ = '{';
@@ -1729,7 +1745,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				}
 				i++;
 				state[++nest] = 1;
-				pto += sprintf(pto, "{%d}", state[nest]);
+//				pto += sprintf(pto, "{%d}", state[nest]);
 				break;
 
 			case ']':
@@ -1747,14 +1763,18 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 			case ',':
 				i++;
-				if (state[nest])
+/*				if (state[nest])
 				{
 					pto += sprintf(pto, "{%d}", ++state[nest]);
-				}
+				}*/
 				break;
 
 			case '"':
 				i++;
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
 				if (nest)
 				{
 					*pto++ = '{';
@@ -1818,6 +1838,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			default:
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
 				if (nest)
 				{
 					*pto++ = '{';
@@ -1912,6 +1936,15 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	pop_call();
 	return UMIN(i + 1, cplen);
+}
+
+void test_gmcp(struct session *ses, char *buf)
+{
+	char mod[BUFFER_SIZE];
+
+	int cplen = sprintf(mod, "%c%c%c%s%c%c", IAC, SB, TELOPT_GMCP, buf, IAC, SE);
+
+	client_recv_sb_gmcp(ses, cplen, (unsigned char *) mod);
 }
 
 /*

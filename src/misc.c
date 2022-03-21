@@ -151,9 +151,23 @@ DO_COMMAND(do_test)
 {
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
+	if (!strcmp(arg1, "gmcp"))
+	{
+		execute(ses, "%s", "#event {IAC SB GMCP} {#var {%0} {%1};#line debug #var {%0}}");
+
+		test_gmcp(ses, "Char.Defences.List [ { \"name\": \"boar tattoo\", \"desc\": \"boar tattoo\" }, { \"name\": \"moss tattoo\", \"desc\": \"moss tattoo\" } ]");
+
+		test_gmcp(ses, "MG.room.info { \"exits\": [ ], \"short\": \"Dschungel.\", \"id\": \"1\"}");
+
+		test_gmcp(ses, "char.combat_immunity {\"combat_immunity\": \"a tame dragon is immune to your attack\"}");
+
+		test_gmcp(ses, "room.info { \"num\": 5922, \"name\": \"At the entrance of the park\", \"zone\": \"zoo\", \"terrain\": \"city\", \"exits\": { \"e\": 5920, \"s\": 5916, \"w\": 12611 }, \"coord\": { \"id\": 0, \"x\": 37, \"y\": 19, \"cont\": 0 } }");
+	}
+
 	if (!strcmp(arg1, "bla"))
 	{
-		printf("%d", ~1 + 2);
+		tintin_printf(ses, "len: %d", strip_color_strlen(ses, arg));
+//		tintin_printf(ses, "<118>\ufffd", arg2);
 	}
 
 	if (!strcmp(arg1, "rain"))

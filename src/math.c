@@ -167,11 +167,17 @@ int get_ellipsis(struct session *ses, unsigned int size, char *name, int *min, i
 	{
 		strcpy(name + len, "-1");
 	}
+/*
+	sscanf(name, "%[^.]..%[^.]", strmin, strmax);
+
+	*min = get_number(ses, strmin);
+	*max = get_number(ses, strmax);
+*/
 
 	range = get_ulong(ses, name);
 
-	*min = (int) (HAS_BIT(range, 0x00000000FFFFFFFFLL));
-	*max = (int) (HAS_BIT(range, 0xFFFFFFFF00000000ULL) >> 32ULL);
+	*min = (int) (range / 1000000000 - 100000000);
+	*max = (int) (range % 1000000000 - 100000000);
 
 	*min = *min > 0 ? *min - 1 : size + *min;
 	*max = *max > 0 ? *max - 1 : size + *max;
@@ -518,7 +524,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case ':':
 						if (debug && wonky == 0)
 						{
-							show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.");
+							show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
 						}
 						*pta++ = *pti++;
 						break;
@@ -1054,20 +1060,12 @@ void mathexp_level(struct session *ses, struct math_node *node)
 
 void mathexp_compute(struct session *ses, struct math_node *node)
 {
-	int integer64 = 0;
 	long double value = 0;
-	unsigned long long min = 0, max = 0;
-	unsigned long long value64 = 0;
 
 	switch ((int) node->val)
 	{
 		case EXP_OP_ELLIPSIS:
-			integer64 = 1;
-
-                        SET_BIT(max, (unsigned int) node->next->val);
-                        max = max << 32ULL;
-                        SET_BIT(min, (unsigned int) node->prev->val);
-                        value64 = max | min;
+			value = ((long long) node->prev->val + 100000000LL) * 1000000000LL + ((long long) node->next->val + 100000000LL);
                         break;
 
 		case EXP_OP_DICE:
@@ -1220,14 +1218,7 @@ void mathexp_compute(struct session *ses, struct math_node *node)
 	node->priority = EXP_PR_VAR;
 	node->type = EXP_NUMBER;
 
-	if (integer64)
-	{
-		node->val = (long double) value64;
-	}
-	else
-	{
-		node->val = value;
-	}
+	node->val = value;
 }
 
 long double tinternary(struct math_node *left, struct math_node *right)

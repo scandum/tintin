@@ -1,9 +1,23 @@
-  - look into large variable handling, foreach, once again
+- make #draw talign+balign do a vertical calign
+             lalign+ralign do a horizontal calign
+
+- make -g mode not write to disk
+
+- look into #draw boxed map with unicode mode.
+
+- Display room symbol in #map info
+- Add nohup mode
+
+ne room has #map set roomsymbol {<faa>/},
+e room has #map set roomsymbol {<faa>------}
+se room has #map set roomsymbol {<faa>\\}
 
 ----------------
-  - GMCP: MG.room.info { "exits": [ ] } gets parsed into {exits} {{1}{}}
+  - add shadow session support with access to all events.
 
-  - #map info save option
+  - set_line_screen debug: col = -5 (64) from draw_text(%p,%d,%p,%p,%p)
+
+  - regex101 like regex tester
 
   - check: #var bla { x};#draw scroll box 1 1 3 40 $bla
 
@@ -11,19 +25,11 @@
 
   - input spell checking, #cursor display ?
 
-  - cp949toutf8 is missing some characters
-
   - look into named actions as a 4th argument
-
-  - look into adding #line quiet support to #buffer
-
-  - pruned tile handling
 
   - Get discworld / aardwolf mxp to work for @sentix
 
   - look into default input color
-
-  - Add RECEIVED INPUT CHARACTER event / filter mouse input sequences.
 
   - add ctrl-r support for scrollback
 
@@ -61,7 +67,9 @@
 
   - Add #line gag 2 +2 -2 support.
 
-  - Work on VT2020 protocol (mouse click)
+  - VT2020
+
+  - mouse enter/leave events on move. hoover/long-press.
 
   - $var[%*][%*] support.
 
@@ -69,14 +77,14 @@
 
   - tab completion on directory structure.
 
+  - auto align routine that inserts void rooms where needed
+  - look into writing script to drag rooms + void with mouse
   - pancake mode to display rooms at all levels and annotations
   - Store the map filename to differentiate between maps.
   - #map list {<exits>} breaks on rooms that have e mapped to eu.
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
-  - Request: aura around the character position. Something similar to terrain dense narrow. Could improve visibility of the character position on big resolutions. Furthermor config to allow modification of the character terrain. 
-  - vt map doesn't utilize all available space.
   - Request: 'stop' #map center command, so i could see how the 'user' moves, rather map moves around him? 
   - #map uninsert <vnum>
   - make map spacing easier
@@ -91,8 +99,6 @@
     #draw graph
     #draw button
     #draw titanic
-
-  - proper vt100 skip detection for improper color codes.
 
   - Make { match both a { and \x7B as it's an annoying issue to debug.
 
@@ -245,22 +251,13 @@
 
   - add option to show party members on the map
 
-  - add option to add a delay to each exit for #map run
-
   - map where command that shows relative coordinates.
-
-  - Room creation event
 
   - Add better table support for data fields.
 
   - auto adjust max vnum size of mapper.
 
   - global flag to only show the same area with the mapper.
-
-  - map color setting for hidden exits.
-
-  - Create global exits, (aka portals) like recall, that can be used
-    with #map run.
 
   - Add something to indicate a non standard exit on the ASCII mapper.
 
@@ -278,7 +275,7 @@
 
 * STUFF FOR A RAINY DAY
 
-- Fix up ipv6 support in chat.
+- Fix up IPv6 support in port/chat.
 
 - Look into packet defragmentation for chat.
 
@@ -296,8 +293,6 @@
 * STUFF I'M NOT SURE ABOUT
 
 - Keep last input visible with repeat enter enabled.
-
-- would be nice to have "#map list" show the variable being filtered on, instead of defaulting to roomname ie, I'm currently writing a script to save "#map list {roomnote} {{\w+}}" into a variable, then map get roomnote for each item in the list and display it...would be nice if when listing for a roomnote, it showed the roomnote
 
 -------------------------------------------------------------------------------
 

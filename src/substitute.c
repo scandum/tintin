@@ -862,6 +862,9 @@ char *lit_color_code(struct session *ses, char *pti, int mod)
 	return "";
 }
 
+// color gradient <faa><afa>
+// faa fba fca fda fea ffa efa dfa cfa bfa afa
+
 int color_gradient(char *pti, int min, int max)
 {
 	char buf[6];
@@ -1023,16 +1026,13 @@ int color_gradient(char *pti, int min, int max)
 	return 0;
 }
 
-// color gradient <faa><afa>
-// faa fba fca fda fea ffa efa dfa cfa bfa afa
-
 
 int substitute(struct session *ses, char *string, char *result, int flags)
 {
 	struct listnode *node;
 	struct listroot *root;
 	struct session *sesptr;
-	char *temp, *buf, *buffer, *pti, *pto, *ptt, *str;
+	char *temp, *buf, *buffer, *pti, *pto, *out, *ptt, *str;
 	char *pte, old[10] = { 0 };
 	int i, skip, cnt, escape = FALSE, flags_neol = flags;
 
@@ -1043,7 +1043,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 	buffer = str_alloc_stack(0);
 
 	pti = string;
-	pto = (string == result) ? buffer : result;
+	pto = out = (string == result) ? buffer : result;
 
 	DEL_BIT(flags_neol, SUB_EOL|SUB_LNF);
 
@@ -1983,7 +1983,6 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				}
 				break;
 
-
 			case '\\':
 				if (HAS_BIT(flags, SUB_ESC))
 				{
@@ -2102,6 +2101,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							DEL_BIT(flags, SUB_LNF);
 							continue;
 
+						case ';':
 						case '$':
 						case '&':
 						case '*':
@@ -2144,6 +2144,11 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				}
 				break;
 
+			case '\n':
+				old[0] = 0;
+				*pto++ = *pti++;
+				break;
+
 			case ASCII_ESC:
 				if (HAS_BIT(flags, SUB_COL) && ses->color == 0)
 				{
@@ -2157,6 +2162,32 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						*pto++ = *pti++;
 					}
+				}
+				else if (HAS_BIT(flags, SUB_SEC) && !HAS_BIT(flags, SUB_ARG))
+				{
+					skip = find_secure_color_code(pti);
+
+					if (skip)
+					{
+						pto += sprintf(pto, "%.*s", skip, pti);
+						pti += skip;
+					}
+					else
+					{
+						*pto++ = *pti++;
+					}
+				}
+				else
+				{
+					*pto++ = *pti++;
+				}
+				break;
+
+			case COMMAND_SEPARATOR:
+				if (HAS_BIT(flags, SUB_SEC) && !HAS_BIT(flags, SUB_ARG))
+				{
+					*pto++ = '\\';
+					*pto++ = *pti++;
 				}
 				else
 				{
@@ -2193,39 +2224,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;	
 
 			default:
-				if (HAS_BIT(flags, SUB_SEC) && !HAS_BIT(flags, SUB_ARG))
-				{
-					switch (*pti)
-					{
-						case '\e':
-							skip = find_secure_color_code(pti);
-
-							if (skip)
-							{
-								pto += sprintf(pto, "%.*s", skip, pti);
-								pti += skip;
-							}
-							else
-							{
-								*pto++ = *pti++;
-							}
-							break;
-
-						case COMMAND_SEPARATOR:
-							*pto++ = '\\';
-							*pto++ = COMMAND_SEPARATOR;
-							break;
-
-						default:
-							*pto++ = *pti;
-							break;
-					}
-					pti++;
-				}
-				else
-				{
-					*pto++ = *pti++;
-				}
+				*pto++ = *pti++;
 				break;
 		}
 	}

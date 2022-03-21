@@ -33,9 +33,9 @@ a:active {color:#b06}
  <a href='#RUN'>            RUN</a> <a href='#SCAN'>           SCAN</a> <a href='#SCREEN'>         SCREEN</a> <a href='#SCREEN READER'>  SCREEN READER</a> <a href='#SCRIPT'>         SCRIPT</a>
  <a href='#SEND'>           SEND</a> <a href='#SESSION'>        SESSION</a> <a href='#SESSIONNAME'>    SESSIONNAME</a> <a href='#SHOWME'>         SHOWME</a> <a href='#SNOOP'>          SNOOP</a>
  <a href='#SPEEDWALK'>      SPEEDWALK</a> <a href='#SPLIT'>          SPLIT</a> <a href='#SSL'>            SSL</a> <a href='#STATEMENTS'>     STATEMENTS</a> <a href='#SUBSTITUTE'>     SUBSTITUTE</a>
- <a href='#SUSPEND'>        SUSPEND</a> <a href='#SWITCH'>         SWITCH</a> <a href='#SYSTEM'>         SYSTEM</a> <a href='#TAB'>            TAB</a> <a href='#TEXTIN'>         TEXTIN</a>
- <a href='#TICKER'>         TICKER</a> <a href='#TIME'>           TIME</a> <a href='#VARIABLE'>       VARIABLE</a> <a href='#WHILE'>          WHILE</a> <a href='#WRITE'>          WRITE</a>
- <a href='#ZAP'>            ZAP</a>
+ <a href='#SUBSTITUTIONS'>  SUBSTITUTIONS</a> <a href='#SUSPEND'>        SUSPEND</a> <a href='#SWITCH'>         SWITCH</a> <a href='#SYSTEM'>         SYSTEM</a> <a href='#TAB'>            TAB</a>
+ <a href='#TEXTIN'>         TEXTIN</a> <a href='#TICKER'>         TICKER</a> <a href='#TIME'>           TIME</a> <a href='#VARIABLE'>       VARIABLE</a> <a href='#WHILE'>          WHILE</a>
+ <a href='#WRITE'>          WRITE</a> <a href='#ZAP'>            ZAP</a>
 
 
 <a name='ACTION'></a>
@@ -49,9 +49,6 @@ a:active {color:#b06}
          variables are substituted from the message and can be used in the
          command part of the action.
 
-         The priority part is optional and determines the priority of the
-         action, it defaults to 5.
-
          If the message starts with a ~ color codes must be matched. You can
          enable #config {convert meta} on to display meta characters.
 
@@ -59,19 +56,16 @@ a:active {color:#b06}
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action {%1 tells you '%2'} {tell %1 I'm afk.}
 
-         Actions can be triggered by the show command and certain system
-         messages.
-
          Actions can be triggered by the #show command. If you don't want a
          #show to get triggered use: #line ignore #show {text}
 
          Actions are ordered alphabetically and only one action can trigger at
          a time. To change the order you can assign a priority, which defaults
          to 5, with a lower number indicating a higher priority. The priority
-         can be a floating point number.
+         can be a floating point number and should be between 1 and 9.
 
-         To remove action with %* as the message, use #unaction {%%*} or
-         #unaction {%*}. Alternatively you could wrap the action inside a
+         To remove an action with %* as the message, use #unaction {%%*} or
+         #unaction {&bsol;%*}. Alternatively you could wrap the action inside a
          class, and kill that class when you no longer need the action.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: You can remove an action with the #unaction command.
@@ -112,7 +106,7 @@ a:active {color:#b06}
          can be a floating point number.
 
          To remove an alias with %* as the name, use #unalias {%%*} or #unalias
-         {%*}. Alternatively you can wrap the alias inside a class, and kill
+         {&bsol;%*}. Alternatively you can wrap the alias inside a class, and kill
          that class when you no longer need the alias.
 
          For more information on pattern matching see the section on PCRE.
@@ -192,33 +186,44 @@ a:active {color:#b06}
          The buffer command has various options to manipulate your scrollback
          buffer.
 
-         </span><span style='color:#FFF'>#buffer {home}
-</span><span style='color:#AAA'>
-         Moves you to the top of your scrollback buffer and displays the page.
-         Enables scroll lock mode. Most useful when used in a #macro.
+         The size of the scrollback buffer can be configured using #config
+         buffer_size &lt;size&gt;. The size must be either 100, 1000, 10000, 100000
+         or 1000000 lines.
 
-         </span><span style='color:#FFF'>#buffer {up} [lines]
+         While scrolling through the scrollback buffer incoming text is not
+         displayed, this can be disabled using #config scroll_lock off. The
+         scroll lock is automatically disabled when manual input is received,
+         subsequently #buffer up and down only work properly when used in a
+         macro or mouse event.
+
+         </span><span style='color:#FFF'>#buffer {clear} {[lower bound]} {[upper bound]}
 </span><span style='color:#AAA'>
-         Moves your scrollback buffer up one page and displays the page.
-         Enables scroll lock mode. Most useful when used in a #macro. You
-         can use #buffer {up} {1} to move the scrollback buffer up 1 line.
+         Without an argument this will clear the entire scrollback buffer.
+         Otherwise it will clear the given range.
+
+         Positive numbers are measured from the start of the scrollback buffer,
+         negative numbers from the end.
 
          </span><span style='color:#FFF'>#buffer {down} [lines]
 </span><span style='color:#AAA'>
-         Moves your scrollback buffer down one page and displays the page.
-         Enables scroll lock mode unless at the end. Most useful when used in
-         a #macro.
+         Moves your scrollback buffer down one page and displays the page. If
+         a line number is provided it will scroll down the given number of
+         lines.
 
          </span><span style='color:#FFF'>#buffer {end}
 </span><span style='color:#AAA'>
          Moves you to the end of your scrollback buffer and displays the page.
          Disables scroll lock mode. Most useful when used in a #macro.
 
-         </span><span style='color:#FFF'>#buffer {find} {[number]} {&lt;string&gt;}
+         </span><span style='color:#FFF'>#buffer {find} {[number]} {&lt;string&gt;} {[variable]}
 </span><span style='color:#AAA'>
          Moves the buffer to the given string which can contain a regular
          expression. Optionally you can provide the number of matches to skip,
          allowing you to jump further back in the buffer.
+
+         A positive number searches from the start of the buffer, a negative
+         number from the end. If you provide a variable the location will be
+         stored and no jump takes place.
 
          </span><span style='color:#FFF'>#buffer {get} {&lt;variable&gt;} {&lt;lower bound&gt;} {[upper bound]}
 </span><span style='color:#AAA'>
@@ -228,9 +233,22 @@ a:active {color:#b06}
          omitted the given line is stored as a standard variable. If an upper
          bound is given the lines between the two bounds are stored as a list.
 
+         Positive numbers are measured from the start of the scrollback buffer,
+         negative numbers from the end.
+
+         </span><span style='color:#FFF'>#buffer {home}
+</span><span style='color:#AAA'>
+         Moves you to the top of your scrollback buffer and displays the page.
+         Enables scroll lock mode. Most useful when used in a #macro.
+
          </span><span style='color:#FFF'>#buffer {info} {[save]} {[variable]}
 </span><span style='color:#AAA'>
          Display buffer info, optionally save the data to a variable.
+
+         </span><span style='color:#FFF'>#buffer {jump} {&lt;location&gt;}
+</span><span style='color:#AAA'>
+         Moves the buffer to the given location. A positive number jumps from
+         the start of the buffer, a negative number from the end.
 
          </span><span style='color:#FFF'>#buffer {lock} {on|off}
 </span><span style='color:#AAA'>
@@ -238,6 +256,17 @@ a:active {color:#b06}
          text won't be displayed, any command will disable the lock, though
          several buffer commands will re-enable the lock. When unlocking it'll
          move you to the end of your scrollback buffer and display the page.
+
+         </span><span style='color:#FFF'>#buffer {refresh}
+</span><span style='color:#AAA'>
+         Marks the buffer as needing to be refreshed, only useful while in
+         vertical split mode.
+
+         </span><span style='color:#FFF'>#buffer {up} [lines]
+</span><span style='color:#AAA'>
+         Moves your scrollback buffer up one page and displays the page.
+         Enables scroll lock mode. Most useful when used in a #macro. You
+         can use #buffer {up} {1} to move the scrollback buffer up 1 line.
 
          </span><span style='color:#FFF'>#buffer {write} {&lt;filename&gt;}
 </span><span style='color:#AAA'>
@@ -463,7 +492,6 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#AAA'>  Will store the size of the class in a variable.
          </span><span style='color:#FFF'>#class {&lt;name&gt;} {write} {&lt;filename&gt;}
          </span><span style='color:#AAA'>  Will write all triggers of the given class to file.
-         The {kill} option will delete all triggers of the given class.
 
          Keep in mind that the kill and read option are very fast allowing
          them to be used to enable and disable classes.
@@ -539,13 +567,41 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#AAA'>
          When the 0,0 coordinate is in the upper left corner TinTin++ uses
-         a y,x / rows,cols notation. When the 0,0 coordinate is in the
-         bottom left corner tintin uses a x,y / cols/rows notation.
+         a y,x / row,col notation, starting at 1,1. Subsequently -1,-1
+         will indicate the bottom right corner. This type of argument is
+         used by the #showme command.
 
-         When a square is defined this is done by specifying the upper left
-         and bottom right corner of the square using four coordinates.
+         When the 0,0 coordinate is in the bottom left corner tintin uses
+         a standard x,y notation. This type of argument is used by the
+         #map jump command.
 
-         The vast majority of tintin commands use row,col notation.
+         The vast majority of tintin commands use y,x / row,col notation,
+         primarily because that is the notation used by the VT100 standard
+         used for terminal emulation.
+
+         </span><span style='color:#5F5'>Squares
+</span><span style='color:#AAA'>
+         A square argument takes 2 coordinates. The first coordinate defines
+         the upper left corner, the last coordinate defines the bottom
+         right corner. The upper left corner of the terminal is defined as
+         1,1 and the bottom right corner as -1,-1. This type of argument is
+         used by #draw, #button and #map offset.
+
+         </span><span style='color:#5F5'>Panes
+</span><span style='color:#AAA'>
+         A pane argument takes 4 size values, which are: top pane, bottom
+         pane, left pane, right pane. When a negative value is provided the
+         size is the maximum size, minus the value. This type of argument
+         is used by the #split command.
+
+         </span><span style='color:#5F5'>Ranges
+</span><span style='color:#AAA'>
+         A range argument takes 2 values known as the upper bound and lower
+         bound. The upper bound (first value) defines the start of the
+         range, the lower bound (second value) the end. The first index of
+         a range is defined as 1. When a negative value is provides the last
+         index is defined as -1. This type of argument is used by #buffer
+         and #variable.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CHARACTERS'>characters</a>, <a href='#COLORS'>colors</a>, <a href='#ESCAPE'>escape</a>, <a href='#MATHEMATICS'>mathematics</a> and <a href='#PCRE'>pcre</a>.
 <a name='CONFIG'></a>
@@ -665,6 +721,9 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          </span><span style='color:#FFF'>#daemon list [name]
          </span><span style='color:#AAA'>  List all daemons or daemons with matching name.
+
+         You can launch tintin and attach the first daemonized instance using
+         tt++ -R. To attach a named instance use tt++ -R&lt;name&gt;.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#SCRIPT'>script</a>, <a href='#SYSTEM'>system</a> and <a href='#RUN'>run</a>.
 <a name='DEBUG'></a>
@@ -1191,8 +1250,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          </span><span style='color:#5F5'>SESSION EVENTS</span><span style='color:#AAA'>
 
          SESSION ACTIVATED      %0 name
-         SESSION CONNECTED      %0 name %1 host %2 ip %3 port
-         SESSION CREATED        %0 name %1 host %2 ip %3 port
+         SESSION CONNECTED      %0 name %1 host %2 ip %3 port %4 file
+         SESSION CREATED        %0 name %1 host %2 ip %3 port %4 file
          SESSION DEACTIVATED    %0 name
          SESSION DISCONNECTED   %0 name %1 host %2 ip %3 port
          SESSION TIMED OUT      %0 name %1 host %2 ip %3 port
@@ -1370,7 +1429,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.12                     </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.13b                    </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1585,7 +1644,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 
          All commands can be separated with a ';'.
 
-         n;l green;s;say Dan Dare is back! -- do these 4 commands
+         n;l dragon;s;say Dan Dare is back! -- do these 4 commands
          There are 3 ways ';'s can be overruled.
 
          &bsol;say Hello ;) -- Lines starting with a '&bsol;' aren't parsed by TinTin++.
@@ -1631,12 +1690,6 @@ Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias greet say Greetings, most honorable %1
 
-         If there are no variables on the right-side of the alias definition,
-         any arguments following the aliases-command will be appended to the
-         command string.
-
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias ff cast 'fireball' -- 'ff bob' equals: cast 'fireball' bob
-
          If you want an alias to execute more commands, you must use braces.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias ws </span><span style='color:#FFF'>{</span><span style='color:#AAA'>wake;stand</span><span style='color:#FFF'>}</span><span style='color:#AAA'>
@@ -1651,7 +1704,7 @@ Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>
 
          Or by using the send command.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #send put %1 in %2
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias put #send put %1 in %2
 
 
 </span><span style='color:#5F5'>         Action
@@ -1822,9 +1875,12 @@ Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>
          triggers/variables associated with that list. With the SAVE option
          this data is written to the info variable.
 
+         #info arguments will show matched trigger arguments.
+         #info big5toutf will show the big5 to utf8 translation table.
          #info cpu will show information about tintin's cpu usage.
          #info environ will show the environment variables.
          #info input will show information about the input line.
+         #info matches will show matched command arguments.
          #info mccp will show information about data compression.
          #info memory will show information about the memory stack.
          #info stack will show the low level debugging stack.
@@ -1977,16 +2033,17 @@ Terminal -&gt; Window Settings -&gt; Emulation.
 
          #list {var} {add} {item}               Add {item} to the list
          #list {var} {clear}                    Empty the given list
-         #list {var} {collapse}                 Turn list into a variable
-         #list {var} {create} {item}            Create a list using {items}
-         #list {var} {delete} {index} {number}  Delete the item at {index},
-                                                the {number} is optional.
-         #list {var} {explode}                  Turn list into a character list
+         #list {var} {collapse} {separator}     Turn list into a variable
+         #list {var} {create} {items}           Create a list using {items}
+         #list {var} {delete} {index} {amount}  Delete the item at {index},
+                                                the {amount} is optional.
+         #list {var} {explode} {separator}      Turn variable into a list
          #list {var} {indexate}                 Index a list table for sorting
          #list {var} {insert} {index} {string}  Insert {string} at given index
          #list {var} {filter} {keep} {remove}   Filter with keep / remove regex
          #list {var} {find} {regex} {variable}  Return the found index
          #list {var} {get} {index} {variable}   Copy an item to {variable}
+         #list {var} {numerate}                 Turn a table into a list
          #list {var} {order} {string}           Insert item in numerical order
          #list {var} {shuffle}                  Shuffle the list
          #list {var} {set} {index} {string}     Change the item at {index}
@@ -1995,7 +2052,7 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          #list {var} {sort} {string}            Insert item in alphabetic order
          #list {var} {tokenize} {string}        Create a character list
 
-         The index should be between 1 and the list's length. You can also give
+         The index should be between +1 and the list's size. You can also give
          a negative value, in which case -1 equals the last item in the list, -2
          the second last, etc.
 
@@ -2005,10 +2062,11 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          The add and create options allow using multiple items, as well
          as semicolon separated items.
 
-         A length of 0 is returned for an empty or non existant list.
+         A size of 0 is returned for an empty or non-existent list. You can
+         directly access the size of a list using &amp;var[].
 
-         You can directly access elements in a list variable using &dollar;var[1],
-         &dollar;var[2], &dollar;var[-1], etc.
+         You can directly access elements in a list variable using &dollar;var[+1],
+         &dollar;var[+2], &dollar;var[-1], etc.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#BREAK'>break</a>, <a href='#CONTINUE'>continue</a>, <a href='#FOREACH'>foreach</a>, <a href='#LOOP'>loop</a>, <a href='#PARSE'>parse</a>, <a href='#REPEAT'>repeat</a>, <a href='#RETURN'>return</a> and <a href='#WHILE'>while</a>.
 <a name='LISTS'></a>
@@ -2223,6 +2281,47 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          If you want to get a better look at what goes on behind the scenes
          while executing scripts you can use '#debug all on'. To stop seeing
          debug information use '#debug all off'.
+</span><span style='color:#5F5'>
+         List Tables
+</span><span style='color:#AAA'>
+         List tables are also known as databases and the #list command has
+         several options to manipulate them.
+
+         For these options to work properly all tables need to have identical
+         keys. Here is an example list table.
+
+         #var {friendlist}
+         {
+             {1}{{name}{bob} {age}{54}}
+             {2}{{name}{bubba} {age}{21}}
+             {3}{{name}{pamela} {age}{36}}
+         }
+
+         To sort the list table by age you would use:
+
+         #list friendlist indexate age
+         #list friendlist order
+
+         To remove everyone whose name starts with a 'b' you would use:
+
+         #list friendlist indexate name
+         #list friendlist filter {} {b%*}
+
+         The filter option only supports regular expressions. To filter
+         using mathematics you would loop through the list backwards:
+
+         #loop &amp;friendlist[] 1 index
+         {
+             #if {&dollar;friendlist[+&dollar;index][age] &lt; 30}
+             {
+                 #list friendlist delete &dollar;index
+             }
+         }
+
+         To add an item to a list table there are two options:
+
+         #list friendlist add {{{name}{hobo} {age}{42}}}
+         #list friendlist insert -1 {{name}{hobo} {age}{42}}
 </span><span style='color:#5F5'>
          Optimization
 </span><span style='color:#AAA'>
@@ -2451,12 +2550,16 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#AAA'>  searches for the given room name. If found the shortest path
            from your current location to the destination is calculated.
            The route is stored in #path and can subsequently be used with
-           the various #path commands. If &lt;exits&gt; is provided all exits
-           must be matched, if &lt;roomdesc&gt;, &lt;roomarea&gt; or &lt;roomnote&gt; or
-           &lt;roomterrain&gt; or &lt;roomflag&gt; is provided these are matched as
-           well against the room to be found.
-           These options are also available to the at, delete, goto
-           link, list and run commands.
+           the various #path commands. If #map flag nofollow is set it
+           will store the exit commands instead of the exit names.
+
+           If &lt;exits&gt; is provided all exits must be matched, if
+           &lt;roomdesc&gt;, &lt;roomarea&gt; or &lt;roomnote&gt; or &lt;roomterrain&gt; or
+           &lt;roomflag&gt; is provided these are matched as well against the
+           room to be found.
+
+           These search options are also available for the at, delete,
+           goto, link, list and run commands.
 
          </span><span style='color:#FFF'>#map flag asciigraphics
          </span><span style='color:#AAA'>  Takes up more space but draws a more detailed
@@ -2468,7 +2571,9 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#FFF'>#map flag nofollow
          </span><span style='color:#AAA'>  When you enter movement commands the map will no longer
            automatically follow along. Useful for MSDP and GMCP
-           automapping scripts.
+           automapping scripts. When you use #map find in nofollow
+           mode it will store the exit command instead of the exit
+           name into the path.
 
          </span><span style='color:#FFF'>#map flag static
          </span><span style='color:#AAA'>  Will make the map static so new rooms are no longer
@@ -2506,8 +2611,9 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#AAA'>  Takes you to the given room name, if you provide exits those
            must match.
 
-         </span><span style='color:#FFF'>#map info
-         </span><span style='color:#AAA'>  Gives information about the map and room you are in.
+         </span><span style='color:#FFF'>#map info [save]
+         </span><span style='color:#AAA'>  Gives information about the map and room you are in. If the save
+           argument is given the map data is saved to the info[map] variable.
 
          </span><span style='color:#FFF'>#map insert &lt;direction&gt; [roomflag]
          </span><span style='color:#AAA'>  Insert a room in the given direction. Most useful for inserting
@@ -2663,7 +2769,7 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          </span><span style='color:#FFF'>#map undo
          </span><span style='color:#AAA'>  Will undo your last move. If this created a room or a link
            they will be deleted, otherwise you'll simply move back a
-           room. Useful if you walked into a non existant direction.
+           room. Useful if you walked into a non-existent direction.
 
          </span><span style='color:#FFF'>#map uninsert &lt;direction&gt;
          </span><span style='color:#AAA'>  Exact opposite of the insert command.
@@ -2829,7 +2935,7 @@ Terminal -&gt; Window Settings -&gt; Emulation.
          -               3            integer subtraction
          &lt;&lt;              4            bitwise shift
          &gt;&gt;              4            bitwise shift
-         ..              4            bitwise ellipsis
+         ..              4            integer range
          &gt;               5            logical greater than
          &gt;=              5            logical greater than or equal
          &lt;               5            logical less than
@@ -3189,13 +3295,13 @@ mind that { } is replaced with ( ) automatically unless %!{ } is used.
          If you use %1 in an action to perform a match the matched string is
          stored in the %1 variable which can be used in the action body.
 
-Example: %1 says 'Tickle me'} {tickle %1}
+Example: #act {%1 says 'Tickle me'} {tickle %1}
 
          If you use %2 the match is stored in %2, etc. If you use an unnumbered
          match like %* or %S the match is stored at the last used index
          incremented by one.
 
-Example: %3 says '%*'} {#if {&quot;%4&quot; == &quot;Tickle me&quot;} {tickle %3}}
+Example: #act {%3 says '%*'} {#if {&quot;%4&quot; == &quot;Tickle me&quot;} {tickle %3}}
 
          The maximum variable index is 99. If you begin an action with %* the
          match is stored in %1. You should never use %0 in the trigger part of
@@ -3220,7 +3326,7 @@ Example: #act {%* raises {his|her|its} eyebrows.} {say 42..}
 
          You can group alternatives and ranges within a PCRE using brackets.
 
-Example: #act {%* says 'Who is number {[1-9]}} {say &dollar;number[%2] is number %2}
+Example: #act {%* says 'Who is number {[1-9]}?} {say &dollar;number[%2] is number %2}
 
          The example only triggers if someone provides a number between 1 and
          9. Any other character will cause the action to not trigger.
@@ -3245,7 +3351,7 @@ Example: #act {%* says 'Set password to {[^0-9]*}&dollar;} {say The password mus
     {n,} repeat at least n times, n must be a number.
    {n,o} repeat between n and o times, n and o must be a number.
 
-Example: #act {%* says 'Who is number {[1-9][0-9]{0,2}} {Say &dollar;number[%2] is
+Example: #act {%* says 'Who is number {[1-9][0-9]{0,2}}?} {Say &dollar;number[%2] is
            number %2}
 
          The example only triggers if someone provides a number between 1 and
@@ -3737,10 +3843,10 @@ easiest way to accomplish that.
 
          Starts a telnet session with the given name, host, port, and optional
          file name. The name can be anything you want, except the name of an
-         already existant session, a number, or the keywords '+' and '-'.
+         already existing session, a number, or the keywords '+' and '-'.
 
-         If a file name is given the file is only read if the session succesfully
-         connects.
+         If a file name is given the file is only read if the session
+         succesfully connects.
 
          Without an argument #session shows the currently defined sessions.
 
@@ -3992,6 +4098,78 @@ Related</span><span style='color:#AAA'>: <a href='#ALL'>all</a>, <a href='#PORT'
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: You can remove a substitution with the #unsubstitute command.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#ACTION'>action</a>, <a href='#GAG'>gag</a>, <a href='#HIGHLIGHT'>highlight</a> and <a href='#PROMPT'>prompt</a>.
+<a name='SUBSTITUTIONS'></a>
+
+</span><span style='color:#5F5'>         SUBSTITUTIONS
+
+</span><span style='color:#AAA'>          TinTin++ will perform various types of substitions as detailed below.
+
+</span><span style='color:#5F5'>          Variables
+
+</span><span style='color:#FFF'>&dollar; &amp; * @</span><span style='color:#AAA'>   All variable and function names must begin with an alphabetic
+          character, followed by any combination of alphanumeric characters and
+          underscores.
+
+</span><span style='color:#FFF'>&dollar;</span><span style='color:#AAA'>         The dollar sign is used to retrieve the value of a variable.
+
+</span><span style='color:#FFF'>&amp;</span><span style='color:#AAA'>         The ampersand sign is used to retrieve the index of a variable.
+
+</span><span style='color:#FFF'>*</span><span style='color:#AAA'>         The astrix sign is used to retrieve the name of a variable.
+
+</span><span style='color:#FFF'>@</span><span style='color:#AAA'>         The at sign is used for functions.
+
+</span><span style='color:#FFF'>[ ]</span><span style='color:#AAA'>       Brackets are used for nested variables which function as an
+          associative array. Associative arrays are also known as tables and
+          maps. Regex can be used within brackets to match multiple variables.
+
+</span><span style='color:#FFF'>+ -</span><span style='color:#AAA'>       The plus and minus signs are used to access variables by their index,
+          with the first variable having index +1, and the last variable
+          having index -1. Variables are ordered alphanumerically.
+
+          All variables and functions can be escaped by doubling the sign,
+          like &dollar;&dollar;variable_name or @@function_name. To escape a variable
+          twice use &dollar;&dollar;&dollar;var_name. One escape is removed each time tintin
+          needs to substitute a variable or function.
+
+</span><span style='color:#5F5'>          Arguments
+
+</span><span style='color:#FFF'>%0 - %99</span><span style='color:#AAA'>  The percent sign followed by a number is used for arguments by the
+          following triggers:
+
+          alias, action, button, event, function, prompt, and substitute.
+
+</span><span style='color:#FFF'>&amp;0 - &amp;99</span><span style='color:#AAA'>  The ampersand sign followed by a number is used for arguments in the
+          regex and replace commands.
+
+          All trigger and command arguments can be escaped by doubling the
+          sign like %%1 or &amp;&amp;1. One escape is removed each time tintin
+          substitutes trigger or command arguments. To escape three times
+          triple the sign like %%%1, etc.
+
+</span><span style='color:#5F5'>          Colors
+
+</span><span style='color:#FFF'>&lt;000&gt;</span><span style='color:#AAA'>     Three alphanumeric characters encapsulated by the less- and greater-
+          than signs are used for 4 and 8 bit color codes.
+
+</span><span style='color:#FFF'>&lt;0000&gt;</span><span style='color:#AAA'>    Either a B (background) or F (foreground) followed by three
+          hexadecimal characters encapsulated by &lt; &gt; signs are used for 12
+          bit color codes. Requires truecolor capable terminal.
+
+</span><span style='color:#FFF'>&lt;0000000&gt;</span><span style='color:#AAA'> Either a B (background) or F (foreground) followed by six
+          hexadecimal characters encapsulated by &lt; &gt; signs are used for 24
+          bit color codes. Requires truecolor capable terminal.
+
+          More information is available at #help color.
+
+</span><span style='color:#5F5'>          Escapes
+
+</span><span style='color:#FFF'>&bsol; </span><span style='color:#AAA'>        The back slash is used to escape a character. All available options
+          are listed at #help escape. Escapes are typically escaped when text
+          leaves the client, by being send to a server, the shell, being
+          displayed on the screen, or being processed as part of a regex.
+          Escapes try to mimic escapes in PCRE when possible.
+
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CHARACTERS'>characters</a>, <a href='#COLORS'>colors</a>, <a href='#ESCAPES'>escapes</a>, <a href='#INFO'>info</a> and <a href='#PCRE'>pcre</a>.
 <a name='SUSPEND'></a>
 
 </span><span style='color:#5F5'>         SUSPEND
@@ -4156,11 +4334,13 @@ Related</span><span style='color:#AAA'>: <a href='#ALL'>all</a>, <a href='#PORT'
          You can see the first nest of a variable using &dollar;variable[+1] and the
          last nest using &dollar;variable[-1]. Using &dollar;variable[-2] will report the
          second last variable, and so on. To show all indices use *variable[].
-         To show all values use &dollar;variable[%*] or a less generic regex. To show
-         all values from index 2 through 4 use &dollar;variable[+2..4].
+         To show all values use &dollar;variable[]. To show all values from index 2
+         through 4 use &dollar;variable[+2..4].
 
          Nested variables are also known as tables, table generally being used
          to refer to several variables nested within one specific variable.
+
+         It's possible to use regular expressions.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {Targets starting with the letter A: &dollar;targets[A%*]
 

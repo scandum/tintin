@@ -204,22 +204,20 @@ DO_CONFIG(config_charset)
 			SET_BIT(ses->charset, charset_table[index].flags);
 		}
 	}
-	else
+
+	for (index = 0 ; *charset_table[index].name ; index++)
 	{
-		for (index = 0 ; *charset_table[index].name ; index++)
+		if (ses->charset == charset_table[index].flags)
 		{
-			if (ses->charset == charset_table[index].flags)
-			{
-				break;
-			}
+			break;
 		}
+	}
 
-		if (*charset_table[index].name == 0)
-		{
-			show_error(ses, LIST_CONFIG, "#CONFIG CHARSET: INVALID FLAG: %d", ses->charset);
+	if (*charset_table[index].name == 0)
+	{
+		show_error(ses, LIST_CONFIG, "#CONFIG CHARSET: INVALID FLAG: %d", ses->charset);
 
-			return NULL;
-		}
+		return NULL;
 	}
 
 	strcpy(arg2, charset_table[index].name);
@@ -368,7 +366,7 @@ DO_CONFIG(config_connectretry)
 		gts->connect_retry = atoll(arg2) * 1000000LL;
 	}
 
-	sprintf(arg2, "%.1Lf", (long double) gts->connect_retry / 1000000);
+	snprintf(arg2, BUFFER_SIZE, "%.1Lf", (long double) gts->connect_retry / 1000000);
 
 	return ses;
 }
@@ -525,7 +523,7 @@ DO_CONFIG(config_logmode)
 			return NULL;
 		}
 	}
-	strcpy(arg2, HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : "RAW");
+	strcpy(arg2, HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : HAS_BIT(ses->log->mode, LOG_FLAG_RAW) ? "RAW" : "UNSET" );
 
 	return ses;
 }
@@ -692,7 +690,7 @@ DO_CONFIG(config_packetpatch)
 	}
 	else
 	{
-		sprintf(arg2, "%4.2Lf", (long double) ses->packet_patch / 1000000);
+		snprintf(arg2, BUFFER_SIZE, "%4.2Lf", (long double) ses->packet_patch / 1000000);
 	}
 	return ses;
 }

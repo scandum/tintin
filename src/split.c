@@ -323,7 +323,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 	}
 	else
 	{
-		sprintf(buf1, "%.*s", raw_len_str(ses, prompt, 0, gtd->screen->cols - col), prompt);
+		snprintf(buf1, BUFFER_SIZE, "%.*s", raw_len_str(ses, prompt, 0, gtd->screen->cols - col), prompt);
 
 		show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", prompt);
 		show_debug(ses, LIST_PROMPT, "#PROMPT WIDTH %d WITH OFFSET %d LONGER THAN ROW SIZE %d.", width, col, gtd->screen->cols);

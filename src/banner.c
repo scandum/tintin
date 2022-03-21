@@ -106,7 +106,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Lost Souls", "http://lostsouls.org", arg1);
 	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
-	banner_expires(ses, "Lost Souls", "2026", arg1);
+	banner_expires(ses, "Lost Souls", "2027", arg1);
 
 
 	banner_create(ses, "Legends of Kallisti", arg1);
@@ -124,7 +124,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Legends of Kallisti", "http://www.KallistiMUD.com", arg1);
 	banner_address(ses, "Legends of Kallisti", "LoK kallistimud.com 4000", arg1);
-	banner_expires(ses, "Legends of Kallisti", "2026", arg1);
+	banner_expires(ses, "Legends of Kallisti", "2027", arg1);
 
 
 	banner_create(ses, "3Kingdoms", arg1);
@@ -142,9 +142,20 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "3Kingdoms", "http://3k.org", arg1);
 	banner_address(ses, "3Kingdoms", "3K 3k.org 3000", arg1);
-	banner_expires(ses, "3Kingdoms", "2026", arg1);
+	banner_expires(ses, "3Kingdoms", "2027", arg1);
 
+	banner_create(ses, "RetroMUD", arg1);
 
+	banner_desc(ses, "RetroMUD",
+		"RetroMUD features over 100 levels of play, a huge array of character advancement\n"
+		"options, and dozens of quests across six different worlds. It's like six games\n"
+		"in one.", arg1);
+
+	banner_website(ses, "RetroMUD", "http://www.retromud.org", arg1);
+	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
+	banner_expires(ses, "RetroMUD", "2027", arg1);
+
+/*
 	banner_create(ses, "New World Ateraan", arg1);
 
 	banner_desc(ses, "New World Ateraan",
@@ -160,7 +171,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "New World Ateraan", "http://www.ateraan.com", arg1);
 	banner_address(ses, "New World Ateraan", "nwa ateraan.com 4002", arg1);
 	banner_expires(ses, "New World Ateraan", "2026", arg1);
-
 
 	banner_create(ses, "Realm of Utopian Dreams (RUD)", arg1);
 
@@ -194,17 +204,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Carrion Fields", "http://carrionfields.net", arg1);
 	banner_address(ses, "Carrion Fields", "cf carrionfields.net 4449", arg1);
 	banner_expires(ses, "Carrion Fields", "2026", arg1);
-
-	banner_create(ses, "RetroMUD", arg1);
-
-	banner_desc(ses, "RetroMUD",
-		"RetroMUD features over 100 levels of play, a huge array of character advancement\n"
-		"options, and dozens of quests across six different worlds. It's like six games\n"
-		"in one.", arg1);
-
-	banner_website(ses, "RetroMUD", "http://www.retromud.org", arg1);
-	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
-	banner_expires(ses, "RetroMUD", "2027", arg1);
+*/
 }
 
 int total_banners()
@@ -501,25 +501,6 @@ DO_COMMAND(do_banner)
 		1700000000, 
 		100,
 		"\n"
-		"<138>               Carrion Fields  -  http://carrionfields.net\n"
-		"\n"
-		"<078>Adventure, politics and bloody war await you in this life of swords, sorcery,\n"
-		"<078>deception, and honor.  We have 17 customizable classes with which to explore a\n"
-		"<078>massively rich world of over 270 areas.  RP is mandatory, but help is always\n"
-		"<078>available on the newbie channel.  Intuitive game mechanics provide a fun and\n"
-		"<078>fulfilling PK environment.  Carrion Fields is 100% free to play and free of\n"
-		"<078>paid perks as well.  By what name do you wish to be mourned?\n"
-		"\n"
-                "<178>To connect to Carrion Fields enter: #session cf carrionfields.net 4449\n"
-                "\n"
-		                
-	},
-
-	{
-		1400000000, 
-		1700000000, 
-		100,
-		"\n"
 		"<138>                 Alter Aeon  -  http://www.alteraeon.com\n"
 		"\n"
 		"<078>Alter Aeon is a custom multiclass MUD, where each of the character\n"
@@ -606,23 +587,6 @@ DO_COMMAND(do_banner)
 		"<078>LPC and features a completely unique and original world.\n"
 		"\n"
 		"<178>To connect to Threshold RPG enter: #session thresh thresholdrpg.com 23\n"
-		"\n"
-	},
-
-	{
-		1291140000,
-		1354280000,
-		100,
-		"\n"
-		"<138>                   Primordiax - http://www.primordiax.com\n"
-		"\n"
-		"<078>Primordiax is an in-character enforced MUD where roleplaying is heavily\n"
-		"<078>encouraged. The exclusive design of Primordiax makes it extremely\n"
-		"<078>accessible to new players without losing the intrigue and complexity that\n"
-		"<078>continues to attract veterans of the genre. Primordiax offers a classic\n"
-		"<078>gaming experience with a highly unique class system and an open skill tree.\n"
-		"\n"
-		"<178>To connect to Primordiax enter: #session prim primordiax.com 3000\n"
 		"\n"
 	},
 

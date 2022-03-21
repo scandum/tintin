@@ -105,7 +105,9 @@ void goto_pos(struct session *ses, int row, int col)
 
 		return;
 	}
-	print_stdout(0, 0, "\e[%d;%dH", row, col);
+	// Add \r to capture a stray \e in broken packets
+
+	print_stdout(0, 0, "\r\e[%d;%dH", row, col);
 
 	ses->cur_row = row;
 	ses->cur_col = col;
@@ -1443,7 +1445,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 						skip++;
 					}
 	
-					sprintf(osc, "%.*s", skip - 2, str + 2);
+					snprintf(osc, BUFFER_SIZE, "%.*s", skip - 2, str + 2);
 
 					check_all_events(ses, SUB_SEC|EVENT_FLAG_VT100, 0, 1, "VT100 OSC", osc);
 

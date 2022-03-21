@@ -172,6 +172,17 @@ int str_fix(char *original)
 	return str_ptr->len;
 }
 
+int str_fix_len(char *original, int len)
+{
+	struct str_data *str_ptr = get_str_ptr(original);
+
+	str_ptr->len = len;
+
+	original[len] = 0;
+
+	return str_ptr->len;
+}
+
 int str_len(char *str)
 {
 	return get_str_ptr(str)->len;

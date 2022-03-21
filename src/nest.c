@@ -27,15 +27,9 @@
 
 struct listroot *search_nest_root(struct listroot *root, char *arg)
 {
-	struct listnode *node;
+	struct listnode *node = search_node_list(root, arg);
 
-	node = search_node_list(root, arg);
-
-	if (node == NULL || node->root == NULL)
-	{
-		return NULL;
-	}
-	return node->root;
+	return node ? node->root : NULL;
 }
 
 struct listroot *search_nest_base_ses(struct session *ses, char *arg)
@@ -168,6 +162,62 @@ struct listnode *search_nest_node(struct listroot *root, char *variable)
 	return NULL;
 }
 
+// same as search_nest_node, but store the path in *path
+
+struct listnode *search_nest_node_path(struct listroot *root, char *variable, char *path)
+{
+	struct listnode *node;
+	char name[BUFFER_SIZE], *arg;
+
+	arg = get_arg_to_brackets(root->ses, variable, name);
+
+	node = search_node_list(root, name);
+
+	if (node)
+	{
+		path += sprintf(path, "%s", node->arg1);
+
+		if (*arg == 0)
+		{
+			return node;
+		}
+	}
+	root = node ? node->root : NULL;
+
+	if (root)
+	{
+		arg = get_arg_in_brackets(root->ses, arg, name);
+	}
+
+	while (root && *arg)
+	{
+		node = search_node_list(root, name);
+
+		if (node)
+		{
+			path += sprintf(path, "[%s]", node->arg1);
+		}
+		root = node ? node->root : NULL;
+
+		if (root)
+		{
+			arg = get_arg_in_brackets(root->ses, arg, name);
+		}
+	}
+
+	if (root)
+	{
+		node = search_node_list(root, name);
+
+		if (node)
+		{
+			path += sprintf(path, "[%s]", node->arg1);
+		}
+		return node;
+	}
+	return NULL;
+}
+
 int search_nest_index(struct listroot *root, char *variable)
 {
 	char name[BUFFER_SIZE], *arg;
@@ -213,8 +263,6 @@ struct listroot *update_nest_root(struct listroot *root, char *arg)
 
 void update_nest_node(struct listroot *root, char *arg)
 {
-//	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
-
 	char *arg1, *arg2;
 
 	arg1 = str_mim(arg);
@@ -276,6 +324,57 @@ int delete_nest_node(struct listroot *root, char *variable)
 
 	return FALSE;
 }
+
+int delete_nest_node_with_wild(struct listroot *root, char *variable)
+{
+	char name[BUFFER_SIZE], *arg, *ptv;
+	int index, found;
+
+	arg = get_arg_to_brackets(root->ses, variable, name);
+
+	ptv = arg;
+
+	while (root && *arg)
+	{
+		root = search_nest_root(root, name);
+
+		if (root)
+		{
+			arg = get_arg_in_brackets(root->ses, arg, name);
+
+			if (*arg != 0)
+			{
+				ptv = arg;
+			}
+		}
+	}
+
+	found = FALSE;
+
+	if (root)
+	{
+		for (index = root->used - 1 ; index >= 0 ; index--)
+		{
+			if (match(root->ses, root->list[index]->arg1, name, SUB_VAR|SUB_FUN))
+			{
+				if (*ptv)
+				{
+					show_message(root->ses, LIST_VARIABLE, "#OK. {%.*s[%s]} IS NO LONGER A VARIABLE.", ptv - variable, variable, root->list[index]->arg1);
+				}
+				else
+				{
+					show_message(root->ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A VARIABLE.", root->list[index]->arg1);
+				}
+				
+				delete_index_list(root, index);
+
+				found = TRUE;
+			}
+		}
+	}
+	return found;
+}
+
 
 // Return the number of indices of a node.
 
@@ -649,7 +748,6 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 	return 0;
 }
 
-
 struct listnode *get_nest_node_key(struct listroot *root, char *variable, char **result, int def)
 {
 	struct listnode *node;
@@ -725,7 +823,6 @@ struct listnode *get_nest_node_val(struct listroot *root, char *variable, char *
 	}
 	return NULL;
 }
-
 
 int get_nest_index(struct listroot *root, char *variable, char **result, int def)
 {
@@ -921,13 +1018,8 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 		}
 		else
 		{
-                      root = ses->list[LIST_VARIABLE];
+			root = ses->list[LIST_VARIABLE];
 		}
-		node = NULL;
-	}
-	else
-	{
-		node = search_nest_node(root, arg1);
 	}
 
 	while (*arg)
@@ -971,9 +1063,14 @@ struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		arg = get_arg_to_brackets(ses, arg1, name);
+		arg = get_arg_to_brackets(root->ses, arg1, name);
 
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+
+		if (strcmp(arg1, name))
+		{
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+		}
 	}
 	free(arg2);
 
@@ -987,12 +1084,15 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 {
 	struct listnode *node;
 	struct listroot *root;
-	char *arg, *arg2, name[BUFFER_SIZE];
+	char *arg, *arg2, *name;
 	va_list args;
 
 	push_call("add_nest_node_ses(%p,%s,%p,...)",ses,arg1,format);
 
+	name = str_alloc_stack(0);
+
 	va_start(args, format);
+
 	if (vasprintf(&arg2, format, args) == -1)
 	{
 		syserr_printf(ses, "add_nest_node_ses: vasprintf");
@@ -1012,11 +1112,6 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 	if (root == NULL)
 	{
 		root = ses->list[LIST_VARIABLE];
-		node = NULL;
-	}
-	else
-	{
-		node = search_nest_node(root, arg1);
 	}
 
 	while (*arg)
@@ -1030,7 +1125,6 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 	}
 
 	node = search_node_list(root, name);
-
 /*
 	if (node && node->root)
 	{
@@ -1039,7 +1133,6 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 		node->root = NULL;
 	}
 */
-
 	if (*space_out(arg2) == DEFAULT_OPEN)
 	{
 		update_nest_node(update_nest_root(root, name), arg2);
@@ -1062,10 +1155,15 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		arg = get_arg_to_brackets(ses, arg1, name);
+		arg = get_arg_to_brackets(root->ses, arg1, name);
 
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+
+		if (strcmp(arg1, name))
+		{
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+		}
+
 	}
 	free(arg2);
 
@@ -1139,6 +1237,11 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 	}
 	else
 	{
+		if (*name == '-' || *name == '+')
+		{
+			get_number_string(root->ses, name, name);
+//			printf("debug: set_nest_node - or +\n");
+		}
 		node = update_node_list(root, name, arg2, "", "");
 	}
 
@@ -1152,7 +1255,11 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 		arg = get_arg_to_brackets(root->ses, arg1, name);
 
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+
+		if (strcmp(arg1, name))
+		{
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+		}
 	}
 
 	free(arg2);
@@ -1242,7 +1349,14 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
+		arg = get_arg_to_brackets(root->ses, arg1, name);
+
 		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+
+		if (strcmp(arg1, name))
+		{
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+		}
 	}
 
 	free(arg2);

@@ -311,7 +311,7 @@ void update_input(void)
 	static struct timeval timeout;
 	static unsigned char sleep;
 
-	if (gtd->time_input + 60 < gtd->time)
+	if (gtd->time_input < gtd->time)
 	{
 		if (sleep < 10)
 		{
@@ -319,6 +319,11 @@ void update_input(void)
 			return;
 		}
 		sleep = 0;
+	}
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_NOHUP))
+	{
+		return;
 	}
 
 	if (gtd->detach_port)
@@ -341,7 +346,7 @@ void update_input(void)
 			break;
 		}
 
-		gtd->time_input = gtd->time;
+		gtd->time_input = gtd->time + 60;
 
 		process_input();
 

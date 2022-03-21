@@ -84,7 +84,6 @@ extern DO_DRAW(draw_bot_side);
 extern DO_DRAW(draw_box);
 extern DO_DRAW(draw_buffer);
 extern DO_DRAW(draw_corner);
-extern DO_DRAW(draw_horizontal_line);
 extern DO_DRAW(draw_left_side);
 extern DO_DRAW(draw_line);
 extern DO_DRAW(draw_map);
@@ -155,6 +154,8 @@ DO_COMMAND(do_draw)
 
 		return ses;
 	}
+
+	arg4 = str_alloc_stack(0);
 
 	box_color = str_alloc_stack(0);
 	txt_color = str_alloc_stack(0);
@@ -446,17 +447,26 @@ DO_COMMAND(do_draw)
 		{
 			arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 			arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
-//			arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-//			arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+			arg = get_arg_in_braces(ses, arg, arg3, GET_ONE);
+			arg = get_arg_in_braces(ses, arg, arg4, GET_ONE);
 
 			top_row = get_row_index_arg(ses, arg1);
 			top_col = get_col_index_arg(ses, arg2);
+			bot_row = get_row_index_arg(ses, arg3);
+			bot_col = get_col_index_arg(ses, arg4);
 
-			arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-			arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+			if (!is_math(ses, arg1) || !is_math(ses, arg2) || !is_math(ses, arg3) || !is_math(ses, arg4))
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW NON-NUMERIC SQUARE: %s {%s %s %s %s}",
+					draw_table[index].name,
+					is_math(ses, arg1) ? ntos(top_row) : arg1,
+					is_math(ses, arg2) ? ntos(top_col) : arg2,
+					is_math(ses, arg3) ? ntos(bot_row) : arg3,
+					is_math(ses, arg4) ? ntos(bot_col) : arg4);
 
-			bot_row = get_row_index_arg(ses, arg1);
-			bot_col = get_col_index_arg(ses, arg2);
+				return ses;
+			}
+
 
 			if (top_row == 0 && top_col == 0)
 			{
@@ -549,9 +559,11 @@ DO_COMMAND(do_draw)
 
 // utilities
 
+void string_to_stamp(struct session *ses, long long flags, char *in, char *out);
+
 void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row, int *bot_col, int *rows, int *cols, int index, long long flags, char *arg)
 {
-	char *buf, *out, *tmp;
+	char *buf, *out, *tmp, *swap;
 	int inside;
 	int height, bor_height, tot_height, max_height;
 	int width, bor_width, tot_width, max_width;
@@ -605,7 +617,19 @@ void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row
 	{
 		ualign(ses, arg, tmp, max_width - bor_width);
 
-		arg = tmp;
+		strcpy(arg, tmp);
+	}
+
+	if (HAS_BIT(flags, DRAW_FLAG_HUGE))
+	{
+		string_to_stamp(ses, flags, arg, tmp);
+
+		swap = arg; arg = tmp; tmp = swap;
+
+		if (*arg)
+		{
+			arg[strlen(arg) - 1] = 0;
+		}
 	}
 
 	while (*arg)
@@ -680,6 +704,10 @@ void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row
 	}
 //	tintin_printf2(ses, "debug4: cols %d top_col: %d bot_col %d", *cols, *top_col, *bot_col);
 
+	if (HAS_BIT(flags, DRAW_FLAG_HUGE))
+	{
+		arg = tmp;
+	}
 	pop_call();
 	return;
 }
@@ -952,28 +980,28 @@ char *get_draw_corner(long long flags, char *str)
 {
 	draw_cnt = (draw_cnt + 1) % 100;
 
-	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
-	{
-		strcpy(draw_buf[draw_cnt], " ");
-	}
-	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
+	if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
 	{
 		sprintf(draw_buf[draw_cnt], "%d", draw_cnt % 10);
 	}
+	else if (HAS_BIT(flags, DRAW_FLAG_PRUNED))
+	{
+		if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
+		{
+			strcpy(draw_buf[draw_cnt], " ");
+		}
+		else
+		{
+			strcpy(draw_buf[draw_cnt], "\e[C");
+		}
+	}
+	else if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
+	{
+		strcpy(draw_buf[draw_cnt], " ");
+	}
 	else if (HAS_BIT(flags, DRAW_FLAG_UTF8))
 	{
-		if (HAS_BIT(flags, DRAW_FLAG_PRUNED))
-		{
-			if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
-			{
-				strcpy(draw_buf[draw_cnt], " ");
-			}
-			else
-			{
-				strcpy(draw_buf[draw_cnt], "\e[C");
-			}
-		}
-		else if (HAS_BIT(flags, DRAW_FLAG_CIRCLED))
+		if (HAS_BIT(flags, DRAW_FLAG_CIRCLED))
 		{
 			if (HAS_BIT(flags, DRAW_FLAG_CROSSED))
 			{
@@ -1255,17 +1283,21 @@ char *get_draw_corner(long long flags, char *str)
 	}
 	else
 	{
-		if (HAS_BIT(flags, DRAW_FLAG_PRUNED))
-		{
-			strcpy(draw_buf[draw_cnt], "\e[C");
-		}
-		else if (HAS_BIT(flags, DRAW_FLAG_CIRCLED) || HAS_BIT(flags, DRAW_FLAG_ROUNDED))
+		if (HAS_BIT(flags, DRAW_FLAG_CIRCLED) || HAS_BIT(flags, DRAW_FLAG_ROUNDED))
 		{
 			strcpy(draw_buf[draw_cnt], "o");
 		}
 		else if (HAS_BIT(flags, DRAW_FLAG_CROSSED))
 		{
 			strcpy(draw_buf[draw_cnt], "+");
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_VER))
+		{
+			strcpy(draw_buf[draw_cnt], "|");
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_HOR))
+		{
+			strcpy(draw_buf[draw_cnt], "-");
 		}
 		else
 		{
@@ -1281,7 +1313,14 @@ char *draw_horizontal(long long flags, char *str)
 
 	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
 	{
-		strcpy(draw_buf[draw_cnt], " ");
+		if (HAS_BIT(flags, DRAW_FLAG_PRUNED) && !HAS_BIT(flags, DRAW_FLAG_SCROLL))
+		{
+			strcpy(draw_buf[draw_cnt], "\e[C");
+		}
+		else
+		{
+			strcpy(draw_buf[draw_cnt], " ");
+		}
 	}
 	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
 	{
@@ -1309,9 +1348,16 @@ char *draw_vertical(long long flags, char *str)
 {
 	draw_cnt = (draw_cnt + 1) % 100;
 
-	if (HAS_BIT(flags, DRAW_FLAG_BLANKED))
+	if (!HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_HOR|DRAW_FLAG_VER|DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT) || HAS_BIT(flags, DRAW_FLAG_BLANKED))
 	{
-		strcpy(draw_buf[draw_cnt], " ");
+		if (HAS_BIT(flags, DRAW_FLAG_PRUNED) && !HAS_BIT(flags, DRAW_FLAG_SCROLL))
+		{
+			strcpy(draw_buf[draw_cnt], "\e[C");
+		}
+		else
+		{
+			strcpy(draw_buf[draw_cnt], " ");
+		}
 	}
 	else if (HAS_BIT(flags, DRAW_FLAG_NUMBERED))
 	{
@@ -1493,7 +1539,8 @@ DO_DRAW(draw_corner)
 
 DO_DRAW(draw_line_horizontal)
 {
-	int col, corner;
+	int col, corner, ins_len;
+	char *line;
 
 	if (!HAS_BIT(flags, DRAW_FLAG_VER))
 	{
@@ -1510,7 +1557,13 @@ DO_DRAW(draw_line_horizontal)
 
 	corner = flags;
 
-	arg = arg1;
+	sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC|SUB_VAR|SUB_FUN);
+
+	arg = arg2;
+
+	line = arg1;
+
+	arg1 += sprintf(arg1, "%s", box_color);
 
 	if (HAS_BIT(flags, DRAW_FLAG_LEFT))
 	{
@@ -1543,15 +1596,40 @@ DO_DRAW(draw_line_horizontal)
 		arg1 += sprintf(arg1, "%s", draw_horizontal(flags, "─"));
 	}
 
+	if (*arg)
+	{
+		str_fix(line);
+
+		if (*txt_color)
+		{
+			str_cpy_printf(&arg, "%s%s", txt_color, arg);
+		}
+
+		ins_len = UMIN(cols, strip_vt102_strlen(ses, arg));
+
+		if (HAS_BIT(flags, DRAW_FLAG_RALIGN))
+		{
+			str_ins_str(ses, &line, arg, cols - ins_len, cols);
+		}
+		else if (HAS_BIT(flags, DRAW_FLAG_CALIGN))
+		{
+			str_ins_str(ses, &line, arg, cols / 2 - ins_len / 2, -1);
+		}
+		else
+		{
+			str_ins_str(ses, &line, arg, 0, ins_len);
+		}
+	}
+
 	if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
 	{
-		tintin_printf2(ses, "%*s%s%s", top_col - 1, "", box_color, arg);
+		tintin_printf2(ses, "%*s%s", top_col - 1, "", line);
 	}
 	else
 	{
 		goto_pos(ses, top_row, top_col);
 
-		print_stdout(top_row, top_col, "%s%s", box_color, arg);
+		print_stdout(top_row, top_col, "%s", line);
 	}
 }
 
@@ -1800,7 +1878,7 @@ DO_DRAW(draw_hbar)
 			case 7: ptb += sprintf(ptb, "▉"); break;
 			case 8: ptb += sprintf(ptb, "█"); break;
 		}
-		ptb += sprintf(ptb, "%*s%s}", (bar - cnt) / 8, "", box_color);
+		ptb += snprintf(ptb, BUFFER_SIZE, "%*s%s}", (bar - cnt) / 8, "", box_color);
 	}
 	else
 	{
@@ -1948,7 +2026,7 @@ DO_DRAW(draw_rain)
 				{
 					rand = generate_rand(ses) % max;
 
-					sprintf(arg2, "%s%.*s", lit_color_code(ses, code, 10), utfs[rand], rain[rand]);
+					snprintf(arg2, BUFFER_SIZE, "%s%.*s", lit_color_code(ses, code, 10), utfs[rand], rain[rand]);
 
 					substitute(ses, arg2, arg3, SUB_COL);
 
@@ -2004,7 +2082,7 @@ DO_DRAW(draw_rain)
 
 				if (cnt == node->root->list[col]->val16[1])
 				{
-					sprintf(arg2, "%s%.*s", lit_color_code(ses, code, 5), size, &node->root->list[col]->arg2[row]);
+					snprintf(arg2, BUFFER_SIZE, "%s%.*s", lit_color_code(ses, code, 5), size, &node->root->list[col]->arg2[row]);
 				}
 				else
 				{
@@ -2015,7 +2093,7 @@ DO_DRAW(draw_rain)
 						continue;
 					}
 
-					sprintf(arg2, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
+					snprintf(arg2, BUFFER_SIZE, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
 				}
 
 				substitute(ses, arg2, arg3, SUB_COL);
@@ -2052,13 +2130,13 @@ DO_DRAW(draw_rain)
 				}
 				else if (node->root->list[col]->val16[0] - cnt < 0)
 				{
-					sprintf(arg2, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
+					snprintf(arg2, BUFFER_SIZE, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
 					print_stdout(0, 0, "%s", arg3);
 				}
 				else
 				{
-					sprintf(arg2, "%s%.*s", dim_color_code(ses, code, node->root->list[col]->val16[0] - cnt), size, &node->root->list[col]->arg2[row]);
+					snprintf(arg2, BUFFER_SIZE, "%s%.*s", dim_color_code(ses, code, node->root->list[col]->val16[0] - cnt), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
 					print_stdout(0, 0, "%s", arg3);
 				}
@@ -2379,7 +2457,8 @@ DO_DRAW(draw_text)
 
 	txt = buf2;
 
-	substitute(ses, arg, buf3, SUB_VAR|SUB_FUN);
+	substitute(ses, arg, buf1, SUB_VAR|SUB_FUN);
+	substitute(ses, buf1, buf3, SUB_ESC|SUB_COL|SUB_LIT);
 
 	arg = buf3;
 
@@ -2396,7 +2475,7 @@ DO_DRAW(draw_text)
 	{
 		while (*arg)
 		{
-			arg = sub_arg_in_braces(ses, arg, buf1, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC|SUB_VAR|SUB_FUN);
+			arg = get_arg_in_braces(ses, arg, buf1, GET_ALL);
 
 			txt += sprintf(txt, "%s\n", buf1);
 
@@ -2405,33 +2484,32 @@ DO_DRAW(draw_text)
 				arg++;
 			}
 		}
-		string_to_font(ses, flags, buf2, buf2);
+
+		if (HAS_BIT(flags, DRAW_FLAG_FAT|DRAW_FLAG_CURSIVE|DRAW_FLAG_SANSSERIF))
+		{
+			string_to_font(ses, flags, buf2, buf2);
+		}
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_TOP|DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_TOP|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
 		top_row++;
 		rows--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_BOT|DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_BOT|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
 		bot_row--;
 		rows--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
-		strcpy(side1, " ");
 		cols--;
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_RIGHT|DRAW_FLAG_PRUNED))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_RIGHT|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
-		if (!HAS_BIT(flags, DRAW_FLAG_GRID) || HAS_BIT(flags, DRAW_FLAG_RIGHT))
-		{
-			strcpy(side2, " ");
-		}
 		cols--;
 	}
 
@@ -2484,12 +2562,12 @@ DO_DRAW(draw_text)
 		}
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_LEFT))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_LEFT|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
 		strcpy(side1, draw_vertical(flags, "│"));
 	}
 
-	if (HAS_BIT(flags, DRAW_FLAG_RIGHT))
+	if (HAS_BIT(flags, DRAW_FLAG_BOXED|DRAW_FLAG_RIGHT|DRAW_FLAG_BLANKED|DRAW_FLAG_PRUNED))
 	{
 		strcpy(side2, draw_vertical(flags, "│"));
 	}

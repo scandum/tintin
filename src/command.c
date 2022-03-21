@@ -187,7 +187,6 @@ extern DO_COMMAND(do_message);
 extern DO_COMMAND(do_path);
 extern DO_COMMAND(do_port);
 extern DO_COMMAND(do_prompt);
-extern DO_COMMAND(do_replace);
 extern DO_COMMAND(do_run);
 extern DO_COMMAND(do_scan);
 extern DO_COMMAND(do_script);

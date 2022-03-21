@@ -609,7 +609,7 @@ char *get_arg_in_braces(struct session *ses, char *string, char *result, int fla
 	char *pti, *pto;
 	int skip, nest = 1;
 
-	pti = space_out(string);
+	pti = HAS_BIT(flag, GET_SPC) ? string : space_out(string);
 	pto = result;
 
 	if (*pti != DEFAULT_OPEN)
@@ -708,7 +708,7 @@ char *get_arg_with_spaces(struct session *ses, char *string, char *result, int f
 	char *pto, *pti;
 	int skip, nest = 0;
 
-	pti = space_out(string);
+	pti = HAS_BIT(flag, GET_SPC) ? string : space_out(string);
 	pto = result;
 
 	while (*pti)
@@ -1098,7 +1098,7 @@ char *get_char(struct session *ses, char *string, char *result)
 	}
 	else if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 	{
-		pti += sprintf(result, "%.*s", get_utf8_size(pti), pti);
+		pti += snprintf(result, 6, "%.*s", get_utf8_size(pti), pti);
 	}
 	else
 	{
