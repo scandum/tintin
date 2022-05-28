@@ -145,6 +145,10 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
+    int optval = 1;
+    socklen_t optlen = sizeof(optval);
+    setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
+
 	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
 
 	if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
