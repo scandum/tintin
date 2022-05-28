@@ -145,9 +145,11 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
-    int optval = 1;
-    socklen_t optlen = sizeof(optval);
-    setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
+	int optval = 1;
+	if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
+	{
+		syserr_printf(ses, "connect_mud: unable to use tcp keepalive, continuing without");
+	}
 
 	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
 
