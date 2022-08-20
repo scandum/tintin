@@ -2687,6 +2687,7 @@ extern void add_row_index(struct row_data **row, int index);
 extern void del_row_index(struct row_data **row, int index);
 
 extern void print_scroll_region(struct session *ses);
+extern void print_line_scroll_region(struct session *ses, char **str, int prompt);
 extern void print_screen();
 extern void init_screen(int rows, int cols, int pix_rows, int pix_cols);
 extern void destroy_screen();

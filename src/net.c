@@ -636,7 +636,7 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 		
 		str_cpy(&output, linebuf);
 
-		print_line(ses, &output, prompt);
+		print_line_scroll_region(ses, &output, prompt);
 
 		if (!IS_SPLIT(ses))
 		{

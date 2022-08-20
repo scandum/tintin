@@ -2296,3 +2296,19 @@ void add_line_screen(struct session *ses, char *str, int row)
 	pop_call();
 	return;
 }
+
+void print_line_scroll_region(struct session *ses, char **str, int prompt)
+{
+	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	{
+		save_pos(ses);
+		goto_pos(ses, ses->split->bot_row, 1);
+	}
+
+	print_line(ses, str, prompt);
+
+	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	{
+		restore_pos(ses);
+	}
+}
