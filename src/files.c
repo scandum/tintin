@@ -47,11 +47,45 @@ DO_COMMAND(do_read)
 	return read_file(ses, fp, arg1);
 }
 
+int skip_shebang(FILE *fp)
+{
+	char temp[INPUT_SIZE];
+	int count;
+
+	count = 0;
+	temp[0] = getc(fp);
+	if (temp[0] == '#')
+	{
+		temp[1] = getc(fp);
+		if (temp[1] == '!')             // skip shape-bang
+		{
+			fgets(temp, sizeof(temp), fp);
+            count = strlen(temp) + 2;   // 2 for shebang
+			do
+            {
+				temp[0] = getc(fp);
+                count++;
+            } while (temp[0] == '\r' || temp[0] == '\n');
+			ungetc(temp[0], fp);
+            count--;
+			return count;
+		}
+	}
+
+	fseek(fp, 0, SEEK_SET);
+    return 0;
+}
+
 struct session *read_file(struct session *ses, FILE *fp, char *filename)
 {
 	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
 	int lvl, cnt, com, lnc, fix, ok, verbose, size;
 	int counter[LIST_MAX];
+
+	fseek(fp, 0, SEEK_END);
+	size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	size -= skip_shebang(fp);
 
 	temp[0] = getc(fp);
 
@@ -75,12 +109,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 			counter[cnt] = ses->list[cnt]->used;
 		}
 	}
-
-	fseek(fp, 0, SEEK_END);
-
-	size = ftell(fp);
-
-	fseek(fp, 0, SEEK_SET);
 
 	if ((bufi = (char *) calloc(1, size + 2)) == NULL || (bufo = (char *) calloc(1, size + 2)) == NULL)
 	{
