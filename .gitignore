@@ -5,4 +5,5 @@ src/config.log
 src/config.status
 src/*.o
 src/tt++
-
+src/.cache/
+src/compile_commands.json
