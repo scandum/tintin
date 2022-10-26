@@ -307,6 +307,9 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 			case 'A':
 				pto += sprintf(pto, "(\\n");
 				break;
+			case 'c':
+				pto += sprintf(pto, "((?:\\e\\[[0-9:;]*m)");
+				break;
 			case 'd':
 				pto += sprintf(pto, "([0-9]");
 				break;
@@ -405,6 +408,7 @@ int tintin_regexp_check(struct session *ses, char *exp)
 
 					case 'a':
 					case 'A':
+					case 'c':
 					case 'd':
 					case 'D':
 					case 'i':
@@ -429,6 +433,7 @@ int tintin_regexp_check(struct session *ses, char *exp)
 						{
 							case 'a':
 							case 'A':
+							case 'c':
 							case 'd':
 							case 'D':
 							case 'p':
@@ -577,6 +582,13 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 						pto += strlen(pto);
 						break;
 
+					case 'c':
+						gtd->args[next_arg(var)] = next_arg(arg);
+						pti += 2;
+						strcpy(pto, *pti == 0 ? "((?:\\e\\[[0-9:;]*m)*)" : "((?:\\e\\[[0-9:;]*m)*?)");
+						pto += strlen(pto);
+						break;
+
 					case 'd':
 						gtd->args[next_arg(var)] = next_arg(arg);
 						pti += 2;
@@ -706,6 +718,12 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 								pto += strlen(pto);
 								break;
 
+							case 'c':
+								pti += 3;
+								strcpy(pto, *pti == 0 ? "(?:\\e\\[[0-9:;]*m)*" : "(?:\\e\\[[0-9:;]*m)*?");
+								pto += strlen(pto);
+								break;
+
 							case 'd':
 								pti += 3;
 								strcpy(pto, *pti == 0 ? "[0-9]*" : "[0-9]*?");
@@ -715,7 +733,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 							case 'D':
 								pti += 3;
 								strcpy(pto, *pti == 0 ? "[^0-9]*" : "[^0-9]*?");
-									pto += strlen(pto);
+								pto += strlen(pto);
 								break;
 
 							case 'p':
@@ -953,6 +971,12 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 						pto += strlen(pto);
 						break;
 
+					case 'c':
+						pti += 2;
+						strcpy(pto, *pti == 0 ? "((?:\\e\\[[0-9:;]*m)*)" : "((?:\\e\\[[0-9:;]*m)*?)");
+						pto += strlen(pto);
+						break;
+
 					case 'd':
 						pti += 2;
 						strcpy(pto, *pti == 0 ? "([0-9]*)" : "([0-9]*?)");
@@ -1054,6 +1078,12 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 					case '!':
 						switch (pti[2])
 						{
+							case 'c':
+								pti += 3;
+								strcpy(pto, *pti == 0 ? "(?:\\e\\[[0-9:;]*m)*" : "(?:\\e\\[[0-9:;]*m)*?");
+								pto += strlen(pto);
+								break;
+
 							case 'd':
 								pti += 3;
 								strcpy(pto, *pti == 0 ? "[0-9]*" : "[0-9]*?");

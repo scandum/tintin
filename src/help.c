@@ -3881,6 +3881,7 @@ struct help_type help_table[] =
 		"\n"
 		"      %a match zero to any number of characters including newlines.\n"
 		"      %A match zero to any number of newlines.\n"
+		"      %c match zero to any number of character attributes(SGR) sequences.\n"
 		"      %p match zero to any number of printable characters.\n"
 		"      %P match zero to any number of non printable characters.\n"
 		"      %u match zero to any number of unicode characters.\n"
