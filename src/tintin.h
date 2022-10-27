@@ -2784,6 +2784,7 @@ extern int get_raw_off_str_range_raw_width(struct session *ses, char *str, int s
 
 extern int raw_len_str(struct session *ses, char *str, int start, int end);
 extern int str_len_raw(struct session *ses, char *str, int start, int end);
+extern int str_len_str(struct session *ses, char *str, int start, int end);
 
 extern char *str_ins_str(struct session *ses, char **str, char *ins, int str_start, int str_end);
 
@@ -2899,6 +2900,7 @@ extern char *get_charset(struct session *ses);
 #define __TEXT_H__
 
 extern void print_line(struct session *ses, char **str, int isaprompt);
+extern void print_one_line_with_erase(struct session *ses, int row, int col, char *line, int line_width);
 extern void print_stdout(int row, int col, char *format, ...);
 extern  int word_wrap(struct session *ses, char *textin, char *textout, int display, int *height, int *width);
 extern  int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, int start, int end, int flags, int *height, int *width);

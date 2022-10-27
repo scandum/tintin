@@ -2165,12 +2165,12 @@ void print_scroll_region(struct session *ses)
 
 	for (cnt = ses->split->top_row ; cnt < ses->split->bot_row ; cnt++)
 	{
-		print_stdout(0, 0, "\e[%d;%dH\e[%dX%s", cnt, ses->split->top_col, ses->wrap, gtd->screen->line[cnt - 1]->str);
+		print_one_line_with_erase(ses, cnt, ses->split->top_col, gtd->screen->line[cnt - 1]->str, ses->split->bot_col - ses->split->top_col + 1);
 	}
 
 	word_wrap_split(ses, ses->scroll->input, wrap, ses->wrap, 0, 1, WRAP_FLAG_SPLIT, &height, &width);
 
-	print_stdout(0, 0, "\e[%d;%dH\e[%dX%s", cnt, ses->split->top_col, ses->wrap, wrap);
+	print_one_line_with_erase(ses, cnt, ses->split->top_col, wrap, ses->split->bot_col - ses->split->top_col + 1);
 
 	restore_pos(ses);
 

@@ -25,6 +25,24 @@
 
 #include "tintin.h"
 
+void print_one_line_with_erase(struct session *ses, int row, int col, char *line, int line_width)
+{
+	int erase_width;
+
+	if (row && col)
+	{
+		print_stdout(0, 0, "\e[%d;%dH", row, col);
+	}
+
+	print_stdout(0, 0, "%s", line);
+
+	erase_width = line_width - str_len_str(ses, line, 0, strlen(line));
+
+	if (erase_width > 0)
+	{
+		print_stdout(0, 0, "\e[%dX", erase_width);
+	}
+}
 
 void print_line(struct session *ses, char **str, int prompt)
 {
@@ -78,7 +96,19 @@ void print_line(struct session *ses, char **str, int prompt)
 	}
 	else
 	{
-		print_stdout(0, 0, "%s\n", out);
+		char *eol;
+		eol = strchr(out, '\n');
+		while(eol)
+		{
+			*eol++ = 0;
+			print_one_line_with_erase(ses, 0, 0, out, gtd->screen->width);
+			print_stdout(0, 0, "\n");
+			out = eol;
+			eol = strchr(out, '\n');
+		}
+
+		print_one_line_with_erase(ses, 0, 0, out, gtd->screen->width);
+		print_stdout(0, 0, "\n");
 	}
 
 //	add_line_screen(out);
