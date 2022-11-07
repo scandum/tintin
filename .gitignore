@@ -7,3 +7,5 @@ src/*.o
 src/tt++
 src/.cache/
 src/compile_commands.json
+src/utf8.c
+src/dict.h
