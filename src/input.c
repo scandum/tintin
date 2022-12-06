@@ -916,7 +916,7 @@ void echo_command(struct session *ses, char *line)
 	{
 		strcpy(output, ses->more_output);
 
-		process_mud_output(ses, buffer, FALSE);
+		process_mud_output(ses, output, FALSE);
 	}
 	else
 	{
