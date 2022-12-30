@@ -43,6 +43,7 @@ extern DO_ARRAY(array_insert);
 extern DO_ARRAY(array_numerate);
 extern DO_ARRAY(array_order);
 extern DO_ARRAY(array_reverse);
+extern DO_ARRAY(array_refine);
 extern DO_ARRAY(array_set);
 extern DO_ARRAY(array_shuffle);
 extern DO_ARRAY(array_simplify);
@@ -77,6 +78,7 @@ struct array_type array_table[] =
 	{     "NUMERATE",         array_numerate,    "Turn a table into a list"                },
 	{     "ORDER",            array_order,       "Sort a list table numerically"           },
 	{     "LENGTH",           array_size,        NULL                                      },
+	{     "REFINE",           array_refine,      "Filter a list with given math"           },
 	{     "REVERSE",          array_reverse,     "Sort a list table in reverse order"      },
 	{     "SET",              array_set,         "Change a list item at given index"       },
 	{     "SHUFFLE",          array_shuffle,     "Sort a list table in random order"       },
@@ -263,6 +265,13 @@ DO_ARRAY(array_create)
 
 	arg = buf;
 
+	if (*arg == 0)
+	{
+		set_nest_node_ses(ses, arg1, "");
+
+		return ses;
+	}
+
 	if (list->root)
 	{
 		free_list(list->root);
@@ -284,13 +293,15 @@ DO_ARRAY(array_create)
 
 			if (*str == COMMAND_SEPARATOR)
 			{
-				str++;
+				*str = ' ';
+//				str++;
 			}
 		}
 
 		if (*arg == COMMAND_SEPARATOR)
 		{
-			arg++;
+			*arg = ' ';
+//			arg++;
 		}
 	}
 	return ses;
@@ -411,8 +422,11 @@ DO_ARRAY(array_filter)
 		return ses;
 	}
 
-	if (list->root)
+	if (list->root && list->root->used)
 	{
+		int numerate = atoi(list->root->list[0]->arg1) == 1 && atoi(list->root->list[list->root->used - 1]->arg1) == list->root->used;
+		int found = 0;
+
 		if (*arg1)
 		{
 			for (index = 0 ; index < list->root->used ; index++)
@@ -420,6 +434,7 @@ DO_ARRAY(array_filter)
 				if (!match(ses, list->root->list[index]->arg2, arg1, SUB_NONE))
 				{
 					delete_index_list(list->root, index--);
+					found = 1;
 				}
 			}
 		}
@@ -431,8 +446,13 @@ DO_ARRAY(array_filter)
 				if (match(ses, list->root->list[index]->arg2, arg2, SUB_NONE))
 				{
 					delete_index_list(list->root, index--);
+					found = 1;
 				}
 			}
+		}
+		if (found && numerate)
+		{
+			array_numerate(ses, list, arg, var, arg1, arg2);
 		}
 	}
 
@@ -682,6 +702,69 @@ DO_ARRAY(array_order)
 			free(arg2_buffer);
 		}
 	}
+	return ses;
+}
+
+DO_ARRAY(array_refine)
+{
+	char arg3[BUFFER_SIZE];
+	int index;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0 && *arg2 == 0)
+	{
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} REFINE {keep} {remove}");
+
+		return ses;
+	}
+
+	if (list->root && list->root->used)
+	{
+		int numerate = atoi(list->root->list[0]->arg1) == 1 && atoi(list->root->list[list->root->used - 1]->arg1) == list->root->used;
+		int found = 0;
+
+		if (*arg1)
+		{
+			for (index = 0 ; index < list->root->used ; index++)
+			{
+				RESTRING(gtd->cmds[0], list->root->list[index]->arg2);
+
+				substitute(ses, arg1, arg3, SUB_CMD);
+
+				if (!get_number(ses, arg3))
+				{
+					delete_index_list(list->root, index--);
+					found = 1;
+				}
+			}
+		}
+
+		if (*arg2)
+		{
+			for (index = 0 ; index < list->root->used ; index++)
+			{
+				RESTRING(gtd->cmds[0], list->root->list[index]->arg2);
+
+				substitute(ses, arg2, arg3, SUB_CMD);
+
+//				printf("debug: (%s) (%d)\n", arg3, (int) get_number(ses, arg3));
+
+				if (get_number(ses, arg3))
+				{
+					delete_index_list(list->root, index--);
+					found = 1;
+				}
+			}
+		}
+
+		if (found && numerate)
+		{
+			array_numerate(ses, list, arg, var, arg1, arg2);
+		}
+	}
+
 	return ses;
 }
 

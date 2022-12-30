@@ -1135,7 +1135,7 @@ DO_BUFFER(buffer_write)
 		{
 			show_message(ses, LIST_COMMAND, "#OK: WRITING BUFFER TO '%s'.", arg1);
 
-			logheader(ses, fp, ses->log->mode + LOG_FLAG_OVERWRITE);
+			logheader(ses, fp, ses->log->mode | LOG_FLAG_OVERWRITE);
 
 			for (cnt = 1 ; cnt < ses->scroll->used ; cnt++)
 			{

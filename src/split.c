@@ -193,9 +193,15 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 			if (HAS_BIT(ses->config_flags, CONFIG_FLAG_VERBOSE) || gtd->level->verbose || gtd->level->quiet == 0)
 			{
 				command(ses, do_screen, "FILL DEFAULT");
+
 			}
 		}
 
+	}
+
+	if (HAS_BIT(ses->flags, SES_FLAG_READMUD))
+	{
+		goto_pos(ses, ses->split->bot_row, 1);
 	}
 
 	check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN SPLIT", ntos(ses->split->top_row), ntos(ses->split->top_col), ntos(ses->split->bot_row), ntos(ses->split->bot_col));

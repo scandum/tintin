@@ -276,6 +276,15 @@ DO_COMMAND(do_button)
 
 			node->val16[index] = (short) get_number(ses, arg2);
 
+			if (node->val16[index] == 0)
+			{
+				show_error(ses, LIST_BUTTON, "#ERROR: #BUTTON {%s} IS NOT A VALID SQUARE COORDINATE.", arg1);
+
+				delete_node_list(ses, LIST_BUTTON, node);
+
+				return ses;
+			}
+
 			if (*arg == COMMAND_SEPARATOR)
 			{
 				arg++;
@@ -544,8 +553,10 @@ void check_all_gags(struct session *ses, char *original, char *line)
 			{
 				delete_node_list(ses, LIST_GAG, node);
 			}
-			ses->gagline++;
-
+			if (ses->gagline == 0)
+			{
+				ses->gagline = 1;
+			}
 			return;
 		}
 	}
@@ -798,13 +809,20 @@ int check_all_prompts(struct session *ses, char *original, char *line)
 
 			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
 
-			split_show(ses, original, node->arg3, node->arg4);
+			if (strcmp(node->arg3, "0"))
+			{
+				split_show(ses, original, node->arg3, node->arg4);
+
+				if (ses->gagline == 0)
+				{
+					ses->gagline = 1;
+				}
+			}
 
 			if (node->shots && --node->shots == 0)
 			{
 				delete_node_list(ses, LIST_PROMPT, node);
 			}
-			ses->gagline = 1;
 		}
 	}
 	return 0;

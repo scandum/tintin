@@ -37,7 +37,7 @@ struct list_type list_table[LIST_MAX] =
 	{    "COMMAND",           "COMMANDS",           SORT_APPEND,      1, 0, 0, LIST_FLAG_MESSAGE                                                                  },
 	{    "CONFIG",            "CONFIGS",            SORT_ALPHA,       2, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "DELAY",             "DELAYS",             SORT_STABLE,      2, 2, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ                                                   },
-	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
+	{    "EVENT",             "EVENTS",             SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_CASE },
 	{    "FUNCTION",          "FUNCTIONS",          SORT_ALPHA,       2, 2, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "GAG",               "GAGS",               SORT_ALPHA,       1, 0, 0, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT },
 	{    "HIGHLIGHT",         "HIGHLIGHTS",         SORT_PRIORITY,    3, 0, 3, LIST_FLAG_MESSAGE|LIST_FLAG_READ|LIST_FLAG_WRITE|LIST_FLAG_CLASS|LIST_FLAG_INHERIT|LIST_FLAG_REGEX|LIST_FLAG_PRIORITY },
@@ -72,22 +72,25 @@ struct substitution_type substitution_table[] =
 
 struct charset_type charset_table[] =
 {
-	{    "ASCII",         "iso-8859-1",  0                 },
-	{    "UTF-8",         "utf-8",       CHARSET_FLAG_UTF8 },
-	{    "BIG-5",         "big-5",       CHARSET_FLAG_BIG5 },
-	{    "GBK-1",         "gb18030",     CHARSET_FLAG_GBK1 },
-	{    "CP949",         "cp949",       CHARSET_FLAG_CP949 },
-
-	{    "BIG5TOUTF8",    "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8 },
-	{    "CP1251TOUTF8",  "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_CP1251TOUTF8 },
-	{    "CP437TOUTF8",   "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8 },
-	{    "CP949TOUTF8",   "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8 },
-	{    "FANSITOUTF8",   "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8 },
-	{    "GBK1TOUTF8",    "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8 },
-	{    "ISO1TOUTF8",    "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8 },
-	{    "ISO2TOUTF8",    "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8 },
-	{    "KOI8TOUTF8",    "utf-8",       CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8 },
-	{    "",              "",            0 }
+	{    "ASCII",         "iso-8859-1",  "ASCII",      0                  },
+	{    "UTF-8",         "utf-8",       "UTF-8",      CHARSET_FLAG_UTF8  },
+	{    "BIG5",          "big5",        "BIG5",       CHARSET_FLAG_BIG5  },
+	{    "BIG-5",         "big5",        "BIG5",       CHARSET_FLAG_BIG5  },
+	{    "EUC-KR",        "euc-kr",      "EUC-KR",     CHARSET_FLAG_CP949 },
+	{    "CP949",         "euc-kr",      "EUC-KR",     CHARSET_FLAG_CP949 },
+	{    "GBK-1",         "gb18030",     "GB18030",    CHARSET_FLAG_GBK1  },
+	{    "GB18030",       "gb18030",     "GB18030",    CHARSET_FLAG_GBK1  },
+	{    "BIG5TOUTF8",    "utf-8",       "BIG5",       CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8   },
+	{    "CP437TOUTF8",   "utf-8",       "CP437",      CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8  },
+	{    "FANSITOUTF8",   "utf-8",       "CP437",      CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8  },
+	{    "CP1251TOUTF8",  "utf-8",       "CP1251",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP1251TOUTF8 },
+	{    "EUCKRTOUTF8",   "utf-8",       "EUC-KR",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
+	{    "CP949TOUTF8",   "utf-8",       "EUC-KR",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
+	{    "GBK1TOUTF8",    "utf-8",       "GB18030",    CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8   },
+	{    "ISO1TOUTF8",    "utf-8",       "ISO-8859-1", CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8   },
+	{    "ISO2TOUTF8",    "utf-8",       "ISO-8859-2", CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8   },
+	{    "KOI8TOUTF8",    "utf-8",       "KOI8-R",     CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8   },
+	{    "",              "",            "",           0 }
 };
 
 struct config_type config_table[] =
@@ -327,9 +330,9 @@ char character_table[256] =
 	0,
 	0,
 	0,
-	0,
+	0, // \a
 
-	0,
+	0, // \b
 	CHAR_FLAG_SPACE, // \t
 	CHAR_FLAG_SPACE, // \n
 	CHAR_FLAG_SPACE, // \v
@@ -913,7 +916,7 @@ struct cursor_type cursor_table[] =
 	{     "PREV WORD",          "Move cursor to the previous word",               "\eb",         CURSOR_FLAG_GET_ALL,     cursor_move_left_word,        ""          },
 	{     "REDRAW INPUT",       "Redraw the input line",                          "",           CURSOR_FLAG_GET_ALL,     cursor_redraw_input,          ""          },
 	{     "RESET MACRO",        "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_macro,                 "RESET"     }, // obsolete
-	{     "SET",                "Copy given string to input line",                "",            CURSOR_FLAG_GET_ONE,     cursor_set,                   ""          },
+	{     "SET",                "Insert given string at cursor",                  "",            CURSOR_FLAG_GET_ONE,     cursor_set,                   ""          },
 	{     "SOFT ENTER",         "Create a new line in edit mode.",                "\e[13;2u",    CURSOR_FLAG_GET_ALL,     cursor_soft_enter,            ""          },
 	{     "SUSPEND",            "Suspend program, return with fg",                "",           CURSOR_FLAG_GET_ALL,     cursor_suspend,               ""          },
 	{     "TAB",                "<LIST|SCROLLBACK> <BACKWARD|FORWARD>",           "",            CURSOR_FLAG_GET_ONE,     cursor_tab,                   ""          },
@@ -922,7 +925,9 @@ struct cursor_type cursor_table[] =
 	{     "UP",                 "Move cursor up",                                 "\e[A",        CURSOR_FLAG_GET_ALL,     cursor_move_up,               ""          },
 	{     "",                   "",                                               "\e[6~",                          0,    cursor_buffer_down,           ""          },
 	{     "",                   "",                                               "\e[1;5F",                        0,    cursor_buffer_end,            ""          },
+//	{     "",                   "",                                               "\e[F",                           0,    cursor_buffer_end,            ""          },
 	{     "",                   "",                                               "\e[1;5H",                        0,    cursor_buffer_home,           ""          },
+//	{     "",                   "",                                               "\e[H",                           0,    cursor_buffer_home,           ""          },
 	{     "",                   "",                                               "\e[5~",                          0,    cursor_buffer_up,             ""          },
 	{     "",                   "",                                               "\eOa",                           0,    cursor_buffer_up,             "1"         },
 	{     "",                   "",                                               "\eOb",                           0,    cursor_buffer_down,           "1"         },
@@ -999,6 +1004,7 @@ struct event_type event_table[] =
 	{    "CLASS CREATED",                          0, EVENT_FLAG_CLASS,    "CLASS",     "class creation"             },
 	{    "CLASS DEACTIVATED",                      0, EVENT_FLAG_CLASS,    "CLASS",     "class deactivations"        },
 	{    "CLASS DESTROYED",                        0, EVENT_FLAG_CLASS,    "CLASS",     "class destruction"          },
+	{    "DAEMON ATTACH TIMEOUT",                  0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon attachment timeout"  },
 	{    "DAEMON ATTACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon attachment"          },
 	{    "DAEMON DETACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon detachment"          },
 	{    "DATE",                                   0, EVENT_FLAG_TIME,     "TIME",      "the given date"             },
@@ -1036,6 +1042,7 @@ struct event_type event_table[] =
 	{    "MINUTE",                                 0, EVENT_FLAG_TIME,     "TIME",      "minute or given minute"     },
 	{    "MONTH",                                  0, EVENT_FLAG_TIME,     "TIME",      "month or given month"       },
 	{    "MOVED ",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is moved"             },
+	{    "NO SESSION ACTIVE",                      0, EVENT_FLAG_INPUT,    "INPUT",     "input on startup session"   },
 	{    "PORT CONNECTION",                        0, EVENT_FLAG_PORT,     "PORT",      "socket connects"            },
 	{    "PORT DISCONNECTION",                     0, EVENT_FLAG_PORT,     "PORT",      "socket disconnects"         },
 	{    "PORT INITIALIZED",                       0, EVENT_FLAG_PORT,     "PORT",      "port is initialized"        },
@@ -1138,30 +1145,6 @@ struct path_type path_table[] =
 	{    "UNZIP",             path_unzip,          "Turn speedwalk into a path."                    },
 	{    "WALK",              path_walk,           "Walk one step forward or backward."             },
 	{    "ZIP",               path_zip,            "Turn path into a speedwalk."                    },
-	{    "",                  NULL,                ""                                               }
-};
-
-struct line_type line_table[] =
-{
-	{    "BACKGROUND",        line_background,     "Execute line without stealing session focus."   },
-	{    "BENCHMARK",         line_benchmark,      "Execute line and provide timing information."   },
-	{    "CAPTURE",           line_capture,        "Capture output in the given variable."          },
-	{    "CONVERT",           line_convert,        "Execute line in convert meta data mode."        },
-	{    "DEBUG",             line_debug,          "Execute line in debug mode."                    },
-	{    "GAG",               line_gag,            "Gag the next line."                             },
-	{    "IGNORE",            line_ignore,         "Execute line with triggers ignored."            },
-	{    "LOCAL",             line_local,          "Execute line with local scope."                 },
-	{    "LOG",               line_log,            "Log the next line or given line."               },
-	{    "LOGMODE",           line_logmode,        "Execute line with given log mode."              },
-	{    "LOGVERBATIM",       line_logverbatim,    "Log the line as plain text verbatim."           },
-	{    "MSDP",              line_msdp,           "Execute line with msdp conversion."             },
-	{    "MULTISHOT",         line_multishot,      "Execute line creating multishot triggers."      },
-	{    "ONESHOT",           line_oneshot,        "Execute line creating oneshot triggers."        },
-	{    "QUIET",             line_quiet,          "Execute line with all system messages off."     },
-	{    "STRIP",             line_strip,          "Execute line with escape codes stripped."       },
-	{    "SUBSTITUTE",        line_substitute,     "Execute line with given substitution."          },
-	{    "VERBATIM",          line_verbatim,       "Execute line as plain text."                    },
-	{    "VERBOSE",           line_verbose,        "Execute line with all system messages on."      },
 	{    "",                  NULL,                ""                                               }
 };
 

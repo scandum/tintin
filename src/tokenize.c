@@ -313,8 +313,10 @@ char *get_arg_foreach(struct scriptroot *root, struct scriptnode *token)
 
 	if (*token->data->arg == COMMAND_SEPARATOR)
 	{
-		token->data->arg++;
+		*token->data->arg = ' ';
+//		token->data->arg++;
 	}
+
 	return buf;
 }
 
@@ -1094,8 +1096,18 @@ char *write_script(struct session *ses, struct scriptroot *root)
 				break;
 
 			case TOKEN_TYPE_COMMAND:
-			case TOKEN_TYPE_RETURN:
 				cat_sprintf(buf, "%s%c%s%s%s", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, *token->str ? " " : "", token->str);
+				break;
+
+			case TOKEN_TYPE_RETURN:
+				if (*token->str)
+				{
+					cat_sprintf(buf, "%s%c%s {%s}", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, token->str);
+				}
+				else
+				{
+					cat_sprintf(buf, "%s%c%s", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name);
+				}
 				break;
 
 			case TOKEN_TYPE_ELSE:
@@ -1182,7 +1194,14 @@ char *view_script(struct session *ses, struct scriptroot *root)
 				break;
 
 			case TOKEN_TYPE_RETURN:
-				cat_sprintf(buf, "%s" COLOR_TINTIN "%c" COLOR_STATEMENT "%s" COLOR_STRING "%s%s", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, *token->str ? " " : "", token->str);
+				if (*token->str)
+				{
+					cat_sprintf(buf, "%s" COLOR_TINTIN "%c" COLOR_STATEMENT "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name, token->str);
+				}
+				else
+				{
+					cat_sprintf(buf, "%s" COLOR_TINTIN "%c" COLOR_STATEMENT "%s", indent(token->lvl), gtd->tintin_char, command_table[token->cmd].name);
+				}
 				break;
 
 			case TOKEN_TYPE_COMMAND:

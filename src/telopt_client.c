@@ -599,6 +599,23 @@ int client_recv_dont_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 	return 3;
 }
 
+int get_mtts_val(struct session *ses)
+{
+	return (0 + (ses->color > 0 ? 1 : 0)
+		+ (HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
+		+ (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
+		+ (ses->color > 16 ? 8 : 0)
+		+ (HAS_BIT(ses->flags, TINTIN_FLAG_MOUSETRACKING) ? 16 + 1024 : 0)
+		+ (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
+//		+ proxy ? 128 : 0
+		+ (ses->color > 256 ? 256 : 0)
+		+ 512
+#ifdef HAVE_GNUTLS_H
+		+ 2048
+#endif
+		);
+}
+
 int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 {
 	check_all_events(ses, EVENT_FLAG_TELNET, 0, 1, "IAC SB TTYPE", ntos(cpsrc[3]));
@@ -611,14 +628,22 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 	if (HAS_BIT(ses->telopts, TELOPT_FLAG_MTTS))
 	{
 		char mtts[BUFFER_SIZE];
-
-		sprintf(mtts, "MTTS %d",
-			(ses->color > 0 ? 1 : 0) +
-			(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2) +
-			(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0) +
-			(ses->color > 16 ? 8 : 0) +
-			(HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0) +
-			(ses->color > 256 ? 256 : 0));
+/*
+		sprintf(mtts, "MTTS %d", 0
+			+ (ses->color > 0 ? 1 : 0)
+			+ (HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
+			+ (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
+			+ (ses->color > 16 ? 8 : 0)
+			+ (HAS_BIT(ses->flags, TINTIN_FLAG_MOUSETRACKING) ? 16 + 1024 : 0)
+			+ (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
+			+ (ses->color > 256 ? 256 : 0)
+			+ 512
+#ifdef HAVE_GNUTLS_H
+			+ 2048
+#endif
+			);
+*/
+		sprintf(mtts, "MTTS %d", get_mtts_val(ses));
 
 		telnet_printf(ses, 6 + strlen(mtts), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, mtts, IAC, SE);
 
@@ -729,7 +754,7 @@ int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc)
 		telnet_printf(ses, 9, "%c%c%c%c%c%c%c%c%c", IAC, SB, TELOPT_NAWS, cols / 256, cols % 256, rows / 256, rows % 256, IAC, SE);
 	}
 
-	client_telopt_debug(ses, "SENT IAC SB NAWS %d %d %d %d", cols / 256, cols % 256, gtd->screen->rows / 256, gtd->screen->rows % 256);
+	client_telopt_debug(ses, "SENT IAC SB NAWS %d %d %d %d", cols / 256, cols % 256, rows / 256, rows % 256);
 
 	return 3;
 }
@@ -1118,8 +1143,8 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 		{
 			strip_vt102_codes(val, plain);
 			client_telopt_debug(ses, "RCVD IAC SB MSDP VAR %-20s VAL %s", var, val);
-			check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
-			check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
+			check_all_events(ses, EVENT_FLAG_TELNET, 1, 4, "IAC SB MSDP %s", var, var, val, plain, ntos(nest));
+			check_all_events(ses, EVENT_FLAG_TELNET, 0, 4, "IAC SB MSDP", var, val, plain, ntos(nest));
 		}
 		i++;
 	}
@@ -1370,29 +1395,37 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8);
 				}
-				else if (!strcmp(var, "BIG-5"))
+				else if (!strcmp(var, "BIG5") || !strcmp(var, "BIG-5"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_BIG5) || HAS_BIT(ses->charset, CHARSET_FLAG_BIG5TOUTF8);
 				}
-				else if (!strcmp(var, "CP949"))
-				{
-					accept = HAS_BIT(ses->charset, CHARSET_FLAG_CP949) || HAS_BIT(ses->charset, CHARSET_FLAG_CP949TOUTF8);
-				}
-				else if (!strcmp(var, "FANSI") || !strcmp(var, "CP437"))
+				else if (!strcmp(var, "CP437") || !strcmp(var, "FANSI"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_FANSITOUTF8);
 				}
-				else if (!strcmp(var, "ISO-8859-1") || !strcasecmp(var, "ISO-1"))
+				else if (!strcmp(var, "EUC-KR") || !strcmp(var, "CP949"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_CP949) || HAS_BIT(ses->charset, CHARSET_FLAG_CP949TOUTF8);
+				}
+				else if (!strcmp(var, "CP1251"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_CP1251TOUTF8);
+				}
+				else if (!strcmp(var, "ISO-8859-1") || !strcasecmp(var, "LATIN-1"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_ISO1TOUTF8);
 				}
-				else if (!strcmp(var, "ISO-8859-2") || !strcasecmp(var, "ISO-2"))
+				else if (!strcmp(var, "ISO-8859-2") || !strcasecmp(var, "LATIN-2"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_ISO2TOUTF8);
 				}
-				else if (!strcmp(var, "GBK-1") || !strcmp(var, "GB18030"))
+				else if (!strcmp(var, "GBK") || !strcmp(var, "GB2312") || !strcmp(var, "GB18030"))
 				{
 					accept = HAS_BIT(ses->charset, CHARSET_FLAG_GBK1) || HAS_BIT(ses->charset, CHARSET_FLAG_GBK1TOUTF8);
+				}
+				else if (!strcmp(var, "KOI8-R"))
+				{
+					accept = HAS_BIT(ses->charset, CHARSET_FLAG_KOI8TOUTF8);
 				}
 
 				if (!check_all_events(ses, EVENT_FLAG_CATCH, 2, 2, "CATCH IAC SB CHARSET %s %s", buf, var, buf, var))
@@ -1400,7 +1433,7 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 					if (accept > 0 && found == 0)
 					{
 						telnet_printf(ses, -1, "%c%c%c%c%s%c%c", IAC, SB, TELOPT_CHARSET, CHARSET_ACCEPTED, var, IAC, SE);
-							
+
 						client_telopt_debug(ses, "SENT IAC SB CHARSET ACCEPTED %s", var);
 
 						found = 1;
@@ -1428,24 +1461,19 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 	NEW-ENVIRON
 */
 
-int get_mtts_val(struct session *ses)
+
+char *get_charset_mnes(struct session *ses)
 {
-	return
-		(ses->color > 0 ? 1 : 0)
-		+
-		(HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
-		+
-		(HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
-		+
-		(ses->color > 16 ? 8 : 0)
-		+
-		(HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
-		+
-//		proxy ? 128 : 0
-//		+
-		(ses->color > 256 ? 256 : 0)
-		+
-		512;
+	int index;
+
+	for (index = 0 ; *charset_table[index].name ; index++)
+	{
+		if (ses->charset == charset_table[index].flags)
+		{
+			return charset_table[index].mnes;
+		}
+	}
+	return "ASCII";
 }
 
 int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *src)
@@ -1548,7 +1576,7 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 							}
 							else if (!strcmp(var, "CHARSET"))
 							{
-								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset(ses), IAC, SE);
+								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset_mnes(ses), IAC, SE);
 
 								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CHARSET", get_charset(ses));
 							}
@@ -1932,7 +1960,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB GMCP", mod, val, json);
 
-	check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB GMCP %s IAC SE", mod, val, json);
+	check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB GMCP %s IAC SE", mod, val, val, json);
 
 	pop_call();
 	return UMIN(i + 1, cplen);

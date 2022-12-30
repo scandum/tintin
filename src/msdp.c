@@ -705,13 +705,13 @@ void write_msdp_to_descriptor(struct session *ses, struct port_data *buddy, char
 	}
 	else
 	{
-		length = msdp2json((unsigned char *) src, length, out);
+		length = msdp2gmcp((unsigned char *) src, length, out);
 
 		port_telnet_printf(ses, buddy, length, "%s", out);
 	}
 }
 
-int msdp2json(unsigned char *src, int srclen, char *out)
+int msdp2gmcp(unsigned char *src, int srclen, char *out)
 {
 	char *pto;
 	int i, nest, last;
@@ -828,7 +828,7 @@ int msdp2json(unsigned char *src, int srclen, char *out)
 	return pto - out;
 }
 
-int json2msdp(unsigned char *src, int srclen, char *out)
+int gmcp2msdp(unsigned char *src, int srclen, char *out)
 {
 	char *pto;
 	int i, nest, last, type, state[100];
@@ -1098,3 +1098,4 @@ int tintin2msdp(char *str, char *out)
 
 	return pto - out;
 }
+

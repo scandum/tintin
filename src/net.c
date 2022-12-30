@@ -102,7 +102,7 @@ int wait_on_connect(struct session *ses, int sock, int connect_error)
 
 int connect_mud(struct session *ses, char *host, char *port)
 {
-	int sock, error;
+	int sock, error, optval;
 	struct addrinfo *address;
 	static struct addrinfo hints;
 	char ip[100];
@@ -145,10 +145,11 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
-	int optval = 1;
+	optval = 1;
+
 	if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
 	{
-		syserr_printf(ses, "connect_mud: unable to use tcp keepalive, continuing without");
+		syserr_printf(ses, "connect_mud: setsockopt:");
 	}
 
 	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
@@ -286,7 +287,12 @@ void write_line_mud(struct session *ses, char *line, int size)
 		}
 		else
 		{
-			tintin_printf2(ses, "#NO SESSION ACTIVE. USE: %csession {name} {host} {port} TO START ONE.", gtd->tintin_char);
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_INPUT, 0, 2, "NO SESSION ACTIVE", line, ntos(size));
+
+			if (!check_all_events(ses, SUB_SEC|EVENT_FLAG_GAG, 0, 2, "GAG NO SESSION ACTIVE", line, ntos(size)))
+			{
+				tintin_printf2(ses, "#NO SESSION ACTIVE. USE: %csession {name} {host} {port} TO START ONE.", gtd->tintin_char);
+			}
 		}
 		pop_call();
 		return;
@@ -533,6 +539,8 @@ void readmud(struct session *ses)
 			}
 			else
 			{
+				// clean this up some time.
+
 				strcpy(linebuf, line);
 			}
 		}

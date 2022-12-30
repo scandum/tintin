@@ -250,7 +250,7 @@ DO_COMMAND(do_cat)
 
 		if ((node = search_nest_node_ses(ses, arg1)) == NULL)
 		{
-			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
+//			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
 			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "");
 		}
@@ -329,20 +329,14 @@ DO_COMMAND(do_replace)
 				break;
 			}
 
-			ptm = strstr(pti, gtd->cmds[0]);
-
-			if (ptm == NULL)
-			{
-				break;
-			}
-
-			*ptm = 0;
+			ptm = pti + gtd->match[0]; *ptm = 0;
+			ptm = pti + gtd->match[1];
 
 			substitute(ses, arg3, tmp, SUB_CMD|SUB_FUN);
 
 			str_cat_printf(&str, "%s%s", pti, tmp);
 
-			pti = ptm + strlen(gtd->cmds[0]);
+			pti = ptm;
 		}
 		while (tintin_regexp(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
 

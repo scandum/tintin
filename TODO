@@ -1,16 +1,28 @@
-- make #draw talign+balign do a vertical calign
-             lalign+ralign do a horizontal calign
+- Handle more_output more cleanly in net.c
 
-- make -g mode not write to disk
+- return #regex #else to old format
 
-- look into #draw boxed map with unicode mode.
+- Look into #split 1 1 1 1 on termux when hiding / showing keyboard.
 
-- Display room symbol in #map info
-- Add nohup mode
+- Make WinTin++ 64 bit and double check windows console link opens main.tin
 
-ne room has #map set roomsymbol {<faa>/},
-e room has #map set roomsymbol {<faa>------}
-se room has #map set roomsymbol {<faa>\\}
+- look into invalid { } in MSDP / GMCP handling
+
+- mapper.c FAST handling
+
+- grid tables don't handle color codes
+
+- sandbox mode to disable shell integration.
+
+- color patch issues in #help
+
+- update telopt_server with MSSP, MTTS and TTYPE changes
+
+- look into #draw Yellow scroll bot side 1 1 1 80 drawing weird
+
+- check that vertical split screen update is fast using a trigger
+  with an instant screen update for reference. Some issues reported
+  related to packet patch.
 
 ----------------
   - add shadow session support with access to all events.
@@ -33,7 +45,7 @@ se room has #map set roomsymbol {<faa>\\}
 
   - add ctrl-r support for scrollback
 
-  - Add #event {SESSION CONNECTED} {5.1} option.
+  - Add #event {SESSION CONNECTED} {#command} {5.1} option.
 
   - TT++ HANDBOOK for meticulous organized details.
 
@@ -65,8 +77,6 @@ se room has #map set roomsymbol {<faa>\\}
 
   - look into transparent drawing
 
-  - Add #line gag 2 +2 -2 support.
-
   - VT2020
 
   - mouse enter/leave events on move. hoover/long-press.
@@ -77,6 +87,9 @@ se room has #map set roomsymbol {<faa>\\}
 
   - tab completion on directory structure.
 
+  - direction field for exits that allow longer than 1x1x1 x/y/z jumps.
+  - global mapper flag that would imply "Hide" on all exits that change area.
+  - multiple global exit rooms and noglobal flags.
   - auto align routine that inserts void rooms where needed
   - look into writing script to drag rooms + void with mouse
   - pancake mode to display rooms at all levels and annotations

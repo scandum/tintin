@@ -733,6 +733,10 @@ void update_daemon(void)
 
 				if (rv <= 0)
 				{
+					if (rv < 0)
+					{
+						syserr_printf(gtd->ses, "update_daemon: attach_sock: read:");
+					}
 					gtd->attach_sock = close(gtd->attach_sock);
 
 					winch_handler(0);
@@ -1094,7 +1098,7 @@ void terminal_update(void)
 		{
 			DEL_BIT(ses->flags, SES_FLAG_UPDATEVTMAP);
 
-			show_vtmap(ses);
+			show_vtmap(ses, 0);
 
 			check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "MAP UPDATED VTMAP");
 		}

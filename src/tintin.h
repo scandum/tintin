@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.20 "
+#define CLIENT_VERSION           "2.02.30 "
 
 
 #define XT_E                            0x27
@@ -487,6 +487,7 @@ enum operators
 #define INPUT_FLAG_HISTORYBROWSE      BV02
 #define INPUT_FLAG_HISTORYSEARCH      BV03
 #define INPUT_FLAG_CONVERTMETACHAR    BV04
+#define INPUT_FLAG_REDRAW             BV05
 
 #define PORT_FLAG_PRIVATE             BV01
 #define PORT_FLAG_REQUEST             BV02
@@ -682,6 +683,7 @@ enum operators
 #define LIST_FLAG_INHERIT             BV11
 #define LIST_FLAG_REGEX               BV12
 #define LIST_FLAG_NEST                BV13
+#define LIST_FLAG_CASE                BV14
 #define LIST_FLAG_DEFAULT             LIST_FLAG_MESSAGE
 
 #define NODE_FLAG_ONESHOT             BV01 // unused
@@ -764,6 +766,7 @@ enum operators
 #define MAP_FLAG_QUIET                BV17
 #define MAP_FLAG_READ                 BV18
 #define MAP_FLAG_PANCAKE              BV19
+#define MAP_FLAG_FAST                 BV20
 
 #define MAP_SEARCH_NAME                0
 #define MAP_SEARCH_EXITS               1
@@ -1115,7 +1118,7 @@ struct tintin_data
 	char                 *  attach_file;
 	int                     attach_pid;
 	int                     attach_sock;
-	int                     daemon;
+//	int                     daemon;
 	char                  * buf;
 	char                  * out;
 	char                  * mud_output_buf;
@@ -1145,6 +1148,7 @@ struct tintin_data
 	char                    tintin_char;
 	char                    verbatim_char;
 	char                    repeat_char;
+	int                     match[303];
 	char                  * vars[100];
 	char                  * cmds[100];
 	int                     args[100];
@@ -1626,7 +1630,7 @@ struct window_data
 #define DO_EDIT(edit)          struct session *edit (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_HISTORY(history)            void history (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_LINE(line)          struct session *line (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3)
-#define DO_MAP(map)                        void map (struct session *ses, char *arg, char *arg1, char *arg2)
+#define DO_MAP(map)                        void map (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3)
 #define DO_PATH(path)                     void path (struct session *ses, char *arg)
 #define DO_PORT(port)          struct session *port (struct session *ses, char *arg, char *arg1, char *arg2)
 
@@ -1646,7 +1650,7 @@ typedef void            DAEMON  (struct session *ses, char *arg, char *arg1, cha
 typedef struct session *EDIT    (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            HISTORY (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef struct session *LINE    (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3);
-typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2);
+typedef void            MAP     (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3);
 typedef void            MSDP    (struct session *ses, struct port_data *buddy, int index);
 typedef void            PATH    (struct session *ses, char *arg);
 typedef struct session *PORT    (struct session *ses, char *arg, char *arg1, char *arg2);
@@ -1667,6 +1671,7 @@ struct charset_type
 {
 	char                  * name;
 	char                  * html;
+	char                  * mnes;
 	int                     flags;
 };
 
@@ -1751,14 +1756,6 @@ struct list_type
 	int                     script_arg;
 	int                     priority_arg;
 	int                     flags;
-};
-
-
-struct line_type
-{
-	char                  * name;
-	LINE                  * fun;
-	char                  * desc;
 };
 
 struct map_type
@@ -2072,7 +2069,7 @@ extern DO_COMMAND(do_map);
 
 extern void delete_room_data(struct room_data *room);
 extern  int follow_map(struct session *ses, char *argument);
-extern void show_vtmap(struct session *ses);
+extern void show_vtmap(struct session *ses, int clear);
 extern void map_mouse_handler(struct session *ses, char *left, char *right, int row, int col, int rev_row, int rev_col, int height, int width);
 extern  int delete_map(struct session *ses);
 
@@ -2359,6 +2356,7 @@ extern DO_LINE(line_convert);
 extern DO_LINE(line_debug);
 extern DO_LINE(line_gag);
 extern DO_LINE(line_ignore);
+extern DO_LINE(line_json);
 extern DO_LINE(line_local);
 extern DO_LINE(line_log);
 extern DO_LINE(line_logmode);
@@ -2490,8 +2488,8 @@ extern void msdp_command_send(struct session *ses, struct port_data *buddy, int 
 extern void msdp_command_unreport(struct session *ses, struct port_data *buddy, int index);
 extern void msdp_configure_arachnos(struct session *ses, struct port_data *buddy, int index);
 extern void write_msdp_to_descriptor(struct session *ses, struct port_data *buddy, char *src, int length);
-extern  int msdp2json(unsigned char *src, int srclen, char *out);
-extern  int json2msdp(unsigned char *src, int srclen, char *out);
+extern  int msdp2gmcp(unsigned char *src, int srclen, char *out);
+extern  int gmcp2msdp(unsigned char *src, int srclen, char *out);
 extern  int tintin2msdp(char *src, char *out);
 extern void arachnos_devel(struct session *ses, char *fmt, ...);
 extern void arachnos_mudlist(struct session *ses, char *fmt, ...);
@@ -2519,6 +2517,8 @@ extern struct listnode *get_nest_node_key(struct listroot *root, char *variable,
 extern struct listnode *get_nest_node_val(struct listroot *root, char *variable, char **result, int def);
 extern int get_nest_index(struct listroot *root, char *variable, char **result, int def);
 extern void show_nest_node(struct listnode *node, char **result, int initialize);
+
+extern void view_nest_node_json(struct listnode *node, char **str_result, int nest, int initialize);
 extern void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize, int color);
 extern struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
 extern struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
@@ -2544,6 +2544,7 @@ extern void process_mud_output(struct session *ses, char *linebuf, int prompt);
 #define __PARSE_H__
 
 extern  int is_abbrev(char *str1, char *str2);
+extern  int is_abbrev_cmp(char *str1, char *str2);
 extern  int is_member(char *str1, char *str2);
 extern  int is_vowel(char *str);
 extern void filename_string(char *input, char *output);
@@ -2842,7 +2843,6 @@ extern struct daemon_type daemon_table[];
 extern struct edit_type edit_table[];
 extern struct event_type event_table[];
 extern struct history_type history_table[];
-extern struct line_type line_table[];
 extern struct list_type list_table[LIST_MAX];
 extern struct map_type map_table[];
 extern struct path_type path_table[];
@@ -2888,6 +2888,7 @@ extern void  refresh_session_terminal(struct session *ses);
 extern void  echo_on(struct session *ses);
 extern void  echo_off(struct session *ses);
 extern void  init_terminal_size(struct session *ses);
+extern void  init_resize(struct session *ses, int rows, int cols, int height, int width);
 extern  int  get_scroll_rows(struct session *ses);
 extern  int  get_scroll_cols(struct session *ses);
 extern char *get_charset(struct session *ses);
@@ -2945,6 +2946,7 @@ extern char *script_viewer(struct session *ses, char *str);
 #define __TRIGGER_H__
 
 extern DO_COMMAND(do_delay);
+extern DO_COMMAND(do_function);
 
 extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
 extern  int check_all_aliases(struct session *ses, char *input);

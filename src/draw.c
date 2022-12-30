@@ -602,6 +602,11 @@ void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row
 		max_width  = gtd->screen->cols;
 	}
 
+	if (HAS_BIT(flags, DRAW_FLAG_VER))
+	{
+		max_width = 1 + *bot_col - *top_col;
+	}
+
 	if (HAS_BIT(flags, DRAW_FLAG_SCROLL))
 	{
 		max_height = gtd->screen->rows * 10;
@@ -1754,7 +1759,7 @@ DO_DRAW(draw_map)
 	{
 		sprintf(arg, "{%d} {%d} {SAVE}", map_rows, map_cols);
 
-		map_map(ses, arg, arg1, arg2);
+		map_map(ses, arg, arg1, arg2, arg3);
 	}
 	else
 	{
@@ -2532,10 +2537,22 @@ DO_DRAW(draw_text)
 	{
 		str_fix(buf1);
 
-		while (height < rows)
+		if (HAS_BIT(flags, DRAW_FLAG_TALIGN))
 		{
-			str_ins(&buf1, 0, "\n");
-			height++;
+			while (height < rows - 1)
+			{
+				str_ins(&buf1, 0, "\n");
+				str_cat(&buf1, "\n");
+				height += 2;
+			}
+		}
+		else
+		{
+			while (height < rows)
+			{
+				str_ins(&buf1, 0, "\n");
+				height++;
+			}
 		}
 	}
 
@@ -2554,9 +2571,10 @@ DO_DRAW(draw_text)
 	}
 	else
 	{
-		while (*txt && height > rows)
+		while (*txt && height && height > rows)
 		{
 			txt = strchr(txt, '\n');
+
 			txt++;
 			height--;
 		}
@@ -2598,7 +2616,7 @@ DO_DRAW(draw_text)
 		}
 		else if (HAS_BIT(flags, DRAW_FLAG_CALIGN|DRAW_FLAG_LALIGN|DRAW_FLAG_RALIGN))
 		{
-			if (HAS_BIT(flags, DRAW_FLAG_CALIGN))
+			if (HAS_BIT(flags, DRAW_FLAG_CALIGN) || HAS_BIT(flags, DRAW_FLAG_LALIGN|DRAW_FLAG_RALIGN) == DRAW_FLAG_LALIGN+DRAW_FLAG_RALIGN)
 			{
 				calign(ses, txt, buf3, cols);
 			}

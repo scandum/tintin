@@ -103,7 +103,7 @@ void print_stdout(int row, int col, char *format, ...)
 		{
 			if (write(gtd->detach_sock, buffer, len) == -1)
 			{
-				printf("error: print_stdout: write:\n");
+				syserr_printf(gtd->ses, "print_stdout: write:");
 			}
 		}
 	}
@@ -330,6 +330,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 	*width     = 0;
 	cur_col    = 1;
 	cur_space  = cur_col;
+	*pto       = 0;
 
 	if (HAS_BIT(flags, WRAP_FLAG_SPLIT) && end == 0)
 	{

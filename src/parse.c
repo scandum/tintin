@@ -37,8 +37,8 @@ int case_table[256] =
 	 48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,
 	 64,
 	 65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,
-	 91,  92,  93,  94,
-	 95,  96,
+	 91,  92,  93,  94,  95,
+	 96,
 	 65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,
 	123, 124, 125, 126, 127,
 	128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
@@ -50,6 +50,20 @@ int case_table[256] =
 	224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
 	240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255
 };
+
+int is_abbrev_cmp(char *str1, char *str2)
+{
+	while (TRUE)
+	{
+		if (*str1 == 0 || case_table[(int) *str1] != case_table[(int) *str2])
+		{
+			return (case_table[(int) *str1] > case_table[(int) *str2]) - (case_table[(int) *str1] < case_table[(int) *str2]);
+		}
+		str1++;
+		str2++;
+	}
+}
+
 
 int is_abbrev(char *str1, char *str2)
 {
@@ -467,7 +481,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 
 	if (*line == '!')
 	{
-		show_error(ses, LIST_COMMAND, "#!%s %s", line + 1, input);
+		show_message(ses, LIST_COMMAND, "#!%s %s", line + 1, input);
 
 		return ses;
 	}
@@ -785,7 +799,6 @@ char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int f
 			}
 			continue;
 		}
-
 
 		if (*pti == '\\' && pti[1] == COMMAND_SEPARATOR)
 		{

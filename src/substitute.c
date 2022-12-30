@@ -2179,6 +2179,10 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				}
 				else
 				{
+					if (HAS_BIT(flags, SUB_COL))
+					{
+						old[0] = 0;
+					}
 					*pto++ = *pti++;
 				}
 				break;

@@ -84,9 +84,16 @@ DO_COMMAND(do_echo)
 
 	format_string(ses, arg1, arg, result);
 
-	arg = get_arg_in_braces(ses, result, arg1, GET_ALL|GET_SPC);
+	if (*result == DEFAULT_OPEN)
+	{
+		arg = get_arg_in_braces(ses, result, arg1, GET_ALL|GET_SPC);
+	}
+	else
+	{
+		strcpy(arg1, result);
 
-	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
+		arg += strlen(arg);
+	}
 
 	substitute(ses, arg1, arg1, SUB_COL|SUB_ESC);
 
@@ -99,6 +106,8 @@ DO_COMMAND(do_echo)
 
 		return ses;
 	}
+
+	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
 
 	str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
 
@@ -494,7 +503,7 @@ void tintin_puts(struct session *ses, char *string)
 
 	do_one_line(string, ses);
 
-	if (ses->gagline)
+	if (ses->gagline > 0)
 	{
 		ses->gagline--;
 

@@ -2021,23 +2021,21 @@ DO_CURSOR(cursor_redraw_line)
 		return;
 	}
 
+	SET_BIT(gtd->ses->input->flags, INPUT_FLAG_REDRAW);
+
 	if (inputline_editor())
 	{
 		cursor_redraw_singleline(ses, "");
-
-		pop_call();
-		return;
 	}
-
-	if (inputline_multiline())
+	else if (inputline_multiline())
 	{
 		cursor_redraw_multiline(ses, "");
-
-		pop_call();
-		return;
 	}
-
-	cursor_redraw_singleline(ses, "");
+	else
+	{
+		cursor_redraw_singleline(ses, "");
+	}
+	DEL_BIT(gtd->ses->input->flags, INPUT_FLAG_REDRAW);
 
 	pop_call();
 	return;
@@ -2700,7 +2698,7 @@ DO_CURSOR(cursor_tab)
 
 		if (!HAS_BIT(flag, TAB_FLAG_DICTIONARY|TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY|LIST|SCROLLBACK} FORWARD");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {<DICTIONARY|LIST|SCROLLBACK> FORWARD}");
 		}
 		else
 		{
@@ -2722,7 +2720,7 @@ DO_CURSOR(cursor_tab)
 
 		if (!HAS_BIT(flag, TAB_FLAG_DICTIONARY|TAB_FLAG_LIST|TAB_FLAG_SCROLLBACK))
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY|LIST|SCROLLBACK} BACKWARD");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {<DICTIONARY|LIST|SCROLLBACK> BACKWARD}");
 		}
 		else
 		{
@@ -2731,6 +2729,6 @@ DO_CURSOR(cursor_tab)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {DICTIONARY;LIST;SCROLLBACK} <BACKWARD|FORWARD>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR TAB {<DICTIONARY|LIST|SCROLLBACK> <BACKWARD|FORWARD>}");
 	}
 }

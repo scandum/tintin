@@ -311,10 +311,15 @@ DO_DAEMON(daemon_attach)
 	{
 		tintin_printf2(ses, "do_attach: select rds: timeout");
 
-		gtd->attach_sock = close(gtd->attach_sock);
+		check_all_events(gtd->ses, EVENT_FLAG_SYSTEM, 0, 2, "DAEMON ATTACH TIMEOUT", sock_file, ntos(pid));
+
+		gtd->attach_sock = 0;
+//		gtd->attach_sock = close(gtd->attach_sock);
 		
 		return;
 	}
+
+	tintin_printf2(ses, "do_attach: succes");
 
 	return;
 }

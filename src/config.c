@@ -194,7 +194,7 @@ DO_CONFIG(config_charset)
 
 			if (*charset_table[index].name == 0)
 			{
-				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {CHARSET} <AUTO|ASCII|BIG-5|BIG5TOUTF8|CP1251TOUTF8|CP949|CP949TOUTF8|FANSI|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8>");
+				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {CHARSET} <AUTO|ASCII|BIG-5|BIG5TOUTF8|CP437TOUTF8|CP949|CP949TOUTF8|CP1251TOUTF8|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8>");
 
 				return NULL;
 			}
@@ -881,6 +881,8 @@ DO_CONFIG(config_telnet)
 		}
 		else if (is_abbrev(arg2, "OFF"))
 		{
+			ses->read_len = 0;
+
 			DEL_BIT(ses->telopts, TELOPT_FLAG_DEBUG);
 			DEL_BIT(ses->config_flags, CONFIG_FLAG_TELNET);
 		}

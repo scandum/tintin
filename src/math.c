@@ -157,7 +157,7 @@ unsigned long long get_ulong(struct session *ses, char *str)
 int get_ellipsis(struct session *ses, unsigned int size, char *name, int *min, int *max)
 {
 	size_t len;
-	unsigned long long range;
+	char strmin[BUFFER_SIZE], strmax[BUFFER_SIZE];
 
 	push_call("get_ellipsis(%p,%d,%p,%p,%p)",ses,size,name,min,max);
 
@@ -167,18 +167,17 @@ int get_ellipsis(struct session *ses, unsigned int size, char *name, int *min, i
 	{
 		strcpy(name + len, "-1");
 	}
-/*
+
 	sscanf(name, "%[^.]..%[^.]", strmin, strmax);
 
 	*min = get_number(ses, strmin);
 	*max = get_number(ses, strmax);
-*/
-
-	range = get_ulong(ses, name);
+/*
+	unsigned long long range = get_ulong(ses, name);
 
 	*min = (int) (range / 1000000000 - 100000000);
 	*max = (int) (range % 1000000000 - 100000000);
-
+*/
 	*min = *min > 0 ? *min - 1 : size + *min;
 	*max = *max > 0 ? *max - 1 : size + *max;
 

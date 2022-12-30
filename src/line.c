@@ -25,6 +25,38 @@
 
 #include "tintin.h"
 
+struct line_type
+{
+	char                  * name;
+	LINE                  * fun;
+	char                  * desc;
+};
+
+struct line_type line_table[] =
+{
+	{    "BACKGROUND",        line_background,     "Execute line without stealing session focus."   },
+	{    "BENCHMARK",         line_benchmark,      "Execute line and provide timing information."   },
+	{    "CAPTURE",           line_capture,        "Capture output in the given variable."          },
+	{    "CONVERT",           line_convert,        "Execute line in convert meta data mode."        },
+	{    "DEBUG",             line_debug,          "Execute line in debug mode."                    },
+	{    "GAG",               line_gag,            "Gag the next line."                             },
+	{    "IGNORE",            line_ignore,         "Execute line with triggers ignored."            },
+	{    "JSON",              line_json,           "Execute line with json conversion."             },
+	{    "LOCAL",             line_local,          "Execute line with local scope."                 },
+	{    "LOG",               line_log,            "Log the next line or given line."               },
+	{    "LOGMODE",           line_logmode,        "Execute line with given log mode."              },
+	{    "LOGVERBATIM",       line_logverbatim,    "Log the line as plain text verbatim."           },
+	{    "MSDP",              line_msdp,           "Execute line with msdp conversion."             },
+	{    "MULTISHOT",         line_multishot,      "Execute line creating multishot triggers."      },
+	{    "ONESHOT",           line_oneshot,        "Execute line creating oneshot triggers."        },
+	{    "QUIET",             line_quiet,          "Execute line with all system messages off."     },
+	{    "STRIP",             line_strip,          "Execute line with escape codes stripped."       },
+	{    "SUBSTITUTE",        line_substitute,     "Execute line with given substitution."          },
+	{    "VERBATIM",          line_verbatim,       "Execute line as plain text."                    },
+	{    "VERBOSE",           line_verbose,        "Execute line with all system messages on."      },
+	{    "",                  NULL,                ""                                               }
+};
+
 DO_COMMAND(do_line)
 {
 	int cnt;
@@ -205,7 +237,11 @@ DO_LINE(line_gag)
 			break;
 	}
 
-	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG {%s}", arg1);
+	if (ses->gagline < 0)
+	{
+		ses->gagline = 0;
+	}
+	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG {%s} [%d]", arg1, ses->gagline);
 
 //	SET_BIT(ses->flags, SES_FLAG_GAG);
 
@@ -462,7 +498,7 @@ DO_LINE(line_msdp)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {STRIP} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MSDP} {command}.");
 
 		return ses;
 	}
@@ -474,6 +510,50 @@ DO_LINE(line_msdp)
 	return ses;
 }
 
+DO_LINE(line_json)
+{
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {JSON} {command}.");
+
+		return ses;
+	}
+
+	char *str_sub = str_alloc_stack(0);
+
+	struct listroot *root = ses->list[LIST_VARIABLE];
+	struct listnode *node = search_nest_node(root, arg1);
+
+	if (node)
+	{
+		if (node->root)
+		{
+			view_nest_node_json(node, &str_sub, 0, TRUE);
+
+//			print_lines(ses, SUB_NONE, "%s\n", str_sub);
+		}
+		else
+		{
+			sprintf(str_sub, "\"%s\"\n", node->arg2);
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#LINE JSON {%s}: VARIABLE NOT FOUND.", arg1);
+	}
+
+	RESTRING(gtd->cmds[0], str_sub);
+
+	substitute(ses, arg2, str_sub, SUB_CMD);
+
+	ses = script_driver(ses, LIST_COMMAND, str_sub);
+
+	return ses;
+}
+	
 DO_LINE(line_multishot)
 {
 	unsigned int shots;

@@ -145,34 +145,49 @@ void echo_on(struct session *ses)
 
 void init_terminal_size(struct session *ses)
 {
-	struct winsize screen;
-	static int old_rows, old_cols;
-
 	push_call("init_terminal_size(%p)",ses);
+
+	if (ses == gts)
+	{
+		struct winsize screen;
+
+		if (ioctl(1, TIOCGWINSZ, &screen) >= 0)
+		{
+			init_resize(gts, screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
+		}
+		else
+		{
+			init_resize(gts, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT * 16, SCREEN_WIDTH * 10);
+		}
+	}
+	else
+	{
+		init_resize(ses, gtd->screen->rows, gtd->screen->cols, gtd->screen->height, gtd->screen->width);
+	}
+	pop_call();
+	return;
+}
+
+void init_resize(struct session *ses, int rows, int cols, int height, int width)
+{
+	static int old_rows, old_cols;
 
 	if (ses == gts)
 	{
 		old_rows = gtd->screen->rows;
 		old_cols = gtd->screen->cols;
 
-		if (ioctl(1, TIOCGWINSZ, &screen) >= 0)
-		{
-			init_screen(screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
+		init_screen(rows, cols, height, width);
 
-			if (gtd->attach_sock)
+		if (gtd->attach_sock)
+		{
+			char buf[100];
+			sprintf(buf, "\e[8;%d;%dt\e[4;%d;%dt\e[7t", rows, cols, height, width);
+
+			if (write(gtd->attach_sock, buf, strlen(buf)) == -1)
 			{
-				char buf[100];
-				sprintf(buf, "\e[8;%d;%dt\e[4;%d;%dt\e[7t", screen.ws_row, screen.ws_col, screen.ws_ypixel, screen.ws_xpixel);
-
-				if (write(gtd->attach_sock, buf, strlen(buf)) == -1)
-				{
-					printf("error: init_terminal_size: write:\n");
-				}
+				printf("error: init_terminal_size: write:\n");
 			}
-		}
-		else
-		{
-			init_screen(SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT * 16, SCREEN_WIDTH * 10);
 		}
 	}
 
@@ -188,24 +203,21 @@ void init_terminal_size(struct session *ses)
 
 	init_split(ses, ses->split->sav_top_row, ses->split->sav_top_col, ses->split->sav_bot_row, ses->split->sav_bot_col);
 
-	check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN RESIZE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+	check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN RESIZE", ntos(rows), ntos(cols), ntos(height), ntos(width));
 
-	if (old_rows <= old_cols / 2 && gtd->screen->rows > gtd->screen->cols / 2)
+	if (old_rows <= old_cols / 2 && rows > cols / 2)
 	{
-		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE PORTRAIT", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE PORTRAIT", ntos(rows), ntos(cols), ntos(height), ntos(width));
 	}
-	else if (old_rows >= old_cols / 2 && gtd->screen->rows < gtd->screen->cols / 2)
+	else if (old_rows >= old_cols / 2 && rows < cols / 2)
 	{
-		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE LANDSCAPE", ntos(gtd->screen->rows), ntos(gtd->screen->cols), ntos(gtd->screen->height), ntos(gtd->screen->width));
+		check_all_events(ses, EVENT_FLAG_SCREEN, 0, 4, "SCREEN ROTATE LANDSCAPE", ntos(rows), ntos(cols), ntos(height), ntos(width));
 	}
 
-	msdp_update_all("SCREEN_ROWS",   "%d", gtd->screen->rows);
-	msdp_update_all("SCREEN_COLS",   "%d", gtd->screen->cols);
-	msdp_update_all("SCREEN_HEIGHT", "%d", gtd->screen->height);
-	msdp_update_all("SCREEN_WIDTH",  "%d", gtd->screen->width);
-
-	pop_call();
-	return;
+	msdp_update_all("SCREEN_ROWS",   "%d", rows);
+	msdp_update_all("SCREEN_COLS",   "%d", cols);
+	msdp_update_all("SCREEN_HEIGHT", "%d", height);
+	msdp_update_all("SCREEN_WIDTH",  "%d", width);
 }
 
 int get_scroll_rows(struct session *ses)
@@ -231,3 +243,4 @@ char *get_charset(struct session *ses)
 	}
 	return "ASCII";
 }
+

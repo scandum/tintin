@@ -1,3 +1,88 @@
+Jul 2022        2.02.30
+------------------------------------------------------------------------------
+help.c          #help and #command when used with no argument display the
+                entries as columns instead of rows.
+
+../docs/        I got started on a tintin generated github website.
+
+                https://scandum.github.io/tintin
+
+mapper.c        Using #map exit <exit> dir 0, will now properly save.
+
+screen.c        #screen set rows/cols will now properly initialize the new
+                rows/cols setting for the screen dimensions. This will be
+                global for all sessions. The values are reset when resizing
+                the terminal.
+
+telopt_client.c Updated the TTYPE MNES negotiation to report a standardized
+                charset value.
+
+telopt_client.c Updated the TTYPE MTTS negotiation to report SSL support if
+                GnuTLS is included in the compilation.
+
+telopt_client.c Updated the TTYPE MTTS negotiation to report MSLP and mouse
+                support if #config mouse is set to on.
+
+draw.c          #draw SCALED will not scale horizontally when combined with
+                the VERTICAL flag.
+
+gui.h           Updated the connection manager (tt++ -g) with new sponsors and
+                some bug fixes.
+
+trigger.c       #prompt with a row argument of 0 will behave like #substitute.
+
+input.c         Fixed memory access violation identified by dzp.
+
+line.c          Updated #line gag to support #line gag [amount], you can use
+                + or - to increase or decrease the current amount.
+
+mapper.c        Added {both} option to #map exit and entrance where
+                applicable.
+
+list.c          Added #list {var} refine {keep} {remove}. Keep and remove must
+                be a mathematical expression, the keep argument is ignored if
+                {} is used, the remove expression is optional. #list indexate
+                must be used to refine tables. In the expression &0 must be
+                used as the placeholder of the item value being compared.
+
+draw.c          If you #draw with both the talign and balign flags set the
+                text will be centered vertically.
+
+mapper.c        Added #map flag symbolgraphics support to #map flag mudfont
+
+line.c          Added #line json <variable> <command> with &0 containing the
+                variable's value translated to json.
+
+telopt_client.c IAC SB GMCP <MODULE>   %0 data      %1 plain data
+                has been changed to
+                IAC SB GMCP <MODULE>   %0 data      %1 data  %2 plain data
+
+trigger.c       Fixed a bug with using #highlight {[}
+
+list.c          Added #list <list> numerate to renumber a list or table.
+
+list.c          Proper lists will be renumbered after using #list filter.
+
+net.c           Added a GAG NO SESSION ACTIVE event to block the NO SESSION
+                ACTIVE message. %0 holds the command.
+
+regex.c         Added %c for regular expressions which captures color codes.
+
+mapper.c        Added #map flag fast which will limit coordinate searches to
+                a 50 room radius. Improves the speed of map drawing and auto
+                linking on large maps. This can result in the mapper failing
+                to auto link if the path connecting two rooms exceeds the
+                search radius.
+
+split.c         Moving the cursor back to the scroll region if #split is used
+                in an #action.
+
+parse.c         No longer echoing hashbangs/shebangs unless tt++ -v is used.
+
+tables.c        Fixed two errors in the ascii table, patch by dzp.
+
+net.c           Added tcp keepalive at the socket level, patch by beinvisible.
+
 Sep 2021        2.02.20
 ------------------------------------------------------------------------------
 main.c          Added -H startup option to run tintin in a nohup compatible
@@ -898,7 +983,7 @@ path.c          #path run no longer uses delays but uses its own timer system,
                 #path run again you'll continue where you stopped.
 
 trigger.c       Named delays are now automatically converted to one shot
-                triggers. #undelay will use #untick if the argument begins
+                tickers. #undelay will use #untick if the argument begins
                 with a letter.
 
 mapper.c        Changed #map destroy to #map destroy {area|world} {arg}
@@ -4172,7 +4257,7 @@ tick.c         wrote a new ticker from scratch, uses alarm(1) to sleep 1
                the 'tick' and 'untick' command for manipulation.
 
 macro.c        added 'macro' and 'unmacro' commands for keybinding, I couldn't
-               figure out how to actually undo the real macro's though
+               figure out how to actually undo the real macros though
                without using a messy hack, so I just skipped that till later
                for now.
 

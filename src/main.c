@@ -79,10 +79,14 @@ void winch_handler(int signal)
 	gtd->time_session = gtd->time;
 }
 
-
 void abort_handler(int signal)
 {
 	syserr_fatal(signal, "abort_handler");
+}
+
+void fpe_handler(int signal)
+{
+	syserr_fatal(signal, "fpe_handler");
 }
 
 void child_handler(int signal)
@@ -166,7 +170,12 @@ int main(int argc, char **argv)
 
 	if (signal(SIGABRT, abort_handler) == BADSIG)
 	{
-		syserr_fatal(-1, "signal SIGTERM");
+		syserr_fatal(-1, "signal SIGABRT");
+	}
+
+	if (signal(SIGFPE, fpe_handler) == BADSIG)
+	{
+		syserr_fatal(-1, "signal SIGFPE");
 	}
 
 /*	if (signal(SIGCHLD, child_handler) == BADSIG)
@@ -788,12 +797,12 @@ void syserr_signal(int signal, char *msg)
 
 void syserr_fatal(int signal, char *msg)
 {
-	char buf[256], errstr[128];
+	char errstr[128];
 	static char crashed = FALSE;
 
 	if (crashed++)
 	{
-		print_stdout(0, 0, "syserr_fatal(crashed)");
+		print_stdout(0, 0, "\e[1;36msyserr_fatal(crashed) \e[0m\n");
 
 		fflush(NULL);
 
@@ -833,9 +842,8 @@ void syserr_fatal(int signal, char *msg)
 
 	dump_stack();
 
-	sprintf(buf, "\n\e[1;31mFATAL ERROR \e[1;32m%s %s\e[0m\n", msg, errstr);
-
-	print_stdout(0, 0, "%s", buf);
+	print_stdout(0, 0, "%*s", (unsigned char) gtd->screen->cols, "");
+	print_stdout(0, 0, "\n\e[1;31mFATAL ERROR \e[1;32m%s %s\e[0m\n", (unsigned char) gtd->screen->cols, "", msg, errstr);
 
 	reset_daemon();
 

@@ -166,6 +166,12 @@ DO_COMMAND(do_test)
 
 	if (!strcmp(arg1, "bla"))
 	{
+		int a = 1;
+		int b = 0;
+		int c = a / b;
+
+		printf("%d", c);
+
 		tintin_printf(ses, "len: %d", strip_color_strlen(ses, arg));
 //		tintin_printf(ses, "<118>\ufffd", arg2);
 	}
