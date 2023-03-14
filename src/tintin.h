@@ -253,10 +253,10 @@
 #define COLOR_TEXT          "\e[0m"        // "<088>" // reset
 #define COLOR_TINTIN        "\e[38;5;184m" // "<eea>" // yellow
 #define COLOR_REPEAT        "\e[38;5;33m"  // "<acf>" // azure
-#define COLOR_HELP_DIM      "\e[0;37m" 
+#define COLOR_HELP_DIM      "\e[22;37m" 
 #define COLOR_HELP_BOLD     "\e[1;37m"
 #define COLOR_HELP_TITLE    "\e[1;32m"
-#define COLOR_HELP_TABLE    "\e[0;36m"
+#define COLOR_HELP_TABLE    "\e[22;36m"
 
 /*
 	Index for lists used by tintin

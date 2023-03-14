@@ -46,23 +46,23 @@ a:active {color:#b06}
                                        ██│      ██│
                                        └─┘      └─┘
 
-                       (</span><span style='color:#06B'>T</span><span style='color:#08F'>)</span><span style='color:#06B'>he K</span><span style='color:#08F'>(</span><span style='color:#06B'>I</span><span style='color:#08F'>)</span><span style='color:#06B'>cki</span><span style='color:#08F'>(</span><span style='color:#06B'>N</span><span style='color:#08F'>)</span><span style='color:#06B'> </span><span style='color:#08F'>(</span><span style='color:#06B'>T)ickin D</span><span style='color:#08F'>(</span><span style='color:#06B'>I</span><span style='color:#08F'>)</span><span style='color:#06B'>kumud Clie</span><span style='color:#08F'>(</span><span style='color:#06B'>N</span><span style='color:#08F'>)</span><span style='color:#06B'>t
+</span><span style='color:#AAA'>                       </span><span style='color:#08F'>(</span><span style='color:#06B'>T</span><span style='color:#08F'>)</span><span style='color:#06B'>he K</span><span style='color:#08F'>(</span><span style='color:#06B'>I</span><span style='color:#08F'>)</span><span style='color:#06B'>cki</span><span style='color:#08F'>(</span><span style='color:#06B'>N</span><span style='color:#08F'>)</span><span style='color:#06B'> </span><span style='color:#08F'>(</span><span style='color:#06B'>T)ickin D</span><span style='color:#08F'>(</span><span style='color:#06B'>I</span><span style='color:#08F'>)</span><span style='color:#06B'>kumud Clie</span><span style='color:#08F'>(</span><span style='color:#06B'>N</span><span style='color:#08F'>)</span><span style='color:#06B'>t
 
 
-         </span><span style='color:#5F5'>What is TinTin++?
+</span><span style='color:#AAA'>         </span><span style='color:#5F5'>What is TinTin++?
 
-         TinTin++ is a client program specialized to help playing muds. This is
+</span><span style='color:#AAA'>         TinTin++ is a client program specialized to help playing muds. This is
          a souped up version of TINTIN III with many new features.
 
-         Giving Credit Where Credit is Due
+         </span><span style='color:#5F5'>Giving Credit Where Credit is Due
 
-         None of this work would be possible, without the work done by Peter
+</span><span style='color:#AAA'>         None of this work would be possible, without the work done by Peter
          Unold. He was the author of TINTIN III, the base of TinTin++. Hats off
          to ya Peter. You started the ball rolling.
 
-         Introduction
+         </span><span style='color:#5F5'>Introduction
 
-         If you're new to TinTin++ a good place to start is the introduction,
+</span><span style='color:#AAA'>         If you're new to TinTin++ a good place to start is the introduction,
          which should be linked below.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#INTRODUCTION'>introduction</a>
@@ -70,12 +70,12 @@ a:active {color:#b06}
 
 </span><span style='color:#FF5'>         INTRODUCTION
 
-         On this page you'll find an introduction to using TinTin++. Additional
+</span><span style='color:#AAA'>         On this page you'll find an introduction to using TinTin++. Additional
          information can be found in the individual help sections.
 
          </span><span style='color:#5F5'>Starting and Ending
 
-         The syntax for starting TinTin++ is: ./tt++ [command file]
+</span><span style='color:#AAA'>         The syntax for starting TinTin++ is: ./tt++ [command file]
 
          Read more about the command file in the files section below. Remember
          one thing though. All actions, aliases, substitutions, etc, defined
@@ -89,9 +89,9 @@ a:active {color:#b06}
          behavior, but it can take some getting used to.
 
 
-         Basic features
+         </span><span style='color:#5F5'>Basic features
 
-         I'll start by explaining some of the very basic and important features:
+</span><span style='color:#AAA'>         I'll start by explaining some of the very basic and important features:
 
          All TinTin++ commands starts with a '#'.
 
@@ -141,7 +141,7 @@ Example</span><span style='color:#AAA'>: #session someone tintin.sourceforge.net
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #alias </span><span style='color:#FFF'>{</span><span style='color:#AAA'>name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
 
-         The syntax of the #alias command is almost like alias in csh.
+</span><span style='color:#AAA'>         The syntax of the #alias command is almost like alias in csh.
          Use this command to define aliases. The variables %0, %1.. %9 contain
          the arguments to the aliased command as follows:
          the %0 variable contains all the arguments.
@@ -149,19 +149,19 @@ Example</span><span style='color:#AAA'>: #session someone tintin.sourceforge.net
          ....
          the %9 variable contains the 9th argument
 
-Example</span><span style='color:#AAA'>: #alias greet say Greetings, most honorable %1
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias greet say Greetings, most honorable %1
 
          If you want an alias to execute more commands, you must use braces.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias ws </span><span style='color:#FFF'>{</span><span style='color:#AAA'>wake;stand</span><span style='color:#FFF'>}
 
-         To delete an alias use the #unalias command.
+</span><span style='color:#AAA'>         To delete an alias use the #unalias command.
 
          WARNING! TinTin++ doesn't baby sit, and hence does not check for
          recursive aliases! You can avoid recursion by escaping the entire
          line.
 
-Example</span><span style='color:#AAA'>: #alias put &bsol;put %1 in %2
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias put &bsol;put %1 in %2
 
          Or by using the send command.
 
@@ -172,18 +172,18 @@ Example</span><span style='color:#AAA'>: #alias put &bsol;put %1 in %2
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>action-text</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
 
-         Use this command to define an action to take place when a particular
+</span><span style='color:#AAA'>         Use this command to define an action to take place when a particular
          text appears on your screen. There are 99 variables you can use as
          wildcards in the action-text.
 
          These variables are %1, %2, %3 .... %9, %10, %11 ... %97, %98, %99.
 
-Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>You are hungry</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>get bread bag;eat bread</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>You are hungry</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>get bread bag;eat bread</span><span style='color:#FFF'>}
 
 Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>%1 has arrived.</span><span style='color:#FFF'>}</span><span style='color:#AAA'> shake %1 -- shake hands with people arriving.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>%1 tells you '%2'</span><span style='color:#FFF'>}
-                   {</span><span style='color:#AAA'>tell bob %1 told me '%2'</span><span style='color:#FFF'>}</span><span style='color:#AAA'> -- forward tells.
+</span><span style='color:#AAA'>                   </span><span style='color:#FFF'>{</span><span style='color:#AAA'>tell bob %1 told me '%2'</span><span style='color:#FFF'>}</span><span style='color:#AAA'> -- forward tells.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>tells you</span><span style='color:#FFF'>}</span><span style='color:#AAA'> #bell -- beep on tell.
 
@@ -197,7 +197,7 @@ Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'
 
          </span><span style='color:#5F5'>Command files
 
-         When you order TinTin++ to read a command file, it parses all the text
+</span><span style='color:#AAA'>         When you order TinTin++ to read a command file, it parses all the text
          in the file. You can use command files to keep aliases/actions in,
          login to a server (name, password etc..) and basically all kinds of
          commands.
@@ -228,20 +228,20 @@ Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #highlight </span><span style='color:#FFF'>{</span><span style='color:#AAA'>text</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>color</span><span style='color:#FFF'>}
 
-         This command works a bit like #action. The purpose of this command is
+</span><span style='color:#AAA'>         This command works a bit like #action. The purpose of this command is
          to substitute text from the server with color you provide. This command
          is a simplified version of the #substitute command.
 
-Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{</span><span style='color:#AAA'>Snowy</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>light yellow</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{</span><span style='color:#AAA'>Snowy</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>light yellow</span><span style='color:#FFF'>}
 
 Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{</span><span style='color:#AAA'>%*Snowy%*</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>light yellow</span><span style='color:#FFF'>}
 
-         Use #unhigh to delete highlights.
+</span><span style='color:#AAA'>         Use #unhigh to delete highlights.
 
 
 </span><span style='color:#5F5'>         Speedwalk
 
-         If you type a command consisting ONLY of letters and numbers n, e, s,
+</span><span style='color:#AAA'>         If you type a command consisting ONLY of letters and numbers n, e, s,
          w, u, d - then this command can be interpreted as a serie of movement
          commands.
 
@@ -258,13 +258,13 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #ticker </span><span style='color:#FFF'>{</span><span style='color:#AAA'>name</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>seconds</span><span style='color:#FFF'>}
 
-         The name can be whatever you want it to be, and is only required for
+</span><span style='color:#AAA'>         The name can be whatever you want it to be, and is only required for
          the unticker command. The commands will be executed every x amount of
          seconds, which is specified in the interval part.
 
-Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{</span><span style='color:#AAA'>tick</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>#delay 50 #show 10 SECONDS TO TICK!;#show TICK!!!</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>60</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{</span><span style='color:#AAA'>tick</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>#delay 50 #show 10 SECONDS TO TICK!;#show TICK!!!</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>60</span><span style='color:#FFF'>}
 
-         This creates a ticker with the name {</span><span style='color:#AAA'>tick</span><span style='color:#FFF'>}</span><span style='color:#AAA'> which will print TICK!!!,
+</span><span style='color:#AAA'>         This creates a ticker with the name </span><span style='color:#FFF'>{</span><span style='color:#AAA'>tick</span><span style='color:#FFF'>}</span><span style='color:#AAA'> which will print TICK!!!,
          as well as print a warning when the next tick will occure.
 
          You can remove tickers with #untick
@@ -272,7 +272,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
          </span><span style='color:#5F5'>Repeating Commands
 
-         You can repeat a command, the syntax is: #number command
+</span><span style='color:#AAA'>         You can repeat a command, the syntax is: #number command
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #5 cackle -- if you just killed bob the wizard.
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #10 </span><span style='color:#FFF'>{</span><span style='color:#AAA'>buy bread;put bread bag</span><span style='color:#FFF'>}</span><span style='color:#AAA'> -- repeat these 2 commands 10 times.
@@ -281,16 +281,16 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
          </span><span style='color:#5F5'>History
 
-         TinTin++ has a limited subset of the csh history features.
+</span><span style='color:#AAA'>         TinTin++ has a limited subset of the csh history features.
 
          ! -- repeat the last command
          !cast -- repeat the last command starting with cast
          ctrl-r -- enter the reverse history search mode.
 
 
-         Map commands
+         </span><span style='color:#5F5'>Map commands
 
-         TinTin++ has a powerful highly configurable automapper. Whenever
+</span><span style='color:#AAA'>         TinTin++ has a powerful highly configurable automapper. Whenever
          you type n/ne/e/se/s/sw/w/nw/n/u/d tt++ tries to keep track of your
          movement.
 
@@ -318,14 +318,14 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>There is no exit in that direction.</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>#map undo</span><span style='color:#FFF'>}
 
-         The map will be automatically created as you move around.
+</span><span style='color:#AAA'>         The map will be automatically created as you move around.
 
 
          </span><span style='color:#5F5'>Help
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #help </span><span style='color:#FFF'>{</span><span style='color:#AAA'>subject</span><span style='color:#FFF'>}
 
-         The help command is your friend and contains the same helpfiles
+</span><span style='color:#AAA'>         The help command is your friend and contains the same helpfiles
          inside TinTin++ as are available on the website. If you type #help
          without an argument you will see the various available help subjects
          which try to explain the TinTin++ commands and features in greater
@@ -341,7 +341,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 </span><span style='color:#FF5'>         CHARACTERS
 
 
-         The following special characters are defined:
+</span><span style='color:#AAA'>         The following special characters are defined:
 
 </span><span style='color:#FFF'>#        </span><span style='color:#AAA'>The hashtag is the default character for starting a command and is
          subsequently known as the command character or tintin character.
@@ -427,7 +427,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 </span><span style='color:#FF5'>         COORDINATES
 
 
-         When the 0,0 coordinate is in the upper left corner TinTin++ uses
+</span><span style='color:#AAA'>         When the 0,0 coordinate is in the upper left corner TinTin++ uses
          a y,x / row,col notation, starting at 1,1. Subsequently -1,-1
          will indicate the bottom right corner. This type of argument is
          used by the #showme command.
@@ -442,22 +442,22 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
          </span><span style='color:#5F5'>Squares
 
-         A square argument takes 2 coordinates. The first coordinate defines
+</span><span style='color:#AAA'>         A square argument takes 2 coordinates. The first coordinate defines
          the upper left corner, the last coordinate defines the bottom
          right corner. The upper left corner of the terminal is defined as
          1,1 and the bottom right corner as -1,-1. This type of argument is
          used by #draw, #button and #map offset.
 
-         Panes
+         </span><span style='color:#5F5'>Panes
 
-         A pane argument takes 4 size values, which are: top pane, bottom
+</span><span style='color:#AAA'>         A pane argument takes 4 size values, which are: top pane, bottom
          pane, left pane, right pane. When a negative value is provided the
          size is the maximum size, minus the value. This type of argument
          is used by the #split command.
 
-         Ranges
+         </span><span style='color:#5F5'>Ranges
 
-         A range argument takes 2 values known as the upper bound and lower
+</span><span style='color:#AAA'>         A range argument takes 2 values known as the upper bound and lower
          bound. The upper bound (first value) defines the start of the
          range, the lower bound (second value) the end. The first index of
          a range is defined as 1. When a negative value is provides the last
@@ -585,7 +585,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
 </span><span style='color:#FF5'>         ESCAPE CODES
 
-         You may use the escape character &bsol; for various special characters.
+</span><span style='color:#AAA'>         You may use the escape character &bsol; for various special characters.
 
          &bsol;a    beep the terminal.
          &bsol;c    send a control character, &bsol;ca for ctrl-a.
@@ -612,7 +612,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.31b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.31                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -622,7 +622,7 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
 
 </span><span style='color:#FF5'>         KEYPAD
 
-         When TinTin++ starts up it sends &bsol;e= to the terminal to enable the
+</span><span style='color:#AAA'>         When TinTin++ starts up it sends &bsol;e= to the terminal to enable the
          terminal's application keypad mode, which can be disabled using #show {&bsol;e&gt;}
 
 </span><span style='color:#FFF'>      Configuration A           Configuration B           Configuration C
@@ -638,20 +638,21 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
  │</span><span style='color:#FFF'>0</span><span style='color:#0AA'>          │</span><span style='color:#FFF'>.</span><span style='color:#0AA'>    │     │ │</span><span style='color:#FFF'>Ins</span><span style='color:#0AA'>        │</span><span style='color:#FFF'>Del</span><span style='color:#0AA'>  │     │ │</span><span style='color:#FFF'>nkp0</span><span style='color:#0AA'>       │</span><span style='color:#FFF'>nkp.</span><span style='color:#0AA'> │     │
  ╰───────────┴─────┴─────╯ ╰───────────┴─────┴─────╯ ╰───────────┴─────┴─────╯
 
-         With keypad mode disabled numlock on will give you configuration A,
+</span><span style='color:#AAA'>         With keypad mode disabled numlock on will give you configuration A,
          and numlock off will give you configuration B. With keypad mode
          enabled you'll get configuration C.
 
 </span><span style='color:#FFF'>         Terminals that support keypad mode
-         Linux Console, PuTTY, MinTTY, Eterm, aterm.
 
-         Terminals that do not support keypad mode
+</span><span style='color:#AAA'>         Linux Console, PuTTY, MinTTY, Eterm, aterm.
 
-         RXVT on Cygwin, Windows Console, Gnome Terminal, Konsole.
+</span><span style='color:#FFF'>         Terminals that do not support keypad mode
 
-         Peculiar Terminals
+</span><span style='color:#AAA'>         RXVT on Cygwin, Windows Console, Gnome Terminal, Konsole.
 
-         RXVT requires turning off numlock to enable configuration C.
+</span><span style='color:#FFF'>         Peculiar Terminals
+
+</span><span style='color:#AAA'>         RXVT requires turning off numlock to enable configuration C.
 
          Xterm may require disabling Alt/NumLock Modifiers (num-lock) in the
          ctrl left-click menu. Or edit ~/.Xresources and add
@@ -660,12 +661,12 @@ Example</span><span style='color:#AAA'>: #tick </span><span style='color:#FFF'>{
          Mac OS X Terminal requires enabling 'strict vt100 keypad behavior' in
          Terminal -&gt; Window Settings -&gt; Emulation.
 
-Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='#COORDINATES'>coordinates</a>, <a href='#ESCAPE_CODES'>escape_codes</a>, <a href='#MATHEMATICS'>mathematics</a> and <a href='#PCRE'>pcre</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='#COORDINATES'>coordinates</a>, <a href='#ESCAPE_CODES'>escape_codes</a>, <a href='#MATHEMATICS'>mathematics</a> and <a href='#PCRE'>pcre</a>.
 <a name='LISTS'></a>
 
 </span><span style='color:#FF5'>         LISTS
 
-         There are several different types of lists in tintin which behave in a
+</span><span style='color:#AAA'>         There are several different types of lists in tintin which behave in a
          fairly universal manner. To properly explain lists it's easiest to
          explain the most basic variable type first before discussing more
          complex types.
@@ -716,7 +717,7 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
 
 </span><span style='color:#5F5'>         Removing Variables
 
-         To remove a variable, use #unvariable or #unvar (every command can be
+</span><span style='color:#AAA'>         To remove a variable, use #unvariable or #unvar (every command can be
          abbreviated). It's possible to remove multiple variables at once
          using #unvar {var 1} {var 2} {etc}
 
@@ -727,18 +728,18 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          If you remove a table variable, all variables contained within that
          table variable are removed as well.
 
-         Simple Lists
+</span><span style='color:#5F5'>         Simple Lists
 
-         A simple list is a string that contains semicolon delimited fields.
+</span><span style='color:#AAA'>         A simple list is a string that contains semicolon delimited fields.
          Commands can be entered as simple lists, for example:
          #show {a};#show {b} will execute a single line as two commands.
 
          Several commands take a simple list as their input, these are:
          #foreach, #line substitute, #path load, #list create, and #highlight.
 
-         Brace Lists
+</span><span style='color:#5F5'>         Brace Lists
 
-         A brace list is a string in which fields are delimited with braces.
+</span><span style='color:#AAA'>         A brace list is a string in which fields are delimited with braces.
          Most commands take a brace list for their arguments, for example:
          #session {x} {mud.com} {1234} {mud.tin}. The session command takes
          4 arguments, the 4th argument (command file) is optional.
@@ -762,9 +763,9 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          of escape options, and the help file will also remind you of how to
          escape braces.
 
-         Tables
+</span><span style='color:#5F5'>         Tables
 
-         Tables are key/value pairs stored within a variable. Tables are also
+</span><span style='color:#AAA'>         Tables are key/value pairs stored within a variable. Tables are also
          known as associative arrays, dictionaries, maps, nested variables,
          structures, and probably a couple of other names. There are several
          ways to create and access tables.
@@ -815,7 +816,7 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
 
 </span><span style='color:#5F5'>         Lists
 
-         Tables are sorted alphabetically with the exception of numbers which
+</span><span style='color:#AAA'>         Tables are sorted alphabetically with the exception of numbers which
          are sorted numerically. If you want to determine the sorting order
          yourself you can use use the #list command which helps you to use
          tables as arrays.
@@ -826,16 +827,16 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          variable. If you type #variable chats this might look like:
 
          </span><span style='color:#FF5'>#</span><span style='color:#5FF'>VARIABLE </span><span style='color:#A0A'>{</span><span style='color:#FFF'>chats</span><span style='color:#A0A'>}
-         {
-                 {</span><span style='color:#FFF'>1</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bubba chats Hi</span><span style='color:#A0A'>}
-                 {</span><span style='color:#FFF'>2</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bob chats Hi bub</span><span style='color:#A0A'>}
-                 {</span><span style='color:#FFF'>3</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bubba chats Bye</span><span style='color:#A0A'>}
-                 {</span><span style='color:#FFF'>4</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bob chats bub bye</span><span style='color:#A0A'>}
-         }
+</span><span style='color:#AAA'>         </span><span style='color:#A0A'>{
+</span><span style='color:#AAA'>                 </span><span style='color:#A0A'>{</span><span style='color:#FFF'>1</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bubba chats Hi</span><span style='color:#A0A'>}
+</span><span style='color:#AAA'>                 </span><span style='color:#A0A'>{</span><span style='color:#FFF'>2</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bob chats Hi bub</span><span style='color:#A0A'>}
+</span><span style='color:#AAA'>                 </span><span style='color:#A0A'>{</span><span style='color:#FFF'>3</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bubba chats Bye</span><span style='color:#A0A'>}
+</span><span style='color:#AAA'>                 </span><span style='color:#A0A'>{</span><span style='color:#FFF'>4</span><span style='color:#A0A'>} {</span><span style='color:#FFF'>Bob chats bub bye</span><span style='color:#A0A'>}
+</span><span style='color:#AAA'>         </span><span style='color:#A0A'>}
 
 </span><span style='color:#5F5'>         Parsing
 
-         There are various ways to parse lists and tables, using either #loop,
+</span><span style='color:#AAA'>         There are various ways to parse lists and tables, using either #loop,
          #foreach, #while, or #&lt;number&gt;.
 
          #loop takes two numeric arguments, incrementing or decrementing the
@@ -882,7 +883,7 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
 
 </span><span style='color:#5F5'>         List Tables
 
-         List tables are also known as databases and the #list command has
+</span><span style='color:#AAA'>         List tables are also known as databases and the #list command has
          several options to manipulate them.
 
          For these options to work properly all tables need to have identical
@@ -926,9 +927,9 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          #list friendlist add {{{name}{hobo} {age}{42}}}
          #list friendlist insert -1 {{name}{hobo} {age}{42}}
 
-         Optimization
+</span><span style='color:#5F5'>         Optimization
 
-         TinTin++ tables are exceptionally fast while they remain under 100
+</span><span style='color:#AAA'>         TinTin++ tables are exceptionally fast while they remain under 100
          items. Once a table grows beyond 10000 items there can be performance
          issues when inserting and removing items in the beginning or middle of
          the table.
@@ -992,36 +993,36 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
 </span><span style='color:#FF5'>         MAPPING
 
 
-         TinTin++ has a powerful automapper that uses a room system similar to
+</span><span style='color:#AAA'>         TinTin++ has a powerful automapper that uses a room system similar to
          Diku MUDs which means that odd map layouts and weird exit
          configurations aren't a problem. The mapper provides tools to improve
          the visual map display. For basic path tracking see #help PATH.
 
 </span><span style='color:#FFF'>         #map create [size]
 
-         This command creates the initial map. The size is 50,000 by default
+</span><span style='color:#AAA'>         This command creates the initial map. The size is 50,000 by default
          and can be changed at any time with the #map resize command. If you
          play a MUD that uses MSDP or GMCP to provide room numbers you'll have
          to increase it to the highest reported room number. Increasing the
          size of the map doesn't decrease performance.
 
-         #map goto &lt;location&gt;
+</span><span style='color:#FFF'>         #map goto &lt;location&gt;
 
-         When you create the map you are not automatically inside the map. By
+</span><span style='color:#AAA'>         When you create the map you are not automatically inside the map. By
          default room number (vnum) 1 is created, so you can go to it using
          #map goto 1. Once you are inside the map new rooms are automatically
          created as you move around. Movement commands are defined with the
          pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are
          defined.
 
-         #map map &lt;rows&gt; &lt;cols&gt; &lt;append|overwrite|list|variable&gt; &lt;name&gt;
+         </span><span style='color:#FFF'>#map map &lt;rows&gt; &lt;cols&gt; &lt;append|overwrite|list|variable&gt; &lt;name&gt;
 
-         To see the map you can use #map map. It's annoying to have to
+</span><span style='color:#AAA'>         To see the map you can use #map map. It's annoying to have to
          constantly type #map map however. Instead it's possible to use #split
          to display a vt100 map. To do so execute:
 
-         #split 16 1
-         #map flag vtmap on
+         </span><span style='color:#FFF'>#split 16 1
+</span><span style='color:#AAA'>         #map flag vtmap on
 
          The first command sets the top split lines to 16 and the bottom split
          line to 1. If you want a smaller or larger map display you can use a
@@ -1038,29 +1039,29 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          If you want to display the map in a different location of the screen
          use something like:
 
-         #split 0 1 0 -80
-         #map offset 1 81 -4 -1
+         </span><span style='color:#FFF'>#split 0 1 0 -80
+</span><span style='color:#AAA'>         #map offset 1 81 -4 -1
 
          This will display the map on the right side of the screen, if the
          width of the screen is wide enough.
 
-         #map undo
+         </span><span style='color:#FFF'>#map undo
 
-         If you accidentally walk into the wall on your MUD the mapper will
+</span><span style='color:#AAA'>         If you accidentally walk into the wall on your MUD the mapper will
          still create a new room. You can easily fix this mistake by using
          #map undo. If you want to move around on the map without moving around
          on the MUD you can use: #map move {direction}. To delete a room
          manually you can use: #map delete {direction}. To create a room
          manually you can use: #map dig {direction}.
 
-         #map write &lt;filename&gt;
+         </span><span style='color:#FFF'>#map write &lt;filename&gt;
 
-         You can save your map using #map write, to load a map you can use
+</span><span style='color:#AAA'>         You can save your map using #map write, to load a map you can use
          #map read &lt;filename&gt;.
 
-         #map set &lt;option&gt; &lt;value&gt;
+         </span><span style='color:#FFF'>#map set &lt;option&gt; &lt;value&gt;
 
-         You can set the room name using #map set roomname &lt;name&gt;. You either
+</span><span style='color:#AAA'>         You can set the room name using #map set roomname &lt;name&gt;. You either
          have to do this manually or create triggers to set the room name
          automatically. Once the room name is set you can use #map goto with
          the room name to visit it. If there are two rooms with the same name
@@ -1068,14 +1069,14 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          to the same room you should memorize the room number or create a
          landmark.
 
-         #map landmark firstroom 1
+         </span><span style='color:#FFF'>#map landmark firstroom 1
 
-         You can further narrow down the matches by providing additional
+</span><span style='color:#AAA'>         You can further narrow down the matches by providing additional
          arguments, for example:
 
-         #map goto {dark alley} {roomexits} {n;e} {roomarea} {Haddock Ville}
+         </span><span style='color:#FFF'>#map goto {dark alley} {roomexits} {n;e} {roomarea} {Haddock Ville}
 
-         You can set the room weight using #map set roomweight {value}. The
+</span><span style='color:#AAA'>         You can set the room weight using #map set roomweight {value}. The
          weight by default is set to 1.0 and it represents the difficulty of
          traversing the room. If you have a lake as an alternative route, and
          traversing water rooms is 4 times slower than regular rooms, then you
@@ -1089,20 +1090,20 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          colorized. You can for example mark shops with an 'S' and colorize the
          'S' depending on what type of shop it is.
 
-         #map run &lt;location&gt; &lt;delay&gt;
+         </span><span style='color:#FFF'>#map run &lt;location&gt; &lt;delay&gt;
 
-         The run command will have tintin find the shortest path to the given
+</span><span style='color:#AAA'>         The run command will have tintin find the shortest path to the given
          location and execute the movement commands to get there. You can
          provide a delay in seconds with floating point precision, for example:
 
-         #map run {dark alley} {0.5}
+         </span><span style='color:#FFF'>#map run {dark alley} {0.5}
 
-         This will make you walk towards the nearest dark alley with 0.5 second
+</span><span style='color:#AAA'>         This will make you walk towards the nearest dark alley with 0.5 second
          intervals. Typical MUDs accept commands at 0.25 second intervals.
 
-         #map insert {direction} {flag}
+         </span><span style='color:#FFF'>#map insert {direction} {flag}
 
-         The insert command is useful for adding spacer rooms called void rooms.
+</span><span style='color:#AAA'>         The insert command is useful for adding spacer rooms called void rooms.
          Often rooms overlap, and by adding void rooms you can stretch out
          exits. For example: #map insert north void. You cannot enter void rooms
          once they've been created, so you'll have to use #map info in an
@@ -1112,14 +1113,14 @@ Related</span><span style='color:#AAA'>: <a href='#COLORS'>colors</a>, <a href='
          It's also possible to align rooms using void rooms. This is easily
          done using #map insert north void.
 
-Related</span><span style='color:#AAA'>: <a href='help.html#MAP'>map</a>, <a href='help.html#PATH'>path</a> and <a href='help.html#PATHDIR'>pathdir</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#MAP'>map</a>, <a href='help.html#PATH'>path</a> and <a href='help.html#PATHDIR'>pathdir</a>.
 <a name='MATHEMATICS'></a>
 
 </span><span style='color:#FF5'>         MATHEMATICS
 
-         </span><span style='color:#FFF'>Number operations
+</span><span style='color:#AAA'>         </span><span style='color:#FFF'>Number operations
 
-         Operators       Priority     Function
+</span><span style='color:#AAA'>         Operators       Priority     Function
          ------------------------------------------------
          !               0            logical not
          ~               0            bitwise not
@@ -1149,9 +1150,9 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MAP'>map</a>, <a hre
          Operator priority can be ignored by using parentheses, for example
          (1 + 1) * 2 equals 4, while 1 + 1 * 2 equals 3.
 
-         String operations
+         </span><span style='color:#FFF'>String operations
 
-         Operators       Priority     Function
+</span><span style='color:#AAA'>         Operators       Priority     Function
          ------------------------------------------------
          &gt;               4            alphabetical greater than
          &gt;=              4            alphabetical greater than or equal
@@ -1168,12 +1169,12 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MAP'>map</a>, <a hre
          and the argument on the right being the regex. For example
          {bla} == {%*a} would evaluate as 1.
 
-Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <a href='help.html#REGEXP'>regexp</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <a href='help.html#REGEXP'>regexp</a>.
 <a name='METRIC_SYSTEM'></a>
 
 </span><span style='color:#FF5'>         METRIC SYSTEM
 
-         The #math command supports using 1K, 1M, 1m, and 1u to make large and
+</span><span style='color:#AAA'>         The #math command supports using 1K, 1M, 1m, and 1u to make large and
          small number handling a little easier. These are case sensitive. Only
          four symbols are supported to keep false positives to a minimum.
 
@@ -1193,7 +1194,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 </span><span style='color:#FF5'>         MOUSE
 
 
-         To enable xterm mouse tracking use #CONFIG MOUSE ON.
+</span><span style='color:#AAA'>         To enable xterm mouse tracking use #CONFIG MOUSE ON.
 
          To see mouse events as they happen use #CONFIG MOUSE INFO. This
          information can then be used to create mouse events with the #event
@@ -1215,7 +1216,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 </span><span style='color:#FF5'>         MSDP
 
 
-         MSDP (Mud Server Data Protocol) is part of the #port functionality.
+</span><span style='color:#AAA'>         MSDP (Mud Server Data Protocol) is part of the #port functionality.
          See #help event for additional documentation as all MSDP events are
          available as regular events.
 
@@ -1230,7 +1231,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 </span><span style='color:#FF5'>         MSLP
 
 
-         MSLP (Mud Server Link Protocol) requires enabling #config mouse on,
+</span><span style='color:#AAA'>         MSLP (Mud Server Link Protocol) requires enabling #config mouse on,
          and creating the appropriate LINK events.
 
          The simplest link can be created by surrounding a keyword with the
@@ -1286,7 +1287,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 </span><span style='color:#FF5'>         PCRE
 
 
-         A regular expression, regex or regexp is a sequence of characters that
+</span><span style='color:#AAA'>         A regular expression, regex or regexp is a sequence of characters that
          defines a search pattern. Since the 1980s, different syntaxes for
          writing regular expressions exist, the two most widely used ones being
          the POSIX syntax and the similar but more advanced Perl standard.
@@ -1306,7 +1307,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
 </span><span style='color:#5F5'>         TinTin++ Regular Expression
 
-         The following support is available for regular expressions.
+</span><span style='color:#AAA'>         The following support is available for regular expressions.
 
 </span><span style='color:#FFF'>       ^ </span><span style='color:#AAA'>match start of line.
 </span><span style='color:#FFF'>       &dollar; </span><span style='color:#AAA'>match of end of line.
@@ -1339,13 +1340,13 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Ranges
 
-         If you want to match 1 digit use %+1d, if you want to match between 3
+</span><span style='color:#AAA'>         If you want to match 1 digit use %+1d, if you want to match between 3
          and 5 spaces use %+3..5s, if you want to match 1 or more word
          characters use %+1..w, etc.
 
-         Variables
+         </span><span style='color:#5F5'>Variables
 
-         If you use %1 in an action to perform a match the matched string is
+</span><span style='color:#AAA'>         If you use %1 in an action to perform a match the matched string is
          stored in the %1 variable which can be used in the action body.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #act {%1 says 'Tickle me'} {tickle %1}
@@ -1365,19 +1366,19 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Perl Compatible Regular Expressions
 
-         You can embed a PCRE (Perl Compatible Regular Expression) using curley
+</span><span style='color:#AAA'>         You can embed a PCRE (Perl Compatible Regular Expression) using curley
          braces { }, these braces are replaced with parentheses ( ) unless you
          use %!{ }.
 
-         Or
+         </span><span style='color:#5F5'>Or
 
-         You can separate alternatives within a PCRE using the | character.
+</span><span style='color:#AAA'>         You can separate alternatives within a PCRE using the | character.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #act {%* raises {his|her|its} eyebrows.} {say 42..}
 
          </span><span style='color:#5F5'>Brackets
 
-         You can group alternatives and ranges within a PCRE using brackets.
+</span><span style='color:#AAA'>         You can group alternatives and ranges within a PCRE using brackets.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #act {%* says 'Who is number {[1-9]}?} {say &dollar;number[%2] is number %2}
 
@@ -1394,7 +1395,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Quantification
 
-         A quantifier placed after a match specifies how often the match is
+</span><span style='color:#AAA'>         A quantifier placed after a match specifies how often the match is
          allowed to occur.
 
 </span><span style='color:#FFF'>       ? </span><span style='color:#AAA'>repeat zero or one time.
@@ -1412,7 +1413,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Parantheses
 
-         TinTin Regular Expressions automatically add parenthesis, for example
+</span><span style='color:#AAA'>         TinTin Regular Expressions automatically add parenthesis, for example
          %* translates to (.*?) in PCRE unless the %* is found at the start or
          end of the line, in which cases it translates to (.*). Paranthesis in
          PCRE causes a change in execution priority similar to mathematical
@@ -1429,7 +1430,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Lazy vs Greedy
 
-         By default regex matches are greedy, meaning {.*} will capture as much
+</span><span style='color:#AAA'>         By default regex matches are greedy, meaning {.*} will capture as much
          text as possible.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #regex {bli bla blo} {^{.*} {.*}&dollar;} {#show Arg1=(&amp;1) Arg2=(&amp;2)}
@@ -1445,7 +1446,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Escape Codes
 
-         PCRE support the following escape codes.
+</span><span style='color:#AAA'>         PCRE support the following escape codes.
 
 </span><span style='color:#FFF'>    PCRE Description                                    POSIX
       &bsol;A </span><span style='color:#AAA'>Match start of string                          ^
@@ -1471,7 +1472,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#MATH'>math</a> and <
 
          </span><span style='color:#5F5'>Color triggers
 
-         To make matching easier text triggers (Actions, Gags, Highlights,
+</span><span style='color:#AAA'>         To make matching easier text triggers (Actions, Gags, Highlights,
          Prompts, and Substitutes) have their color codes stripped. If you
          want to create a color trigger you must start the triggers with a ~
          (tilde). To make escape codes visible use #config {convert meta} on.
@@ -1505,7 +1506,7 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #config </span><span style='color:#FFF'>{</span><span style='color:#AAA'>SCREEN READER</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>ON|OFF</span><span style='color:#FFF'>}
 
-         Screen reader mode is enabled by using #config screen on. One purpose
+</span><span style='color:#AAA'>         Screen reader mode is enabled by using #config screen on. One purpose
          of the screen reader mode is to report to servers that a screen reader
          is being used by utilizing the MTTS standard. The MTTS specification
          is available at:
@@ -1515,14 +1516,14 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
          With the screen reader mode enabled TinTin++ will try to remove or
          alter visual elements where possible.
 
-Related</span><span style='color:#AAA'>: <a href='help.html#CONFIG'>config</a>
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#CONFIG'>config</a>
 <a name='SESSIONNAME'></a>
 
 </span><span style='color:#FF5'>         SESSIONNAME
 
 </span><span style='color:#FFF'>Syntax</span><span style='color:#AAA'>:  #[sessionname] </span><span style='color:#FFF'>{</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
 
-         You can create multiple sessions with the #session command. By default
+</span><span style='color:#AAA'>         You can create multiple sessions with the #session command. By default
          only one session is active, meaning commands you input are executed in
          the active session. While all sessions receive output, only output sent
          to the active session is displayed.
@@ -1533,7 +1534,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#CONFIG'>config</a>
          is given it will be executed by that session as a command, the session
          will not be activated.
 
-Example</span><span style='color:#AAA'>: #ses one tintin.net 23;#ses two tintin.net 23;#one;#two grin
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #ses one tintin.net 23;#ses two tintin.net 23;#one;#two grin
 
          This will create two sessions, the session that was created last (two
          in this case) will be automatically activated upon creation. Using
@@ -1546,19 +1547,19 @@ Example</span><span style='color:#AAA'>: #ses one tintin.net 23;#ses two tintin.
 
 </span><span style='color:#FFF'>Syntax</span><span style='color:#AAA'>:  @[sessionname]</span><span style='color:#FFF'>{</span><span style='color:#AAA'>substitution</span><span style='color:#FFF'>}
 
-         If you want to pull the value of a variable from another session you
+</span><span style='color:#AAA'>         If you want to pull the value of a variable from another session you
          can do so in a similar way as you would use a #function call. Using
          #showme {@two{&dollar;test}} in session one would print the value of &dollar;test,
          as defined by session two.
 
-Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
 <a name='SPEEDWALK'></a>
 
 </span><span style='color:#FF5'>         SPEEDWALK
 
 </span><span style='color:#5F5'>         SPEEDWALK V1
 
-         Speedwalking allows you to enter multiple directions without using
+</span><span style='color:#AAA'>         Speedwalking allows you to enter multiple directions without using
          semicolons. Directions should be prefixed with a number and will be
          executed the given number of times.
 
@@ -1566,12 +1567,12 @@ Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: Without speedwalk, you have to type:
          </span><span style='color:#FFF'>s;s;w;w;w;w;w;s;s;s;w;w;w;n;n;w
-         With speedwalk, you only have to type:
-         2s5w3s3w2nw
+</span><span style='color:#AAA'>         With speedwalk, you only have to type:
+         </span><span style='color:#FFF'>2s5w3s3w2nw
 
-         </span><span style='color:#5F5'>SPEEDWALK V2
+</span><span style='color:#AAA'>         </span><span style='color:#5F5'>SPEEDWALK V2
 
-         Modern MUDs have increasingly adopted the use of diagonal exits, like
+</span><span style='color:#AAA'>         Modern MUDs have increasingly adopted the use of diagonal exits, like
          ne, nw, sw, and se. To make accomodations for this the #map and #path
          command no longer interpret nesw as a speedwalk and require this to
          be written as 1n1e1s1w, which then allows 2ne2e to execute ne;ne;e;e.
@@ -1592,7 +1593,7 @@ Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
 </span><span style='color:#FF5'>         STATEMENTS
 
 
-         TinTin++ knows the following statements.
+</span><span style='color:#AAA'>         TinTin++ knows the following statements.
 
          #break
          #case {value} {true}
@@ -1613,7 +1614,7 @@ Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
 
 </span><span style='color:#FF5'>         SUBSTITUTIONS
 
-          TinTin++ will perform various types of substitions as detailed below.
+</span><span style='color:#AAA'>          TinTin++ will perform various types of substitions as detailed below.
 
 </span><span style='color:#5F5'>          Variables
 
@@ -1700,13 +1701,13 @@ Related</span><span style='color:#AAA'>: <a href='#SUSPEND'>suspend</a>
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #format </span><span style='color:#FFF'>{</span><span style='color:#AAA'>variable</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>%t</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>}
 
-         The %t format specifier of the #format command allows printing dates
+</span><span style='color:#AAA'>         The %t format specifier of the #format command allows printing dates
          using the strftime() format specifiers. By default the time stamp used
          is the current time, if you want to print a past or future date use:
 
-Command</span><span style='color:#AAA'>: #format </span><span style='color:#FFF'>{</span><span style='color:#AAA'>variable</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>%t</span><span style='color:#FFF'>} {{</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>epoch time</span><span style='color:#FFF'>}}
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #format </span><span style='color:#FFF'>{</span><span style='color:#AAA'>variable</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>%t</span><span style='color:#FFF'>} {{</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>epoch time</span><span style='color:#FFF'>}}
 
-         The current epoch time value is obtained using #format {time} {%T}.
+</span><span style='color:#AAA'>         The current epoch time value is obtained using #format {time} {%T}.
 
          When using %t the argument should contain strftime format specifiers.
          Below are some common specifiers, see man strftime for the full list.
@@ -1734,12 +1735,12 @@ Command</span><span style='color:#AAA'>: #format </span><span style='color:#FFF'
          %z  5 digit timezone offset. (-1200 ... +1400)
          %Z  Abbreviated name of the time zone. (CET, GMT, etc)
 
-Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a href='help.html#EVENT'>event</a> and <a href='help.html#FORMAT'>format</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a href='help.html#EVENT'>event</a> and <a href='help.html#FORMAT'>format</a>.
 <a name='TRIGGERS'></a>
 
 </span><span style='color:#FF5'>         TRIGGERS
 
-         All available triggers in TinTin++ are displayed when you use the #info
+</span><span style='color:#AAA'>         All available triggers in TinTin++ are displayed when you use the #info
          command without an argument. All of them are written to file when you
          use the #write command, except commands, histories, and paths.
 
@@ -1759,14 +1760,14 @@ Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a h
 
 </span><span style='color:#5F5'>         Text triggers
 
-         When a block of text arrives from the host it is split into individual
+</span><span style='color:#AAA'>         When a block of text arrives from the host it is split into individual
          lines, and all action, prompt, gag, substitute, and highlight triggers
          are checked for each line. Only one action can trigger per line, while
          the other triggers can trigger multiple times.
 
-         Packet fragmentation
+</span><span style='color:#5F5'>         Packet fragmentation
 
-         MUDs that send long blurbs of text, don't have MCCP support, have a bad
+</span><span style='color:#AAA'>         MUDs that send long blurbs of text, don't have MCCP support, have a bad
          connection, or a combination of all three, will deliver broken packets.
          This can cause triggers to not fire, as well as displaying problems if
          #split is enabled.
@@ -1781,7 +1782,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a h
 
 </span><span style='color:#5F5'>         Color triggers
 
-         By default most color, control, and vt100 codes are stripped from
+</span><span style='color:#AAA'>         By default most color, control, and vt100 codes are stripped from
          incoming text before being ran through the trigger engine. To create
          a trigger that runs on the unstripped text, the regular expression in
          the trigger should start with a ~.
@@ -1791,7 +1792,7 @@ Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a h
 
 </span><span style='color:#5F5'>         Multi-line triggers
 
-         If an action contains the &bsol;n sequence it will be turned into a
+</span><span style='color:#AAA'>         If an action contains the &bsol;n sequence it will be turned into a
          multi-line trigger. A multi-line action is executed on incoming blocks
          of text from the MUD, and they will not trigger if the regular
          expression spans more than one block. You can visualize incoming
@@ -1809,28 +1810,28 @@ Related</span><span style='color:#AAA'>: <a href='help.html#ECHO'>echo</a>, <a h
 
          Multi-line actions are experimental and subject to change.
 
-         Input triggers
+</span><span style='color:#5F5'>         Input triggers
 
-         The alias, history and pathdir triggers are checked for each line of
+</span><span style='color:#AAA'>         The alias, history and pathdir triggers are checked for each line of
          input. The macro and tab triggers are checked for key presses.
 
-         Time triggers
+</span><span style='color:#5F5'>         Time triggers
 
-         The delay, path, and ticker triggers will execute at a set timed
+</span><span style='color:#AAA'>         The delay, path, and ticker triggers will execute at a set timed
          interval.
 
-         Substitution triggers
+</span><span style='color:#5F5'>         Substitution triggers
 
-         The function and variable triggers will generally execute right
+</span><span style='color:#AAA'>         The function and variable triggers will generally execute right
          before the final processing of a line of text.
 
-         Mouse triggers
+</span><span style='color:#5F5'>         Mouse triggers
 
-         The button trigger is checked for each mouse input. #config mouse
+</span><span style='color:#AAA'>         The button trigger is checked for each mouse input. #config mouse
          must be set to on to enable mouse tracking.
 
-         Event triggers
+</span><span style='color:#5F5'>         Event triggers
 
-         Events can be used for a wide variety of pre-defined triggers.
+</span><span style='color:#AAA'>         Events can be used for a wide variety of pre-defined triggers.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#PCRE'>pcre</a>, <a href='#SUBSTITUTIONS'>substitutions</a> and <a href='#ESCAPE_CODES'>escape_codes</a>.
