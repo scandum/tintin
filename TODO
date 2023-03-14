@@ -1,28 +1,72 @@
-- Handle more_output more cleanly in net.c
+#info mem
+#INFO MEMORY: STACK SIZE: 1800045
+#INFO MEMORY: STACK  MAX: 64
+#INFO MEMORY: STACK  CAP: 45
+#INFO MEMORY: STACK  LEN: 3
 
-- return #regex #else to old format
+#ERROR: index 386297 len = 1/0 max = 5706 flags = 6 (e)
+#INFO MEMORY: ALLOC SIZE: 17963354
+#INFO MEMORY: ALLOC USED: 13862779
+#INFO MEMORY: ALLOC  MAX: 1048576
+#INFO MEMORY: ALLOC  LEN: 547640
+
+#INFO MEMORY: FREED SIZE: 1626853344
+#INFO MEMORY: FREED  MAX: 1048576
+#INFO MEMORY: FREED  LEN: 546481
+
+#INFO MEMORY: DEBUG SIZE: 1024
+#INFO MEMORY: DEBUG  MAX: 48
+#INFO MEMORY: DEBUG  LEN: 4
+
+- #var foo {x;{a;b;c};y;z}
+  #list foo create {$foo}
+  #list foo simplify
+
+  #list explode has an issue with ';'
+
+- finish ? : support in #math
+
+- multiline triggers
+
+- finish create_node()
 
 - Look into #split 1 1 1 1 on termux when hiding / showing keyboard.
-
-- Make WinTin++ 64 bit and double check windows console link opens main.tin
 
 - look into invalid { } in MSDP / GMCP handling
 
 - mapper.c FAST handling
 
-- grid tables don't handle color codes
-
 - sandbox mode to disable shell integration.
-
-- color patch issues in #help
 
 - update telopt_server with MSSP, MTTS and TTYPE changes
 
-- look into #draw Yellow scroll bot side 1 1 1 80 drawing weird
+- #format %.3s prints two double-width characters.
 
-- check that vertical split screen update is fast using a trigger
-  with an instant screen update for reference. Some issues reported
-  related to packet patch.
+- fix ctrl-r so it compiles the pcre once.
+
+- #sleep <time>, possibly allow names to cancel or force continuation
+
+- #line escape {variables;functions}
+
+- look into a #debug flag for #class
+
+- switch to pcre2
+
+- Another nice thing would be if there was some flag to make a trigger match newlines as space.
+
+- fix up named delays and undelay
+
+- add a #regex like command for #cursor to update the input line.
+
+- custom mapping for unicode table to set width
+
+- color code for dynamic color ranges
+
+- #MACRO {\cz} {#cursor get t;#var t} does not handle { } in input.
+
+- Look into delete_index_list leaving a table with ->used set to 0 causing #list crashes
+
+- #daemon attach fails under high cpu load
 
 ----------------
   - add shadow session support with access to all events.
@@ -87,6 +131,7 @@
 
   - tab completion on directory structure.
 
+  - #map area command to list room counts per area.
   - direction field for exits that allow longer than 1x1x1 x/y/z jumps.
   - global mapper flag that would imply "Hide" on all exits that change area.
   - multiple global exit rooms and noglobal flags.

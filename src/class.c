@@ -314,6 +314,8 @@ DO_CLASS(class_load)
 
 	read_file(ses, file, arg1);
 
+	fclose(file);
+
 	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS LOAD", arg1);
 	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS LOAD %s", arg1, arg1);
 

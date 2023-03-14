@@ -76,9 +76,14 @@ void check_all_actions(struct session *ses, char *original, char *line, char *bu
 	{
 		node = root->list[root->update];
 
+		if (HAS_BIT(node->flags, NODE_FLAG_MULTI))
+		{
+			continue;
+		}
+
 		if (check_one_regexp(ses, node, line, original, 0))
 		{
-			show_debug(ses, LIST_ACTION, "#DEBUG ACTION {%s}", node->arg1);
+			show_debug(ses, LIST_ACTION, COLOR_DEBUG "#DEBUG ACTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
 			substitute(ses, node->arg2, buf, SUB_ARG|SUB_SEC);
 
@@ -93,6 +98,64 @@ void check_all_actions(struct session *ses, char *original, char *line, char *bu
 		}
 	}
 }
+
+void check_all_actions_multi(struct session *ses, char *original, char *stripped, char *buf)
+{
+	struct listroot *root = ses->list[LIST_ACTION];
+	struct listnode *node;
+	char *pto, *pts;
+
+	for (root->multi_update = 0 ; root->multi_update < root->used ; root->multi_update++)
+	{
+		node = root->list[root->multi_update];
+
+		if (!HAS_BIT(node->flags, NODE_FLAG_MULTI))
+		{
+			continue;
+		}
+
+		pto = original;
+		pts = stripped;
+
+		while (pto && pts)
+		{
+			if (!check_one_regexp(ses, node, pts, pto, 0))
+			{
+				break;
+			}
+			show_debug(ses, LIST_ACTION, COLOR_DEBUG "#DEBUG MULTI ACTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
+
+			substitute(ses, node->arg2, buf, SUB_ARG|SUB_SEC);
+
+			if (node->shots && --node->shots == 0)
+			{
+				delete_node_list(ses, LIST_ACTION, node);
+
+				pto = pts = NULL;
+			}
+			else
+			{
+				if (*gtd->vars[0])
+				{
+					pto += gtd->match[1];
+					pts += gtd->match[1];
+
+					if (pts[-1] != '\n')
+					{
+						pto = strchr(pto, '\n'); if (pto) pto++;
+						pts = strchr(pts, '\n'); if (pts) pts++;
+					}
+				}
+				else
+				{
+					pto = pts = NULL;
+				}
+			}
+			script_driver(ses, LIST_ACTION, buf);
+		}
+	}
+}
+
 
 /******************************************************************************
 *               (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                  *
@@ -191,14 +254,13 @@ int check_all_aliases(struct session *ses, char *input)
 
 					RESTRING(gtd->vars[i], buf);
 
+					gtd->varc = i + 1;
+
 					if (*arg == 0)
 					{
 						while (++i < 100)
 						{
-							if (*gtd->vars[i])
-							{
-								RESTRING(gtd->vars[i], "");
-							}
+							*gtd->vars[i] = 0;
 						}
 						break;
 					}
@@ -217,7 +279,7 @@ int check_all_aliases(struct session *ses, char *input)
 				sprintf(input, "%s", buf);
 			}
 
-			show_debug(ses, LIST_ALIAS, "#DEBUG ALIAS {%s} {%s}", node->arg1, gtd->vars[0]);
+			show_debug(ses, LIST_ALIAS, COLOR_DEBUG "#DEBUG ALIAS " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1, gtd->vars[0]);
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -358,7 +420,7 @@ void check_all_buttons(struct session *ses, short row, short col, char *arg1, ch
 
 		if (!strcmp(arg4, node->arg4))
 		{
-			show_debug(ses, LIST_BUTTON, "#DEBUG BUTTON {%s}", node->arg1);
+			show_debug(ses, LIST_BUTTON, COLOR_DEBUG "#DEBUG BUTTON " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
 			RESTRING(gtd->vars[0], ntos(row));
 			RESTRING(gtd->vars[1], ntos(col));
@@ -593,7 +655,7 @@ DO_COMMAND(do_highlight)
 		if (!is_color_name(arg2))
 		{
 			tintin_printf2(ses, "#HIGHLIGHT: INVALID COLOR {%s}. VALID COLORS ARE:\n", arg2);
-			tintin_printf2(ses, "reset, bold, light, faint, dim, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white, azure, ebony, jade, lime, orange, pink, silver, tan, violet.");
+			tintin_printf2(ses, "reset, light, dark, underscore, blink, reverse, black, red, green, yellow, blue, magenta, cyan, white, b black, b red, b green, b yellow, b blue, b magenta, b cyan, b white, azure, ebony, jade, lime, orange, pink, silver, tan, violet.");
 		}
 		else
 		{
@@ -673,7 +735,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 				pto = ptm + len;
 
-				show_debug(ses, LIST_HIGHLIGHT, "#DEBUG HIGHLIGHT {%s}", node->arg1);
+				show_debug(ses, LIST_HIGHLIGHT, COLOR_DEBUG "#DEBUG HIGHLIGHT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 			}
 			while (check_one_regexp(ses, node, ptl, pto, 0));
 
@@ -807,7 +869,7 @@ int check_all_prompts(struct session *ses, char *original, char *line)
 				strip_vt102_codes(original, line);
 			}
 
-			show_debug(ses, LIST_PROMPT, "#DEBUG PROMPT {%s}", node->arg1);
+			show_debug(ses, LIST_PROMPT, COLOR_DEBUG "#DEBUG PROMPT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
 			if (strcmp(node->arg3, "0"))
 			{
@@ -933,7 +995,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 
 				pto = ptm + len;
 
-				show_debug(ses, LIST_SUBSTITUTE, "#DEBUG SUBSTITUTE {%s} {%s}", node->arg1, match);
+				show_debug(ses, LIST_SUBSTITUTE, COLOR_DEBUG "#DEBUG SUBSTITUTE " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1, match);
 			}
 			while (*pto && check_one_regexp(ses, node, ptl, pto, 0));
 

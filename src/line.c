@@ -241,9 +241,7 @@ DO_LINE(line_gag)
 	{
 		ses->gagline = 0;
 	}
-	show_debug(ses, LIST_GAG, "#DEBUG LINE GAG {%s} [%d]", arg1, ses->gagline);
-
-//	SET_BIT(ses->flags, SES_FLAG_GAG);
+	show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG LINE GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline);
 
 	return ses;
 }
@@ -335,7 +333,7 @@ DO_LINE(line_log)
 			}
 		}
 	}
-	else
+	else if (*arg1)
 	{
 		if (ses->log->next_time == gtd->time && !strcmp(ses->log->next_name, arg1))
 		{
@@ -360,6 +358,82 @@ DO_LINE(line_log)
 			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s} - COULDN'T OPEN FILE.", arg1);
 		}
 	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOG} {filename} [string]");
+	}
+	return ses;
+}
+
+
+DO_LINE(line_logverbatim)
+{
+	FILE *logfile;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg1 && *arg2)
+	{
+		if (ses->log->file && !strcmp(ses->log->name, arg1))
+		{
+			logit(ses, arg2, ses->log->file, LOG_FLAG_LINEFEED);
+		}
+		else if (ses->log->line_time == gtd->time && !strcmp(ses->log->line_name, arg1))
+		{
+			logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN);
+		}
+		else
+		{
+			if ((logfile = fopen(arg1, "a")))
+			{
+				if (ses->log->line_file)
+				{
+					fclose(ses->log->line_file);
+				}
+				free(ses->log->line_name);
+
+				ses->log->line_name = strdup(arg1);
+				ses->log->line_file = logfile;
+				ses->log->line_time = gtd->time;
+
+				logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN);
+			}
+			else
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
+			}
+		}
+	}
+	else if (*arg1)
+	{
+		if (ses->log->next_time == gtd->time && !strcmp(ses->log->next_name, arg1))
+		{
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
+		}
+		else if ((logfile = fopen(arg1, "a")))
+		{
+			if (ses->log->next_file)
+			{
+				fclose(ses->log->next_file);
+			}
+			free(ses->log->next_name);
+
+			ses->log->next_name = strdup(arg1);
+			ses->log->next_file = logfile;
+			ses->log->next_time = gtd->time;
+
+			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
+		}
+	}
+	else
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGVERBATIM} {filename} {string}");
+	}
 	return ses;
 }
 
@@ -367,22 +441,9 @@ DO_LINE(line_logmode)
 {
 	struct session *active_ses;
 
+	int old_mode = ses->log->mode;
+
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-	DEL_BIT(ses->log->mode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW);
-
-	switch (HAS_BIT(ses->log->mode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW))
-	{
-		case LOG_FLAG_HTML:
-			SET_BIT(ses->log->mode, LOG_FLAG_OLD_HTML);
-			break;
-		case LOG_FLAG_PLAIN:
-			SET_BIT(ses->log->mode, LOG_FLAG_OLD_PLAIN);
-			break;
-		case LOG_FLAG_RAW:
-			SET_BIT(ses->log->mode, LOG_FLAG_OLD_RAW);
-			break;
-	}
 
 	if (is_abbrev(arg1, "HTML"))
 	{
@@ -402,9 +463,13 @@ DO_LINE(line_logmode)
 		DEL_BIT(ses->log->mode, LOG_FLAG_HTML);
 		DEL_BIT(ses->log->mode, LOG_FLAG_PLAIN);
 	}
+	else if (is_abbrev(arg1, "STAMP"))
+	{
+		SET_BIT(ses->log->mode, LOG_FLAG_STAMP);
+	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGMODE} {HTML|PLAIN|RAW} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGMODE} {HTML|PLAIN|RAW|STAMP} {command}.");
 
 		return ses;
 	}
@@ -413,83 +478,9 @@ DO_LINE(line_logmode)
 
 	active_ses = script_driver(ses, LIST_COMMAND, arg1);
 
-	DEL_BIT(ses->log->mode, LOG_FLAG_HTML|LOG_FLAG_PLAIN|LOG_FLAG_RAW);
+	ses->log->mode = old_mode;
 
-	switch (HAS_BIT(ses->log->mode, LOG_FLAG_OLD_HTML|LOG_FLAG_OLD_PLAIN|LOG_FLAG_OLD_RAW))
-	{
-		case LOG_FLAG_OLD_HTML:
-			SET_BIT(ses->log->mode, LOG_FLAG_HTML);
-			break;
-		case LOG_FLAG_OLD_PLAIN:
-			SET_BIT(ses->log->mode, LOG_FLAG_PLAIN);
-			break;
-		case LOG_FLAG_OLD_RAW:
-			SET_BIT(ses->log->mode, LOG_FLAG_RAW);
-			break;
-	}
-
-	return ses = active_ses;
-}
-
-DO_LINE(line_logverbatim)
-{
-	FILE *logfile;
-
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
-
-	if (*arg1 && *arg2)
-	{
-		if (!strcmp(ses->log->line_name, arg1))
-		{
-			logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED);
-		}
-		else
-		{
-			if ((logfile = fopen(arg1, "a")))
-			{
-				if (ses->log->line_file)
-				{
-					fclose(ses->log->line_file);
-				}
-				free(ses->log->line_name);
-				ses->log->line_name = strdup(arg1);
-				ses->log->line_file = logfile;
-
-				logheader(ses, ses->log->line_file, LOG_FLAG_APPEND | HAS_BIT(ses->log->mode, LOG_FLAG_HTML));
-
-				logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED);
-			}
-			else
-			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
-			}
-		}
-	}
-	else
-	{
-		if (!strcmp(ses->log->next_name, arg1))
-		{
-			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
-		}
-		else if ((logfile = fopen(arg1, "a")))
-		{
-			if (ses->log->next_file)
-			{
-				fclose(ses->log->next_file);
-			}
-			free(ses->log->next_name);
-			ses->log->next_name = strdup(arg1);
-			ses->log->next_file = logfile;
-
-			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
-		}
-	}
-	return ses;
+	return active_ses;
 }
 
 DO_LINE(line_msdp)
@@ -524,8 +515,8 @@ DO_LINE(line_json)
 
 	char *str_sub = str_alloc_stack(0);
 
-	struct listroot *root = ses->list[LIST_VARIABLE];
-	struct listnode *node = search_nest_node(root, arg1);
+//	struct listroot *root = ses->list[LIST_VARIABLE];
+	struct listnode *node = search_nest_node_ses(ses, arg1);
 
 	if (node)
 	{
@@ -533,7 +524,7 @@ DO_LINE(line_json)
 		{
 			view_nest_node_json(node, &str_sub, 0, TRUE);
 
-//			print_lines(ses, SUB_NONE, "%s\n", str_sub);
+//			print_lines(ses, SUB_NONE, "", "%s\n", str_sub);
 		}
 		else
 		{

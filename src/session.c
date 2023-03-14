@@ -25,6 +25,7 @@
 ******************************************************************************/
 
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "tintin.h"
 
@@ -32,10 +33,10 @@ DO_COMMAND(do_all)
 {
 	struct session *sesptr, *sesptr_next;
 
+	sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
 	if (gts->next)
 	{
-		sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
-
 		for (sesptr = gts->next ; sesptr ; sesptr = sesptr_next)
 		{
 			sesptr_next = sesptr->next;
@@ -48,7 +49,10 @@ DO_COMMAND(do_all)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#ALL: THERE AREN'T ANY SESSIONS.");
+		if (!check_all_events(ses, SUB_SEC|EVENT_FLAG_GAG, 0, 1, "GAG RECEIVED ERROR ALL", arg1))
+		{
+			show_error(ses, LIST_COMMAND, "#ALL: THERE AREN'T ANY SESSIONS.");
+		}
 	}
 	return ses;
 }
@@ -675,15 +679,17 @@ void cleanup_session(struct session *ses)
 		{
 			int status, pid;
 
-			pid = waitpid(atoi(ses->session_port), &status, WNOHANG);
+//			pid = waitpid(atoi(ses->session_port), &status, WNOHANG);
+
+			kill(atoi(ses->session_port), SIGTERM);
+
+			pid = waitpid(atoi(ses->session_port), &status, 0);
 
 			if (pid == -1)
 			{
 				syserr_printf(ses, "cleanup_session: waitpid");
 			}
-//			kill(atoi(ses->session_port), SIGTERM);
 		}
-
 	}
 
 	client_end_mccp2(ses);

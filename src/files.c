@@ -31,11 +31,11 @@
 
 DO_COMMAND(do_read)
 {
-	FILE *fp;
+	FILE *file;
 
 	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if ((fp = fopen(arg1, "r")) == NULL)
+	if ((file = fopen(arg1, "r")) == NULL)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", arg1, "FILE NOT FOUND.");
 
@@ -44,16 +44,20 @@ DO_COMMAND(do_read)
 		return ses;
 	}
 
-	return read_file(ses, fp, arg1);
+	ses = read_file(ses, file, arg1);
+
+	fclose(file);
+
+	return ses;
 }
 
-struct session *read_file(struct session *ses, FILE *fp, char *filename)
+struct session *read_file(struct session *ses, FILE *file, char *filename)
 {
 	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
 	int lvl, cnt, com, lnc, fix, ok, verbose, size;
 	int counter[LIST_MAX];
 
-	temp[0] = getc(fp);
+	temp[0] = getc(file);
 
 	if (!ispunct((int) temp[0]))
 	{
@@ -61,12 +65,10 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE '%c'.", filename, temp[0]);
 
-		fclose(fp);
-
 		return ses;
 	}
 
-	ungetc(temp[0], fp);
+	ungetc(temp[0], file);
 
 	for (cnt = 0 ; cnt < LIST_MAX ; cnt++)
 	{
@@ -76,11 +78,11 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		}
 	}
 
-	fseek(fp, 0, SEEK_END);
+	fseek(file, 0, SEEK_END);
 
-	size = ftell(fp);
+	size = ftell(file);
 
-	fseek(fp, 0, SEEK_SET);
+	fseek(file, 0, SEEK_SET);
 
 	if ((bufi = (char *) calloc(1, size + 2)) == NULL || (bufo = (char *) calloc(1, size + 2)) == NULL)
 	{
@@ -88,19 +90,16 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
-		fclose(fp);
-
 		return ses;
 	}
 
 
-	if (fread(bufi, 1, size, fp) <= 0)
+	if (fread(bufi, 1, size, file) <= 0)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FREAD FAILURE");
 		
 		tintin_printf(ses, "#ERROR: #READ {%s} - FREAD FAILURE.", filename);
 
-		fclose(fp);
 		return ses;
 	}
 
@@ -300,8 +299,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
 
-		fclose(fp);
-
 		free(bufi);
 		free(bufo);
 
@@ -313,8 +310,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING COMMENT OPEN OR CLOSE");
 
 		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
-
-		fclose(fp);
 
 		free(bufi);
 		free(bufo);
@@ -401,8 +396,6 @@ struct session *read_file(struct session *ses, FILE *fp, char *filename)
 			}
 		}
 	}
-	fclose(fp);
-
 	free(bufi);
 	free(bufo);
 
@@ -576,7 +569,7 @@ void write_node(struct session *ses, int list, struct listnode *node, FILE *file
 	return;
 }
 
-char *fread_one_line(char **str, FILE *fp)
+char *fread_one_line(char **str, FILE *file)
 {
 	int byte;
 
@@ -584,7 +577,7 @@ char *fread_one_line(char **str, FILE *fp)
 
 	while (TRUE)
 	{
-		byte = getc(fp);
+		byte = getc(file);
 
 		switch (byte)
 		{

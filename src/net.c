@@ -46,6 +46,9 @@ int wait_on_connect(struct session *ses, int sock, int connect_error)
 	static fd_set wfd;
 	socklen_t len, val;
 
+	FD_ZERO(&rfd);
+	FD_ZERO(&wfd);
+
 	FD_SET(sock, &rfd);
 	FD_SET(sock, &wfd);
 
@@ -152,7 +155,10 @@ int connect_mud(struct session *ses, char *host, char *port)
 		syserr_printf(ses, "connect_mud: setsockopt:");
 	}
 
-	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
+	if (gts->connect_retry == 0)
+	{
+		ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
+	}
 
 	if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
 	{
@@ -165,22 +171,27 @@ int connect_mud(struct session *ses, char *host, char *port)
 		return -1;
 	}
 
-//	ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
-
-	if (ses->connect_error)
+	if (gts->connect_retry)
 	{
-//		ses->connect_error = wait_on_connect(ses, sock, ses->connect_error);
+		ses->connect_error = connect(sock, address->ai_addr, address->ai_addrlen);
 
 		if (ses->connect_error)
 		{
-			syserr_printf(ses, "connect_mud: connect");
-
-			close(sock);
-
-			freeaddrinfo(address);
-
-			return 0;
+			ses->connect_error = wait_on_connect(ses, sock, ses->connect_error);
 		}
+	}
+
+	if (ses->connect_error)
+	{
+		if (gts->connect_retry == 0)
+		{
+			syserr_printf(ses, "connect_mud: connect");
+		}
+		close(sock);
+
+		freeaddrinfo(address);
+
+		return 0;
 	}
 
 	error = getnameinfo(address->ai_addr, address->ai_addrlen, ip, 100, NULL, 0, NI_NUMERICHOST);
@@ -428,27 +439,47 @@ int detect_prompt(struct session *ses, char *original)
 
 void readmud(struct session *ses)
 {
-	char *line, *next_line;
+	char *line, *next_line/*, *strip*/;
 	char linebuf[BUFFER_SIZE];
 	int len;
 	struct session *cts;
 
 	push_call("readmud(%p)", ses);
 
-	gtd->mud_output_len = 0;
+	line = gtd->mud_output_buf;
 
-	if (gtd->mud_output_len < BUFFER_SIZE)
+	if (ses->check_output && *line == '\n')
 	{
-		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 1, "RECEIVED OUTPUT", gtd->mud_output_buf);
+		line++;
 
-		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 1, "CATCH RECEIVED OUTPUT", gtd->mud_output_buf))
+		process_more_output(ses, "", FALSE);
+	}
+	else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_COMPACT))
+	{
+		if (*ses->scroll->input == 0 && *line == '\n')
 		{
-			pop_call();
-			return;
+			line++;
 		}
 	}
 
-	/* separate into lines and print away */
+//	strip = str_alloc(gtd->mud_output_len);
+
+	gtd->mud_output_strip_len = strip_vt102_codes(line, gtd->mud_output_strip_buf);
+
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED OUTPUT", gtd->mud_output_buf, gtd->mud_output_strip_buf);
+
+	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED OUTPUT", gtd->mud_output_buf, gtd->mud_output_strip_buf))
+	{
+		gtd->mud_output_len = 0;
+
+		// str_free(strip);
+		pop_call();
+		return;
+	}
+
+	check_one_line_multi(ses, line, gtd->mud_output_strip_buf);
+
+//	str_free(strip);
 
 	// cts = current tintin session, may have to make this global to avoid glitches
 
@@ -461,9 +492,12 @@ void readmud(struct session *ses)
 		goto_pos(gtd->ses, gtd->ses->split->bot_row, 1);
 	}
 
+
+	// separate into lines and print away
+
 	SET_BIT(cts->flags, SES_FLAG_READMUD);
 
-	for (line = gtd->mud_output_buf ; line && *line ; line = next_line)
+	for ( ; line && *line ; line = next_line)
 	{
 		next_line = strchr(line, '\n');
 
@@ -471,9 +505,7 @@ void readmud(struct session *ses)
 		{
 			if (next_line - line >= BUFFER_SIZE / 3)
 			{
-				// This is not ideal, but being a rare case it'll suffice for now
-
-				next_line = &line[BUFFER_SIZE / 3];
+				next_line = &line[BUFFER_SIZE / 3]; // Not ideal. Shorten too long lines.
 			}
 			*next_line++ = 0;
 		}
@@ -499,28 +531,22 @@ void readmud(struct session *ses)
 			{
 				if (!HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 				{
-					if (ses->packet_patch)
-					{
-						str_cat(&ses->more_output, line);
-						ses->check_output = gtd->utime + ses->packet_patch;
-
-						break;
-					}
-					else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPATCH))
+					if (ses->packet_patch || HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPATCH))
 					{
 						if (ses->list[LIST_PROMPT]->list[0])
 						{
 							if (!detect_prompt(ses, line))
 							{
 								str_cat(&ses->more_output, line);
-								ses->check_output = gtd->utime + 500000ULL;
+								ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);
+
 								break;
 							}
 						}
-						else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT))
+						else if (ses->packet_patch || HAS_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT))
 						{
 							str_cat(&ses->more_output, line);
-							ses->check_output = gtd->utime + 500000ULL;
+							ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);
 							break;
 						}
 					}
@@ -528,39 +554,26 @@ void readmud(struct session *ses)
 			}
 		}
 
-		if (ses->more_output[0])
+		if (ses->check_output)
 		{
-			if (ses->check_output)
-			{
-				str_cat(&ses->more_output, line);
-				strcpy(linebuf, ses->more_output);
+			process_more_output(ses, line, next_line == NULL);
 
-				str_cpy(&ses->more_output, "");
-			}
-			else
-			{
-				// clean this up some time.
+			continue;
+		}
 
-				strcpy(linebuf, line);
-			}
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
+		{
+			all_to_utf8(ses, line, linebuf);
 		}
 		else
 		{
 			strcpy(linebuf, line);
 		}
+		gtd->mud_output_line = linebuf;
 
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
-		{
-			char tempbuf[BUFFER_SIZE];
+		process_mud_output(ses, linebuf, next_line == NULL);
 
-			all_to_utf8(ses, linebuf, tempbuf);
-
-			process_mud_output(ses, tempbuf, next_line == NULL);
-		}
-		else
-		{
-			process_mud_output(ses, linebuf, next_line == NULL);
-		}
+		gtd->mud_output_line = gtd->mud_output_buf + gtd->mud_output_len;
 	}
 	DEL_BIT(cts->flags, SES_FLAG_READMUD);
 
@@ -568,11 +581,57 @@ void readmud(struct session *ses)
 	{
 		restore_pos(gtd->ses);
 	}
+	gtd->mud_output_len = 0;
 
 	pop_call();
 	return;
 }
 
+void process_more_output(struct session *ses, char *append, int prompt)
+{
+	char line[STRING_SIZE];
+
+	int readmud = HAS_BIT(ses->flags, SES_FLAG_READMUD);
+
+	if (readmud == 0)
+	{
+		if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+		{
+			save_pos(ses);
+
+			goto_pos(ses, ses->split->bot_row, 1);
+		}
+		SET_BIT(ses->flags, SES_FLAG_READMUD);
+	}
+
+	if (*append)
+	{
+		str_cat(&ses->more_output, append);
+	}
+
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
+	{
+		all_to_utf8(ses, ses->more_output, line);
+	}
+	else
+	{
+		strcpy(line, ses->more_output);
+	}
+	str_cpy(&ses->more_output, "");
+	ses->check_output = 0;
+
+	process_mud_output(ses, line, prompt);
+
+	if (readmud == 0)
+	{
+		DEL_BIT(ses->flags, SES_FLAG_READMUD);
+
+		if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+		{
+			restore_pos(ses);
+		}
+	}
+}
 
 void process_mud_output(struct session *ses, char *linebuf, int prompt)
 {
@@ -580,8 +639,6 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 	int str_len, raw_len;
 
 	push_call("process_mud_output(%p,%p,%d)",ses,linebuf,prompt);
-
-	ses->check_output = 0;
 
 	raw_len = strlen(linebuf);
 	str_len = strip_vt102_codes(linebuf, line);
@@ -614,7 +671,7 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 		linebuf = line;
 	}
 
-	do_one_line(linebuf, ses);   /* changes linebuf */
+	check_one_line(ses, linebuf);   /* changes linebuf */
 
 	/*
 		Take care of gags, vt102 support still goes
@@ -630,7 +687,7 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 		strip_vt102_codes(linebuf, line);
 
-		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, line);
+		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", line, ses->gagline + 1);
 
 		pop_call();
 		return;

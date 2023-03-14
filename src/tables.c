@@ -76,249 +76,21 @@ struct charset_type charset_table[] =
 	{    "UTF-8",         "utf-8",       "UTF-8",      CHARSET_FLAG_UTF8  },
 	{    "BIG5",          "big5",        "BIG5",       CHARSET_FLAG_BIG5  },
 	{    "BIG-5",         "big5",        "BIG5",       CHARSET_FLAG_BIG5  },
-	{    "EUC-KR",        "euc-kr",      "EUC-KR",     CHARSET_FLAG_CP949 },
-	{    "CP949",         "euc-kr",      "EUC-KR",     CHARSET_FLAG_CP949 },
+	{    "CP949",         "cp949",       "CP949",      CHARSET_FLAG_CP949 },
+	{    "EUC-KR",        "cp949",       "CP949",      CHARSET_FLAG_CP949 },
 	{    "GBK-1",         "gb18030",     "GB18030",    CHARSET_FLAG_GBK1  },
 	{    "GB18030",       "gb18030",     "GB18030",    CHARSET_FLAG_GBK1  },
 	{    "BIG5TOUTF8",    "utf-8",       "BIG5",       CHARSET_FLAG_UTF8|CHARSET_FLAG_BIG5TOUTF8   },
 	{    "CP437TOUTF8",   "utf-8",       "CP437",      CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8  },
 	{    "FANSITOUTF8",   "utf-8",       "CP437",      CHARSET_FLAG_UTF8|CHARSET_FLAG_FANSITOUTF8  },
 	{    "CP1251TOUTF8",  "utf-8",       "CP1251",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP1251TOUTF8 },
-	{    "EUCKRTOUTF8",   "utf-8",       "EUC-KR",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
-	{    "CP949TOUTF8",   "utf-8",       "EUC-KR",     CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
+	{    "CP949TOUTF8",   "utf-8",       "CP949",      CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
+	{    "EUCKRTOUTF8",   "utf-8",       "CP949",      CHARSET_FLAG_UTF8|CHARSET_FLAG_CP949TOUTF8  },
 	{    "GBK1TOUTF8",    "utf-8",       "GB18030",    CHARSET_FLAG_UTF8|CHARSET_FLAG_GBK1TOUTF8   },
 	{    "ISO1TOUTF8",    "utf-8",       "ISO-8859-1", CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO1TOUTF8   },
 	{    "ISO2TOUTF8",    "utf-8",       "ISO-8859-2", CHARSET_FLAG_UTF8|CHARSET_FLAG_ISO2TOUTF8   },
 	{    "KOI8TOUTF8",    "utf-8",       "KOI8-R",     CHARSET_FLAG_UTF8|CHARSET_FLAG_KOI8TOUTF8   },
 	{    "",              "",            "",           0 }
-};
-
-struct config_type config_table[] =
-{
-	{
-		"AUTO TAB",
-		"Buffer lines used for tab completion",
-		"",
-		config_autotab
-	},
-
-	{
-		"BUFFER SIZE",
-		"The size of the scrollback buffer",
-		"",
-		config_buffersize
-	},
-
-	{
-		"CHARSET",
-		"The character set encoding used",
-		"",
-		config_charset
-	},
-
-	{
-		"CHILD LOCK",
-		"TinTin++ is child locked.",
-		"TinTin++ is not child locked.",
-		config_childlock
-	},
-
-	{
-		"COLOR MODE",
-		"The color code encoding used",
-		"",
-		config_colormode
-	},
-
-	{
-		"COLOR PATCH",
-		"Color the start of each line",
-		"Leave color handling up to the server",
-		config_colorpatch
-	},
-
-	{
-		"COMMAND COLOR",
-		"The color of echoed commands",
-		"",
-		config_commandcolor
-	},
-
-	{
-		"COMMAND ECHO",
-		"Commands are echoed in split mode",
-		"Commands are not echoed in split mode",
-		config_commandecho
-	},
-
-	{
-		"CONNECT RETRY",
-		"Seconds sessions try to connect on failure",
-		"",
-		config_connectretry
-	},
-
-	{
-		"CONVERT META",
-		"TinTin++ converts meta characters",
-		"TinTin++ doesn't convert meta characters",
-		config_convertmeta
-	},
-
-	{
-		"DEBUG TELNET",
-		"You see telnet negotiations",
-		"You do not see telnet negotatiations",
-		config_debugtelnet
-	},
-
-	{
-		"HISTORY SIZE",
-		"The size of the command history",
-		"",
-		config_historysize
-	},
-
-	{
-		"INHERITANCE",
-		"The startup session is inherited",
-		"The startup session is not inherited",
-		config_inheritance
-	},
-
-	{
-		"LOG MODE",
-		"The data type mode of log files",
-		"",
-		config_logmode
-	},
-
-	{
-		"LOG LEVEL",
-		"TinTin++ only logs low level server data",
-		"TinTin++ only logs high level server data",
-		config_loglevel
-	},
-
-	{
-		"MCCP",
-		"MCCP is enabled.",
-		"MCCP is disabled.",
-		config_mccp
-	},
-
-	{
-		"MOUSE",
-		"Generate mouse tracking events.",
-		"Do not generate mouse events.",
-		config_mousetracking
-	},
-
-	{
-		"PACKET PATCH",
-		"Seconds to try to patch broken packets",
-		"",
-		config_packetpatch
-	},
-
-	{
-		"RANDOM SEED",
-		"Seed value used for random numbers",
-		"",
-		config_randomseed
-	},
-
-	{
-		"REPEAT CHAR",
-		"Character used for repeating commands",
-		"",
-		config_repeatchar
-	},
-
-	{
-		"REPEAT ENTER",
-		"You send the last command on an enter",
-		"You send a carriage return on an enter",
-		config_repeatenter
-	},
-
-	{
-		"SCREEN READER",
-		"You are using a screen reader",
-		"You are not using a screen reader",
-		config_screenreader
-	},
-
-	{
-		"SCROLL LOCK",
-		"You do not see server output while scrolling",
-		"You see server output while scrolling",
-		config_scrolllock
-	},
-
-	{
-		"SPEEDWALK",
-		"Your input is scanned for speedwalks",
-		"Your input is not scanned for speedwalks",
-		config_speedwalk
-	},
-
-	{
-		"TAB WIDTH",
-		"Number of spaces used for a tab",
-		"",
-		config_tabwidth
-	},
-
-	{
-		"TELNET",
-		"TELNET support is enabled.",
-		"TELNET support is disabled.",
-		config_telnet
-	},
-
-	{
-		"TINTIN CHAR",
-		"Character used for TinTin++ commands",
-		"",
-		config_tintinchar
-	},
-
-	{
-		"VERBATIM",
-		"Keyboard input is send as is",
-		"Keyboard input is parsed by TinTin++",
-		config_verbatim
-	},
-
-	{
-		"VERBATIM CHAR",
-		"Character used for verbatim lines",
-		"",
-		config_verbatimchar
-	},
-
-	{
-		"VERBOSE",
-		"Read script files verbosely",
-		"Read script files quietly",
-		config_verbose
-	},
-
-	{
-		"WORDWRAP",
-		"Server output is word wrapped",
-		"Server output is line wrapped",
-		config_wordwrap
-	},
-
-
-	{
-		"",
-		"",
-		0,
-		0
-	}
 };
 
 char character_table[256] =
@@ -644,14 +416,14 @@ struct color_type color_table[] =
 	{    "light cyan",    "<168>", 10 },
 	{    "light white",   "<178>", 11 },
 
-	{    "dark black",    "<208>",  5 },
-	{    "dark red",      "<218>",  4 },
-	{    "dark green",    "<228>",  5 },
-	{    "dark yellow",   "<238>",  6 },
-	{    "dark blue",     "<248>",  4 },
-	{    "dark magenta",  "<258>",  7 },
-	{    "dark cyan",     "<268>",  4 },
-	{    "dark white",    "<278>",  5 },
+	{    "dark black",    "<208>", 10 },
+	{    "dark red",      "<218>",  8 },
+	{    "dark green",    "<228>", 10 },
+	{    "dark yellow",   "<238>", 11 },
+	{    "dark blue",     "<248>",  9 },
+	{    "dark magenta",  "<258>", 12 },
+	{    "dark cyan",     "<268>",  9 },
+	{    "dark white",    "<278>", 10 },
 
 	{    "Azure",         "<acf>",  5 },
 	{    "Ebony",         "<bbb>",  5 },
@@ -1004,6 +776,7 @@ struct event_type event_table[] =
 	{    "CLASS CREATED",                          0, EVENT_FLAG_CLASS,    "CLASS",     "class creation"             },
 	{    "CLASS DEACTIVATED",                      0, EVENT_FLAG_CLASS,    "CLASS",     "class deactivations"        },
 	{    "CLASS DESTROYED",                        0, EVENT_FLAG_CLASS,    "CLASS",     "class destruction"          },
+	{    "CONFIG",                                 0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "config change"              },
 	{    "DAEMON ATTACH TIMEOUT",                  0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon attachment timeout"  },
 	{    "DAEMON ATTACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon attachment"          },
 	{    "DAEMON DETACHED",                        0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "daemon detachment"          },
@@ -1016,6 +789,7 @@ struct event_type event_table[] =
 	{    "END OF PATH",                            0, EVENT_FLAG_MAP,      "MAP",       "walking the last room"      },
 	{    "END OF RUN",                             0, EVENT_FLAG_MAP,      "MAP",       "running the last room"      },
 	{    "GAG ",                                   0, EVENT_FLAG_GAG,      "GAG",       "prefix for gag events"      },
+	{    "HISTORY UPDATE",                         0, EVENT_FLAG_INPUT,    "INPUT",     "command history update"     },
 	{    "HOUR",                                   0, EVENT_FLAG_TIME,     "TIME",      "every hour or given hour"   },
 	{    "IAC ",                                   0, EVENT_FLAG_TELNET,   "TELNET",    "prefix for telnet events"   },
 	{    "LONG-CLICKED ",                          0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is long-clicked"      },

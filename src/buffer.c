@@ -1088,7 +1088,7 @@ DO_BUFFER(buffer_refresh)
 {
 	check_buffer(ses);
 
-	if (HAS_BIT(ses->flags, SES_FLAG_PRINTLINE) && ses->check_output == 0)
+	if (HAS_BIT(ses->flags, SES_FLAG_PRINTLINE))
 	{
 		if (ses == gtd->ses)
 		{

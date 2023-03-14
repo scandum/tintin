@@ -236,6 +236,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 	{
 		gtd->mud_output_max = gtd->mud_output_len + cplen + 1000;
 		gtd->mud_output_buf = (char *) realloc(gtd->mud_output_buf, gtd->mud_output_max);
+		gtd->mud_output_strip_buf = (char *) realloc(gtd->mud_output_strip_buf, gtd->mud_output_max);
 	}
 
 	cpdst = (unsigned char *) gtd->mud_output_buf + gtd->mud_output_len;

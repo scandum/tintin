@@ -303,7 +303,7 @@ struct command_type command_table[] =
 	{    "highlight",         do_highlight,         3, TOKEN_TYPE_COMMAND },
 	{    "history",           do_history,           3, TOKEN_TYPE_COMMAND },
 	{    "if",                do_nop,               0, TOKEN_TYPE_IF      },
-	{    "ignore",            do_ignore,            2, TOKEN_TYPE_COMMAND },
+	{    "ignore",            do_ignore,            3, TOKEN_TYPE_COMMAND },
 	{    "info",              do_info,              2, TOKEN_TYPE_COMMAND },
 	{    "kill",              do_kill,              2, TOKEN_TYPE_COMMAND },
 	{    "killall",           do_killall,           2, TOKEN_TYPE_COMMAND },

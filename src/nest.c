@@ -678,7 +678,8 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 		{
 			for (index = 0 ; index < root->used ; index++)
 			{
-				str_cat_printf(result, "{%s}", root->list[index]->arg2);
+				show_nest_node(root->list[index], result, FALSE); // behaves like strcat
+//				str_cat_printf(result, "{%s}", root->list[index]->arg2);
 			}
 			return root->used + 1;
 		}
@@ -761,7 +762,8 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 			{
 				for (index = 0 ; index < root->used ; index++)
 				{
-					str_cat_printf(result, "{%s}", root->list[index]->arg2);
+					show_nest_node(root->list[index], result, FALSE); // behaves like strcat
+//					str_cat_printf(result, "{%s}", root->list[index]->arg2);
 				}
 				return root->used + 1;
 			}
@@ -1058,6 +1060,8 @@ void view_nest_node_json(struct listnode *node, char **str_result, int nest, int
 	}
 }
 
+// Adds gtd->level->local support
+
 struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format, ...)
 {
 	struct listnode *node;
@@ -1216,7 +1220,7 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 	}
 	else if (node)
 	{
-		str_cpy(&node->arg2, arg2);
+		str_cat(&node->arg2, arg2);
 	}
 	else
 	{

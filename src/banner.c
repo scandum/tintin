@@ -464,45 +464,42 @@ void banner_test(struct session *ses, char *arg1)
 
 struct session *banner_gui(struct session *ses, char *arg1)
 {
-	char *data;
-	FILE *fp;
+	char data[BUFFER_SIZE];
+	FILE *file;
 	size_t len;
 
-	fp = open_memstream(&data, (size_t *) &len);
+	strcpy(data, tt_gui);
 
-	fputs(tt_gui, fp);
+	len = strlen(data);
 
-	fclose(fp);
-
-	fp = fmemopen(data, len, "r");
+	file = fmemopen(data, len, "r");
 
 	gtd->level->quiet++;
 
-	ses = read_file(ses, fp, "tt_gui.h");
+	ses = read_file(ses, file, "tt_gui.h");
 
 	gtd->level->quiet--;
 
-	fclose(fp);
-
-	free(data);
+	fclose(file);
 
 	return ses;
+
 /*
 	char filename[PATH_SIZE];
-	FILE *fp;
+	FILE *file;
 
 	sprintf(filename, "%s/gui.tin", gtd->system->tt_dir);
 
-	if ((fp = fopen(filename, "w")) == NULL)
+	if ((file = fopen(filename, "w")) == NULL)
 	{
 		tintin_printf2(ses, "#BANNER GUI: FAILED TO CREATE {%s}.", filename);
 
 		return ses;
 	}
 
-	fputs(tt_gui, fp);
+	fputs(tt_gui, file);
 
-	fclose(fp);
+	fclose(file);
 
 	return command(ses, do_line, "quiet #read %s", filename);
 */

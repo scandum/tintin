@@ -1,3 +1,80 @@
+Jan 2023        2.02.31
+------------------------------------------------------------------------------
+cursor.c        #cursor {get} will escape braces and other special characters.
+
+config.c        Added the CONFIG event which triggers when a config option is
+                set. %0 holds the option name, and %1 the value set.
+
+mapper.c        When saving #map list to a table the vnum is now automatically
+                included.
+
+data.c          Added #info output which can be used to access the most recent
+                data received from the mud.
+
+config.c        Hybernate is now hibernate. Let's pretend that never happened.
+
+config.c        Added #config hibernate on/off. When enabled it will reduce
+                the idle cpu overhead by 90%, though tintin will be more
+                sluggish and timers will fire with decreased accuracy.
+
+trigger.c       A multi-line action can now trigger multiple times per block
+                of text, skipping to the next unmatched line after each match.
+
+nest.c          Fixed a bug reported by dzp where $var[] didn't behave
+                identical to $var[%*].
+
+show.c          A #showme containing a \n sequence will exclusively trigger
+                multi-line triggers.
+
+history.c       Added the HISTORY UPDATE event, %0 contains the command being
+                added to the command history.
+
+help.c          Added #help triggers which explains multi-line triggers.
+
+regex.c         Added initial support for multi-line triggers.
+
+mapper.c        The roomdesc now requires %a instead of %* to match multiple
+                lines in searches.
+
+net.c           Added the %1 argument to the RECEIVED OUTPUT event, which
+                holds the plain text version of the data received.
+
+regex.c         Added a warning when matching escape codes in a trigger
+                without the trigger starting with a '~'.
+
+line.c          Added #line logmode stamp option to force the adding of a
+                timestamp when using #line log.
+
+config.c        Added #config compact which is disabled by default. When
+                enabled it can get rid of blank lines surrounding a gagged
+                prompt line.
+
+substitute.c    Fixed #alias and #function so #info arguments save works.
+
+line.c          #line log no longer prints a stamp if #log timestamp is set,
+                unless you're writing to the active log file.
+
+main.c          The terminal title set with tt++ -t will now reset on exit.
+
+variable.c      Added support for #format %.-3s which will print the last
+                3 characters of the string.
+
+regex.c         It should now be possible to use %+10* %+1..5* etc
+
+variable.c      Fixed a crash bug in #cat reported by dzp.
+
+tokenize.c      Colorized some of the #debug messages, and added a debug
+                message to mark the end of a trigger.
+
+tokenize.c      Added error message for #foreach, #loop, #parse, #switch,
+                #while, and #regex if invalid syntax is used.
+
+net.c           Fixed a display problem related to #config packet_patch in
+                vertical split mode.
+
+mapper.c        Changed the usage of float to double to fix rounding issues in
+                path calculations.
+
 Jul 2022        2.02.30
 ------------------------------------------------------------------------------
 help.c          #help and #command when used with no argument display the

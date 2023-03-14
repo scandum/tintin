@@ -195,6 +195,11 @@ void read_line(char *input, int len)
 	char buf[BUFFER_SIZE];
 	int size, width, index;
 
+	if (HAS_BIT(gtd->ses->log->mode, LOG_FLAG_LOW) && gtd->ses->log->file)
+	{
+		fwrite(input, 1, len, gtd->ses->log->file);
+	}
+
 	if (HAS_BIT(gtd->ses->config_flags, CONFIG_FLAG_CONVERTMETA) || gtd->level->convert)
 	{
 		convert_meta(input, &gtd->macro_buf[strlen(gtd->macro_buf)], FALSE);
@@ -453,6 +458,8 @@ int check_key(char *input, int len)
 				else if (!strcmp(gtd->macro_buf, node->arg4))
 				{
 					strcpy(buf, node->arg2);
+
+					show_debug(gtd->ses, LIST_MACRO, COLOR_DEBUG "#DEBUG MACRO " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
 					if (node->shots && --node->shots == 0)
 					{
@@ -865,7 +872,6 @@ void convert_meta(char *input, char *output, int eol)
 				{
 					*pto++ = *pti++;
 				}
-
 				break;
 
 			default:
@@ -919,31 +925,26 @@ char *str_convert_meta(char *input, int eol)
 void echo_command(struct session *ses, char *line)
 {
 	char buffer[BUFFER_SIZE];
+	int split = HAS_BIT(ses->flags, SES_FLAG_SPLIT) == SES_FLAG_SPLIT;
 
 	DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
 
 	if (ses->check_output)
 	{
-		strcpy(buffer, ses->more_output);
-
-		process_mud_output(ses, buffer, FALSE);
-	}
-	else
-	{
-		buffer[0] = 0;
+		process_more_output(ses, "", split); // add newline if not in split mode
 	}
 
 	if (ses->scroll->line != -1)
 	{
 		buffer_end(gtd->ses, "", "", "");
 
-		if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+		if (!split)
 		{
 			printf("%s\n", line);
 		}
 	}
 
-	if (!HAS_BIT(ses->flags, SES_FLAG_SPLIT))
+	if (!split)
 	{
 		add_line_buffer(ses, line, -1);
 
@@ -956,22 +957,19 @@ void echo_command(struct session *ses, char *line)
 	}
 	else
 	{
-
-		if (strip_vt102_strlen(ses, buffer) == 0)
+		if (strip_vt102_strlen(ses, ses->scroll->input) == 0)
 		{
 			return;
 		}
 		sprintf(buffer, "\e[0m");
 	}
 
-//	if (ses->wrap == gtd->screen->cols)
-	{
-		gtd->level->scroll++;
+	gtd->level->scroll++;
 
-		tintin_printf2(ses, "%s%s", ses->scroll->input, buffer);
+	tintin_printf2(ses, "%s%s", ses->scroll->input, buffer);
 
-		gtd->level->scroll--;
-	}
+	gtd->level->scroll--;
+
 	add_line_buffer(ses, buffer, -1);
 }
 

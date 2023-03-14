@@ -352,7 +352,10 @@ int main(int argc, char **argv)
 
 				case 't':
 					SET_BIT(greeting, STARTUP_FLAG_NOTITLE);
-					print_stdout(0, 0, "\e]0;%s\007", optarg);
+					command(gts, do_screen, "LOAD BOTH");
+					command(gts, do_screen, "SAVE BOTH");
+					command(gts, do_screen, "SET BOTH %s", optarg);
+//					print_stdout(0, 0, "\e]0;%s\007", optarg);
 					break;
 
 				case 'T':
@@ -458,6 +461,8 @@ void init_tintin(int greeting)
 
 	gtd->mud_output_max = 16384;
 	gtd->mud_output_buf = (char *) calloc(1, gtd->mud_output_max);
+	gtd->mud_output_strip_buf = (char *) calloc(1, gtd->mud_output_max);
+	gtd->mud_output_line = gtd->mud_output_buf;
 
 	// WSL: /proc/sys/kernel/osrelease
 
@@ -569,27 +574,28 @@ void init_tintin(int greeting)
 
 	gtd->level->input++;
 
-	command(gts, do_configure, "{AUTO TAB}         {5000}");
+/*	command(gts, do_configure, "{AUTO TAB}         {5000}"); */ gts->scrollback_tab = 5000;
 	command(gts, do_configure, "{BUFFER SIZE}     {10000}");
 	command(gts, do_configure, "{COLOR MODE}         {ON}");
 	command(gts, do_configure, "{COLOR PATCH}       {OFF}");
 	command(gts, do_configure, "{COMMAND COLOR}   {<078>}");
 	command(gts, do_configure, "{COMMAND ECHO}       {ON}");
-	command(gts, do_configure, "{CONNECT RETRY}       {0}");
+	command(gts, do_configure, "{COMPACT}           {OFF}");
+/*	command(gts, do_configure, "{CONNECT RETRY}       {0}"); */
 	command(gts, do_configure, "{CHARSET}          {AUTO}");
 	command(gts, do_configure, "{HISTORY SIZE}     {1000}");
 	command(gts, do_configure, "{LOG MODE}          {RAW}");
 	command(gts, do_configure, "{MOUSE}             {OFF}");
 	command(gts, do_configure, "{PACKET PATCH}     {AUTO}");
-	command(gts, do_configure, "{RANDOM SEED}      {AUTO}");
+/*	command(gts, do_configure, "{RANDOM SEED}      {AUTO}"); */ seed_rand(gts, ++gtd->utime);
 	command(gts, do_configure, "{REPEAT CHAR}         {!}");
 	command(gts, do_configure, "{REPEAT ENTER}      {OFF}");
 	command(gts, do_configure, "{SCREEN READER}      {%s}", HAS_BIT(greeting, STARTUP_FLAG_SCREENREADER) ? "ON" : "OFF");
 	command(gts, do_configure, "{SCROLL LOCK}        {ON}");
 	command(gts, do_configure, "{SPEEDWALK}         {OFF}");
-	command(gts, do_configure, "{TAB WIDTH}        {AUTO}");
+/*	command(gts, do_configure, "{TAB WIDTH}        {AUTO}"); */ gts->tab_width = 8;
 	command(gts, do_configure, "{TELNET}             {ON}");
-	command(gts, do_configure, "{TINTIN CHAR}         {#}");
+/*	command(gts, do_configure, "{TINTIN CHAR}         {#}"); */
 	command(gts, do_configure, "{VERBATIM}          {OFF}");
 	command(gts, do_configure, "{VERBATIM CHAR}      {\\}");
 	command(gts, do_configure, "{VERBOSE}            {%s}", HAS_BIT(greeting, STARTUP_FLAG_VERBOSE) ? "ON" : "OFF");

@@ -1446,11 +1446,6 @@ int cmp_str(const void * a, const void * b)
 	return strcmp(*(const char **) a, *(const char **) b);
 }
 
-int cmp_float(const void * a, const void * b)
-{
-	return *(float *) a - *(float *) b;
-}
-
 int cmp_num(const void * a, const void * b)
 {
 	unsigned char isnum_a, isnum_b;

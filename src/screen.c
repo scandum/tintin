@@ -581,6 +581,10 @@ DO_SCREEN(screen_fill)
 	{
 		fill_right_region(ses, arg2);
 	}
+	else if (is_abbrev(arg1, "SCROLL"))
+	{
+		fill_scroll_region(ses, arg2);
+	}
 	else
 	{
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN FILL {TOP|BOT|LEFT|RIGHT|SCROLL|SPLIT|DEFAULT} {arg}");
@@ -1458,14 +1462,15 @@ void erase_scroll_region(struct session *ses)
 
 	save_pos(ses);
 
+	goto_pos(ses, ses->split->top_row, ses->split->top_col);
+
 	for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 	{
-		if (row > 0 && row <= gtd->ses->split->bot_row)
+		if (ses == gtd->ses && row > 0 && row <= gtd->ses->split->bot_row)
 		{
 			str_cpy(&gtd->screen->line[row - 1]->str, "");
 		}
-
-		print_stdout(0, 0, "\e[%d;%dH\e[%dX", row, ses->split->top_col, ses->wrap);
+		print_stdout(0, 0, "\e[%dX\e[B", ses->wrap);
 	}
 	restore_pos(ses);
 
@@ -1508,7 +1513,7 @@ void erase_top_region(struct session *ses)
 
 		for (row = 1 ; row < ses->split->top_row ; row++)
 		{
-			print_stdout(0, 0, "\e[K\n");
+			print_stdout(0, 0, "\e[K\e[B");
 		}
 		restore_pos(ses);
 	}
@@ -1525,7 +1530,7 @@ void erase_bot_region(struct session *ses)
 
 		for (row = ses->split->bot_row + 1 ; row < gtd->screen->rows ; row++)
 		{
-			print_stdout(0, 0, "\e[K\n");
+			print_stdout(0, 0, "\e[K\e[B");
 		}
 		restore_pos(ses);
 	}
@@ -1538,10 +1543,11 @@ void erase_left_region(struct session *ses)
 	if (ses->split->top_col > 1)
 	{
 		save_pos(ses);
+		goto_pos(ses, ses->split->top_row, 1);
 
 		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 		{
-			print_stdout(0, 0, "\e[%d;1H\e[%dX", row, ses->split->top_col - 1);
+			print_stdout(0, 0, "\e[%dX\e[B", ses->split->top_col - 1);
 		}
 		restore_pos(ses);
 	}
@@ -1554,10 +1560,11 @@ void erase_right_region(struct session *ses)
 	if (ses->split->bot_col < gtd->screen->cols)
 	{
 		save_pos(ses);
+		goto_pos(ses, ses->split->top_row, ses->split->bot_col + 1);
 
 		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 		{
-			print_stdout(0, 0, "\e[%d;%dH\e[K", row, ses->split->bot_col + 1);
+			print_stdout(0, 0, "\e[K\e[B");
 		}
 		restore_pos(ses);
 	}
@@ -1572,10 +1579,11 @@ void erase_square(struct session *ses, int top_row, int top_col, int bot_row, in
 
 	save_pos(ses);
 
+	goto_pos(ses, top_row, top_col);
+
 	for (row = top_row ; row <= bot_row ; row++)
 	{
-		goto_pos(ses, row, top_col);
-		print_stdout(0, 0, "\e[%dX", bot_col - top_col + 1);
+		print_stdout(0, 0, "\e[%dX\e[B", bot_col - top_col + 1);
 	}
 	restore_pos(ses);
 
@@ -1589,15 +1597,14 @@ void fill_scroll_region(struct session *ses, char *arg)
 
 	save_pos(ses);
 
-	for (row = ses->split->top_row ; row < ses->split->bot_row ; row++)
+	for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 	{
 		goto_pos(ses, row, ses->split->top_col);
 
-		for (col = ses->split->top_col ; col < ses->split->bot_col ; col++)
+		for (col = ses->split->top_col ; col <= ses->split->bot_col ; col++)
 		{
 			print_stdout(0, 0, "%s", arg);
 		}
-		print_stdout(0, 0, "\n");
 	}
 	restore_pos(ses);
 }

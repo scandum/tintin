@@ -343,6 +343,11 @@ DO_ARRAY(array_delete)
 		{
 			delete_index_list(list->root, index);
 		}
+
+		if (list->root->used == 0)
+		{
+			array_clear(ses, list, arg, var, arg1, arg2);
+		}
 	}
 	else
 	{
@@ -450,7 +455,12 @@ DO_ARRAY(array_filter)
 				}
 			}
 		}
-		if (found && numerate)
+
+		if (found && list->root->used == 0)
+		{
+			array_clear(ses, list, arg, var, arg1, arg2);
+		}
+		else if (found && numerate)
 		{
 			array_numerate(ses, list, arg, var, arg1, arg2);
 		}
@@ -759,10 +769,15 @@ DO_ARRAY(array_refine)
 			}
 		}
 
-		if (found && numerate)
+		if (found && list->root->used == 0)
+		{
+			array_clear(ses, list, arg, var, arg1, arg2);
+		}
+		else if (found && numerate)
 		{
 			array_numerate(ses, list, arg, var, arg1, arg2);
 		}
+
 	}
 
 	return ses;

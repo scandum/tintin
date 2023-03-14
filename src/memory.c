@@ -100,7 +100,8 @@ char *get_str_str(struct str_data *str_ptr)
 
 struct str_data *str_ptr_realloc(struct str_data *str_ptr, int size)
 {
-	if (str_ptr->max <= size)
+//	if (str_ptr->max <= size)
+	if (size != str_ptr->max - 1)
 	{
 		str_ptr = (struct str_data *) realloc(str_ptr, sizeof(struct str_data) + size + 1);
 
@@ -568,7 +569,6 @@ char *str_mov(char **str, int dst, int src)
 	return *str;
 }
 
-
 void str_alloc_free(struct str_data *str_ptr)
 {
 	if (HAS_BIT(str_ptr->flags, STR_FLAG_STACK|STR_FLAG_FREE))
@@ -659,15 +659,14 @@ struct str_data *str_alloc_list(int size)
 
 	if (gtd->memory->free_len)
 	{
-		int index;
-
-		index = gtd->memory->free[--gtd->memory->free_len];
+		int index = gtd->memory->free[--gtd->memory->free_len];
 
 		str_ptr = gtd->memory->list[index];
 
 		DEL_BIT(str_ptr->flags, STR_FLAG_FREE);
 
-		if (size >= str_ptr->max)
+//		if (size >= str_ptr->max)
+		if (size != str_ptr->max - 1)
 		{
 			str_ptr = str_ptr_realloc(str_ptr, size);
 		}

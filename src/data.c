@@ -55,7 +55,7 @@ void kill_list(struct listroot *root)
 	{
 		delete_index_list(root, root->used - 1);
 	}
-	root->update = 0;
+	root->update = 0; // should be unnecessary
 }
 
 void free_list(struct listroot *root)
@@ -140,11 +140,23 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 	return ses->list[type];
 }
 
-struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4)
+struct listnode *create_node(char *arg1, char *arg2, char *arg3, char *arg4)
 {
 	struct listnode *node;
 
 	node = (struct listnode *) calloc(1, sizeof(struct listnode));
+
+	node->arg1 = str_dup(arg1);
+	node->arg2 = str_dup(arg2);
+	node->arg3 = str_dup(arg3);
+	node->arg4 = str_dup(arg4);
+
+	return node;
+}
+
+struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4)
+{
+	struct listnode *node;
 
 	if (list_table[root->type].priority_arg == 3 && *arg3 == 0)
 	{
@@ -153,15 +165,10 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 
 	if (HAS_BIT(root->flags, LIST_FLAG_NEST) && *arg1 == '\\')
 	{
-		node->arg1 = str_dup(arg1+1);
+		arg1++;
 	}
-	else
-	{
-		node->arg1 = str_dup(arg1);
-	}
-	node->arg2 = str_dup(arg2);
-	node->arg3 = str_dup(arg3);
-	node->arg4 = str_dup(arg4);
+
+	node = create_node(arg1, arg2, arg3, arg4);
 
 //	printf("debug: %p [%p] (%d) (%s) (%s)\n", root, root->ses, root->type, node->arg1, node->arg3);
 
@@ -338,6 +345,10 @@ void remove_index_list(struct listroot *root, int index)
 	{
 		root->update--;
 	}
+	if (index <= root->multi_update)
+	{
+		root->multi_update--;
+	}
 
 	memmove(&root->list[index], &root->list[index + 1], (root->used - index) * sizeof(struct listnode *));
 
@@ -353,11 +364,9 @@ void delete_node_list(struct session *ses, int type, struct listnode *node)
 	delete_index_list(ses->list[type], index);
 }
 
-void delete_index_list(struct listroot *root, int index)
+void delete_node(int type, struct listnode *node)
 {
-	struct listnode *node = root->list[index];
-
-	if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_REGEX))
+	if (HAS_BIT(list_table[type].flags, LIST_FLAG_REGEX))
 	{
 		if (node->regex)
 		{
@@ -365,13 +374,8 @@ void delete_index_list(struct listroot *root, int index)
 		}
 	}
 
-	switch (root->type)
+	switch (type)
 	{
-		case LIST_TERRAIN:
-			delete_room_data(node->room);
-			free(node->room);
-			break;
-
 		case LIST_CLASS:
 			if (node->data)
 			{
@@ -382,22 +386,42 @@ void delete_index_list(struct listroot *root, int index)
 		case LIST_EVENT:
 			event_table[node->val32[0]].level--;
 			break;
+
+		case LIST_TERRAIN:
+			delete_room_data(node->room);
+			free(node->room);
+			break;
+
+		case LIST_VARIABLE:
+			if (node->root)
+			{
+				free_list(node->root);
+
+				node->root = NULL;
+			}
+			break;
 	}
-
-	remove_index_list(root, index);
-
 	// dispose in memory update for one shot handling
 
 	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
 }
 
+void delete_index_list(struct listroot *root, int index)
+{
+	struct listnode *node = root->list[index];
+
+	remove_index_list(root, index);
+
+	delete_node(root->type, node);
+}
+
 void dispose_node(struct listnode *node)
 {
-	if (node->root)
+/*	if (node->root)
 	{
 		free_list(node->root);
 	}
-
+*/
 	str_free(node->arg1);
 	str_free(node->arg2);
 	str_free(node->arg3);
@@ -1121,8 +1145,8 @@ DO_COMMAND(do_ignore)
 {
 	int index, found = FALSE;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
-	arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if (*arg1 == 0)
 	{
@@ -1140,40 +1164,52 @@ DO_COMMAND(do_ignore)
 	}
 	else
 	{
-		for (index = found = 0 ; index < LIST_MAX ; index++)
+		arg = arg1;
+
+		do
 		{
-			if (HAS_BIT(list_table[index].flags, LIST_FLAG_HIDE))
-			{
-				continue;
-			}
+			arg = get_arg_in_braces(ses, arg, arg3, GET_ONE);
 
-			if (!is_abbrev(arg1, list_table[index].name_multi) && strcasecmp(arg1, "ALL"))
+			for (index = found = 0 ; index < LIST_MAX ; index++)
 			{
-				continue;
-			}
+				if (HAS_BIT(list_table[index].flags, LIST_FLAG_HIDE))
+				{
+					continue;
+				}
 
-			if (*arg2 == 0)
-			{
-				TOG_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
-			}
-			else if (is_abbrev(arg2, "ON"))
-			{
-				SET_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
-			}
-			else if (is_abbrev(arg2, "OFF"))
-			{
-				DEL_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
-			}
-			else
-			{
-				show_error(ses, LIST_COMMAND, "#SYNTAX: #IGNORE {%s} [ON|OFF]", arg1);
+				if (!is_abbrev(arg3, list_table[index].name_multi) && strcasecmp(arg3, "ALL"))
+				{
+					continue;
+				}
+
+				if (*arg3 == 0)
+				{
+					TOG_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
+				}
+				else if (is_abbrev(arg2, "ON"))
+				{
+					SET_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
+				}
+				else if (is_abbrev(arg2, "OFF"))
+				{
+					DEL_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE);
+				}
+				else
+				{
+					show_error(ses, LIST_COMMAND, "#SYNTAX: #IGNORE {%s} [ON|OFF]", arg1);
 				
-				return ses;
-			}
-			show_message(ses, LIST_COMMAND, "#OK: #IGNORE STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE) ? "ON" : "OFF");
+					return ses;
+				}
+				show_message(ses, LIST_COMMAND, "#OK: #IGNORE STATUS FOR %s HAS BEEN SET TO: %s.", list_table[index].name_multi, HAS_BIT(ses->list[index]->flags, LIST_FLAG_IGNORE) ? "ON" : "OFF");
 
-			found = TRUE;
+				found = TRUE;
+			}
+			if (*arg == COMMAND_SEPARATOR)
+			{
+				arg++;
+			}
 		}
+		while (*arg);
 
 		if (found == FALSE)
 		{
@@ -1605,6 +1641,29 @@ DO_COMMAND(do_info)
 				}
 				break;
 
+			case CTRL_O:
+				if (is_abbrev(arg1, "OUTPUT"))
+				{
+					if (is_abbrev(arg2, "SAVE"))
+					{
+						set_nest_node_ses(ses, "info[OUTPUT]", "{RAWBUF}{%s}", gtd->mud_output_buf);
+						add_nest_node_ses(ses, "info[OUTPUT]", "{RAWLEN}{%s}", gtd->mud_output_len);
+						add_nest_node_ses(ses, "info[OUTPUT]", "{STRBUF}{%s}", gtd->mud_output_strip_buf);
+						add_nest_node_ses(ses, "info[OUTPUT]", "{STRLEN}{%d}", gtd->mud_output_strip_len);
+						add_nest_node_ses(ses, "info[OUTPUT]", "{LINE}{%s}",   gtd->mud_output_line);
+					}
+					else
+					{
+						tintin_printf2(ses, "#INFO OUTPUT: RAWBUF: %s", gtd->mud_output_buf);
+						tintin_printf2(ses, "#INFO OUTPUT: RAWLEN: %d", gtd->mud_output_len);
+						tintin_printf2(ses, "#INFO OUTPUT: STRBUF: %s", gtd->mud_output_strip_buf);
+						tintin_printf2(ses, "#INFO OUTPUT: STRLEN: %d", gtd->mud_output_strip_len);
+						tintin_printf2(ses, "#INFO OUTPUT: LINE: %s", gtd->mud_output_line);
+
+					}
+				}
+				break;
+
 			case CTRL_S:
 				if (is_abbrev(arg1, "SESSION"))
 				{
@@ -1616,6 +1675,7 @@ DO_COMMAND(do_info)
 						add_nest_node_ses(ses, "info[SESSION]", "{CREATED}{%d}", ses->created);
 						add_nest_node_ses(ses, "info[SESSION]", "{HOST} {%s}", ses->session_host);
 						add_nest_node_ses(ses, "info[SESSION]", "{IP} {%s}", ses->session_ip);
+						add_nest_node_ses(ses, "info[SESSION]", "{MTTS} {%d}", get_mtts_val(ses));
 						add_nest_node_ses(ses, "info[SESSION]", "{PORT} {%s}", ses->session_port);
 
 						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSION]}");
@@ -1628,6 +1688,7 @@ DO_COMMAND(do_info)
 						tintin_printf2(ses, "{CREATED}{%d}", ses->created);
 						tintin_printf2(ses, "{HOST} {%s}", ses->session_host);
 						tintin_printf2(ses, "{IP} {%s}", ses->session_ip);
+						tintin_printf2(ses, "{MTTS} {%d}", get_mtts_val(ses));
 						tintin_printf2(ses, "{PORT} {%s}", ses->session_port);
 					}
 				}
@@ -1649,6 +1710,7 @@ DO_COMMAND(do_info)
 							add_nest_node_ses(ses, name, "{CREATED}{%d}", sesptr->created);
 							add_nest_node_ses(ses, name, "{HOST} {%s}", sesptr->session_host);
 							add_nest_node_ses(ses, name, "{IP} {%s}", sesptr->session_ip);
+							add_nest_node_ses(ses, name, "{MTTS} {%d}", get_mtts_val(ses));
 							add_nest_node_ses(ses, name, "{PORT} {%s}", sesptr->session_port);
 						}
 						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SESSIONS]}");
@@ -1663,6 +1725,7 @@ DO_COMMAND(do_info)
 							tintin_printf2(ses, "{%s}{CREATED}{%d}", sesptr->name, sesptr->created);
 							tintin_printf2(ses, "{%s}{HOST} {%s}", sesptr->name, sesptr->session_host);
 							tintin_printf2(ses, "{%s}{IP} {%s}", sesptr->name, sesptr->session_ip);
+							tintin_printf2(ses, "{%s}{MTTS} {%d}", sesptr->name, get_mtts_val(ses));
 							tintin_printf2(ses, "{%s}{PORT} {%s}", sesptr->name, sesptr->session_port);
 						}
 					}

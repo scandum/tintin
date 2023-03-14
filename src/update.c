@@ -62,22 +62,7 @@
 #define PULSE_UPDATE_PACKETS            10
 #define PULSE_UPDATE_TERMINAL           10
 #define PULSE_UPDATE_MEMORY             10
-#define PULSE_UPDATE_TIME               10
-
-#define TIMER_UPDATE_INPUT               0
-#define TIMER_UPDATE_SESSIONS            1
-#define TIMER_UPDATE_DELAYS              2
-#define TIMER_UPDATE_DAEMON              3
-#define TIMER_UPDATE_CHAT                4
-#define TIMER_UPDATE_PORT                5
-#define TIMER_UPDATE_TICKS               6
-#define TIMER_UPDATE_PATHS               7
-#define TIMER_UPDATE_PACKETS             8
-#define TIMER_UPDATE_TERMINAL            9
-#define TIMER_UPDATE_TIME               10
-#define TIMER_UPDATE_MEMORY             11
-#define TIMER_STALL_PROGRAM             12
-#define TIMER_CPU                       13
+#define PULSE_UPDATE_TIME                5
 
 long long cpu_timer[TIMER_CPU][5];
 
@@ -111,16 +96,18 @@ void mainloop(void)
 	pulse.update_sessions =  0 + PULSE_UPDATE_SESSIONS;
 	pulse.update_delays   =  0 + PULSE_UPDATE_DELAYS;
 	pulse.update_daemon   =  0 + PULSE_UPDATE_DAEMON;
-	pulse.update_chat     =  2 + PULSE_UPDATE_CHAT;
+	pulse.update_chat     =  1 + PULSE_UPDATE_CHAT;
 	pulse.update_port     =  2 + PULSE_UPDATE_PORT;
 	pulse.update_ticks    =  3 + PULSE_UPDATE_TICKS;
-	pulse.update_paths    =  3 + PULSE_UPDATE_PATHS;
-	pulse.update_packets  =  4 + PULSE_UPDATE_PACKETS;
-	pulse.update_terminal =  6 + PULSE_UPDATE_TERMINAL;
-	pulse.update_memory   =  7 + PULSE_UPDATE_MEMORY;
-	pulse.update_time     =  8 + PULSE_UPDATE_TIME;
+	pulse.update_paths    =  5 + PULSE_UPDATE_PATHS;
+	pulse.update_packets  =  6 + PULSE_UPDATE_PACKETS;
+	pulse.update_terminal =  7 + PULSE_UPDATE_TERMINAL;
+	pulse.update_memory   =  8 + PULSE_UPDATE_MEMORY;
+	pulse.update_time     =  9 + PULSE_UPDATE_TIME;
 
 	push_call("mainloop()");
+
+	init_cpu();
 
 	while (TRUE)
 	{
@@ -288,7 +275,7 @@ void mainloop(void)
 
 		span_time_val = end_utime - start_utime;
 
-		wait_time_val = 1000000 / PULSE_PER_SECOND - span_time_val;
+		wait_time_val = (HAS_BIT(gtd->flags, TINTIN_FLAG_HIBERNATE) ? 10000000 : 1000000) / PULSE_PER_SECOND - span_time_val;
 
 		if (wait_time_val > 0)
 		{
@@ -313,9 +300,8 @@ void update_input(void)
 
 	if (gtd->time_input < gtd->time)
 	{
-		if (sleep < 10)
+		if (sleep++ < 10)
 		{
-			sleep++;
 			return;
 		}
 		sleep = 0;
@@ -368,12 +354,10 @@ void update_sessions(void)
 	struct session *ses;
 	int rv;
 
-	if (gtd->time_session + 10 < gtd->time)
+	if (gtd->time_session < gtd->time)
 	{
-		if (sleep < 10)
+		if (sleep++ < 10)
 		{
-			sleep++;
-
 			return;
 		}
 		sleep = 0;
@@ -460,10 +444,10 @@ void update_sessions(void)
 					}
 				}
 
-				gtd->time_session = gtd->time;
-
 				if (gtd->mud_output_len)
 				{
+					gtd->time_session = gtd->time + 10;
+
 					readmud(ses);
 				}
 			}
@@ -478,7 +462,7 @@ void update_sessions(void)
 		{
 			gtd->update = ses->next;
 
-			if (HAS_BIT(ses->flags, SES_FLAG_PRINTLINE) && ses->check_output == 0)
+			if (HAS_BIT(ses->flags, SES_FLAG_PRINTLINE))
 			{
 				DEL_BIT(ses->flags, SES_FLAG_PRINTLINE);
 
@@ -541,12 +525,10 @@ void update_daemon(void)
 	socklen_t len;
 	int rv;
 
-	if (gtd->time_daemon + 10 < gtd->time)
+	if (gtd->time_daemon < gtd->time)
 	{
-		if (sleep < 10)
+		if (sleep++ < 10)
 		{
-			sleep++;
-
 			return;
 		}
 		sleep = 0;
@@ -566,7 +548,7 @@ void update_daemon(void)
 			{
 				if (FD_ISSET(gtd->detach_port, &read_fd))
 				{
-					gtd->time_daemon = gtd->time;
+					gtd->time_daemon = gtd->time + 10;
 
 					if (gtd->detach_sock)
 					{
@@ -695,7 +677,7 @@ void update_daemon(void)
 //						gtd->detach_sock = close(gtd->detach_sock); // experimental
 						break;
 					}
-					gtd->time_daemon = gtd->time;
+					gtd->time_daemon = gtd->time + 10;
 
 					process_input();
 				}
@@ -727,7 +709,7 @@ void update_daemon(void)
 			{
 				char buffer[BUFFER_SIZE];
 
-				gtd->time_daemon = gtd->time;
+				gtd->time_daemon = gtd->time + 10;
 
 				rv = read(gtd->attach_sock, buffer, BUFFER_SIZE -1);
 
@@ -924,7 +906,7 @@ void tick_update(void)
 
 				if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 				{
-					show_debug(ses, LIST_TICKER, "#DEBUG TICKER {%s}", node->arg2);
+					show_debug(ses, LIST_TICKER, COLOR_DEBUG "#DEBUG TICKER " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
 
 					if (node->shots && --node->shots == 0)
 					{
@@ -969,7 +951,7 @@ void delay_update(void)
 
 			if (node->val64 <= gtd->utime)
 			{
-				show_debug(ses, LIST_DELAY, "#DEBUG DELAY {%s}", node->arg2);
+				show_debug(ses, LIST_DELAY, COLOR_DEBUG "#DEBUG DELAY " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
 
 				delete_index_list(root, root->update);
 
@@ -999,7 +981,11 @@ void path_update(void)
 
 		root = ses->list[LIST_PATH];
 
-		while (root->update < root->used)
+		if (HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+		{
+			continue;
+		}
+		if (root->update < root->used)
 		{
 			node = root->list[root->update];
 
@@ -1009,16 +995,15 @@ void path_update(void)
 
 				node->val64 = 0;
 
-				show_debug(ses, LIST_COMMAND, "#DEBUG PATH {%s}", node->arg1);
+				show_debug(ses, LIST_PATH, COLOR_DEBUG "#DEBUG PATH " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
-				script_driver(ses, LIST_COMMAND, node->arg1);
+				script_driver(ses, LIST_PATH, node->arg1);
 
 				if (root->update == root->used)
 				{
 					check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "END OF RUN");
 				}
 			}
-			break;
 		}
 	}
 }
@@ -1033,37 +1018,7 @@ void packet_update(void)
 
 		if (ses->check_output && gtd->utime > ses->check_output)
 		{
-			char result[STRING_SIZE];
-
-			if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
-			{
-				save_pos(ses);
-
-				goto_pos(ses, ses->split->bot_row, 1);
-			}
-
-			SET_BIT(ses->flags, SES_FLAG_READMUD);
-
-			strcpy(result, ses->more_output);
-
-			if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
-			{
-				all_to_utf8(ses, ses->more_output, result);
-			}
-			else
-			{
-				strcpy(result, ses->more_output);
-			}
-			str_cpy(&ses->more_output, "");
-
-			process_mud_output(ses, result, TRUE);
-
-			DEL_BIT(ses->flags, SES_FLAG_READMUD);
-
-			if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
-			{
-				restore_pos(ses);
-			}
+			process_more_output(ses, "", TRUE);
 		}
 
 		if (HAS_BIT(ses->telopts, TELOPT_FLAG_UPDATENAWS))
@@ -1135,12 +1090,12 @@ void time_update(void)
 		return;
 	}
 
-	calendar = *localtime(&gtd->time);
-
 	// Initialize on the first call.
 
 	if (old_calendar.tm_year == 0)
 	{
+		calendar = *localtime(&gtd->time);
+
 		old_calendar.tm_sec  = calendar.tm_sec;
 		old_calendar.tm_min  = calendar.tm_min;
 		old_calendar.tm_hour = calendar.tm_hour;
@@ -1177,7 +1132,13 @@ void time_update(void)
 		}
 	}
 
-	strftime(str_sec, 9, "%S", &calendar);
+	calendar.tm_sec = gtd->time % 60;
+	calendar.tm_min = gtd->time % 3600 / 60;
+
+//	strftime(str_sec, 9, "%S", &calendar);
+
+	str_sec[0] = '0' + calendar.tm_sec / 10;
+	str_sec[1] = '0' + calendar.tm_sec % 10;
 	old_calendar.tm_sec = calendar.tm_sec;
 
 	if (calendar.tm_min == old_calendar.tm_min)
@@ -1185,7 +1146,14 @@ void time_update(void)
 		goto time_event_sec;
 	}
 
-	strftime(str_min, 9, "%M", &calendar);
+	// localtime() is slow, so only update it once a minute
+
+	calendar = *localtime(&gtd->time);
+
+//	strftime(str_min, 9, "%M", &calendar);
+
+	str_min[0] = '0' + calendar.tm_min / 10;
+	str_min[1] = '0' + calendar.tm_min % 10;
 	old_calendar.tm_min = calendar.tm_min;
 
 	if (calendar.tm_hour == old_calendar.tm_hour)
@@ -1286,6 +1254,22 @@ void time_update(void)
 }
 
 
+void init_cpu()
+{
+	struct timeval last_time;
+	long long current_time;
+	int timer;
+
+	gettimeofday(&last_time, NULL);
+
+	current_time = (long long) last_time.tv_usec + 1000000LL * (long long) last_time.tv_sec;
+
+	for (timer = 0 ; timer < TIMER_CPU ; timer++)
+	{
+		cpu_timer[timer][2] = current_time;
+	}
+}
+
 void show_cpu(struct session *ses)
 {
 	long long total_cpu = 0;
@@ -1351,16 +1335,9 @@ void open_timer(int timer)
 
 	current_time = (long long) last_time.tv_usec + 1000000LL * (long long) last_time.tv_sec;
 
-	if (cpu_timer[timer][2] == 0)
-	{
-		cpu_timer[timer][2] = current_time;
-	}
-	else
-	{
-		cpu_timer[timer][3] += current_time - cpu_timer[timer][2];
-		cpu_timer[timer][2]  = current_time;
-		cpu_timer[timer][4] ++;
-	}
+	cpu_timer[timer][3] += current_time - cpu_timer[timer][2];
+	cpu_timer[timer][2]  = current_time;
+	cpu_timer[timer][4] ++;
 }
 
 

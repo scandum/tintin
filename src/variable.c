@@ -55,7 +55,7 @@ DO_COMMAND(do_variable)
 
 				view_nest_node(node, &str_result, 0, TRUE, TRUE);
 
-				print_lines(ses, SUB_NONE, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n" COLOR_BRACE "{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, path, str_result);
+				print_lines(ses, SUB_NONE, "", COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n" COLOR_BRACE "{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, path, str_result);
 			}
 			else
 			{
@@ -234,9 +234,8 @@ DO_COMMAND(do_unlocal)
 
 DO_COMMAND(do_cat)
 {
-	char *str, name[BUFFER_SIZE];
-	struct listroot *root;
 	struct listnode *node;
+	char *str;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
 
@@ -246,39 +245,22 @@ DO_COMMAND(do_cat)
 	}
 	else
 	{
-		str = str_alloc_stack(strlen(arg));
-
-		if ((node = search_nest_node_ses(ses, arg1)) == NULL)
+		if (!valid_variable(ses, arg1))
 		{
-//			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
+			show_error(ses, LIST_VARIABLE, "#CAT: INVALID VARIABLE NAME {%s}.", arg1);
 
-			node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "");
+			return ses;
 		}
 
-		root = search_nest_base_ses(ses, arg1);
+		str = str_alloc_stack(strlen(arg));
 
-		get_arg_to_brackets(ses, arg1, name);
-
-		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, node->arg2, arg1);
-
-		while (*arg)
+		do
 		{
 			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
-			if (*str)
-			{
-				if (node->root)
-				{
-					add_nest_node(root, arg1, "%s", str);
-				}
-				else
-				{
-					str_cat(&node->arg2, str);
-				}
-			}
+			node = add_nest_node_ses(ses, arg1, "%s", str);
 		}
-
-		check_all_events(ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, node->arg2, arg1);
+		while (*arg);
 
 		show_nest_node(node, &str, 1);
 
@@ -294,7 +276,7 @@ DO_COMMAND(do_replace)
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_NST, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
-	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR);
+	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
@@ -316,7 +298,7 @@ DO_COMMAND(do_replace)
 	}
 	else
 	{
-		show_debug(ses, LIST_VARIABLE, "#REPLACE {%s} {%s} {%s}", node->arg2, arg2, arg3);
+//		show_debug(ses, LIST_VARIABLE, "#REPLACE {%s} {%s} {%s}", node->arg2, arg2, arg3);
 
 		pti = node->arg2;
 		str = str_alloc_stack(0);
@@ -332,7 +314,8 @@ DO_COMMAND(do_replace)
 			ptm = pti + gtd->match[0]; *ptm = 0;
 			ptm = pti + gtd->match[1];
 
-			substitute(ses, arg3, tmp, SUB_CMD|SUB_FUN);
+			substitute(ses, arg3, tmp, SUB_CMD);
+			substitute(ses, tmp, tmp, SUB_VAR|SUB_FUN);
 
 			str_cat_printf(&str, "%s%s", pti, tmp);
 
@@ -665,23 +648,11 @@ void reversestring(char *str)
 
 	while (*pts)
 	{
-		switch (*pts)
+		skip = is_tintin_code(pts);
+
+		if (skip == 0 && *pts == '\\')
 		{
-			case '\\':
-				skip = pts[1] ? 2 : 0;
-				break;
-
-			case '\e':
-				skip = skip_vt102_codes(pts);
-				break;
-
-			case '<':
-				skip = is_color_code(pts);
-				break;
-
-			default:
-				skip = 0;
-				break;
+			skip = pts[1] ? 2 : 0;
 		}
 
 		if (skip)
@@ -1019,7 +990,7 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		col_len = is_color_code(&str[raw_cnt]);
+		col_len = is_tintin_code(&str[raw_cnt]);
 
 		if (col_len)
 		{
@@ -1101,7 +1072,7 @@ int string_str_str_len(struct session *ses, char *str, int start, int end)
 			continue;
 		}
 
-		col_len = is_color_code(&str[raw_cnt]);
+		col_len = is_tintin_code(&str[raw_cnt]);
 
 		if (col_len)
 		{
@@ -1184,7 +1155,7 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 			continue;
 		}
 
-		col_len = is_color_code(&str[raw_cnt]);
+		col_len = is_tintin_code(&str[raw_cnt]);
 
 		if (col_len)
 		{
@@ -1427,29 +1398,47 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 								{
 									*ptt++ = *ptn++;
 								}
-		
 								*ptt = 0;
 
-								if (atoi(arg1) < 0)
+								int snip = atoi(arg2);
+								int strl = stringlength(ses, arglist[i]);
+								int rawl = strlen(arglist[i]);
+
+								if (snip >= 0)
 								{
-									sprintf(argformat, "%%%d.%d",
-										atoi(arg1) - (string_str_raw_len(ses, arglist[i], 0, atoi(arg2)) - string_str_str_len(ses, arglist[i], 0, atoi(arg2))),
-//										atoi(arg1) - ((int) strlen(arglist[i]) - string_str_raw_len(ses, arglist[i], 0, -1)),
-										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
+									if (snip < strl)
+									{
+									 	int head = string_str_raw_len(ses, arglist[i], 0, snip);
+
+									 	arglist[i][head] = 0;
+									 	strl = snip;
+									 	rawl = head;
+									}
 								}
 								else
 								{
-/*									printf("debug: %%%d.%d\n",
-										atoi(arg1) + string_str_raw_len(ses, arglist[i], 0, atoi(arg2)) - string_str_str_len(ses, arglist[i], 0, atoi(arg2)),
-										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
-*/
-									sprintf(argformat, "%%%d.%d",
-										atoi(arg1) + string_str_raw_len(ses, arglist[i], 0, atoi(arg2)) - string_str_str_len(ses, arglist[i], 0, atoi(arg2)),
-//										atoi(arg1) + ((int) strlen(arglist[i]) - string_raw_str_len(ses, arglist[i], 0, -1)),
-										string_str_raw_len(ses, arglist[i], 0, atoi(arg2)));
+									snip *= -1;
+
+									if (snip < strl)
+									{
+										int head = string_str_raw_len(ses, arglist[i], 0, strl - snip);
+
+										memmove(arglist[i], arglist[i] + head, rawl - head + 1);
+										strl = snip;
+										rawl -= head;
+									}
+								}
+
+								if (atoi(arg1) < 0)
+								{
+									sprintf(argformat, "%%%d", atoi(arg1) - (rawl - strl));
+								}
+								else
+								{
+									sprintf(argformat, "%%%d", atoi(arg1) + (rawl - strl));
 								}
 							}
-		
+
 							ptt = argformat;
 							ptn = pts;
 		
@@ -1457,7 +1446,6 @@ void format_string(struct session *ses, char *format, char *arg, char *out)
 							{
 								*ptn++ = *ptt++;
 							}
-		
 							*ptn = 0;
 						}
 				}

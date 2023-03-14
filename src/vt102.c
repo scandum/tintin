@@ -241,7 +241,7 @@ int skip_vt102_codes(char *str)
 					return skip;
 
 				case 'R':
-					return str[3] ? 3 : 2;
+					return 3;
 
 				default:
 					for (skip = 2 ; str[skip] ; skip++)
@@ -497,25 +497,31 @@ int find_escaped_color_code(char *str)
 			return 0;
 	}
 
-	switch (str[2])
+	if (str[2] == '[')
 	{
-		case '[':
-			break;
+		for (skip = 3 ; str[skip] != 0 ; skip++)
+		{
+			if (str[skip] == 'm')
+			{
+				return skip + 1;
+			}
 
-		default:
-			return 0;
+			if (is_csichar(str[skip]))
+			{
+				return 0;
+			}
+		}
+		return 0;
 	}
 
-	for (skip = 3 ; str[skip] != 0 ; skip++)
+	if (str[2] == ']')
 	{
-		if (str[skip] == 'm')
+		for (skip = 3 ; str[skip] != 0 ; skip++)
 		{
-			return skip + 1;
-		}
-
-		if (is_csichar(str[skip]))
-		{
-			return 0;
+			if (str[skip] == '\\' && str[skip + 1] == 'a')
+			{
+				return skip + 2;
+			}
 		}
 	}
 	return 0;
@@ -1312,6 +1318,7 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 							goto end;
 
 						case 'H':
+						case 'f':
 							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH VT100 CURSOR H", ntos(val[0]), ntos(val[1])))
 							{
 								pop_call();

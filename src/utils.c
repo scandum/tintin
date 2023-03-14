@@ -393,7 +393,7 @@ char *capitalize(char *str)
 	return outbuf;
 }
 
-char *ftos(float number)
+char *ftos(double number)
 {
 	static char outbuf[10][NUMBER_SIZE];
 	static int cnt;

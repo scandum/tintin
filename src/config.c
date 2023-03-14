@@ -23,9 +23,295 @@
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
-
 #include "tintin.h"
 
+#define DO_CONFIG(config)    struct session *config (struct session *ses, char *arg1, char *arg2, int index)
+
+DO_CONFIG(config_autotab);
+DO_CONFIG(config_buffersize);
+DO_CONFIG(config_charset);
+DO_CONFIG(config_colormode);
+DO_CONFIG(config_colorpatch);
+DO_CONFIG(config_commandcolor);
+DO_CONFIG(config_commandecho);
+DO_CONFIG(config_compact);
+DO_CONFIG(config_connectretry);
+DO_CONFIG(config_childlock);
+DO_CONFIG(config_convertmeta);
+DO_CONFIG(config_debugtelnet);
+DO_CONFIG(config_historysize);
+DO_CONFIG(config_hibernate);
+DO_CONFIG(config_inheritance);
+DO_CONFIG(config_loglevel);
+DO_CONFIG(config_logmode);
+DO_CONFIG(config_mccp);
+DO_CONFIG(config_mousetracking);
+DO_CONFIG(config_packetpatch);
+DO_CONFIG(config_randomseed);
+DO_CONFIG(config_repeatchar);
+DO_CONFIG(config_repeatenter);
+DO_CONFIG(config_screenreader);
+DO_CONFIG(config_scrolllock);
+DO_CONFIG(config_speedwalk);
+DO_CONFIG(config_tabwidth);
+DO_CONFIG(config_telnet);
+DO_CONFIG(config_tintinchar);
+DO_CONFIG(config_verbatim);
+DO_CONFIG(config_verbatimchar);
+DO_CONFIG(config_verbose);
+DO_CONFIG(config_wordwrap);
+
+typedef struct session *CONFIG  (struct session *ses, char *arg1, char *arg2, int index);
+
+struct config_type
+{
+	char                  * name;
+	char                  * msg_on;
+	char                  * msg_off;
+	CONFIG                * config;
+};
+
+struct config_type config_table[] =
+{
+	{
+		"AUTO TAB",
+		"Buffer lines used for tab completion",
+		"",
+		config_autotab
+	},
+
+	{
+		"BUFFER SIZE",
+		"The size of the scrollback buffer",
+		"",
+		config_buffersize
+	},
+
+	{
+		"CHARSET",
+		"The character set encoding used",
+		"",
+		config_charset
+	},
+
+	{
+		"CHILD LOCK",
+		"TinTin++ is child locked.",
+		"TinTin++ is not child locked.",
+		config_childlock
+	},
+
+	{
+		"COLOR MODE",
+		"The color code encoding used",
+		"",
+		config_colormode
+	},
+
+	{
+		"COLOR PATCH",
+		"Color the start of each line",
+		"Leave color handling up to the server",
+		config_colorpatch
+	},
+
+	{
+		"COMMAND COLOR",
+		"The color of echoed commands",
+		"",
+		config_commandcolor
+	},
+
+	{
+		"COMMAND ECHO",
+		"Commands are echoed in split mode",
+		"Commands are not echoed in split mode",
+		config_commandecho
+	},
+
+	{
+		"COMPACT",
+		"Remove blank prompt lines",
+		"Do not remove blank prompt lines",
+		config_compact
+	},
+
+	{
+		"CONNECT RETRY",
+		"Seconds sessions try to connect on failure",
+		"",
+		config_connectretry
+	},
+
+	{
+		"CONVERT META",
+		"TinTin++ converts meta characters",
+		"TinTin++ doesn't convert meta characters",
+		config_convertmeta
+	},
+
+	{
+		"DEBUG TELNET",
+		"You see telnet negotiations",
+		"You do not see telnet negotatiations",
+		config_debugtelnet
+	},
+
+	{
+		"HIBERNATE",
+		"Go into low CPU usage mode",
+		"",
+		config_hibernate
+	},
+
+	{
+		"HISTORY SIZE",
+		"The size of the command history",
+		"",
+		config_historysize
+	},
+
+	{
+		"INHERITANCE",
+		"The startup session is inherited",
+		"The startup session is not inherited",
+		config_inheritance
+	},
+
+	{
+		"LOG MODE",
+		"The data type mode of log files",
+		"",
+		config_logmode
+	},
+
+	{
+		"LOG LEVEL",
+		"TinTin++ only logs low level server data",
+		"TinTin++ only logs high level server data",
+		config_loglevel
+	},
+
+	{
+		"MCCP",
+		"MCCP is enabled.",
+		"MCCP is disabled.",
+		config_mccp
+	},
+
+	{
+		"MOUSE",
+		"Generate mouse tracking events.",
+		"Do not generate mouse events.",
+		config_mousetracking
+	},
+
+	{
+		"PACKET PATCH",
+		"Seconds to try to patch broken packets",
+		"",
+		config_packetpatch
+	},
+
+	{
+		"RANDOM SEED",
+		"Seed value used for random numbers",
+		"",
+		config_randomseed
+	},
+
+	{
+		"REPEAT CHAR",
+		"Character used for repeating commands",
+		"",
+		config_repeatchar
+	},
+
+	{
+		"REPEAT ENTER",
+		"You send the last command on an enter",
+		"You send a carriage return on an enter",
+		config_repeatenter
+	},
+
+	{
+		"SCREEN READER",
+		"You are using a screen reader",
+		"You are not using a screen reader",
+		config_screenreader
+	},
+
+	{
+		"SCROLL LOCK",
+		"You do not see server output while scrolling",
+		"You see server output while scrolling",
+		config_scrolllock
+	},
+
+	{
+		"SPEEDWALK",
+		"Your input is scanned for speedwalks",
+		"Your input is not scanned for speedwalks",
+		config_speedwalk
+	},
+
+	{
+		"TAB WIDTH",
+		"Number of spaces used for a tab",
+		"",
+		config_tabwidth
+	},
+
+	{
+		"TELNET",
+		"TELNET support is enabled.",
+		"TELNET support is disabled.",
+		config_telnet
+	},
+
+	{
+		"TINTIN CHAR",
+		"Character used for TinTin++ commands",
+		"",
+		config_tintinchar
+	},
+
+	{
+		"VERBATIM",
+		"Keyboard input is send as is",
+		"Keyboard input is parsed by TinTin++",
+		config_verbatim
+	},
+
+	{
+		"VERBATIM CHAR",
+		"Character used for verbatim lines",
+		"",
+		config_verbatimchar
+	},
+
+	{
+		"VERBOSE",
+		"Read script files verbosely",
+		"Read script files quietly",
+		config_verbose
+	},
+
+	{
+		"WORDWRAP",
+		"Server output is word wrapped",
+		"Server output is line wrapped",
+		config_wordwrap
+	},
+
+
+	{
+		"",
+		"",
+		0,
+		0
+	}
+};
 
 DO_COMMAND(do_configure)
 {
@@ -81,6 +367,8 @@ DO_COMMAND(do_configure)
 
 						if (node)
 						{
+							check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "CONFIG", config_table[index].name, node->arg2);
+
 							show_message(ses, LIST_CONFIG, "#CONFIG {%s} HAS BEEN SET TO {%s}.", config_table[index].name, node->arg2);
 						}
 					}
@@ -347,6 +635,30 @@ DO_CONFIG(config_commandecho)
 	return ses;
 }
 
+DO_CONFIG(config_compact)
+{
+	if (*arg2)
+	{
+		if (is_abbrev(arg2, "ON"))
+		{
+			SET_BIT(ses->config_flags, CONFIG_FLAG_COMPACT);
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			DEL_BIT(ses->config_flags, CONFIG_FLAG_COMPACT);
+		}
+		else
+		{
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+
+			return NULL;
+		}
+	}
+	strcpy(arg2, HAS_BIT(ses->config_flags, CONFIG_FLAG_COMPACT) ? "ON" : "OFF");
+
+	return ses;
+}
+
 DO_CONFIG(config_connectretry)
 {
 	if (*arg2)
@@ -440,6 +752,30 @@ DO_CONFIG(config_historysize)
 		gtd->history_size = atoi(arg2);
 	}
 	sprintf(arg2, "%d", gtd->history_size);
+
+	return ses;
+}
+
+DO_CONFIG(config_hibernate)
+{
+	if (*arg2)
+	{
+		if (is_abbrev(arg2, "ON"))
+		{
+			SET_BIT(gtd->flags, TINTIN_FLAG_HIBERNATE);
+		}
+		else if (is_abbrev(arg2, "OFF"))
+		{
+			DEL_BIT(gtd->flags, TINTIN_FLAG_HIBERNATE);
+		}
+		else
+		{
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+
+			return NULL;
+		}
+	}
+	strcpy(arg2, HAS_BIT(gtd->flags, TINTIN_FLAG_HIBERNATE) ? "ON" : "OFF");
 
 	return ses;
 }

@@ -1432,6 +1432,8 @@ DO_DRAW(draw_bot_side)
 
 		if (HAS_BIT(flags, DRAW_FLAG_RIGHT) || HAS_BIT(flags, DRAW_FLAG_BOT))
 		{
+			SET_BIT(corner, DRAW_FLAG_RIGHT|DRAW_FLAG_BOT);
+
 			arg1 += sprintf(arg1, "%s", get_draw_corner(corner, "┘"));
 		}
 	}
@@ -2343,7 +2345,7 @@ DO_DRAW(draw_table_grid)
 
 						str = sub_arg_in_braces(ses, str, buf2 + strlen(buf2), GET_ALL, SUB_VAR|SUB_FUN|SUB_LIT|SUB_ESC|SUB_COL);
 
-						get_color_codes(row_color, buf2, row_color, GET_ALL);
+//						get_color_codes(row_color, buf2, row_color, GET_ALL);
 
 						top_r = top_row + r - 1;
 						top_c = top_col + c;
@@ -2708,7 +2710,7 @@ DO_DRAW(draw_top_side)
 
 	if (HAS_BIT(flags, DRAW_FLAG_LEFT) || HAS_BIT(flags, DRAW_FLAG_TOP))
 	{
-		SET_BIT(corner, DRAW_FLAG_LEFT|DRAW_FLAG_RIGHT);
+		SET_BIT(corner, DRAW_FLAG_LEFT|DRAW_FLAG_TOP);
 
 		arg1 += sprintf(arg1, "%s%s", box_color, get_draw_corner(corner, "┌"));
 	}

@@ -927,16 +927,52 @@
 }
 
 #nop -------------------------------------------------------------------------
-#nop 
+#nop It can be annoying to have short commands clog up the command history.
+#nop This script will remove commands shorter than 3 letters.
 #nop -------------------------------------------------------------------------
 
-#nop -------------------------------------------------------------------------
-#nop 
-#nop -------------------------------------------------------------------------
+#event {HISTORY UPDATE}
+{
+	#if {{%0} != {%+3*%*}}
+	{
+		#history delete
+	}
+}
 
 #nop -------------------------------------------------------------------------
-#nop 
+#nop Run to a room when you click it on the vtmap.
 #nop -------------------------------------------------------------------------
+
+#config mouse on
+
+#event {MAP SHORT-CLICKED MOUSE BUTTON ONE}
+{
+	#map run {%0} 0.25
+}
+
+#nop -------------------------------------------------------------------------
+#nop zMUD has the feature where your last command is highlighted and any input
+#nop other than enter will clear it. This scripts reproduces this behavior.
+#nop -------------------------------------------------------------------------
+
+#CONFIG REPEAT_ENTER ON
+
+#event {HISTORY UPDATE}
+{
+	#delay 0 #line ignore #showme {<aaf><FFF><788>%0<088>} {-1};
+	#var last_input {%0}
+}
+
+#event {PROCESSED KEYPRESS}
+{
+	#if {{%1} != {10} && {$last_input} !== {}}
+	{
+		#var last_input {};
+		#line ignore #showme {} {-1};
+		#cursor end;
+		#history insert {}
+	}
+}
 
 #nop -------------------------------------------------------------------------
 #nop 

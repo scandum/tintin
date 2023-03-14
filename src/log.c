@@ -243,7 +243,7 @@ void logit(struct session *ses, char *txt, FILE *file, int flags)
 
 	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
 
-	if (*ses->log->stamp_strf)
+	if (*ses->log->stamp_strf && (HAS_BIT(ses->log->mode, LOG_FLAG_STAMP) || file == ses->log->file))
 	{
 		if (ses->log->stamp_time != gtd->time)
 		{
@@ -257,8 +257,8 @@ void logit(struct session *ses, char *txt, FILE *file, int flags)
 		}
 		fputs(ses->log->stamp_text, file);
 	}
-			
-	if (HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN))
+
+	if (HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) || HAS_BIT(flags, LOG_FLAG_PLAIN))
 	{
 		strip_vt102_codes(txt, out);
 	}
@@ -327,7 +327,7 @@ char *get_charset_html(struct session *ses)
 void write_html_header(struct session *ses, FILE *fp)
 {
 	char header[BUFFER_SIZE];
-	
+
 		sprintf(header,
 		"<!DOCTYPE html>\n"
 		"<html>\n"
@@ -418,7 +418,7 @@ void vt102_to_html(struct session *ses, char *txt, char *out)
 								rgb[2] = URANGE(0, atoi(tmp), 255);
 
 								fgc = rgb[0] * 256 * 256 + rgb[1] * 256 + rgb[2];
-	
+
 								DEL_BIT(vtc, COL_TCF_R);
 								SET_BIT(vtc, COL_TCF);
 							}

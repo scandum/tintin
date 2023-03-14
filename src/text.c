@@ -61,6 +61,8 @@ void print_line(struct session *ses, char **str, int prompt)
 		convert_meta(*str, out, TRUE);
 
 		str_cpy(str, out);
+
+		str_cat(str, prompt ? "\\" : "\\n");
 	}
 
 	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))

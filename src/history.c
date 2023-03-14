@@ -97,6 +97,8 @@ void add_line_history(struct session *ses, char *line)
 		delete_index_list(ses->list[LIST_HISTORY], 0);
 	}
 
+	check_all_events(ses, SUB_BRA|EVENT_FLAG_INPUT, 0, 1, "HISTORY UPDATE", line);
+
 	return;
 }
 

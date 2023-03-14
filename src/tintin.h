@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.30 "
+#define CLIENT_VERSION           "2.02.31 "
 
 
 #define XT_E                            0x27
@@ -241,16 +241,22 @@
 */
 
 #define COLOR_BRACE         "\e[38;5;164m" // "<eae>" // magenta
-#define COLOR_COMMAND       "\e[38;5;044m" // "<aee>" // cyan
-#define COLOR_CONFIG        "\e[38;5;208m" // "<fca>" // orange
+#define COLOR_COMMAND       "\e[38;5;044m" // "<aee>" // Cyan
+#define COLOR_CONFIG        "\e[38;5;208m" // "<fca>" // Orange
 #define COLOR_RESET         "\e[0m"        // "<088>" // reset
 #define COLOR_SEPARATOR     "\e[38;5;160m" // "<eaa>" // red
+#define COLOR_SESSION       "\e[38;5;48m"  // "<afc>" // Jade
 #define COLOR_STATEMENT     "\e[38;5;040m" // "<aea>" // green
 #define COLOR_STRING        "\e[38;5;188m" // "<eee>" // white
-//#define COLOR_TEXT          "\e[38;5;122m" // "<cfe>" // pale jade
-#define COLOR_TEXT          "\e[0m" // "<cfe>" // pale jade
+#define COLOR_DEBUG         "\e[38;5;037m" // "<add>" // cyan
+
+#define COLOR_TEXT          "\e[0m"        // "<088>" // reset
 #define COLOR_TINTIN        "\e[38;5;184m" // "<eea>" // yellow
 #define COLOR_REPEAT        "\e[38;5;33m"  // "<acf>" // azure
+#define COLOR_HELP_DIM      "\e[0;37m" 
+#define COLOR_HELP_BOLD     "\e[1;37m"
+#define COLOR_HELP_TITLE    "\e[1;32m"
+#define COLOR_HELP_TABLE    "\e[0;36m"
 
 /*
 	Index for lists used by tintin
@@ -567,9 +573,9 @@ enum operators
 #define SUB_LIT                       BV12 // no soft escaping
 
 /*
-#define SUB_ARG                       BV01
-#define SUB_SEC                       BV02
-#define SUB_BRA                       BV03
+#define SUB_ARG                       BV01 reserved
+#define SUB_SEC                       BV02 reserved
+#define SUB_BRA                       BV03 reserved
 */
 #define EVENT_FLAG_CATCH              BV04
 #define EVENT_FLAG_CLASS              BV05
@@ -619,30 +625,33 @@ enum operators
 #define TINTIN_FLAG_PRESERVEMACRO     BV13
 #define TINTIN_FLAG_WINCHUPDATE       BV14
 #define TINTIN_FLAG_NOHUP             BV15 // fixes tcsetattr crashes with nohup
+#define TINTIN_FLAG_HIBERNATE         BV16
 
 #define CONFIG_FLAG_AUTOPATCH         BV01
 #define CONFIG_FLAG_AUTOPROMPT        BV02
 #define CONFIG_FLAG_COLORPATCH        BV03
-#define CONFIG_FLAG_CONVERTMETA       BV04
-#define CONFIG_FLAG_ECHOCOMMAND       BV05
-#define CONFIG_FLAG_MCCP              BV06
-#define CONFIG_FLAG_MOUSEDEBUG        BV07
-#define CONFIG_FLAG_MOUSEINFO         BV08
-#define CONFIG_FLAG_MOUSEPIXELS       BV09
-#define CONFIG_FLAG_MOUSETRACKING     BV10
-#define CONFIG_FLAG_REPEATENTER       BV11
-#define CONFIG_FLAG_SCREENREADER      BV12
-#define CONFIG_FLAG_SCROLLLOCK        BV13
-#define CONFIG_FLAG_SPEEDWALK         BV14
-#define CONFIG_FLAG_TELNET            BV15
-#define CONFIG_FLAG_VERBATIM          BV16
-#define CONFIG_FLAG_VERBOSE           BV17
-#define CONFIG_FLAG_WORDWRAP          BV18
+#define CONFIG_FLAG_COMPACT           BV04
+#define CONFIG_FLAG_CONVERTMETA       BV05
+#define CONFIG_FLAG_ECHOCOMMAND       BV06
+#define CONFIG_FLAG_MCCP              BV07
+#define CONFIG_FLAG_MOUSEDEBUG        BV08
+#define CONFIG_FLAG_MOUSEINFO         BV09
+#define CONFIG_FLAG_MOUSEPIXELS       BV10
+#define CONFIG_FLAG_MOUSETRACKING     BV11
+#define CONFIG_FLAG_REPEATENTER       BV12
+#define CONFIG_FLAG_SCREENREADER      BV13
+#define CONFIG_FLAG_SCROLLLOCK        BV14
+#define CONFIG_FLAG_SPEEDWALK         BV15
+#define CONFIG_FLAG_TELNET            BV16
+#define CONFIG_FLAG_VERBATIM          BV17
+#define CONFIG_FLAG_VERBOSE           BV18
+#define CONFIG_FLAG_WORDWRAP          BV19
+
 
 #define SES_FLAG_BUFFERUPDATE         BV01
 #define SES_FLAG_CLOSED               BV02
 #define SES_FLAG_CONNECTED            BV03
-#define SES_FLAG_GAG                  BV04
+#define SES_FLAG_GAG                  BV04 // unused
 #define SES_FLAG_PATHMAPPING          BV05
 #define SES_FLAG_PRINTBUFFER          BV06
 #define SES_FLAG_PRINTLINE            BV07
@@ -686,7 +695,8 @@ enum operators
 #define LIST_FLAG_CASE                BV14
 #define LIST_FLAG_DEFAULT             LIST_FLAG_MESSAGE
 
-#define NODE_FLAG_ONESHOT             BV01 // unused
+#define NODE_FLAG_COLOR               BV01
+#define NODE_FLAG_MULTI               BV02
 
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
@@ -694,13 +704,10 @@ enum operators
 #define LOG_FLAG_APPEND               BV03
 #define LOG_FLAG_NEXT                 BV04
 #define LOG_FLAG_LOW                  BV05
-
 #define LOG_FLAG_HTML                 BV06
 #define LOG_FLAG_PLAIN                BV07
 #define LOG_FLAG_RAW                  BV08
-#define LOG_FLAG_OLD_HTML             BV09
-#define LOG_FLAG_OLD_PLAIN            BV10
-#define LOG_FLAG_OLD_RAW              BV11
+#define LOG_FLAG_STAMP                BV09
 
 
 // Saved in map files, so don't swap around
@@ -1041,6 +1048,7 @@ struct listroot
 	int                     size;
 	int                     used;
 	int                     update;
+	int                     multi_update;
 	short                   type;
 	short                   flags;
 };
@@ -1054,6 +1062,7 @@ struct listnode
 	char                  * arg4;
 	char                  * group;
 	unsigned int            shots;
+	int                     flags;
 	union
 	{
 		pcre              * regex;      // act, alias, gag, highlight, substitute
@@ -1124,6 +1133,9 @@ struct tintin_data
 	char                  * mud_output_buf;
 	int                     mud_output_max;
 	int                     mud_output_len;
+	char                  * mud_output_strip_buf;
+	int                     mud_output_strip_len;
+	char                  * mud_output_line;
 	unsigned char         * mccp_buf;
 	int                     mccp_len;
 	char                    macro_buf[BUFFER_SIZE];
@@ -1276,6 +1288,7 @@ struct level_data
 	unsigned int            debug;
 	unsigned int            grep;
 	unsigned int            ignore;
+	unsigned int            indent;
 	unsigned int            info;
 	unsigned int            input;
 	unsigned int            local;
@@ -1460,8 +1473,8 @@ struct room_data
 	struct exit_data        * exit_grid[11];
 	int                       vnum;
 	long long                 exit_dirs;
-	float                     length;
-	float                     weight;
+	double                    length;
+	double                    weight;
 	unsigned short            exit_size;
 	unsigned short            search_stamp;
 	unsigned short            display_stamp;
@@ -1491,8 +1504,8 @@ struct exit_data
 	int                       dir;
 	int                       grid;
 	int                       flags;
-	float                     weight;
-	float                     delay;
+	double                    weight;
+	double                    delay;
 	char                    * name;
 	char                    * cmd;
 	char                    * color;
@@ -1506,18 +1519,18 @@ struct search_data
 	int                     max;
 	unsigned short          stamp;
 	char                  * arg;
-	pcre                  * name;
+	struct listnode       * area;
+	struct listnode       * desc;
+	struct listnode       * name;
+	struct listnode       * note;
+	struct listnode       * terrain;
 	int                     exit_size;
 	long long               exit_dirs;
 	char                  * exit_list;
-	pcre                  * desc;
-	pcre                  * area;
-	pcre                  * note;
-	pcre                  * terrain;
 	long long               flag;
 	long long               galf;
 	char                  * id;
-	float                   distance;
+	double                  distance;
 };
 
 struct msdp_data
@@ -1624,7 +1637,6 @@ struct window_data
 #define DO_BUFFER(buffer)               void buffer (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_CHAT(chat)                     void chat (char *arg1, char *arg2)
 #define DO_COMMAND(command) struct session *command (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3, char *arg4)
-#define DO_CONFIG(config)    struct session *config (struct session *ses, char *arg1, char *arg2, int index)
 #define DO_CURSOR(cursor)               void cursor (struct session *ses, char *arg)
 #define DO_DAEMON(daemon)               void daemon (struct session *ses, char *arg, char *arg1, char *arg2)
 #define DO_EDIT(edit)          struct session *edit (struct session *ses, char *arg, char *arg1, char *arg2)
@@ -1643,7 +1655,6 @@ typedef int             CMPFUNC (const void *a, const void *b);
 
 typedef void            BUFFER  (struct session *ses, char *arg, char *arg1, char *arg2);
 typedef void            CHAT    (char *arg1, char *arg2);
-typedef struct session *CONFIG  (struct session *ses, char *arg1, char *arg2, int index);
 typedef struct session *COMMAND (struct session *ses, char *arg, char *arg1, char *arg2, char *arg3, char *arg4);
 typedef void            CURSOR  (struct session *ses, char *arg);
 typedef void            DAEMON  (struct session *ses, char *arg, char *arg1, char *arg2);
@@ -1697,14 +1708,6 @@ struct command_type
 	COMMAND               * command;
 	int                     args;
 	int                     type;
-};
-
-struct config_type
-{
-	char                  * name;
-	char                  * msg_on;
-	char                  * msg_off;
-	CONFIG                * config;
 };
 
 struct cursor_type
@@ -2146,38 +2149,6 @@ extern unsigned long long tintou(char *str);
 
 extern DO_COMMAND(do_configure);
 
-extern DO_CONFIG(config_autotab);
-extern DO_CONFIG(config_buffersize);
-extern DO_CONFIG(config_charset);
-extern DO_CONFIG(config_colormode);
-extern DO_CONFIG(config_colorpatch);
-extern DO_CONFIG(config_commandcolor);
-extern DO_CONFIG(config_commandecho);
-extern DO_CONFIG(config_connectretry);
-extern DO_CONFIG(config_childlock);
-extern DO_CONFIG(config_convertmeta);
-extern DO_CONFIG(config_debugtelnet);
-extern DO_CONFIG(config_historysize);
-extern DO_CONFIG(config_inheritance);
-extern DO_CONFIG(config_loglevel);
-extern DO_CONFIG(config_logmode);
-extern DO_CONFIG(config_mccp);
-extern DO_CONFIG(config_mousetracking);
-extern DO_CONFIG(config_packetpatch);
-extern DO_CONFIG(config_randomseed);
-extern DO_CONFIG(config_repeatchar);
-extern DO_CONFIG(config_repeatenter);
-extern DO_CONFIG(config_screenreader);
-extern DO_CONFIG(config_scrolllock);
-extern DO_CONFIG(config_speedwalk);
-extern DO_CONFIG(config_tabwidth);
-extern DO_CONFIG(config_telnet);
-extern DO_CONFIG(config_tintinchar);
-extern DO_CONFIG(config_verbatim);
-extern DO_CONFIG(config_verbatimchar);
-extern DO_CONFIG(config_verbose);
-extern DO_CONFIG(config_wordwrap);
-
 #endif
 
 
@@ -2212,6 +2183,7 @@ extern void show_list(struct listroot *root, int level);
 extern void remove_node_list(struct session *ses, int type, struct listnode *node);
 extern void remove_index_list(struct listroot *root, int index);
 extern void dispose_node(struct listnode *node);
+extern void delete_node(int type, struct listnode *node);
 extern void delete_node_list(struct session *ses, int type, struct listnode *node);
 extern  int delete_node_with_wild(struct session *ses, int index, char *string);
 extern void delete_index_list(struct listroot *root, int index);
@@ -2223,6 +2195,7 @@ extern  int bsearch_priority_list(struct listroot *root, char *text, char *prior
 extern  int nsearch_list(struct listroot *root, char *text);
 extern struct listroot *init_list(struct session *ses, int type, int size);
 extern struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int type);
+extern struct listnode *create_node(char *arg1, char *arg2, char *arg3, char *arg4);
 extern struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
 extern struct listnode *insert_node_list(struct listroot *root, struct listnode *node);
 extern struct listnode *insert_index_list(struct listroot *root, struct listnode *node, int index);
@@ -2536,6 +2509,7 @@ extern int connect_mud(struct session *ses, char *host, char *port);
 extern void write_line_mud(struct session *ses, char *line, int size);
 extern int read_buffer_mud(struct session *ses);
 extern void readmud(struct session *ses);
+extern void process_more_output(struct session *ses, char *append, int prompt);
 extern void process_mud_output(struct session *ses, char *linebuf, int prompt);
 
 #endif
@@ -2572,7 +2546,9 @@ extern char *get_arg_at_brackets(struct session *ses, char *string, char *result
 extern char *get_arg_in_brackets(struct session *ses, char *string, char *result);
 extern char *get_char(struct session *ses, char *string, char *result);
 extern void write_mud(struct session *ses, char *command, int flags);
-extern void do_one_line(char *line, struct session *ses);
+
+extern void check_one_line_multi(struct session *ses, char *line, char *strip);
+extern void check_one_line(struct session *ses, char *line);
 
 #endif
 
@@ -2587,7 +2563,7 @@ int exit_to_dir(struct session *ses, char *name);
 unsigned char pdir(struct listnode *node);
 char *dir_to_exit(struct session *ses, int dir);
 
-extern void check_append_path(struct session *ses, char *forward, char *backward, float delay, int force, int follow);
+extern void check_append_path(struct session *ses, char *forward, char *backward, double delay, int force, int follow);
 
 extern DO_PATH(path_create);
 extern DO_PATH(path_describe);
@@ -2678,6 +2654,7 @@ extern void erase_top_region(struct session *ses);
 extern void erase_left_region(struct session *ses);
 extern void erase_right_region(struct session *ses);
 extern void erase_square(struct session *ses, int top_row, int top_col, int bot_row, int bot_col);
+extern void fill_scroll_region(struct session *ses, char *arg);
 extern void fill_top_region(struct session *ses, char *arg);
 extern void fill_bot_region(struct session *ses, char *arg);
 extern void fill_left_region(struct session *ses, char *arg);
@@ -2730,18 +2707,20 @@ extern void show_message(struct session *ses, int index, char *format, ...);
 extern void show_error(struct session *ses, int index, char *format, ...);
 extern void show_debug(struct session *ses, int index, char *format, ...);
 extern void show_info(struct session *ses, int index, char *format, ...);
-extern void print_lines(struct session *ses, int flags, char *format, ...);
-extern void show_lines(struct session *ses, char *str);
 extern void tintin_header(struct session *ses, int width, char *format, ...);
 extern void socket_printf(struct session *ses, size_t length, char *format, ...);
 extern void telnet_printf(struct session *ses, int length, char *format, ...);
 
-extern void tintin_printf2(struct session *ses, char *format, ...);
-extern void tintin_printf(struct session *ses, char *format, ...);
+extern void print_lines(struct session *ses, int flags, char *color, char *format, ...);
+extern void show_lines(struct session *ses, char *color, char *str);
 
-extern void tintin_puts3(struct session *ses, char *string, int prompt);
-extern void tintin_puts2(struct session *ses, char *string);
+extern void tintin_printf(struct session *ses, char *format, ...);
+extern void tintin_printf2(struct session *ses, char *format, ...);
+extern void tintin_printf3(struct session *ses, char *format, ...);
+
 extern void tintin_puts(struct session *ses, char *string);
+extern void tintin_puts2(struct session *ses, char *string);
+extern void tintin_puts3(struct session *ses, char *string, int prompt);
 
 #endif
 
@@ -2814,6 +2793,7 @@ extern char *fuzzy_color_code(struct session *ses, char *pti);
 extern char *dim_color_code(struct session *ses, char *pti, int mod);
 extern char *lit_color_code(struct session *ses, char *pti, int mod);
 extern int color_gradient(char *pti, int low, int max);
+extern int is_tintin_code(char *pti);
 extern int is_color_code(char *str);
 extern int is_color_name(char *str);
 extern int substitute_color(char *input, char *output, int colors);
@@ -2837,7 +2817,7 @@ extern struct chat_type chat_table[];
 extern   char character_table[];
 extern struct color_type color_table[];
 extern struct color_type map_color_table[];
-extern struct config_type config_table[];
+//extern struct config_type config_table[];
 extern struct cursor_type cursor_table[];
 extern struct daemon_type daemon_table[];
 extern struct edit_type edit_table[];
@@ -2863,6 +2843,7 @@ extern struct map_legend_group_type map_legend_group_table[];
 #define __TELOPT_H__
 
 extern void test_gmcp(struct session *ses, char *buf);
+extern int get_mtts_val(struct session *ses);
 extern  int client_translate_telopts(struct session *ses, unsigned char *src, int cplen);
 extern  int client_write_compressed(struct session *ses, char *txt, int length);
 extern  int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc);
@@ -2949,6 +2930,7 @@ extern DO_COMMAND(do_delay);
 extern DO_COMMAND(do_function);
 
 extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
+extern void check_all_actions_multi(struct session *ses, char *original, char *line, char *buf);
 extern  int check_all_aliases(struct session *ses, char *input);
 extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);
 extern void check_all_gags(struct session *ses, char *original, char *line);
@@ -2961,6 +2943,7 @@ extern void check_all_substitutions(struct session *ses, char *original, char *l
 // update.c
 
 extern void mainloop(void);
+extern void init_cpu(void);
 extern void show_cpu(struct session *ses);
 
 
@@ -2985,7 +2968,7 @@ extern char *str_time(struct session *ses, char *format, time_t time);
 extern unsigned long long generate_rand(struct session *ses);
 extern void seed_rand(struct session *ses, unsigned long long seed);
 extern char *capitalize(char *str);
-extern char *ftos(float number);
+extern char *ftos(double number);
 extern char *ntos(long long number);
 extern char *indent_one(int len);
 extern char *indent(int len);

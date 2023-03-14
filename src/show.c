@@ -46,13 +46,22 @@ DO_COMMAND(do_showme)
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 
-	do_one_line(arg1, ses);
+	if (strchr(arg1, '\n'))
+	{
+		strip_vt102_codes(arg1, tmp);
+
+		check_one_line_multi(ses, arg1, tmp);
+	}
+	else
+	{
+		check_one_line(ses, arg1);
+	}
 
 	if (ses->gagline > 0)
 	{
 		ses->gagline--;
 
-		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, arg1);
+		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline + 1);
 
 		return ses;
 	}
@@ -330,7 +339,7 @@ void show_info(struct session *ses, int index, char *format, ...)
 	return;
 }
 
-void print_lines(struct session *ses, int flags, char *format, ...)
+void print_lines(struct session *ses, int flags, char *color, char *format, ...)
 {
 	char *buffer, *str_buf;
 	va_list args;
@@ -355,11 +364,11 @@ void print_lines(struct session *ses, int flags, char *format, ...)
 
 		substitute(ses, buffer, str_buf, flags);
 
-		show_lines(ses, str_buf);
+		show_lines(ses, color, str_buf);
 	}
 	else
 	{
-		show_lines(ses, buffer);
+		show_lines(ses, color, buffer);
 	}
 
 	free(buffer);
@@ -368,7 +377,7 @@ void print_lines(struct session *ses, int flags, char *format, ...)
 	return;
 }
 
-void show_lines(struct session *ses, char *str)
+void show_lines(struct session *ses, char *color, char *str)
 {
 	char *ptf;
 
@@ -384,8 +393,14 @@ void show_lines(struct session *ses, char *str)
 		}
 		*ptf++ = 0;
 
-		tintin_puts3(ses, str, FALSE);
-
+		if (*color)
+		{
+			tintin_printf3(ses, "%s%s", color, str);
+		}
+		else
+		{
+			tintin_puts3(ses, str, FALSE);
+		}
 		str = ptf;
 	}
 	pop_call();
@@ -446,6 +461,26 @@ void tintin_header(struct session *ses, int width, char *format, ...)
 	return;
 }
 
+
+void tintin_printf(struct session *ses, char *format, ...)
+{
+	char *buffer;
+	va_list args;
+
+	push_call("tintin_printf(%p,%p,...)",ses,format);
+
+	buffer = str_alloc_stack(0);
+
+	va_start(args, format);
+	vsprintf(buffer, format, args);
+	va_end(args);
+
+	tintin_puts(ses, buffer);
+
+	pop_call();
+	return;
+}
+
 void tintin_printf2(struct session *ses, char *format, ...)
 {
 	char *buffer;
@@ -471,28 +506,32 @@ void tintin_printf2(struct session *ses, char *format, ...)
 	return;
 }
 
-void tintin_printf(struct session *ses, char *format, ...)
+void tintin_printf3(struct session *ses, char *format, ...)
 {
 	char *buffer;
 	va_list args;
 
-	push_call("tintin_printf(%p,%p,...)",ses,format);
-
-	buffer = str_alloc_stack(0);
+	push_call("tintin_printf2(%p,%p,...)",ses,format);
 
 	va_start(args, format);
-	vsprintf(buffer, format, args);
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "tintin_printf2: vasprintf:");
+
+		pop_call();
+		return;
+	}
 	va_end(args);
 
-	tintin_puts(ses, buffer);
+	tintin_puts3(ses, buffer, FALSE);
+
+	free(buffer);
 
 	pop_call();
 	return;
 }
 
-/*
-	Show string and fire triggers
-*/
+// Show string and fire triggers
 
 void tintin_puts(struct session *ses, char *string)
 {
@@ -501,7 +540,7 @@ void tintin_puts(struct session *ses, char *string)
 		ses = gtd->ses;
 	}
 
-	do_one_line(string, ses);
+	check_one_line(ses, string);
 
 	if (ses->gagline > 0)
 	{
@@ -509,7 +548,7 @@ void tintin_puts(struct session *ses, char *string)
 
 		gtd->level->ignore++;
 
-		show_debug(ses, LIST_GAG, "#DEBUG GAG {%d} {%s}", ses->gagline + 1, string);
+		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", string, ses->gagline + 1);
 
 		gtd->level->ignore--;
 	}
@@ -519,9 +558,7 @@ void tintin_puts(struct session *ses, char *string)
 	}
 }
 
-/*
-	show string and don't fire triggers
-*/
+// show string and don't fire triggers
 
 void tintin_puts2(struct session *ses, char *string)
 {
@@ -539,11 +576,7 @@ void tintin_puts2(struct session *ses, char *string)
 	return;
 }
 
-
-
-/*
-	show string, no triggers, no color reset
-*/
+// show string, no triggers, no color reset
 
 void tintin_puts3(struct session *ses, char *string, int prompt)
 {
@@ -574,16 +607,21 @@ void tintin_puts3(struct session *ses, char *string, int prompt)
 		return;
 	}
 
+	if (ses->check_output)
+	{
+		process_more_output(ses, "", FALSE);
+	}
+
 	output = str_alloc_stack(0);
 
-	if (strip_vt102_strlen(ses, ses->more_output) != 0)
+	// no new line when prompt is overwritten with input in split mode
+
+	if (gtd->level->scroll == 0 && *ses->scroll->input)
 	{
-		str_cpy_printf(&output, "\n%s", string);
+		str_cpy(&output, "\n");
 	}
-	else
-	{
-		str_cpy(&output, string);
-	}
+
+	str_cat(&output, string);
 
 	add_line_buffer(ses, output, prompt);
 
@@ -603,8 +641,6 @@ void tintin_puts3(struct session *ses, char *string, int prompt)
 			restore_pos(ses);
 		}
 	}
-
 	pop_call();
 	return;
 }
-

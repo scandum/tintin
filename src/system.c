@@ -282,7 +282,7 @@ DO_COMMAND(do_system)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SYSTEM {COMMAND}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SYSTEM {COMMAND}");
 		
 		return ses;
 	}

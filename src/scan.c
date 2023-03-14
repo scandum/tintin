@@ -430,7 +430,7 @@ DO_SCAN(scan_file)
 DO_SCAN(scan_forward)
 {
 	char line[STRING_SIZE], *lnf;
-	float delay = 0;
+	double delay = 0;
 
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 

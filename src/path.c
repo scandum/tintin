@@ -528,7 +528,7 @@ DO_PATH(path_insert)
 	{
 		show_message(ses, LIST_COMMAND, "#PATH INSERT: FORWARD {%s} BACKWARD {%s} DELAY {%s}.", arg1, arg2, arg3);
 
-		check_append_path(ses, arg1, arg2, (float) get_number(ses, arg3), 1, HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING));
+		check_append_path(ses, arg1, arg2, (double) get_number(ses, arg3), 1, HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING));
 	}
 }
 
@@ -954,7 +954,7 @@ DO_PATH(path_undo)
 	show_message(ses, LIST_COMMAND, "#PATH MOVE: POSITION SET TO %d.", root->update);
 }
 
-void check_append_path(struct session *ses, char *forward, char *backward, float delay, int force, int follow)
+void check_append_path(struct session *ses, char *forward, char *backward, double delay, int force, int follow)
 {
 	struct listroot *root = ses->list[LIST_PATH];
 	struct listnode *node;

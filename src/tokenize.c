@@ -68,6 +68,8 @@ void debugtoken(struct session *ses, struct scriptroot *root, struct scriptnode 
 
 	if (gtd->level->debug || HAS_BIT(root->ses->list[root->list]->flags, LIST_FLAG_DEBUG) || HAS_BIT(root->ses->list[root->list]->flags, LIST_FLAG_LOG))
 	{
+		gtd->level->indent = token->lvl;
+
 		switch (token->type)
 		{
 			case TOKEN_TYPE_REPEAT:
@@ -75,8 +77,11 @@ void debugtoken(struct session *ses, struct scriptroot *root, struct scriptnode 
 				break;
 
 			case TOKEN_TYPE_STRING:
-			case TOKEN_TYPE_SESSION:
 				show_debug(ses, root->list, "%s%s", indent(token->lvl + 1), token->str);
+				break;
+
+			case TOKEN_TYPE_SESSION:
+				show_debug(ses, root->list, "%s" COLOR_TINTIN "%c" COLOR_SESSION "%s", indent(token->lvl + 1), gtd->tintin_char, token->str);
 				break;
 
 			case TOKEN_TYPE_ELSE:
@@ -292,6 +297,7 @@ void handlereturntoken(struct session *ses, struct scriptnode *token)
 
 		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 	}
+//	show_debug(ses, LIST_FUNCTION, COLOR_DEBUG "#DEBUG RETURN " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", arg);
 }
 
 void handleswitchtoken(struct session *ses, struct scriptnode *token)
@@ -394,6 +400,10 @@ char *addregextoken(struct scriptroot *root, int lvl, int type, int cmd, char *s
 	str = get_arg_in_braces(root->ses, str, arg2, GET_ONE);
 	str = get_arg_in_braces(root->ses, str, arg3, GET_ALL);
 
+	if (*arg3 == 0)
+	{
+		show_error(root->ses, LIST_COMMAND, "#SYNTAX: #REGEXP {string} {expression} {true} {false}");
+	}
 	addtoken(root, lvl, type, cmd, arg1);
 
 	regex = (struct script_regex *) calloc(1, sizeof(struct script_regex));
@@ -616,11 +626,16 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
 
-						addtoken(root, lvl, TOKEN_TYPE_END, -1, "endif");
+						addtoken(root, lvl, TOKEN_TYPE_END, -1, "endelseif");
 						break;
 
 					case TOKEN_TYPE_FOREACH:
 						str = addforeachtoken(root, lvl++, TOKEN_TYPE_FOREACH, cmd, arg);
+
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #FOREACH {list} {variable} {commands}");
+						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
@@ -632,6 +647,11 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 						str = get_arg_in_braces(root->ses, arg, line, GET_ONE);
 						addtoken(root, lvl++, TOKEN_TYPE_IF, cmd, line);
 
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #IF {conditional} {true} {false}");
+						}
+
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
 
@@ -644,12 +664,17 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 							str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 							tokenize_script(root, lvl--, line);
 
-							addtoken(root, lvl, TOKEN_TYPE_END, -1, "endif");
+							addtoken(root, lvl, TOKEN_TYPE_END, -1, "endelse");
 						}
 						break;
 
 					case TOKEN_TYPE_LOOP:
 						str = addlooptoken(root, lvl++, TOKEN_TYPE_LOOP, cmd, arg);
+
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #LOOP {start} {finish} {commands}");
+						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
@@ -660,7 +685,13 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 					case TOKEN_TYPE_PARSE:
 						str = addparsetoken(root, lvl++, TOKEN_TYPE_PARSE, cmd, arg);
 
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #PARSE {string} {variable} {commands}");
+						}
+
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
+
 						tokenize_script(root, lvl--, line);
 
 						addtoken(root, lvl, TOKEN_TYPE_END, -1, "endparse");
@@ -669,8 +700,6 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 					case TOKEN_TYPE_REGEX:
 						str = addregextoken(root, lvl, TOKEN_TYPE_REGEX, cmd, arg);
 
-//						addtoken(root, --lvl, TOKEN_TYPE_END, -1, "endregex");
-
 						if (*str && *str != COMMAND_SEPARATOR)
 						{
 							addtoken(root, lvl++, TOKEN_TYPE_ELSE, -1, "else");
@@ -678,7 +707,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 							str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 							tokenize_script(root, lvl--, line);
 
-							addtoken(root, lvl, TOKEN_TYPE_END, -1, "endregex");
+							addtoken(root, lvl, TOKEN_TYPE_END, -1, "endelse");
 						}
 						break;
 
@@ -690,6 +719,11 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 					case TOKEN_TYPE_SWITCH:
 						str = addswitchtoken(root, lvl++, TOKEN_TYPE_SWITCH, cmd, arg);
 
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #SWITCH {conditional} {arguments}");
+						}
+
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
 
@@ -699,6 +733,13 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 					case TOKEN_TYPE_WHILE:
 						str = get_arg_in_braces(root->ses, arg, line, GET_ONE);
 						addtoken(root, lvl++, TOKEN_TYPE_WHILE, cmd, line);
+
+						if (*str == 0 || *str == COMMAND_SEPARATOR)
+						{
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #WHILE {conditional} {commands}");
+							deltoken(root, root->prev);
+							break;
+						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
 						tokenize_script(root, lvl--, line);
@@ -1273,6 +1314,10 @@ struct session *script_driver(struct session *ses, int list, char *str)
 
 	ses = (struct session *) parse_script(root, 0, root->next, root->prev);
 
+	if (list != LIST_COMMAND)
+	{
+		show_debug(ses, list, COLOR_DEBUG "#END%s", list_table[list].name);
+	}
 	gtd->level->input -= list != LIST_COMMAND;
 
 	while (root->prev)
