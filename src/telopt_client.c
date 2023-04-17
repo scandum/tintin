@@ -606,7 +606,7 @@ int get_mtts_val(struct session *ses)
 		+ (HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
 		+ (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
 		+ (ses->color > 16 ? 8 : 0)
-		+ (HAS_BIT(ses->flags, TINTIN_FLAG_MOUSETRACKING) ? 16 + 1024 : 0)
+		+ (HAS_BIT(gtd->flags, TINTIN_FLAG_MOUSETRACKING) ? 16 + 1024 : 0)
 		+ (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
 //		+ proxy ? 128 : 0
 		+ (ses->color > 256 ? 256 : 0)
