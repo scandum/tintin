@@ -149,6 +149,13 @@ int main(int argc, char **argv)
 
 	char arg[BUFFER_SIZE];
 
+	/* Setting the i18n environment */
+	setlocale(LC_ALL, "");
+	bindtextdomain("tintin", getenv("PWD"));
+	textdomain("tintin");
+
+	init_help();
+
 	#ifdef SOCKS
 		SOCKSinit(argv[0]);
 	#endif
@@ -255,22 +262,22 @@ int main(int argc, char **argv)
 			switch (c)
 			{
 				case 'h':
-					printf("Usage: %s [OPTION]... [FILE]...\n", argv[0]);
-					printf("\n");
-					printf("  -a  Set argument for PROGRAM START event.\n");
-					printf("  -e  Execute given command.\n");
-					printf("  -g  Enable the startup user interface.\n");
-					printf("  -G  Don't show the greeting screen.\n");
-					printf("  -h  This help section.\n");
-					printf("  -H  Nohup compatible mode.\n");
-					printf("  -M  Matrix Digital Rain.\n");
-					printf("  -r  Read given file.\n");
-					printf("  -R  Reattach to daemonized process.\n");
-					printf("  -s  Enable screen reader mode.\n");
-					printf("  -t  Set given title.\n");
-					printf("  -T  Don't set the default title.\n");
-					printf("  -v  Enable verbose mode.\n");
-					printf("  -V  Show version information.\n");
+					printf(_("Usage: %s [OPTION]... [FILE]...\n"), argv[0]);
+					printf(_("\n"));
+					printf(_("  -a  Set argument for PROGRAM START event.\n"));
+					printf(_("  -e  Execute given command.\n"));
+					printf(_("  -g  Enable the startup user interface.\n"));
+					printf(_("  -G  Don't show the greeting screen.\n"));
+					printf(_("  -h  This help section.\n"));
+					printf(_("  -H  Nohup compatible mode.\n"));
+					printf(_("  -M  Matrix Digital Rain.\n"));
+					printf(_("  -r  Read given file.\n"));
+					printf(_("  -R  Reattach to daemonized process.\n"));
+					printf(_("  -s  Enable screen reader mode.\n"));
+					printf(_("  -t  Set given title.\n"));
+					printf(_("  -T  Don't set the default title.\n"));
+					printf(_("  -v  Enable verbose mode.\n"));
+					printf(_("  -V  Show version information.\n"));
 
 					exit(1);
 

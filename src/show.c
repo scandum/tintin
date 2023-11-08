@@ -125,7 +125,7 @@ DO_COMMAND(do_echo)
 	return ses;
 }
 
-void show_message(struct session *ses, int index, char *format, ...)
+void _show_message(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
 	char *buffer;
@@ -203,7 +203,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 	return;
 }
 
-void show_error(struct session *ses, int index, char *format, ...)
+void _show_error(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
 	char *buffer;
@@ -262,7 +262,7 @@ void show_error(struct session *ses, int index, char *format, ...)
 	return;
 }
 
-void show_debug(struct session *ses, int index, char *format, ...)
+void _show_debug(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
 	char *buffer;
@@ -308,7 +308,7 @@ void show_debug(struct session *ses, int index, char *format, ...)
 	return;
 }
 
-void show_info(struct session *ses, int index, char *format, ...)
+void _show_info(struct session *ses, int index, char *format, ...)
 {
 	struct listroot *root;
 	char *buffer;
@@ -407,7 +407,7 @@ void show_lines(struct session *ses, char *color, char *str)
 	return;
 }
 
-void tintin_header(struct session *ses, int width, char *format, ...)
+void _tintin_header(struct session *ses, int width, char *format, ...)
 {
 	char *title, *buffer;
 	va_list args;
@@ -462,7 +462,7 @@ void tintin_header(struct session *ses, int width, char *format, ...)
 }
 
 
-void tintin_printf(struct session *ses, char *format, ...)
+void _tintin_printf(struct session *ses, char *format, ...)
 {
 	char *buffer;
 	va_list args;
@@ -481,7 +481,7 @@ void tintin_printf(struct session *ses, char *format, ...)
 	return;
 }
 
-void tintin_printf2(struct session *ses, char *format, ...)
+void _tintin_printf2(struct session *ses, char *format, ...)
 {
 	char *buffer;
 	va_list args;
@@ -506,7 +506,7 @@ void tintin_printf2(struct session *ses, char *format, ...)
 	return;
 }
 
-void tintin_printf3(struct session *ses, char *format, ...)
+void _tintin_printf3(struct session *ses, char *format, ...)
 {
 	char *buffer;
 	va_list args;
@@ -533,7 +533,7 @@ void tintin_printf3(struct session *ses, char *format, ...)
 
 // Show string and fire triggers
 
-void tintin_puts(struct session *ses, char *string)
+void _tintin_puts(struct session *ses, char *string)
 {
 	if (ses == NULL)
 	{
@@ -560,7 +560,7 @@ void tintin_puts(struct session *ses, char *string)
 
 // show string and don't fire triggers
 
-void tintin_puts2(struct session *ses, char *string)
+void _tintin_puts2(struct session *ses, char *string)
 {
 	char *output;
 
@@ -578,7 +578,7 @@ void tintin_puts2(struct session *ses, char *string)
 
 // show string, no triggers, no color reset
 
-void tintin_puts3(struct session *ses, char *string, int prompt)
+void _tintin_puts3(struct session *ses, char *string, int prompt)
 {
 	char *output;
 

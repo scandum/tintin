@@ -33,7 +33,8 @@ struct help_type
 	char                  * also;
 };
 
-struct help_type help_table[];
+static size_t help_entries_count = 0;
+struct help_type help_table[128];
 
 size_t help_size();
 
@@ -495,9 +496,20 @@ DO_COMMAND(do_help)
 	return ses;
 }
 
-struct help_type help_table[] =
+#define HELP_ADD(name, type, text, also) help_add_entry(name, type, gettext(text), also)
+
+void help_add_entry(char *name, int type, char *text, char *also)
 {
-	{
+	help_table[help_entries_count].name = name;
+	help_table[help_entries_count].type = type;
+	help_table[help_entries_count].text = text;
+	help_table[help_entries_count].also = also;
+	help_entries_count++;
+}
+
+void init_help()
+{
+	HELP_ADD(
 		"ACTION",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #action <178>{<278>message<178>} {<278>commands<178>} {<278>priority<178>}\n"
@@ -529,8 +541,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove an action with the #unaction command.\n"
 		,
 		"pcre gag highlight prompt substitute"
-	},
-	{
+	);
+	HELP_ADD(
 		"ALIAS",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #alias <178>{<278>name<178>} {<278>commands<178>} {<278>priority<178>}\n"
@@ -576,8 +588,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove an alias with the #unalias command.\n"
 		,
 		"cursor history keypad macro speedwalk tab"
-	},
-	{
+	);
+	HELP_ADD(
 		"ALL",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #all <178>{<278>string<178>}\n"
@@ -590,8 +602,8 @@ struct help_type help_table[] =
 		"<278>         Sends 'quit' to all sessions.\n"
 		,
 		"port run session sessionname snoop ssl zap"
-	},
-	{
+	);
+	HELP_ADD(
 		"BELL",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #bell <178>{<278>flash<178>|<278>focus<178>|<278>margin<178>|<278>ring<178>|<278>volume<178>} {<278>argument<178>}\n"
@@ -625,8 +637,8 @@ struct help_type help_table[] =
 		"<278>           #delay {$cnt} {#show Volume $cnt: #bell volume $cnt;#bell}\n"
 		,
 		"screen"
-	},
-	{
+	);
+	HELP_ADD(
 		"BREAK",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #break\n"
@@ -639,8 +651,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #while {1} {#math cnt $cnt + 1;#if {$cnt == 20} {#break}}\n",
 		
 		"statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"BUFFER",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #buffer <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -737,8 +749,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #macro {\\e[F} {#buffer end}\n"
 		,
 		"echo grep macro showme screen"
-	},
-	{
+	);
+	HELP_ADD(
 		"BUTTON",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #button <178>{<278>square<178>} {<278>commands<178>} {<278>priority<178>}\n"
@@ -778,8 +790,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a button with the #unbutton command.\n"
 		,
 		"delay event ticker"
-	},
-	{
+	);
+	HELP_ADD(
 		"CASE",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #case <178>{<278>conditional<178>} {<278>arguments<178>}\n"
@@ -810,8 +822,8 @@ struct help_type help_table[] =
 		"<278>         would return south.\n"
 		,
 		"default statements switch"
-	},
-	{
+	);
+	HELP_ADD(
 		"CAT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #cat <178>{<278>variable<178>} {<278>argument<178>}\n"
@@ -819,9 +831,8 @@ struct help_type help_table[] =
 		"<278>         The cat command will concatenate the argument to the given variable.\n"
 		,
 		"format function local math replace script variable"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"CHARACTERS",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -857,8 +868,8 @@ struct help_type help_table[] =
 		"<278>         is enabled.\n"
 		,
 		"colors escape_codes function mathematics pcre variable"
-	},
-	{
+	);
+	HELP_ADD(
 		"CHAT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #chat <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -927,8 +938,8 @@ struct help_type help_table[] =
 		"<278>         <178>#chat {zap}        {buddy}            Close a connection\n",
 		
 		"port"
-	},
-	{
+	);
+	HELP_ADD(
 		"CLASS",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #class <178>{<278>name<178>} {<278>option<178>} {<278>arg<178>}\n"
@@ -968,8 +979,8 @@ struct help_type help_table[] =
 		"<278>         all triggers loaded will be assigned to the 'rich' class.\n",
 		
 		"config debug ignore info kill line message"
-	},
-	{
+	);
+	HELP_ADD(
 		"COLORS",
 		TOKEN_TYPE_STRING,
 		"<178>Syntax<278>:  <<888>xyz>  with x, y, z being parameters\n"
@@ -1018,8 +1029,8 @@ struct help_type help_table[] =
 		"<278>         downgraded to the closest match.\n"
 		,
 		"characters coordinates escape_codes mathematics pcre"
-	},
-	{
+	);
+	HELP_ADD(
 		"COMMANDS",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #commands <178>{<278>abbreviation<178>}\n"
@@ -1028,8 +1039,8 @@ struct help_type help_table[] =
 		"<278>         abbreviation.\n"
 		,
 		"help info statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"CONFIG",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #config <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -1062,8 +1073,8 @@ struct help_type help_table[] =
 		"<278>         #CONFIG {TINTIN CHAR}   {SYMBOL} Character used for TinTin++ commands.\n"
 		,
 		"class line"
-	},
-	{
+	);
+	HELP_ADD(
 		"CONTINUE",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #continue\n"
@@ -1076,8 +1087,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #loop 1 10 cnt {#if {$cnt % 2 == 0} {#continue} {say $cnt}}\n",
 		
 		"break foreach list loop parse repeat return while"
-	},
-	{
+	);
+	HELP_ADD(
 		"COORDINATES",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -1119,8 +1130,8 @@ struct help_type help_table[] =
 		"<278>         and #variable.\n"
 		,
 		"characters colors escape_codes mathematics pcre"
-	},
-	{
+	);
+	HELP_ADD(
 		"CR",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #cr\n"
@@ -1132,8 +1143,8 @@ struct help_type help_table[] =
 		"<278>         without an argument or #send {}.\n"
 		,
 		"forall"
-	},
-	{
+	);
+	HELP_ADD(
 		"CURSOR",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #cursor <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -1171,8 +1182,8 @@ struct help_type help_table[] =
 		"<278>         Multiple options can/must be specified at once.\n"
 		,
 		"alias history keypad macro speedwalk tab"
-	},
-	{
+	);
+	HELP_ADD(
 		"DAEMON",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #daemon <178>{<278>attach<178>|<278>detach<178>|<278>kill<178>|<278>list<178>} <178>[<278>name<178>]\n"
@@ -1199,8 +1210,8 @@ struct help_type help_table[] =
 		"<278>         tt++ -R. To attach a named instance use tt++ -R<name>.\n",
 		
 		"script system run"
-	},
-	{
+	);
+	HELP_ADD(
 		"DEBUG",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #debug <178>{<278>listname<178>} {<278>on<178>|<278>off<178>|<278>log<178>}\n"
@@ -1217,8 +1228,8 @@ struct help_type help_table[] =
 		"<278>         Not every list has debug support yet.\n",
 		
 		"class ignore info kill message"
-	},
-	{
+	);
+	HELP_ADD(
 		"DEFAULT",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #default <178>{<278>commands<178>}\n"
@@ -1229,7 +1240,7 @@ struct help_type help_table[] =
 		
 		"case default else elseif if switch regexp"
 	},
-	{
+	HELP_ADD(
 		"DELAY",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #delay <178>{<278>seconds<178>} {<278>command<178>}\n"
@@ -1252,9 +1263,8 @@ struct help_type help_table[] =
 		"<278>         name will not be overwritten\n",
 		
 		"event ticker"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"DRAW",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #draw <178>[<278>line color<178>] <178>[<278>options<178>] <178><<278>type<178>> <<278>square<178>> {<278>text<178>}\n"
@@ -1347,9 +1357,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #draw Blue box 1 1 3 20 {Hello world!}\n"
 		,
 		"buffer echo grep showme"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"ECHO",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #echo <178>{<278>format<178>} {<278>argument1<178>} {<278>argument2<178>} {<278>etc<178>}\n"
@@ -1367,8 +1376,8 @@ struct help_type help_table[] =
 		"<278>         #echo {{this is %s on the top row} {1}} {printed}\n",
 		
 		"buffer format grep showme"
-	},
-	{
+	);
+	HELP_ADD(
 		"EDIT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #edit <178>{<278>option<178>} <178>[<278>argument<178>]\n"
@@ -1401,8 +1410,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #edit create {bli}{bla}{blo}\n",
 		
 		"cursor macro"
-	},
-	{
+	);
+	HELP_ADD(
 		"EDITING",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -1527,9 +1536,8 @@ struct help_type help_table[] =
 		"<268>└─────────────────────────┘└────────────────────────────────────────────┘\n"
 		,
 		"cursor edit macro"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"ELSE",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #else <178>{<278>commands<178>}\n"
@@ -1540,8 +1548,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #if {1d2 == 1} {smile};#else {grin}\n",
 		
 		"case default elseif if switch regexp"
-	},
-	{
+	);
+	HELP_ADD(
 		"ELSEIF",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #elseif <178>{<278>conditional<178>} {<278>commands<178>}\n"
@@ -1553,8 +1561,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #if {1d3 == 1} {smirk};#elseif {1d2 == 1} {snicker}\n",
 		
 		"case default else if switch regexp"
-	},
-	{
+	);
+	HELP_ADD(
 		"END",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #end {<message>}\n"
@@ -1566,8 +1574,8 @@ struct help_type help_table[] =
 		"<278>         using #end {\\} tintin will terminate silently.\n",
 		
 		"zap"
-	},
-	{
+	);
+	HELP_ADD(
 		"ESCAPE CODES",
 		TOKEN_TYPE_STRING,
 		"<278>         You may use the escape character \\ for various special characters.\n"
@@ -1591,8 +1599,8 @@ struct help_type help_table[] =
 		"<278>         To escape arguments in an alias or action use %%0 %%1 %%2 etc.\n",
 		
 		"characters colors coordinates mathematics pcre"
-	},
-	{
+	);
+	HELP_ADD(
 		"EVENT",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #event <178>{<278>event type<178>}<278> <178>{<278>commands<178>}\n"
@@ -1806,8 +1814,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove an event with the #unevent command.\n",
 		
 		"button delay ticker"
-	},
-	{
+	);
+	HELP_ADD(
 		"FOREACH",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #foreach <178>{<278>list<178>} {<278>variable<178>} {<278>commands<178>}\n"
@@ -1820,8 +1828,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #foreach {{bob}{tim}{kim}} {name} {tell $name Hello}\n",
 		
 		"break continue list loop parse repeat return while"
-	},
-	{
+	);
+	HELP_ADD(
 		"FORMAT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #format <178>{<278>variable<178>} {<278>format<178>} {<278>argument1<178>} {<278>argument2<178>} {<278>etc<178>}\n"
@@ -1868,9 +1876,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: See #help TIME for help on the %t argument.\n",
 		
 		"cat echo function local math replace script time variable"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"FUNCTION",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #function <178>{<278>name<178>} {<278>operation<178>}\n"
@@ -1902,8 +1909,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a function with the #unfunction command.\n",
 		
 		"format local math replace script variable"
-	},
-	{
+	);
+	HELP_ADD(
 		"GAG",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #gag <178>{<278>string<178>}\n"
@@ -1917,8 +1924,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a gag with the #ungag command.\n",
 		
 		"action highlight prompt substitute"
-	},
-	{
+	);
+	HELP_ADD(
 		"GREETING",
 		TOKEN_TYPE_STRING,
 		"<268>      #<268>##################################################################<268>#\n"
@@ -1932,8 +1939,8 @@ struct help_type help_table[] =
 		"<268>      #<268>##################################################################<268>#<288>\n",
 		
 		""
-	},
-	{
+	);
+	HELP_ADD(
 		"GREP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #grep <178>[<278>page<178>] {<278>search string<178>}\n"
@@ -1951,8 +1958,8 @@ struct help_type help_table[] =
 		"<278>         This will show all occasions where bubba tells you something.\n",
 		
 		"buffer echo showme"
-	},
-	{
+	);
+	HELP_ADD(
 		"HELP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #help <178>{<278>subject<178>}\n"
@@ -1962,8 +1969,8 @@ struct help_type help_table[] =
 		"<278>         Using #help %* will display all help entries.\n",
 		
 		"commands debug ignore info message statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"HIGHLIGHT",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #highlight <178>{<278>string<178>} {<278>color names<178>} {<278>priority<178>}\n"
@@ -2031,8 +2038,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a highlight with the #unhighlight command.\n",
 		
 		"action gag prompt substitute"
-	},
-	{
+	);
+	HELP_ADD(
 		"HISTORY",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #history <178>{<278>delete<178>}<278>                 Delete the last command.\n"
@@ -2065,8 +2072,8 @@ struct help_type help_table[] =
 		"<278>         commands only work properly when bound with a macro.\n",
 		
 		"alias cursor keypad macro speedwalk tab"
-	},
-	{
+	);
+	HELP_ADD(
 		"IF",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #if <178>{<278>conditional<178>} {<278>commands if true<178>}\n"
@@ -2089,8 +2096,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #alias {k} {#if {\"%0\" == \"\"} {kill $target};#else {kill %0}}\n",
 		
 		"case default else elseif math switch regexp"
-	},
-	{
+	);
+	HELP_ADD(
 		"IGNORE",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #ignore <178>{<278>listname<178>} {<278>on<178>|<278>off<178>}\n"
@@ -2102,8 +2109,8 @@ struct help_type help_table[] =
 		"<278>         triger. Not every list can be ignored.\n"
 		,
 		"class debug info kill message"
-	},
-	{
+	);
+	HELP_ADD(
 		"INDEX",
 		TOKEN_TYPE_STRING,
 		"<acf>"
@@ -2140,8 +2147,8 @@ struct help_type help_table[] =
 		"<278>         which should be linked below.\n"
 		,
 		"introduction"
-	},
-	{
+	);
+	HELP_ADD(
 		"INFO",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #info <178>{<278>listname<178>} {<278>LIST<178>|<278>ON<178>|<278>OFF<178>|<278>SAVE<178>}\n"
@@ -2169,8 +2176,8 @@ struct help_type help_table[] =
 		"<278>         #info unicode will show information on the provided character.\n"
 		,
 		"class debug ignore kill message"
-	},
-	{
+	);
+	HELP_ADD(
 		"INTRODUCTION",
 		TOKEN_TYPE_STRING,
 		"<278>         On this page you'll find an introduction to using TinTin++. Additional\n"
@@ -2439,8 +2446,8 @@ struct help_type help_table[] =
 		"<278>         <128>That's all for the introduction, enjoy\n"
 		,
 		"characters colors coordinates editing escape_codes greeting keypad lists mapping mathematics screen_reader sessionname speedwalk statements suspend time"
-	},
-	{
+	);
+	HELP_ADD(
 		"KEYPAD",
 		TOKEN_TYPE_STRING,
 		"<278>         When TinTin++ starts up it sends \\e= to the terminal to enable the\n"
@@ -2483,8 +2490,8 @@ struct help_type help_table[] =
 		"<278>         Terminal -> Window Settings -> Emulation.\n"
 		,
 		"colors coordinates escape_codes mathematics pcre"
-	},
-	{
+	);
+	HELP_ADD(
 		"KILL",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #kill <178>{<278>list<178><178>} {<278>pattern<178>}\n"
@@ -2500,8 +2507,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #kill alias %*test*\n"
 		,
 		"class debug ignore info message"
-	},
-	{
+	);
+	HELP_ADD(
 		"LINE",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #line <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -2580,8 +2587,8 @@ struct help_type help_table[] =
 		"<278>         log a literal < > & and \".\n"
 		,
 		"class config"
-	},
-	{
+	);
+	HELP_ADD(
 		"LIST",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #list <178>{<278>variable<178>} {<278>option<178>} {<278>argument<178>}\n"
@@ -2640,9 +2647,8 @@ struct help_type help_table[] =
 		"<278>         $var[+2], $var[-1], etc.\n"
 		,
 		"break continue foreach loop parse repeat return while"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"LISTS",
 		TOKEN_TYPE_STRING,
 		"<278>         There are several different types of lists in tintin which behave in a\n"
@@ -2967,9 +2973,8 @@ struct help_type help_table[] =
 		"        }\n",
 		
 		"break continue foreach loop parse repeat return while"
-	},
-	
-	{
+	);
+	HELP_ADD(
 		"LOCAL",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #local <178>{<278>variable name<178>} {<278>text to fill variable<178>}\n"
@@ -2991,9 +2996,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a local variable with the #unlocal command.\n"
 		,
 		"format function math replace script variable"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"LOG",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #log <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -3026,9 +3030,8 @@ struct help_type help_table[] =
 		"<278>           specifiers as described in #help time.\n"
 		,
 		"read scan textin time write"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"LOOP",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #loop <178>{<278><start><178>} {<278><finish><178>} {<278><variable><178>} {<278>commands<178>}\n"
@@ -3044,8 +3047,8 @@ struct help_type help_table[] =
 		"<278>         This equals 'drop 3.key;drop 2.key;drop 1.key'.\n"
 		,
 		"break continue foreach list parse repeat return while"
-	},
-	{
+	);
+	HELP_ADD(
 		"MACRO",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #macro <178>{<278>key sequence<178>} {<278>commands<178>}\n"
@@ -3079,8 +3082,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a macro with the #unmacro command.\n"
 		,
 		"alias cursor history keypad speedwalk tab"
-	},
-	{
+	);
+	HELP_ADD(
 		"MAP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #map\n"
@@ -3407,9 +3410,8 @@ struct help_type help_table[] =
 		"<278>           you must provide the {force} argument.\n"
 		,
 		"path pathdir speedwalk"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MAPPING",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -3534,9 +3536,8 @@ struct help_type help_table[] =
 		"<278>         done using #map insert north void.\n"
 		,
 		"map path pathdir"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MATH",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #math <178>{<278>variable<178>} {<278>expression<178>}\n"
@@ -3606,9 +3607,8 @@ struct help_type help_table[] =
 		"<278>         When you are away from keyboard, it will only reply to your friend.\n"
 		,
 		"cat format function local mathematics replace script variable"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MATHEMATICS",
 		TOKEN_TYPE_STRING,
 		"<278>         <178>Number operations\n"
@@ -3663,9 +3663,8 @@ struct help_type help_table[] =
 		"<278>         {bla} == {%*a} would evaluate as 1.\n"
 		,
 		"math regexp"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MESSAGE",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #message <178>{<278>listname<178>} {<278>on<178>|<278>off<178>}\n"
@@ -3675,9 +3674,8 @@ struct help_type help_table[] =
 		"<278>         spammed when correctly using the #VARIABLE and #UNVARIABLE commands.\n"
 		,
 		"class debug ignore info kill"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"METRIC SYSTEM",
 		TOKEN_TYPE_STRING,
 		"<278>         The #math command supports using 1K, 1M, 1m, and 1u to make large and\n"
@@ -3707,9 +3705,8 @@ struct help_type help_table[] =
 		"<268>         ╰─────────┴────────┴─────────────────────────────────╯\n"
 		,
 		"echo format math"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MOUSE",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -3730,9 +3727,8 @@ struct help_type help_table[] =
 		"\n",
 		
 		"button draw event MSLP"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MSDP",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -3746,9 +3742,8 @@ struct help_type help_table[] =
 		"<278>         <168>https://tintin.sourceforge.io/protocols/msdp\n"
 		,
 		"event port"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"MSLP",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -3803,9 +3798,8 @@ struct help_type help_table[] =
 		"<178>Website<278>: https://tintin.mudhalla.net/protocols/mslp\n"
 		,
 		"event port"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"NOP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #nop <178>{<278>whatever<178>}\n"
@@ -3826,8 +3820,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #nop This is the start of my script file.\n"
 		,
 		"read"
-	},
-	{
+	);
+	HELP_ADD(
 		"PARSE",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #parse <178>{<278>string<178>} {<278>variable<178>} {<278>commands<178>}\n"
@@ -3839,8 +3833,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #parse {hello world} {char} {#show $char}\n"
 		,
 		"break continue foreach list loop repeat return while"
-	},
-	{
+	);
+	HELP_ADD(
 		"PATH",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #path <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -3870,8 +3864,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #path ins {unlock n;open n} {unlock s;open s}\n"
 		,
 		"map pathdir speedwalk"
-	},
-	{
+	);
+	HELP_ADD(
 		"PATHDIR",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #pathdir <178>{<278>dir<178>} {<278>reversed dir<178>} {<278>coord<178>}\n"
@@ -3897,8 +3891,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a pathdir with the #unpathdir command.\n",
 		
 		"map path"
-	},
-	{
+	);
+	HELP_ADD(
 		"PCRE",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -4104,9 +4098,8 @@ struct help_type help_table[] =
 		"<278>         information.\n"
 		,
 		"map path"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"PORT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #port <178>{<278>option<178>} {<278>argument<178>}\n"
@@ -4157,9 +4150,8 @@ struct help_type help_table[] =
 		"<278>         You can init with 0 as the port number to create a dummy session.\n"
 		,
 		"all chat run session sessionname snoop ssl zap"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"PROMPT",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #prompt <178>{<278>text<178>} {<278>new text<178>} {<278>row #<178>} <178>{<278>col #<178>}\n"
@@ -4196,8 +4188,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a prompt with the #unprompt command.\n"
 		,
 		"action gag highlight substitute"
-	},
-	{
+	);
+	HELP_ADD(
 		"READ",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #read <178>{<278>filename<178>}\n"
@@ -4212,8 +4204,8 @@ struct help_type help_table[] =
 		"<278>         You can comment out triggers using /* text */\n"
 		,
 		"log scan textin write"
-	},
-	{
+	);
+	HELP_ADD(
 		"REGEXP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #regexp <178>{<278>string<178>} {<278>expression<178>} {<278>true<178>} {<278>false<178>}\n"
@@ -4282,9 +4274,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: Like an alias or function #regex has its own scope.\n"
 		,
 		"pcre replace"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"REPEAT",
 		TOKEN_TYPE_STRING,
 		"<178>Command<278>: #<178>[<078>number<178>] {<278>commands<178>}\n"
@@ -4295,8 +4286,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #10 {buy bread}\n",
 		
 		"mathematics statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"REPLACE",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #replace <178>{<278>variable<178>} {<278>oldtext<178>} {<278>newtext<178>}\n"
@@ -4310,8 +4301,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #function rnd #math result 1d9;#replace test {%.} {@rnd{}}\n"
 		,
 		"cat format function local math script variable"
-	},
-	{
+	);
+	HELP_ADD(
 		"RETURN",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #return <178>{<278>text<178>}\n"
@@ -4323,8 +4314,8 @@ struct help_type help_table[] =
 		"<278>         break out of the function and set the result variable.\n"
 		,
 		"break continue foreach list loop parse repeat while"
-	},
-	{
+	);
+	HELP_ADD(
 		"RUN",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #run <178>{<278>name<178>} {<278>shell command<178>} {<278>file<178>}\n"
@@ -4340,8 +4331,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #run {something} {tail -f chats.log}\n"
 		,
 		"all port session sessionname snoop ssl zap"
-	},
-	{
+	);
+	HELP_ADD(
 		"SCAN",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #scan <178>{<278>abort<178>|<278>csv<178><178>|<278>tsv<178><178>|<278>txt<178>} {<278>filename<178>}\n"
@@ -4400,9 +4391,8 @@ struct help_type help_table[] =
 		"<278>           stop the scan.\n"
 		,
 		"read textin"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SCREEN",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #screen <178>{<278>option<178>}<178> {<278>argument<178>}\n"
@@ -4471,9 +4461,8 @@ struct help_type help_table[] =
 		"<278>           Swap the input and scroll region.\n"
 		,
 		"bell"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SCREEN READER",
 		TOKEN_TYPE_STRING,
 		"<178>Command<278>: #config <178>{<278>SCREEN READER<178>} {<278>ON|OFF<178>}\n"
@@ -4489,9 +4478,8 @@ struct help_type help_table[] =
 		"<278>         alter visual elements where possible.\n"
 		,
 		"config"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SCRIPT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #script <178>{<278>variable<178>}<178> {<278>shell command<178>}\n"
@@ -4511,9 +4499,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #script {path} {pwd};#show The path is $path[1].\n"
 		,
 		"format function local math replace variable"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SEND",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #send <178>{<278>text<178>}\n"
@@ -4522,9 +4509,8 @@ struct help_type help_table[] =
 		"<278>         with an escape code.\n"
 		,
 		"textin"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SESSION",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #session <178>{<278>name<178>} {<278>host<178>} {<278>port<178>} {<278>file<178>}\n"
@@ -4564,9 +4550,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #event {SESSION DISCONNECTED} {#gts #delay 10 #ses %0 tintin.net 4321}\n"
 		,
 		"all port run sessionname snoop ssl zap"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SESSIONNAME",
 		TOKEN_TYPE_STRING,
 		"<178>Syntax<278>:  #[sessionname] <178>{<278>commands<178>}\n"
@@ -4601,9 +4586,8 @@ struct help_type help_table[] =
 		"<278>         as defined by session two.\n"
 		,
 		"suspend"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"SHOWME",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #show <178>{<278>string<178>} {<278>row<178>} <178>{<278>col<178>}\n"
@@ -4621,8 +4605,8 @@ struct help_type help_table[] =
 		"<278>         option {row} and {col} arguments.\n"
 		,
 		"buffer draw echo grep prompt"
-	},
-	{
+	);
+	HELP_ADD(
 		"SNOOP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #snoop <178>{<278>session name<178>} <178>{<278>on<178>|<278>off<178>|<278>scroll<178>}\n"
@@ -4640,8 +4624,8 @@ struct help_type help_table[] =
 		"<278>         using the #split and #screen scrollregion commands.\n"
 		,
 		"all port run session sessionname ssl zap"
-	},
-	{
+	);
+	HELP_ADD(
 		"SPEEDWALK",
 		TOKEN_TYPE_STRING,
 		"<128>         SPEEDWALK V1\n"
@@ -4674,8 +4658,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #path unzip 3n1e2nw\n"
 		"<178>Example<278>: #map move 3ne1d\n",
 		"keypad mapping repeat"
-	},
-	{
+	);
+	HELP_ADD(
 		"SPLIT",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #split <178>{<278>top bar<178>} {<278>bottom bar<178>} {<278>left bar<178>} {<278>right bar<178>} {<278>input bar<178>}\n"
@@ -4739,8 +4723,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove split mode with the #unsplit command.\n"
 		,
 		"echo prompt showme"
-	},
-	{
+	);
+	HELP_ADD(
 		"SSL",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #ssl <178>{<278>name<178>} {<278>host<178>} {<278>port<178>} {<278>file<178>}\n"
@@ -4749,8 +4733,8 @@ struct help_type help_table[] =
 		"<278>         and optional file name.\n"
 		,
 		"all port run sessionname snoop ssl zap"
-	},
-	{
+	);
+	HELP_ADD(
 		"STATEMENTS",
 		TOKEN_TYPE_STRING,
 		"\n"
@@ -4771,8 +4755,8 @@ struct help_type help_table[] =
 		"<278>         #while {expression} {commands}\n"
 		,
 		"mathematics pcre repeat"
-	},
-	{
+	);
+	HELP_ADD(
 		"SUBSTITUTE",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #substitute <178>{<278>text<178>} {<278>new text<178>} {<278>priority<178>}\n"
@@ -4807,8 +4791,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a substitution with the #unsubstitute command.\n"
 		,
 		"action gag highlight prompt"
-	},
-	{
+	);
+	HELP_ADD(
 		"SUBSTITUTIONS",
 		TOKEN_TYPE_STRING,
 		"<278>          TinTin++ will perform various types of substitions as detailed below.\n"
@@ -4878,9 +4862,9 @@ struct help_type help_table[] =
 		"<278>          displayed on the screen, or being processed as part of a regex.\n"
 		"<278>          Escapes try to mimic escapes in PCRE when possible.\n"
 		,
-		"characters colors escape_codes pcre",
-	},
-	{
+		"characters colors escape_codes pcre"
+	);
+	HELP_ADD(
 		"SUSPEND",
 		TOKEN_TYPE_STRING,
 		"<178>Command<278>: #cursor suspend\n"
@@ -4892,8 +4876,8 @@ struct help_type help_table[] =
 		"<278>         suspended session running use the #daemon command.\n"
 		,
 		"sessionname"
-	},
-	{
+	);
+	HELP_ADD(
 		"SWITCH",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #switch <178>{<278>conditional<178>} {<278>arguments<178>}\n"
@@ -4912,8 +4896,8 @@ struct help_type help_table[] =
 		"<178>Example<278>: #switch {1d4} {#case 1 cackle;#case 2 smile;#default giggle}\n"
 		,
 		"statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"SYSTEM",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #system <178>{<278>command<178>}\n"
@@ -4921,8 +4905,8 @@ struct help_type help_table[] =
 		"<278>         Executes the command specified as a shell command.\n"
 		,
 		"detach script run"
-	},
-	{
+	);
+	HELP_ADD(
 		"TAB",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #tab <178>{<278>word<178>}\n"
@@ -4940,8 +4924,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a tab with the #untab command.\n"
 		,
 		"alias cursor history keypad macro speedwalk"
-	},
-	{
+	);
+	HELP_ADD(
 		"TEXTIN",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #textin <178>{<278>filename<178>} {<278>delay<178>}\n"
@@ -4954,8 +4938,8 @@ struct help_type help_table[] =
 		"<278>         cumulatively applied to each outgoing line.\n"
 		,
 		"scan send"
-	},
-	{
+	);
+	HELP_ADD(
 		"TICKER",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #ticker <178>{<278>name<178>} {<278>commands<178>} {<278>interval in seconds<178>}\n"
@@ -4969,8 +4953,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a ticker with the #unticker command.\n"
 		,
 		"delay event"
-	},
-	{
+	);
+	HELP_ADD(
 		"TIME",
 		TOKEN_TYPE_STRING,
 		"<178>Command<278>: #format <178>{<278>variable<178>} {<278>%t<178>} {<278>argument<178>}\n"
@@ -5010,8 +4994,8 @@ struct help_type help_table[] =
 		"<278>         %Z  Abbreviated name of the time zone. (CET, GMT, etc)\n"
 		,
 		"echo event format"
-	},
-	{
+	);
+	HELP_ADD(
 		"TRIGGERS",
 		TOKEN_TYPE_STRING,
 		"<278>         All available triggers in TinTin++ are displayed when you use the #info\n"
@@ -5109,9 +5093,8 @@ struct help_type help_table[] =
 		"<278>         Events can be used for a wide variety of pre-defined triggers.\n"
 		,
 		"pcre substitutions escape_codes"
-	},
-
-	{
+	);
+	HELP_ADD(
 		"VARIABLE",
 		TOKEN_TYPE_CONFIG,
 		"<178>Command<278>: #variable <178>{<278>variable name<178>} {<278>text to fill variable<178>}\n"
@@ -5175,8 +5158,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: You can remove a variable with the #unvariable command.\n"
 		,
 		"cat format function local math replace script"
-	},
-	{
+	);
+	HELP_ADD(
 		"WHILE",
 		TOKEN_TYPE_STATEMENT,
 		"<178>Command<278>: #while <178>{<278>conditional<178>} {<278>commands<178>}\n"
@@ -5198,8 +5181,8 @@ struct help_type help_table[] =
 		"<178>Comment<278>: See '#help math', for more information.\n"
 		,
 		"statements"
-	},
-	{
+	);
+	HELP_ADD(
 		"WRITE",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #write <178>{<278><filename><178>} {<278>[FORCE]<178>}\n"
@@ -5212,8 +5195,8 @@ struct help_type help_table[] =
 		"<278>         protection.\n"
 		,
 		"log read scan textin"
-	},
-	{
+	);
+	HELP_ADD(
 		"ZAP",
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #zap {[session]}\n"
@@ -5223,17 +5206,17 @@ struct help_type help_table[] =
 		"<278>         the given session instead.\n"
 		,
 		"all port run session sessionname snoop ssl"
-	},
-	{
-		"",
+	);
+	HELP_ADD(
+		NULL,
 		TOKEN_TYPE_COMMAND,
 		""
 		,
 		""
-	}
+	);
 };
 
 size_t help_size()
 {
-	return sizeof(help_table) / sizeof(help_table[0]) - 1;
+	return help_entries_count;
 }

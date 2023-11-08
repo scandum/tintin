@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>
+#include <libintl.h>
+#include <locale.h>
 
 /******************************************************************************
 *   Autoconf patching by David Hedbor                                         *
@@ -2290,6 +2292,7 @@ extern char *fread_one_line(char **str, FILE *fp);
 #define __HELP_H__
 
 extern DO_COMMAND(do_help);
+extern void init_help();
 
 #endif
 
@@ -2703,24 +2706,40 @@ extern void dispose_session(struct session *ses);
 #ifndef __SHOW_H__
 #define __SHOW_H__
 
-extern void show_message(struct session *ses, int index, char *format, ...);
-extern void show_error(struct session *ses, int index, char *format, ...);
-extern void show_debug(struct session *ses, int index, char *format, ...);
-extern void show_info(struct session *ses, int index, char *format, ...);
-extern void tintin_header(struct session *ses, int width, char *format, ...);
+#define _(STRING) gettext(STRING)
+
+#define show_message(ses, index, format, ...)   _show_message((ses), (index), gettext(format), ##__VA_ARGS__)
+#define show_error(ses, index, format, ...)     _show_error((ses), (index), gettext(format), ##__VA_ARGS__)
+#define show_debug(ses, index, format, ...)     _show_debug((ses), (index), gettext(format), ##__VA_ARGS__)
+#define show_info(ses, index, format, ...)      _show_info((ses), (index), gettext(format), ##__VA_ARGS__)
+#define tintin_header(ses, width, format, ...)  _tintin_header((ses), (width), gettext(format), ##__VA_ARGS__)
+
+#define tintin_printf(ses, format, ...)         _tintin_printf((ses), gettext(format), ##__VA_ARGS__)
+#define tintin_printf2(ses, format, ...)        _tintin_printf2((ses), gettext(format), ##__VA_ARGS__)
+#define tintin_printf3(ses, format, ...)        _tintin_printf3((ses), gettext(format), ##__VA_ARGS__)
+
+#define tintin_puts(ses, string)                _tintin_puts((ses), gettext(string))
+#define tintin_puts2(ses, string)               _tintin_puts2((ses), gettext(string))
+#define tintin_puts3(ses, string, prompt)       _tintin_puts3((ses), gettext(string), prompt)
+
+extern void _show_message(struct session *ses, int index, char *format, ...);
+extern void _show_error(struct session *ses, int index, char *format, ...);
+extern void _show_debug(struct session *ses, int index, char *format, ...);
+extern void _show_info(struct session *ses, int index, char *format, ...);
+extern void _tintin_header(struct session *ses, int width, char *format, ...);
 extern void socket_printf(struct session *ses, size_t length, char *format, ...);
 extern void telnet_printf(struct session *ses, int length, char *format, ...);
 
 extern void print_lines(struct session *ses, int flags, char *color, char *format, ...);
 extern void show_lines(struct session *ses, char *color, char *str);
 
-extern void tintin_printf(struct session *ses, char *format, ...);
-extern void tintin_printf2(struct session *ses, char *format, ...);
-extern void tintin_printf3(struct session *ses, char *format, ...);
+extern void _tintin_printf(struct session *ses, char *format, ...);
+extern void _tintin_printf2(struct session *ses, char *format, ...);
+extern void _tintin_printf3(struct session *ses, char *format, ...);
 
-extern void tintin_puts(struct session *ses, char *string);
-extern void tintin_puts2(struct session *ses, char *string);
-extern void tintin_puts3(struct session *ses, char *string, int prompt);
+extern void _tintin_puts(struct session *ses, char *string);
+extern void _tintin_puts2(struct session *ses, char *string);
+extern void _tintin_puts3(struct session *ses, char *string, int prompt);
 
 #endif
 

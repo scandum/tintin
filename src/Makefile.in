@@ -99,6 +99,9 @@ install: tt++
 clean:
 	rm -f *.o *~ ../*~ ../mods/*~ tt++*
 
+pot:
+	@mkdir po
+	ls *.c | xargs -i gcc -E {} | xgettext --keyword=libintl_gettext --from-code=utf-8 --language=C --add-comments --sort-output -o po/tintin.pot -
 
 distclean:
 	rm -f *.o *~ ../*~ ../mods/*~ tt++* Makefile config.h config.status config.log
