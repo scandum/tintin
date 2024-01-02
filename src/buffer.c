@@ -712,7 +712,7 @@ DO_BUFFER(buffer_clear)
 
 	if (min > max)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER CLEAR {%d} {%d} LOWER BOUND EXCEEDS UPPER BOUND.", min, max);
+		show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER CLEAR {%d} {%d}: LOWER BOUND EXCEEDS UPPER BOUND.", min, max);
 
 		return;
 	}
@@ -931,7 +931,7 @@ DO_BUFFER(buffer_find)
 
 	if (*arg1 == 0)
 	{
-		show_error(gtd->ses, LIST_COMMAND, "#BUFFER, FIND WHAT?");
+		show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #BUFFER FIND [PAGE] <SEARCH TEXT>");
 
 		return;
 	}
@@ -944,7 +944,7 @@ DO_BUFFER(buffer_find)
 
 		if (*arg2 == 0)
 		{
-			show_error(gtd->ses, LIST_COMMAND, "#BUFFER, FIND OCCURANCE %d OF WHAT?", page);
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #BUFFER FIND {%d} <SEARCH TEXT>", page);
 
 			return;
 		}
@@ -1001,7 +1001,7 @@ DO_BUFFER(buffer_find)
 
 	if (scroll_cnt < 0 || scroll_cnt >= ses->scroll->used)
 	{
-		show_error(gtd->ses, LIST_COMMAND, "#BUFFER FIND, NO MATCHES FOUND.");
+		show_error(gtd->ses, LIST_COMMAND, "#BUFFER FIND: NO MATCHES FOUND.");
 
 		return;
 	}
@@ -1063,7 +1063,7 @@ DO_BUFFER(buffer_get)
 
 	if (min > max)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER GET {%s} {%d} {%d} LOWER BOUND EXCEEDS UPPER BOUND.", arg1, min, max);
+		show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER GET {%s} {%d} {%d}: LOWER BOUND EXCEEDS UPPER BOUND.", arg1, min, max);
 
 		return;
 	}
@@ -1079,7 +1079,7 @@ DO_BUFFER(buffer_get)
 		add_nest_node_ses(ses, arg1, "{%d}{%s}", ++cnt, arg2);
 	}
 
-	show_message(ses, LIST_COMMAND, "#BUFFER GET: %d LINE%s SAVED TO {%s}.", cnt, cnt > 1 ? "S" : "", arg1);
+	show_message(ses, LIST_COMMAND, "#BUFFER GET: %d LINES SAVED TO {%s}.", cnt, arg1);
 
 	return;
 }
@@ -1127,13 +1127,13 @@ DO_BUFFER(buffer_write)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #BUFFER WRITE <FILENAME>]");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #BUFFER WRITE <FILENAME>");
 	}
 	else
 	{
 		if ((fp = fopen(arg1, "w")))
 		{
-			show_message(ses, LIST_COMMAND, "#OK: WRITING BUFFER TO '%s'.", arg1);
+			show_message(ses, LIST_COMMAND, "#BUFFER WRITE: %d LINES WRITTEN TO {%s}.", ses->scroll->used - 1, arg1);
 
 			logheader(ses, fp, ses->log->mode | LOG_FLAG_OVERWRITE);
 
@@ -1158,7 +1158,7 @@ DO_BUFFER(buffer_write)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER WRITE {%s} - FAILED TO OPEN FILE.", arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER WRITE {%s}: COULDN'T OPEN FILE.", arg1);
 		}
 	}
 	return;
@@ -1200,7 +1200,7 @@ DO_BUFFER(buffer_info)
 		add_nest_node_ses(ses, arg2, "{USED}{%d}", ses->scroll->used);
 		add_nest_node_ses(ses, arg2, "{WRAP}{%d}", ses->scroll->wrap);
 
-		show_message(ses, LIST_COMMAND, "#BUFFER INFO: SAVED TO {%s}", arg2);
+		show_message(ses, LIST_COMMAND, "#BUFFER INFO: DATA SAVED TO {%s}", arg2);
 	}
 	else
 	{
@@ -1222,7 +1222,7 @@ DO_COMMAND(do_grep)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: GREP [#] <SEARCH TEXT>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #GREP [PAGE] <SEARCH TEXT>");
 
 		return ses;
 	}
@@ -1235,7 +1235,7 @@ DO_COMMAND(do_grep)
 
 		if (*arg2 == 0)
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #grep {%s} <SEARCH TEXT>", arg1);
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #GREP {%s} <SEARCH TEXT>", arg1);
 
 			return ses;
 		}
@@ -1286,7 +1286,7 @@ DO_COMMAND(do_grep)
 
 		if (grep_cnt <= grep_min)
 		{
-			show_error(ses, LIST_COMMAND, "#NO MATCHES FOUND.");
+			show_error(ses, LIST_COMMAND, "#GREP: #NO MATCHES FOUND.");
 
 			gtd->level->grep--;
 
@@ -1344,7 +1344,7 @@ DO_COMMAND(do_grep)
 
 		if (grep_cnt == 0)
 		{
-			show_error(ses, LIST_COMMAND, "#NO MATCHES FOUND.");
+			show_error(ses, LIST_COMMAND, "#GREP: #NO MATCHES FOUND.");
 
 			gtd->level->grep--;
 

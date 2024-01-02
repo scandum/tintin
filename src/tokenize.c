@@ -402,7 +402,7 @@ char *addregextoken(struct scriptroot *root, int lvl, int type, int cmd, char *s
 
 	if (*arg3 == 0)
 	{
-		show_error(root->ses, LIST_COMMAND, "#SYNTAX: #REGEXP {string} {expression} {true} {false}");
+		show_error(root->ses, LIST_COMMAND, "#SYNTAX: #REGEXP <TEXT> <EXPRESSION> <TRUE> [FALSE]");
 	}
 	addtoken(root, lvl, type, cmd, arg1);
 
@@ -634,7 +634,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #FOREACH {list} {variable} {commands}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #FOREACH <LIST> <VARIABLE> <COMMANDS>");
 						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
@@ -649,7 +649,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #IF {conditional} {true} {false}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #IF <CONDITIONAL> <TRUE> [FALSE]");
 						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
@@ -673,7 +673,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #LOOP {start} {finish} {commands}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #LOOP <START> <END> <COMMANDS>");
 						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
@@ -687,7 +687,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #PARSE {string} {variable} {commands}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #PARSE <TEXT> <VARIABLE> <COMMANDS>");
 						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
@@ -721,7 +721,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #SWITCH {conditional} {arguments}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #SWITCH <CONDITIONAL> <ARGUMENTS>");
 						}
 
 						str = get_arg_in_braces(root->ses, str, line, GET_ALL);
@@ -736,7 +736,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 						if (*str == 0 || *str == COMMAND_SEPARATOR)
 						{
-							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #WHILE {conditional} {commands}");
+							show_error(root->ses, LIST_COMMAND, "#SYNTAX: #WHILE <CONDITIONAL> <COMMANDS>");
 							deltoken(root, root->prev);
 							break;
 						}

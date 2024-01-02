@@ -45,7 +45,7 @@ DO_COMMAND(do_ssl)
 
 	if (*arg1 == 0 || *arg == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SSL {name} {host} {port}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SSL <NAME> <HOST> <PORT>");
 	}
 	else
 	{
@@ -70,6 +70,7 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 	gnutls_set_default_priority(ssl_ses);
 	gnutls_credentials_set(ssl_ses, GNUTLS_CRD_CERTIFICATE, ssl_cred);
 	gnutls_transport_set_ptr(ssl_ses, (gnutls_transport_ptr_t) (long int) ses->socket);
+	gnutls_server_name_set(ssl_ses, GNUTLS_NAME_DNS, ses->session_host, strlen(ses->session_host));
 
 	do 
 	{

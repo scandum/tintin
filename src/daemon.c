@@ -180,11 +180,11 @@ DO_DAEMON(daemon_attach)
 
 		if (*arg1)
 		{
-			show_message(ses, LIST_COMMAND, "#DAEMON ATTACH: UNABLE TO FIND DAEMON FILE {%s} IN {%s}.", arg1, filename);
+			show_message(ses, LIST_COMMAND, "#ERROR: #DAEMON ATTACH: UNABLE TO FIND DAEMON FILE {%s} IN {%s}.", arg1, filename);
 		}
 		else
 		{
-			show_message(ses, LIST_COMMAND, "#DAEMON ATTACH: NO AVAILABLE DAEMON FILES FOUND IN {%s}.", filename);
+			show_message(ses, LIST_COMMAND, "#ERROR: #DAEMON ATTACH: NO AVAILABLE DAEMON FILES FOUND IN {%s}.", filename);
 		}
 
 		return;
@@ -351,7 +351,7 @@ DO_DAEMON(daemon_detach)
 		}
 		else
 		{
-			show_error(gtd->ses, LIST_COMMAND, "#DAEMON DETACH: ALREADY FULLY DETACHED.");
+			show_error(gtd->ses, LIST_COMMAND, "#ERROR: #DAEMON DETACH: ALREADY FULLY DETACHED.");
 		}
 		return;
 	}
@@ -410,7 +410,7 @@ DO_DAEMON(daemon_detach)
 
 	if (strlen(filename) >= sizeof(addr_un.sun_path))
 	{
-		tintin_printf(ses, "#DAEMON DETACH: FILE NAME LENGTH OF {%s} EXCEEDS MAXIMUM OF %d.", filename, sizeof(addr_un.sun_path));
+		show_error(ses, LIST_COMMAND, "#ERROR: #DAEMON DETACH: FILE NAME LENGTH OF {%s} EXCEEDS MAXIMUM OF %d.", filename, sizeof(addr_un.sun_path));
 
 		return;
 	}

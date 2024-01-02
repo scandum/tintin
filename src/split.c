@@ -56,7 +56,7 @@ DO_COMMAND(do_split)
 
 		if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT {TOP BAR} {BOT BAR} {LEFT BAR} {RIGHT BAR}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SPLIT [TOP BAR] [BOTTOM BAR] [LEFT BAR] [RIGHT BAR] [INPUT BAR]");
 
 			return ses;
 		}
@@ -162,12 +162,12 @@ void init_split(struct session *ses, int top_row, int top_col, int bot_row, int 
 	ses->split->top_col = URANGE(1, ses->split->top_col, gtd->screen->cols - 2);
 	ses->split->bot_row = URANGE(ses->split->top_row + 1,  ses->split->bot_row, gtd->screen->rows - 1);
 	ses->split->bot_col = URANGE(ses->split->top_col + 1, ses->split->bot_col, gtd->screen->cols);
-
+/*
 	ses->split->sav_top_row = ses->split->top_row - 1;
 	ses->split->sav_top_col = ses->split->top_col - 1;
 	ses->split->sav_bot_row = gtd->screen->rows - ses->split->bot_row - 1;
 	ses->split->sav_bot_col = gtd->screen->cols - ses->split->bot_col;
-
+*/
 	ses->wrap = ses->split->bot_col - (ses->split->top_col - 1);
 
 	scroll_region(ses, ses->split->top_row, ses->split->bot_row);

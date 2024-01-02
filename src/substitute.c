@@ -1201,21 +1201,20 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					for (i = 1 ; i < 100 ; i++)
 					{
-						pte = get_arg_in_braces(ses, pte, temp, GET_ALL);
-
-						RESTRING(gtd->vars[i], temp);
-
-						gtd->varc = i + 1;
+						gtd->varc = i;
 
 						if (*pte == 0)
 						{
-							while (++i < 100)
+							while (i < 100)
 							{
-								*gtd->vars[i] = 0;
+								*gtd->vars[i++] = 0;
 							}
-
 							break;
 						}
+
+						pte = get_arg_in_braces(ses, pte, temp, GET_ALL);
+
+						RESTRING(gtd->vars[i], temp);
 
 						if (*pte == COMMAND_SEPARATOR)
 						{

@@ -46,29 +46,30 @@ struct class_type
 {
 	char                  * name;
 	CLASS                 * fun;
+	char                  * desc;
 };
 
 struct class_type class_table[] =
 {
-	{    "ASSIGN",            class_assign           },
-	{    "CLEAR",             class_clear            },
-	{    "CLOSE",             class_close            },
-	{    "KILL",              class_kill             },
-	{    "LIST",              class_list             },
-	{    "LOAD",              class_load             },
-	{    "OPEN",              class_open             },
-	{    "READ",              class_read             },
-	{    "SAVE",              class_save             },
-	{    "SIZE",              class_size             },
-	{    "WRITE",             class_write            },
-	{    "",                  NULL                   },
+	{    "ASSIGN",            class_assign,   "Execute command with given class opened."        },
+	{    "CLEAR",             class_clear,    "Delete triggers associated with given class."    },
+	{    "CLOSE",             class_close,    "Close given class."                              },
+	{    "KILL",              class_kill,     "Clear, close, and remove given class."           },
+	{    "LIST",              class_list,     "List triggers associated with given class."      },
+	{    "LOAD",              class_load,     "Load saved data of given class."                 },
+	{    "OPEN",              class_open,     "Open given class."                               },
+	{    "READ",              class_read,     "Read file with given class opened."              },
+	{    "SAVE",              class_save,     "Save given class to memory."                     },
+	{    "SIZE",              class_size,     "Store size of given class to a variable."        },
+	{    "WRITE",             class_write,    "Write given class to file."                      },
+	{    "",                  NULL,           NULL                                              }
 };
 
 int count_class(struct session *ses, struct listnode *group);
 
 DO_COMMAND(do_class)
 {
-	int i;
+	int i, cnt;
 	struct listroot *root;
 	struct listnode *node;
 
@@ -91,7 +92,9 @@ DO_COMMAND(do_class)
 	}
 	else if (*arg2 == 0)
 	{
-		class_list(ses, NULL, arg1, arg2);
+		node = search_node_list(ses->list[LIST_CLASS], arg1);
+
+		class_list(ses, node, arg1, arg2);
 	}
 	else
 	{
@@ -105,27 +108,36 @@ DO_COMMAND(do_class)
 
 		if (*class_table[i].name == 0)
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: CLASS {name} {OPEN|CLEAR|CLOSE|READ|SIZE|WRITE|KILL}.", arg1, capitalize(arg2));
+			tintin_header(ses, 80, " CLASS OPTIONS ");
+
+			for (cnt = 0 ; *class_table[cnt].fun != NULL ; cnt++)
+			{
+				if (*class_table[cnt].desc)
+				{
+					tintin_printf2(ses, "  [%-13s] %s", class_table[cnt].name, class_table[cnt].desc);
+				}
+			}
+			tintin_header(ses, 80, "");
 		}
 		else
 		{
 			node = search_node_list(ses->list[LIST_CLASS], arg1);
 
-			if (node == NULL)
-			{
-				show_info(ses, LIST_CLASS, "#INFO: CLASS {%s} CREATED", arg1);
-
-				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CREATED", arg1);
-				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CREATED %s", arg1, arg1);
-
-				node = update_node_list(ses->list[LIST_CLASS], arg1, "", arg3, "");
-			}
 			class_table[i].fun(ses, node, arg1, arg3);
 		}
 	}
 	return ses;
 }
 
+struct listnode *create_class(struct session *ses, char *arg1, char *arg3)
+{
+	show_info(ses, LIST_CLASS, "#INFO: CLASS {%s} CREATED", arg1);
+
+	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CREATED", arg1);
+	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CREATED %s", arg1, arg1);
+
+	return update_node_list(ses->list[LIST_CLASS], arg1, "", arg3, "");
+}
 
 int count_class(struct session *ses, struct listnode *group)
 {
@@ -151,6 +163,10 @@ int count_class(struct session *ses, struct listnode *group)
 
 DO_CLASS(class_assign)
 {
+	if (node == NULL)
+	{
+		node = create_class(ses, arg1, arg2);
+	}
 	char *tmp = ses->group;
 
 	ses->group = strdup(arg1);
@@ -167,6 +183,13 @@ DO_CLASS(class_assign)
 DO_CLASS(class_clear)
 {
 	int type, index;
+
+	if (node == NULL)
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
+	}
 
 	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CLEAR", ses->group);
 	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CLEAR %s", ses->group, ses->group);
@@ -199,11 +222,9 @@ DO_CLASS(class_clear)
 
 DO_CLASS(class_close)
 {
-	node = search_node_list(ses->list[LIST_CLASS], arg1);
-
 	if (node == NULL)
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} NO LONGER EXIST.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
 	}
 	else
 	{
@@ -248,7 +269,7 @@ DO_CLASS(class_list)
 {
 	int i, j;
 
-	if (search_node_list(ses->list[LIST_CLASS], arg1))
+	if (node)
 	{
 		tintin_header(ses, 80, " %s ", arg1);
 
@@ -285,6 +306,13 @@ DO_CLASS(class_kill)
 {
 	int group;
 
+	if (node == NULL)
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
+	}
+
 	class_clear(ses, node, arg1, arg2);
 
 	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
@@ -302,6 +330,13 @@ DO_CLASS(class_kill)
 DO_CLASS(class_load)
 {
 	FILE *file;
+
+	if (node == NULL)
+	{
+		show_error(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
+	}
 
 	if (node->data == NULL)
 	{
@@ -327,6 +362,11 @@ DO_CLASS(class_load)
 DO_CLASS(class_open)
 {
 	int count;
+
+	if (node == NULL)
+	{
+		node = create_class(ses, arg1, arg2);
+	}
 
 	if (!strcmp(ses->group, arg1))
 	{
@@ -372,6 +412,13 @@ DO_CLASS(class_save)
 	size_t len;
 	int list, index;
 
+	if (node == NULL)
+	{
+		show_error(ses, LIST_CLASS, "#ERROR: #CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
+	}
+
 	file = open_memstream(&node->data, (size_t *) &len);
 
 	fprintf(file, "%cCLASS {%s} OPEN\n\n", gtd->tintin_char, arg1);
@@ -407,12 +454,12 @@ DO_CLASS(class_size)
 {
 	if (*arg1 == 0 || *arg2 == 0)
 	{
-		show_error(ses, LIST_CLASS, "#SYNTAX: #CLASS {<class name>} SIZE {<variable>}.");
+		show_error(ses, LIST_CLASS, "#SYNTAX: #CLASS <NAME> SIZE <VARIABLE>");
 		
 		return ses;
 	}
 
-	set_nest_node_ses(ses, arg2, "%d", count_class(ses, node));
+	set_nest_node_ses(ses, arg2, "%d", node ? count_class(ses, node) : 0);
 
 	return ses;
 }
@@ -423,9 +470,16 @@ DO_CLASS(class_write)
 	FILE *file;
 	int list, index;
 
+	if (node == NULL)
+	{
+		show_error(ses, LIST_CLASS, "#ERROR: #CLASS {%s} DOES NOT EXIST.", arg1);
+
+		return ses;
+	}
+
 	if (*arg2 == 0 || (file = fopen(arg2, "w")) == NULL)
 	{
-		show_error(ses, LIST_CLASS, "#ERROR: #CLASS WRITE {%s} - COULDN'T OPEN FILE TO WRITE.", arg2);
+		show_error(ses, LIST_CLASS, "#ERROR: #CLASS WRITE {%s}: COULDN'T OPEN FILE.", arg2);
 		
 		return ses;
 	}

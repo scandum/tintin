@@ -612,7 +612,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.31                     </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.40                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1209,6 +1209,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          Links can be created using the MSLP protocol which will generate link
          specific events when clicked.
 
+         In order to copy/paste, most terminals require that you press the shift
+         key during selection.
+
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#BUTTON'>button</a>, <a href='help.html#DRAW'>draw</a>, <a href='help.html#EVENT'>event</a> and <a href='#MSLP'>MSLP</a>.
 <a name='MSDP'></a>
@@ -1274,7 +1277,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          you need to use &bsol;e]68;2;&bsol;a, and they instead trigger the SECURE LINK
          event.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4m%0&bsol;e[24m}
+         To creae a link that is not undelined, use &bsol;e]4;24m text &bsol;e]24m.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4;24m%0&bsol;e[24m}
 </span><span style='color:#FFF'>       </span><span style='color:#AAA'>  #event {PRESSED SECURE LINK EXEC MOUSE BUTTON ONE} {%4}
 
          This would make you start a reply when clicking on a tell.
@@ -1323,7 +1328,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          is used.
 
 </span><span style='color:#FFF'>TinTin++ Description                                      POSIX
-      %a </span><span style='color:#AAA'>Match zero or more characters including newlines ([^&bsol;n]*?)
+      %a </span><span style='color:#AAA'>Match zero or more characters including newlines ([^&bsol;0]*?)
 </span><span style='color:#FFF'>      %A </span><span style='color:#AAA'>Match zero or more newlines                      ([&bsol;n]*?)
 </span><span style='color:#FFF'>      %c </span><span style='color:#AAA'>Match zero or more ansi color codes              ((?:&bsol;e&bsol;[[0-9;]*m)*?)
 </span><span style='color:#FFF'>      %d </span><span style='color:#AAA'>Match zero or more digits                        ([0-9]*?)
@@ -1331,6 +1336,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FFF'>      %i </span><span style='color:#AAA'>Matches become case insensitive                  (?i)
 </span><span style='color:#FFF'>      %I </span><span style='color:#AAA'>Matches become case sensitive (default)          (?-i)
 </span><span style='color:#FFF'>      %s </span><span style='color:#AAA'>Match zero or more spaces                        ([&bsol;r&bsol;n&bsol;t ]*?)
+</span><span style='color:#FFF'>      %S </span><span style='color:#AAA'>Match zero or more non-spaces                    ([^&bsol;r&bsol;n&bsol;t ]*?)
 </span><span style='color:#FFF'>      %w </span><span style='color:#AAA'>Match zero or more word characters               ([A-Za-z0-9_]*?)
 </span><span style='color:#FFF'>      %W </span><span style='color:#AAA'>Match zero or more non-word characters           ([^A-Za-z0-9_]*?)
 </span><span style='color:#FFF'>      %? </span><span style='color:#AAA'>Match zero or one character                      (.??)
@@ -1494,10 +1500,10 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #</span><span style='color:#FFF'>[</span><span style='color:#AAA'>number</span><span style='color:#FFF'>] {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
 
-        Sometimes you want to repeat the same command multiple times. This is
+</span><span style='color:#AAA'>        Sometimes you want to repeat the same command multiple times. This is
         the easiest way to accomplish that.
 
-Example</span><span style='color:#AAA'>: #10 {buy bread}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #10 {buy bread}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#MATHEMATICS'>mathematics</a> and <a href='#STATEMENTS'>statements</a>.
 <a name='SCREEN_READER'></a>
@@ -1792,23 +1798,25 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
 
 </span><span style='color:#5F5'>         Multi-line triggers
 
-</span><span style='color:#AAA'>         If an action contains the &bsol;n sequence it will be turned into a
-         multi-line trigger. A multi-line action is executed on incoming blocks
-         of text from the MUD, and they will not trigger if the regular
-         expression spans more than one block. You can visualize incoming
-         blocks by using #event {RECEIVED OUTPUT} {#echo &lt;058&gt;%+80h BLOCK}
+</span><span style='color:#AAA'>         If an action or substitution contains the &bsol;n sequence it will be
+         turned into a multi-line trigger. A multi-line trigger is executed on
+         incoming blocks of text from the MUD, and they will not trigger if the
+         regular expression spans more than one block. You can visualize
+         incoming blocks by using the following event:
+
+         #event {RECEIVED OUTPUT} {#echo &lt;058&gt;%+80h BLOCK}
 
          Since the %* expression does not capture the &bsol;n sequence it is required
          to use %a to capture multiple lines. To capture the start of the block
          use &bsol;A and for the end use &bsol;Z. You can use ^ and &dollar; to capture the
          start and end of a line.
 
-         Multi-line actions trigger before regular actions. Multiple
+         Multi-line triggers trigger before regular triggers. Multiple
          multi-line actions can trigger per block, and each multi-line action
          can trigger multiple times per block. Packet fragmentation is not
          currently handled.
 
-         Multi-line actions are experimental and subject to change.
+         Multi-line triggers are experimental and subject to change.
 
 </span><span style='color:#5F5'>         Input triggers
 

@@ -103,6 +103,23 @@ void banner_expires(struct session *ses, char *name, char *arg, char *arg1)
 
 void banner_init(struct session *ses, char *arg1)
 {
+	banner_create(ses, "Armageddon", arg1);
+
+	banner_desc(ses, "Armageddon",
+		"Armageddon MUD is set in the brutal post-apocalyptic world of Zalanthas.\n"
+		"Emphasizing roleplay over combat, the game offers a rich, immersive experience.\n"
+		"Zalanthas is ruled by sorcerer-kings and their powerful Templarate, dominating\n"
+		"the twin cities of Allanak and Tuluk. Magic not sanctioned by these rulers is\n"
+		"feared and often met with fatal consequences. Survival is a constant struggle\n"
+		"in this harsh environment, and death is permanent. Armageddon MUD delivers a\n"
+		"distinctive roleplaying adventure, with a dedicated community of players and\n"
+		"staff actively shaping the ongoing Zalanthan narrative for over three decades.", arg1);
+
+	banner_website(ses, "Armageddon", "https://armageddon.org", arg1);
+	banner_address(ses, "Armageddon", "arm armageddon.org 4050", arg1);
+	banner_expires(ses, "Armageddon", "2030", arg1);
+
+
 	banner_create(ses, "Lost Souls", arg1);
 
 	banner_desc(ses, "Lost Souls",
@@ -118,7 +135,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Lost Souls", "https://lostsouls.org", arg1);
 	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
-	banner_expires(ses, "Lost Souls", "2028", arg1);
+	banner_expires(ses, "Lost Souls", "2029", arg1);
 
 
 	banner_create(ses, "Kallisti MUD", arg1);
@@ -136,8 +153,9 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Kallisti MUD", "https://www.KallistiMUD.com", arg1);
 	banner_address(ses, "Kallisti MUD", "LoK kallistimud.com 4000", arg1);
-	banner_expires(ses, "Kallisti MUD", "2028", arg1);
+	banner_expires(ses, "Kallisti MUD", "2029", arg1);
 	banner_flag(ses, "Kallisti MUD", BANNER_FLAG_DUPLICATE);
+
 
 	banner_create(ses, "Legends of Kallisti", arg1);
 
@@ -154,7 +172,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Legends of Kallisti", "https://legendsofkallisti.com", arg1);
 	banner_address(ses, "Legends of Kallisti", "LoK legendsofkallisti.com 4000", arg1);
-	banner_expires(ses, "Legends of Kallisti", "2028", arg1);
+	banner_expires(ses, "Legends of Kallisti", "2029", arg1);
 
 
 	banner_create(ses, "3Kingdoms", arg1);
@@ -172,7 +190,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "3Kingdoms", "http://3k.org", arg1);
 	banner_address(ses, "3Kingdoms", "3K 3k.org 3000", arg1);
-	banner_expires(ses, "3Kingdoms", "2028", arg1);
+	banner_expires(ses, "3Kingdoms", "2029", arg1);
 
 
 	banner_create(ses, "RetroMUD", arg1);
@@ -186,6 +204,53 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
 	banner_expires(ses, "RetroMUD", "2032", arg1);
 
+
+	banner_create(ses, "Alter Aeon", arg1);
+
+	banner_desc(ses, "Alter Aeon",
+		"Alter Aeon is a custom multiclass MUD, where each of the character\n"
+		"classes can be combined to make very unique characters.  This huge\n"
+		"fantasy themed game has hundreds of areas and quests, spanning\n"
+		"several continents and outer planar regions.  There are custom spells,\n"
+		"skills, minions, player run shops, boats, PvP, and many other features\n"
+		"for nearly every kind of player.  The game is very friendly to new players\n"
+		"and has extensive support for the blind and visually impaired.", arg1);
+
+	banner_website(ses, "Alter Aeon", "https://www.alteraeon.com", arg1);
+	banner_address(ses, "Alter Aeon", "aa alteraeon.com 3000", arg1);
+	banner_expires(ses, "Alter Aeon", "2029", arg1);
+
+
+	banner_create(ses, "New Worlds Ateraan", arg1);
+
+	banner_desc(ses, "New Worlds Ateraan",
+		"Ateraan is a world of Intensive Roleplaying offering many unique and powerful\n"
+		"guilds, races, politics, religion, justice, economy, and a storyline that is\n"
+		"dominantly player controlled and based on a novel. The game is based on a\n"
+		"Kingdom with knights, merchants, mages, and thieves, and a fierce southern\n"
+		"state that has warriors, shaman, slaves, and servants. Ships rule the seas and\n"
+		"caravans travel the lands. With 100's of players and features like invasions,\n"
+		"ship creation, house building, clans, theaters, leatherball fields, and massive\n"
+		"events, the game is incredibly robust and diverse.", arg1);
+
+	banner_website(ses, "New Worlds Ateraan", "http://www.ateraan.com", arg1);
+	banner_address(ses, "New Worlds Ateraan", "nwa ateraan.com 4002", arg1);
+	banner_expires(ses, "New Worlds Ateraan", "2029", arg1);
+
+/*
+	banner_create(ses, "Threshold RPG", arg1);
+
+	banner_desc(ses, "Threshold RPG",
+		"Join us at Threshold RPG, one of the oldest RP enforced games on the\n"
+		"internet. Add to twenty-six years of player created history and make your\n"
+		"own mark on the world today. Join a hundred other players who are vying for\n"
+		"political and religious power in complex systems that reward skill, effort,\n"
+		"and social interactions. Threshold RPG is a custom code-base written in\n"
+		"LPC and features a completely unique and original world.", arg1);
+
+	banner_website(ses, "Threshold RPG", "https://www.thresholdrpg.com", arg1);
+	banner_address(ses, "Threshold RPG", "thresh thresholdrpg.com 3333", arg1);
+	banner_expires(ses, "Threshold RPG", "2028", arg1);
 
 	banner_create(ses, "Realm of Utopian Dreams (RUD)", arg1);
 
@@ -203,38 +268,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "Realm of Utopian Dreams (RUD)", "rud rudmud.com 1701", arg1);
 	banner_expires(ses, "Realm of Utopian Dreams (RUD)", "2028", arg1);
 
-
-	banner_create(ses, "Alter Aeon", arg1);
-
-	banner_desc(ses, "Alter Aeon",
-		"Alter Aeon is a custom multiclass MUD, where each of the character\n"
-		"classes can be combined to make very unique characters.  This huge\n"
-		"fantasy themed game has hundreds of areas and quests, spanning\n"
-		"several continents and outer planar regions.  There are custom spells,\n"
-		"skills, minions, player run shops, boats, PvP, and many other features\n"
-		"for nearly every kind of player.  The game is very friendly to new players\n"
-		"and has extensive support for the blind and visually impaired.", arg1);
-
-	banner_website(ses, "Alter Aeon", "https://www.alteraeon.com", arg1);
-	banner_address(ses, "Alter Aeon", "aa alteraeon.com 3000", arg1);
-	banner_expires(ses, "Alter Aeon", "2028", arg1);
-
-
-	banner_create(ses, "Threshold RPG", arg1);
-
-	banner_desc(ses, "Threshold RPG",
-		"Join us at Threshold RPG, one of the oldest RP enforced games on the\n"
-		"internet. Add to twenty-six years of player created history and make your\n"
-		"own mark on the world today. Join a hundred other players who are vying for\n"
-		"political and religious power in complex systems that reward skill, effort,\n"
-		"and social interactions. Threshold RPG is a custom code-base written in\n"
-		"LPC and features a completely unique and original world.", arg1);
-
-	banner_website(ses, "Threshold RPG", "https://www.thresholdrpg.com", arg1);
-	banner_address(ses, "Threshold RPG", "thresh thresholdrpg.com 3333", arg1);
-	banner_expires(ses, "Threshold RPG", "2028", arg1);
-
-
 	banner_create(ses, "Primal Darkness", arg1);
 	
 	banner_desc(ses, "Primal Darkness",
@@ -251,24 +284,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "Primal Darkness", "pd mud.primaldarkness.com 5000", arg1);
 	banner_expires(ses, "Primal Darkness", "2028", arg1);
 
-
-	banner_create(ses, "New Worlds Ateraan", arg1);
-
-	banner_desc(ses, "New Worlds Ateraan",
-		"Ateraan is a world of Intensive Roleplaying offering many unique and powerful\n"
-		"guilds, races, politics, religion, justice, economy, and a storyline that is\n"
-		"dominantly player controlled and based on a novel. The game is based on a\n"
-		"Kingdom with knights, merchants, mages, and thieves, and a fierce southern\n"
-		"state that has warriors, shaman, slaves, and servants. Ships rule the seas and\n"
-		"caravans travel the lands. With 100's of players and features like invasions,\n"
-		"ship creation, house building, clans, theaters, leatherball fields, and massive\n"
-		"events, the game is incredibly robust and diverse.", arg1);
-
-	banner_website(ses, "New Worlds Ateraan", "http://www.ateraan.com", arg1);
-	banner_address(ses, "New Worlds Ateraan", "nwa ateraan.com 4002", arg1);
-	banner_expires(ses, "New Worlds Ateraan", "2028", arg1);
-
-/*
 	banner_create(ses, "Carrion Fields", arg1);
 
 	banner_desc(ses, "Carrion Fields",

@@ -148,7 +148,7 @@ int str_to_base64(char *in, char *out, size_t size)
 
 	pto = out;
 
-	for (cnt = 0 ; cnt + 3 < size ; cnt += 3)
+	for (cnt = 0 ; cnt + 3 <= size ; cnt += 3)
 	{
 		*pto++ = base64_table[(unsigned char) in[cnt + 0] % 64];
 		*pto++ = base64_table[(unsigned char) in[cnt + 0] / 64 + (unsigned char) in[cnt + 1] % 16 * 4];

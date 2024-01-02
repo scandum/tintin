@@ -165,6 +165,11 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 
 	if (HAS_BIT(root->flags, LIST_FLAG_NEST) && *arg1 == '\\')
 	{
+		show_error(root->ses, LIST_COMMAND, "#WARNING: VARIABLE {%s}. THE \\ CHARACTER NEEDS TO BE REPLACED WITH = FOR A STRICT EQUALITY MATCH.", arg1);
+		arg1++;
+	}
+	else if (HAS_BIT(root->flags, LIST_FLAG_NEST) && *arg1 == '=')
+	{
 		arg1++;
 	}
 
@@ -652,7 +657,7 @@ int bsearch_alnum_list(struct listroot *root, char *text, int seek)
 				}
 				break;
 
-			case '\\':
+			case '/':
 				text++;
 				break;
 		}
@@ -982,7 +987,7 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 	{
 		node = root->list[index];
 
-		show_message(ses, type, "#OK. {%s} IS NO LONGER %s %s.", node->arg1, (*list_table[type].name == 'A' || *list_table[type].name == 'E') ? "AN" : "A", list_table[type].name);
+		show_message(ses, type, "#OK: {%s} IS NO LONGER %s %s.", node->arg1, (*list_table[type].name == 'A' || *list_table[type].name == 'E') ? "AN" : "A", list_table[type].name);
 
 		delete_index_list(root, index);
 
@@ -993,7 +998,7 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 	{
 		if (match(ses, root->list[index]->arg1, arg1, SUB_VAR|SUB_FUN))
 		{
-			show_message(ses, type, "#OK. {%s} IS NO LONGER %s %s.", root->list[index]->arg1, is_vowel(list_table[type].name) ? "AN" : "A", list_table[type].name);
+			show_message(ses, type, "#OK: {%s} IS NO LONGER %s %s.", root->list[index]->arg1, is_vowel(list_table[type].name) ? "AN" : "A", list_table[type].name);
 
 			delete_index_list(root, index);
 
@@ -1068,7 +1073,7 @@ DO_COMMAND(do_kill)
 
 	if (index == LIST_MAX)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #KILL {%s} {%s} - NO MATCH FOUND.", arg1, arg2);
+		show_error(ses, LIST_COMMAND, "#ERROR: #KILL {%s} {%s}: NO MATCH FOUND.", arg1, arg2);
 	}
 	return ses;
 }
@@ -1134,7 +1139,7 @@ DO_COMMAND(do_message)
 
 		if (found == FALSE)
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #MESSAGE {%s} - NO MATCH FOUND.", arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #MESSAGE {%s}: NO MATCH FOUND.", arg1);
 		}
 	}
 	return ses;
@@ -1213,7 +1218,7 @@ DO_COMMAND(do_ignore)
 
 		if (found == FALSE)
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #IGNORE {%s} - NO MATCH FOUND.", arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #IGNORE {%s}: NO MATCH FOUND.", arg1);
 		}
 	}
 	return ses;
@@ -1285,7 +1290,7 @@ DO_COMMAND(do_debug)
 
 		if (found == FALSE)
 		{
-			show_error(ses, LIST_COMMAND, "#DEBUG {%s} - NO MATCH FOUND.", arg1);
+			show_error(ses, LIST_COMMAND, "#DEBUG {%s}: NO MATCH FOUND.", arg1);
 		}
 	}
 	return ses;
@@ -1373,7 +1378,7 @@ DO_COMMAND(do_info)
 				}
 				else
 				{
-					show_error(ses, LIST_COMMAND, "#SYNTAX: #INFO {%s} [ON|OFF|LIST|SAVE|SYSTEM]", arg1);
+					show_error(ses, LIST_COMMAND, "#SYNTAX: #INFO {%s} [ON|OFF|LIST|SAVE]", arg1);
 				}
 				return ses;
 			}
@@ -1580,7 +1585,7 @@ DO_COMMAND(do_info)
 					{
 						str_ptr = gtd->memory->list[index];
 
-						if (str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
+						if (!HAS_BIT(str_ptr->flags, STR_FLAG_FREE) && str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
 						{
 							tintin_printf2(ses, "#ERROR: index %d len = %d/%d max = %d flags = %d (%s)", index, strlen(get_str_str(str_ptr)), str_ptr->len, str_ptr->max, str_ptr->flags, get_str_str(str_ptr));
 						}
@@ -1647,7 +1652,7 @@ DO_COMMAND(do_info)
 					if (is_abbrev(arg2, "SAVE"))
 					{
 						set_nest_node_ses(ses, "info[OUTPUT]", "{RAWBUF}{%s}", gtd->mud_output_buf);
-						add_nest_node_ses(ses, "info[OUTPUT]", "{RAWLEN}{%s}", gtd->mud_output_len);
+						add_nest_node_ses(ses, "info[OUTPUT]", "{RAWLEN}{%d}", gtd->mud_output_len);
 						add_nest_node_ses(ses, "info[OUTPUT]", "{STRBUF}{%s}", gtd->mud_output_strip_buf);
 						add_nest_node_ses(ses, "info[OUTPUT]", "{STRLEN}{%d}", gtd->mud_output_strip_len);
 						add_nest_node_ses(ses, "info[OUTPUT]", "{LINE}{%s}",   gtd->mud_output_line);

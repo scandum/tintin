@@ -1033,7 +1033,7 @@ DO_CURSOR(cursor_echo)
 	}
 	else
 	{
-		show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {ECHO} {ON|OFF}.");
+		show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {ECHO} {ON|OFF}");
 	}
 }
 
@@ -1137,6 +1137,55 @@ DO_CURSOR(cursor_enter)
 	return;
 }
 
+DO_CURSOR(cursor_escape_enter)
+{
+	if (*gtd->ses->input->buf != 0)
+	{
+		int nest = 0;
+		char *pti = gtd->ses->input->buf;
+		char *pto = gtd->ses->input->buf;
+
+		while (*pti)
+		{
+			switch (*pti)
+			{
+				case '{':
+					nest++;
+					*pto++ = *pti++;
+					break;
+				case '}':
+					nest--;
+					*pto++ = *pti++;
+					break;
+				case '\\':
+					if (pti[1] == 'n')
+					{
+						if (pti[2] == '#' && nest == 0)
+						{
+							*pto++ = ';';
+						}
+						pti += 2;
+					}
+					else if (pti[1])
+					{
+						*pto++ = *pti++;
+						*pto++ = *pti++;
+					}
+					else
+					{
+						*pto++ = *pti++;
+					}
+					break;
+				default:
+					*pto++ = *pti++;
+					break;
+			}
+		}
+		*pto = 0;
+	}
+	cursor_enter(ses, "");
+}
+	
 DO_CURSOR(cursor_soft_enter)
 {
 	if (!inputline_editor())
@@ -1236,11 +1285,11 @@ DO_CURSOR(cursor_flag)
 		}
 		else
 		{
-			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {EOL} {CR|LF|CRLF|CRNUL|OFF}.");
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {EOL} {CR|LF|CRLF|CRNUL|OFF}");
 			return;
 		}
 
-		show_message(gtd->ses, LIST_COMMAND, "#CURSOR FLAG EOL HAS BEEN SET TO: %s",
+		show_message(gtd->ses, LIST_COMMAND, "#CURSOR FLAG EOL HAS BEEN SET TO: %s.",
 			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF) == 0 ? "OFF" :
 			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_NUL) == (TELOPT_FLAG_CR|TELOPT_FLAG_NUL) ? "CRNUL" :
 			HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF) == TELOPT_FLAG_CR ? "CR" :
@@ -1265,7 +1314,7 @@ DO_CURSOR(cursor_flag)
 		}
 		else
 		{
-			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO} {ON|OFF}.");
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO} {ON|OFF}");
 		}
 		return;
 	}
@@ -1286,12 +1335,12 @@ DO_CURSOR(cursor_flag)
 		}
 		else
 		{
-			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {INSERT} {ON|OFF}.");
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {INSERT} {ON|OFF}");
 		}
 		return;
 	}
 
-	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|EOL|INSERT} {ON|OFF}.");
+	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|EOL|INSERT} {ON|OFF}");
 }
 
 DO_CURSOR(cursor_get)
@@ -1302,7 +1351,7 @@ DO_CURSOR(cursor_get)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR GET {variable}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CURSOR GET <VARIABLE>");
 	}
 	else
 	{
@@ -1593,7 +1642,7 @@ DO_CURSOR(cursor_insert)
 	}
 	else
 	{
-		show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {INSERT} {ON|OFF}.");
+		show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {INSERT} {ON|OFF}");
 	}
 }
 

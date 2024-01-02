@@ -322,7 +322,7 @@ struct command_type command_table[] =
 	{    "pathdir",           do_pathdir,           3, TOKEN_TYPE_COMMAND },
 	{    "port",              do_port,              2, TOKEN_TYPE_COMMAND },
 	{    "prompt",            do_prompt,            2, TOKEN_TYPE_COMMAND },
-	{    "read",              do_read,              1, TOKEN_TYPE_COMMAND },
+	{    "read",              do_read,              2, TOKEN_TYPE_COMMAND },
 	{    "regexp",            do_regexp,            3, TOKEN_TYPE_REGEX   },
 	{    "replace",           do_replace,           3, TOKEN_TYPE_COMMAND },
 	{    "return",            do_nop,               0, TOKEN_TYPE_RETURN  },

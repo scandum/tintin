@@ -1,3 +1,49 @@
+Mar 2023        2.02.32
+------------------------------------------------------------------------------
+data.c          Changed the symbol for the strict equality assignment/lookup
+                from \ to = due to compatibility issues. You'll get a warning
+                if a variable or table key begins with a \.
+
+net.c           Added the PROCESSED LINE event. Like RECEIVED LINE, but it
+                triggers after line triggers have been processed.
+
+variable.c      Added support to use \A in #replace and #substitute to only
+                match the start of a line. When using ^ the behavior is more
+                ambiguous, matching at the start of each line and at the end
+                of each preceding match.
+
+net.c           Added the PACKET PATCH event which triggers when a broken
+                packet is detected. Has some utility for trouble shooting.
+
+list.c          Added #list <list> copy <variable> to copy a variable to the
+                given list. Will copy tables as well.
+
+log.c           Added #log make <directory> to create directories. #log remove
+                <directory> can be used to remove one.
+
+trigger.c       Added support for multi-line substitutions.
+
+show.c          Added a REFORMAT event which can be used to alter system
+                messages. Must use #return to set the new message format.
+
+help.c          Added a CATCH HELP event.
+
+                #event {CATCH HELP NOP} {#line ignore #showme bla}
+
+class.c         #class clear/close/kill/list/load/save/size/write no longer
+                create a class if none exists.
+
+split.c         When using #split 0 1 0 -80 it will correctly use the negative
+                argument on subsequent screen resizes.
+
+list.c          Added #list swap <index1> <index2> to swap two list items.
+
+cursor.c        You can paste multi-line triggers by first pressing ctrl-v,
+                next paste the data, followed by pressing ctrl-enter.
+
+mapper.c        Added #map flag autolink <on|off>. Default is on. Set to off
+                to disable automatically linking overlapping rooms.
+
 Jan 2023        2.02.31
 ------------------------------------------------------------------------------
 cursor.c        #cursor {get} will escape braces and other special characters.

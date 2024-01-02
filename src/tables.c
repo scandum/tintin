@@ -690,6 +690,7 @@ struct cursor_type cursor_table[] =
 	{     "RESET MACRO",        "",                                               "",            CURSOR_FLAG_GET_ALL,     cursor_macro,                 "RESET"     }, // obsolete
 	{     "SET",                "Insert given string at cursor",                  "",            CURSOR_FLAG_GET_ONE,     cursor_set,                   ""          },
 	{     "SOFT ENTER",         "Create a new line in edit mode.",                "\e[13;2u",    CURSOR_FLAG_GET_ALL,     cursor_soft_enter,            ""          },
+	{     "ESCAPE ENTER",       "Process multi-line input.",                      "\e[13;5u",    CURSOR_FLAG_GET_ALL,     cursor_escape_enter,          ""          },
 	{     "SUSPEND",            "Suspend program, return with fg",                "",           CURSOR_FLAG_GET_ALL,     cursor_suspend,               ""          },
 	{     "TAB",                "<LIST|SCROLLBACK> <BACKWARD|FORWARD>",           "",            CURSOR_FLAG_GET_ONE,     cursor_tab,                   ""          },
 	{     "TAB L S BACKWARD",   "",                                               "\e[Z",        CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L S B"     }, // shift tab
@@ -817,6 +818,7 @@ struct event_type event_table[] =
 	{    "MONTH",                                  0, EVENT_FLAG_TIME,     "TIME",      "month or given month"       },
 	{    "MOVED ",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is moved"             },
 	{    "NO SESSION ACTIVE",                      0, EVENT_FLAG_INPUT,    "INPUT",     "input on startup session"   },
+	{    "PACKET PATCH",                           0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "broken packet detected"     },
 	{    "PORT CONNECTION",                        0, EVENT_FLAG_PORT,     "PORT",      "socket connects"            },
 	{    "PORT DISCONNECTION",                     0, EVENT_FLAG_PORT,     "PORT",      "socket disconnects"         },
 	{    "PORT INITIALIZED",                       0, EVENT_FLAG_PORT,     "PORT",      "port is initialized"        },
@@ -826,6 +828,7 @@ struct event_type event_table[] =
 	{    "PORT UNINITIALIZED",                     0, EVENT_FLAG_PORT,     "PORT",      "port is uninitialized"      },
 	{    "PRESSED ",                               0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse button is pressed"    },
 	{    "PROCESSED KEYPRESS",                     0, EVENT_FLAG_INPUT,    "INPUT",     "after a regular keypress"   },
+	{    "PROCESSED LINE",                         0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "after triggers have fired"  },
 	{    "PROGRAM START",                          0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "main session starts"        },
 	{    "PROGRAM TERMINATION",                    0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "main session exits"         },
 	{    "READ ERROR",                             0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "the read command fails"     },
@@ -837,6 +840,7 @@ struct event_type event_table[] =
 	{    "RECEIVED LINE",                          0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "a new line is received"     },
 	{    "RECEIVED OUTPUT",                        0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "bulk output is received"    },
 	{    "RECEIVED PROMPT",                        0, EVENT_FLAG_OUTPUT,   "OUTPUT",    "a prompt is received"       },
+	{    "REFORMAT ",                              0, EVENT_FLAG_SYSTEM,   "SYSTEM",    "system format message"      },
 	{    "RELEASED ",                              0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse button is released"   },
 	{    "SCAN CSV HEADER",                        0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a csv file"        },
 	{    "SCAN CSV LINE",                          0, EVENT_FLAG_SCAN,     "SCAN",      "scanning a csv file"        },
@@ -924,13 +928,11 @@ struct path_type path_table[] =
 
 struct history_type history_table[] =
 {
-//	{    "CHARACTER",         history_character,   "Set the character used for repeating commands." },
 	{    "DELETE",            history_delete,      "Delete last command history entry."             },
 	{    "GET",               history_get,         "Store in given variable a given index or range." },
 	{    "INSERT",            history_insert,      "Insert a new command history entry."            },
 	{    "LIST",              history_list,        "Display command history list."                  },
 	{    "READ",              history_read,        "Read a command history list from file."         },
-//	{    "SIZE",              history_size,        "The size of the command history."               },
 	{    "WRITE",             history_write,       "Write a command history list to file."          },
 	{    "",                  NULL,                ""                                               }
 };

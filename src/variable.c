@@ -64,7 +64,7 @@ DO_COMMAND(do_variable)
 		}
 		else if (show_node_with_wild(ses, arg1, ses->list[LIST_VARIABLE]) == FALSE)
 		{
-			show_message(ses, LIST_VARIABLE, "#VARIABLE: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_VARIABLE, "#VARIABLE: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -93,7 +93,7 @@ DO_COMMAND(do_variable)
 
 		show_nest_node(node, &str, 1);
 
-		show_message(ses, LIST_VARIABLE, "#OK. VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
+		show_message(ses, LIST_VARIABLE, "#OK: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 	}
 	return ses;
 }
@@ -106,7 +106,7 @@ DO_COMMAND(do_unvariable)
 	{
 		if (delete_nest_node(ses->list[LIST_VARIABLE], arg1))
 		{
-			show_message(ses, LIST_VARIABLE, "#OK. {%s} IS NO LONGER A VARIABLE.", arg1);
+			show_message(ses, LIST_VARIABLE, "#OK: {%s} IS NO LONGER A VARIABLE.", arg1);
 		}
 		else
 		{
@@ -157,7 +157,7 @@ DO_COMMAND(do_local)
 		}
 		else if (show_node_with_wild(ses, arg1, root) == FALSE)
 		{
-			show_message(ses, LIST_VARIABLE, "#LOCAL: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_VARIABLE, "#LOCAL: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -184,7 +184,7 @@ DO_COMMAND(do_local)
 
 		show_nest_node(node, &str, 1);
 
-		show_message(ses, LIST_VARIABLE, "#OK. LOCAL VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
+		show_message(ses, LIST_VARIABLE, "#OK: LOCAL VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
 	}
 	return ses;
 }
@@ -241,7 +241,7 @@ DO_COMMAND(do_cat)
 
 	if (*arg1 == 0 || *arg == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: CAT {<VARIABLE>} {<ARGUMENT>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #CAT <VARIABLE> <ARGUMENT>");
 	}
 	else
 	{
@@ -280,7 +280,7 @@ DO_COMMAND(do_replace)
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #REPLACE {VARIABLE} {OLD TEXT} {NEW TEXT}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #REPLACE <VARIABLE> <OLD TEXT> <NEW TEXT>");
 
 		return ses;
 	}
@@ -320,6 +320,11 @@ DO_COMMAND(do_replace)
 			str_cat_printf(&str, "%s%s", pti, tmp);
 
 			pti = ptm;
+
+			if (arg2[0] == '\\' && arg2[1] == 'A')
+			{
+				break;
+			}
 		}
 		while (tintin_regexp(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
 
@@ -329,6 +334,19 @@ DO_COMMAND(do_replace)
 
 	}
 	return ses;
+}
+
+char *get_variable_def(struct session *ses, char *var, char *def)
+{
+	struct listnode *node;
+
+	node = search_nest_node_ses(ses, var);
+
+	if (node)
+	{
+		return node->arg2;
+	}
+	return def;
 }
 
 int valid_variable(struct session *ses, char *arg)
@@ -350,7 +368,7 @@ int valid_variable(struct session *ses, char *arg)
 
 	if (is_digit(*arg))
 	{
-		show_error(ses, LIST_COMMAND, "\e[1;31m#WARNING: VALIDATE {%s}: VARIABLES SHOULD NOT START WITH A NUMBER.", arg);
+		show_error(ses, LIST_COMMAND, "#WARNING: VALIDATE {%s}: VARIABLES SHOULD NOT START WITH A NUMBER.", arg);
 	}
 
 	return TRUE;
@@ -379,7 +397,7 @@ void stringtobase(char *str, char *base)
 			break;
 
 		default:
-			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
 	free(buf);
@@ -407,7 +425,7 @@ void basetostring(char *str, char *base)
 			break;
 
 		default:
-			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
 	pop_call();
@@ -433,7 +451,7 @@ void stringtobasez(char *str, char *base)
 			break;
 
 		default:
-			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
 	free(buf);
@@ -461,7 +479,7 @@ void basetostringz(char *str, char *base)
 			break;
 
 		default:
-			tintin_printf2(gtd->ses, "#FORMAT: Unknown base conversion {%s}.", base);
+			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
 	pop_call();
@@ -1645,7 +1663,7 @@ DO_COMMAND(do_format)
 
 	if (*argvar == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #format {variable} {format} {arg1} {arg2}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #FORMAT <VARIABLE> <FORMAT> [ARG1] [ARG2] .. [ARG29] [ARG30]");
 
 		return ses;
 	}

@@ -29,26 +29,26 @@
 	telnet protocol.
 */
 
-#define     IAC     255
-#define     DONT    254
-#define     DO      253
-#define     WONT    252
-#define     WILL    251
-#define     SB      250
-#define     GA      249   /* Used for prompt marking */
-#define     EL      248
-#define     EC      247
-#define     AYT     246
-#define     AO      245
-#define     IP      244
-#define     BREAK   243
-#define     DM      242
-#define     NOP     241
-#define     SE      240
-#define     EOR     239   /* Used for prompt marking */
-#define     ABORT   238
-#define     SUSP    237
-#define     xEOF    236
+#define     IAC     255 // FF
+#define     DONT    254 // FE
+#define     DO      253 // FD
+#define     WONT    252 // FC
+#define     WILL    251 // FB
+#define     SB      250 // FA
+#define     GA      249 // F9  Used for prompt marking
+#define     EL      248 // F8
+#define     EC      247 // F7
+#define     AYT     246 // F6
+#define     AO      245 // F5
+#define     IP      244 // F4
+#define     BREAK   243 // F3
+#define     DM      242 // F2
+#define     NOP     241 // F1
+#define     SE      240 // F0
+#define     EOR     239 // EF  Used for prompt marking
+#define     ABORT   238 // EE
+#define     SUSP    237 // ED
+#define     xEOF    236 // EC
 
 /*
 	telnet options

@@ -151,6 +151,19 @@ DO_COMMAND(do_test)
 {
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
+	if (!strcmp(arg1, "pointers"))
+	{
+		char data = 'X';
+		char *test = &data;
+		unsigned long int index = (unsigned long int) test;
+
+		printf("data %c index %lu test %c\n", data, index, *test);
+
+		test = 0;
+
+		printf("data %c index %lu test %c\n", data, index, test[index]);
+	}
+
 	if (!strcmp(arg1, "gmcp"))
 	{
 		execute(ses, "%s", "#event {IAC SB GMCP} {#var {%0} {%1};#line debug #var {%0}}");

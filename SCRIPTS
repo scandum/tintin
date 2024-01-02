@@ -52,9 +52,9 @@
 	{
 		#switch {1d4}
 		{
-			#case {1} {cheer}
-			#case {2} {greet all}
-			#case {3} {smile}
+			#case {1} {cheer};
+			#case {2} {greet all};
+			#case {3} {smile};
 			#case {4} {laugh self}
 		}
 	}

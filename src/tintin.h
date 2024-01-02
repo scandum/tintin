@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.31 "
+#define CLIENT_VERSION           "2.02.40 "
 
 
 #define XT_E                            0x27
@@ -651,7 +651,7 @@ enum operators
 #define SES_FLAG_BUFFERUPDATE         BV01
 #define SES_FLAG_CLOSED               BV02
 #define SES_FLAG_CONNECTED            BV03
-#define SES_FLAG_GAG                  BV04 // unused
+#define SES_FLAG_LINKLOST             BV04
 #define SES_FLAG_PATHMAPPING          BV05
 #define SES_FLAG_PRINTBUFFER          BV06
 #define SES_FLAG_PRINTLINE            BV07
@@ -774,6 +774,7 @@ enum operators
 #define MAP_FLAG_READ                 BV18
 #define MAP_FLAG_PANCAKE              BV19
 #define MAP_FLAG_FAST                 BV20
+#define MAP_FLAG_AUTOLINK             BV21
 
 #define MAP_SEARCH_NAME                0
 #define MAP_SEARCH_EXITS               1
@@ -2013,6 +2014,7 @@ extern DO_CURSOR(cursor_echo);
 extern DO_CURSOR(cursor_end);
 extern DO_CURSOR(cursor_enter);
 extern DO_CURSOR(cursor_enter_finish);
+extern DO_CURSOR(cursor_escape_enter);
 extern DO_CURSOR(cursor_flag);
 extern DO_CURSOR(cursor_get);
 extern DO_CURSOR(cursor_history_find);
@@ -2305,12 +2307,10 @@ extern struct session *repeat_history(struct session *ses, char *line);
 extern int write_history(struct session *ses, char *filename);
 extern int read_history(struct session *ses, char *filename);
 
-DO_HISTORY(history_character);
 DO_HISTORY(history_delete);
 DO_HISTORY(history_get);
 DO_HISTORY(history_insert);
 DO_HISTORY(history_list);
-DO_HISTORY(history_size);
 DO_HISTORY(history_read);
 DO_HISTORY(history_write);
 
@@ -2937,6 +2937,7 @@ extern void check_all_gags(struct session *ses, char *original, char *line);
 extern void check_all_highlights(struct session *ses, char *original, char *line);
 extern  int check_all_prompts(struct session *ses, char *original, char *line);
 extern void check_all_substitutions(struct session *ses, char *original, char *line);
+extern void check_all_substitutions_multi(struct session *ses, char *original, char *line);
 
 #endif
 
@@ -2998,7 +2999,7 @@ extern int get_utf8_index(char *str, int *index);
 extern int unicode_to_utf8(int index, char *out);
 extern int utf8_strlen(char *str, int *width);
 
-extern int utf8_to_all(struct session *ses, char *in, char *out);
+extern int utf8_to_all(struct session *ses, char *in, char *out, int size);
 extern int all_to_utf8(struct session *ses, char *in, char *out);
 extern int cp1251_to_utf8(char *input, char *output);
 extern int utf8_to_cp1251(char *input, char *output);
@@ -3017,7 +3018,7 @@ extern int big5_to_utf8(char *input, char *output);
 extern int utf8_to_big5(char *input, char *output);
 extern int is_gbk1(char *str);
 extern int gbk1_to_utf8(char *input, char *output);
-extern int utf8_to_gbk1(char *input, char *output);
+extern int utf8_to_gbk1(char *input, char *output, int length);
 extern int is_cp949(char *str);
 extern int cp949_to_utf8(char *input, char *output);
 extern int utf8_to_cp949(char *input, char *output);
@@ -3029,18 +3030,19 @@ extern int utf8_to_cp949(char *input, char *output);
 
 extern DO_COMMAND(do_replace);
 
-extern  int valid_variable(struct session *ses, char *arg);
-extern  int string_raw_str_len(struct session *ses, char *str, int start, int end);
-extern  int string_str_raw_len(struct session *ses, char *str, int start, int end);
-extern  int translate_color_names(struct session *ses, char *string, char *result);
-extern  int get_color_names(struct session *ses, char *htype, char *result);
-extern void lowerstring(char *str);
-extern void upperstring(char *str);
-extern void numbertocharacter(struct session *ses, char *str);
-extern void charactertonumber(struct session *ses, char *str);
-extern  int delete_variable(struct session *ses, char *variable);
-extern void justify_string(struct session *ses, char *in, char *out, int align, int cut);
-extern void format_string(struct session *ses, char *format, char *arg, char *out);
+extern char *get_variable_def(struct session *ses, char *var, char *def);
+extern  int  valid_variable(struct session *ses, char *arg);
+extern  int  string_raw_str_len(struct session *ses, char *str, int start, int end);
+extern  int  string_str_raw_len(struct session *ses, char *str, int start, int end);
+extern  int  translate_color_names(struct session *ses, char *string, char *result);
+extern  int  get_color_names(struct session *ses, char *htype, char *result);
+extern void  lowerstring(char *str);
+extern void  upperstring(char *str);
+extern void  numbertocharacter(struct session *ses, char *str);
+extern void  charactertonumber(struct session *ses, char *str);
+extern  int  delete_variable(struct session *ses, char *variable);
+extern void  justify_string(struct session *ses, char *in, char *out, int align, int cut);
+extern void  format_string(struct session *ses, char *format, char *arg, char *out);
 extern struct listnode *search_variable(struct session *ses, char *variable);
 extern struct listnode *get_variable(struct session *ses, char *variable, char *result);
 extern struct listnode *set_variable(struct session *ses, char *variable, char *format, ...);

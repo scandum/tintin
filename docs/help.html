@@ -832,7 +832,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          BOTTOM      draw on the bottom side if possible.
          BOXED       draw a box along the square.
          BUMPED      precede the draw with an enter.
-         CALIGN      center text.
+         CALIGN      both LALIGN and RALIGN to center text.
          CIRCLED     circle the corners.
          CONVERT     draw text with meta conversion.
          CROSSED     cross the corners.
@@ -891,7 +891,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          All draw types take an optional text argument as long as a valid
          square with enough space has been defined. Text is automatically
          word wrapped and text formatting can be customized with the
-         CALIGN, LALIGN, RALIGN, and UALIGN options.
+         BALIGN, TALIGN, LALIGN, RALIGN, and UALIGN options.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #draw Blue box 1 1 3 20 {Hello world!}
 
@@ -1183,9 +1183,9 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>RECEIVED INPUT CHARACTER
 </span><span style='color:#AAA'>           %0 character  %1 unicode index  %2 size  %3 width
 
-         NO SESSION ACTIVE      %0 raw text %1 size
-         SEND OUTPUT            %0 raw text %1 size
-         SENT OUTPUT            %0 raw text %1 size
+         </span><span style='color:#FFF'>NO SESSION ACTIVE</span><span style='color:#AAA'>      %0 raw text %1 size
+         </span><span style='color:#FFF'>SEND OUTPUT</span><span style='color:#AAA'>            %0 raw text %1 size
+         </span><span style='color:#FFF'>SENT OUTPUT</span><span style='color:#AAA'>            %0 raw text %1 size
 
          </span><span style='color:#5F5'>MAP EVENTS
 
@@ -1237,6 +1237,8 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>BUFFER UPDATE</span><span style='color:#AAA'>, </span><span style='color:#FFF'>DISPLAY UPDATE
 </span><span style='color:#AAA'>           These events have no additional arguments.
 
+         </span><span style='color:#FFF'>PROCESSED LINE         </span><span style='color:#AAA'>%0 raw text %1 plain text %2 prompt (0 or 1)
+
          </span><span style='color:#FFF'>RECEIVED LINE          </span><span style='color:#AAA'>%0 raw text %1 plain text
          </span><span style='color:#FFF'>RECEIVED OUTPUT        </span><span style='color:#AAA'>%0 raw text %1 plain text
          </span><span style='color:#FFF'>RECEIVED PROMPT        </span><span style='color:#AAA'>%0 raw text %1 plain text
@@ -1250,6 +1252,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>PORT DISCONNECTION     </span><span style='color:#AAA'>%0 name %1 ip %2 port
          </span><span style='color:#FFF'>PORT LOG MESSAGE       </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
          </span><span style='color:#FFF'>PORT RECEIVED MESSAGE  </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
+         </span><span style='color:#FFF'>PORT RECEIVED DATA     </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 size
 
          </span><span style='color:#5F5'>SCAN EVENTS
 
@@ -1301,6 +1304,8 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>SYSTEM ERROR           </span><span style='color:#AAA'>%0 name %1 system msg %2 error %3 error msg
          </span><span style='color:#FFF'>UNKNOWN COMMAND        </span><span style='color:#AAA'>%0 raw text
          </span><span style='color:#FFF'>SIGUSR                 </span><span style='color:#AAA'>%0 signal
+
+         </span><span style='color:#FFF'>REFORMAT &lt;MESSAGE&gt;     </span><span style='color:#AAA'>Use #return to change MESSAGE
 
          </span><span style='color:#5F5'>TELNET EVENTS
 
@@ -1458,7 +1463,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.31                     </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.40                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1567,11 +1572,12 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#FF5'>         HISTORY
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>delete</span><span style='color:#FFF'>}</span><span style='color:#AAA'>                 Delete the last command.
-         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>insert</span><span style='color:#FFF'>}    {</span><span style='color:#AAA'>command</span><span style='color:#FFF'>}</span><span style='color:#AAA'>    Insert a command.
-         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>list</span><span style='color:#FFF'>}</span><span style='color:#AAA'>                   Display the entire command history.
-         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>read</span><span style='color:#FFF'>}      {</span><span style='color:#AAA'>filename</span><span style='color:#FFF'>}</span><span style='color:#AAA'>   Read a command history from file.
-         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>write</span><span style='color:#FFF'>}     {</span><span style='color:#AAA'>filename</span><span style='color:#FFF'>}</span><span style='color:#AAA'>   Write a command history to file.
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>delete</span><span style='color:#FFF'>}</span><span style='color:#AAA'>                    Delete the last command.
+         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>get</span><span style='color:#FFF'>}    {</span><span style='color:#AAA'>variable</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>range</span><span style='color:#FFF'>}</span><span style='color:#AAA'> Store list in variable.
+         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>insert</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>command</span><span style='color:#FFF'>}</span><span style='color:#AAA'>          Insert a command.
+         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>list</span><span style='color:#FFF'>}     </span><span style='color:#AAA'>                 Display the command history.
+         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>read</span><span style='color:#FFF'>}   {</span><span style='color:#AAA'>filename</span><span style='color:#FFF'>}</span><span style='color:#AAA'>         Read a command history from file.
+         #history </span><span style='color:#FFF'>{</span><span style='color:#AAA'>write</span><span style='color:#FFF'>}  {</span><span style='color:#AAA'>filename</span><span style='color:#FFF'>}</span><span style='color:#AAA'>         Write a command history to file.
 
          Without an argument all available options are shown.
 
@@ -1601,7 +1607,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#FF5'>         IF
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #if </span><span style='color:#FFF'>{</span><span style='color:#AAA'>conditional</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if true</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #if </span><span style='color:#FFF'>{</span><span style='color:#AAA'>conditional</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if true</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands if false</span><span style='color:#FFF'>}
 
 </span><span style='color:#AAA'>         The #if command works similar to an if statement in other languages,
          and is based on the way C handles its conditional statements.
@@ -1613,12 +1619,15 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          executed. See the 'math' helpfile for more information.
 
          To handle the case where an if statement is false it can be followed
-         by the #else command.
+         by the #else command. Alternatively, the else can be provided as the
+         third argument.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #action {%0 gives you %1 gold coins.} {#if {%1 &gt; 5000} {thank %0}}
          If someone gives you more than 5000 coins, thank them.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias {k} {#if {&quot;%0&quot; == &quot;&quot;} {kill &dollar;target};#else {kill %0}}
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #if {&quot;%0&quot; == &quot;{bli|bla}&quot;} {#showme %0 is either bli or bla.}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CASE'>case</a>, <a href='#DEFAULT'>default</a>, <a href='#ELSE'>else</a>, <a href='#ELSEIF'>elseif</a>, <a href='#MATH'>math</a>, <a href='#SWITCH'>switch</a> and <a href='#REGEXP'>regexp</a>.
 <a name='IGNORE'></a>
@@ -2056,7 +2065,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>#line background &lt;argument&gt;
 </span><span style='color:#AAA'>           Prevent new session activation.
 
-         </span><span style='color:#FFF'>#line capture &lt;variable&gt; &lt;argument&gt;.
+         </span><span style='color:#FFF'>#line capture &lt;variable&gt; &lt;argument&gt;
 </span><span style='color:#AAA'>           Argument is executed and output stored in &lt;variable&gt;.
 
          </span><span style='color:#FFF'>#line convert &lt;argument&gt;
@@ -2120,6 +2129,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#AAA'>         #list {var} {add} &lt;items&gt;              Add &lt;items&gt; to the list
          #list {var} {clear}                    Empty the given list
          #list {var} {collapse} &lt;separator&gt;     Turn list into a variable
+         #list {var} {copy} &lt;variable&gt;          Copy variable to the list
          #list {var} {create} &lt;items&gt;           Create a list using &lt;items&gt;
          #list {var} {delete} &lt;index&gt; [amount]  Delete the item at &lt;index&gt;,
                                                 the [amount] is optional.
@@ -2140,6 +2150,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          #list {var} {size} &lt;variable&gt;          Copy list size to {variable}
          #list {var} {sort} [items]             Sort list alphabetically, if
                                                 an item is given it's added.
+         #list {var} {swap} &lt;index&gt; &lt;index&gt;     Swap two items
          #list {var} {tokenize} &lt;string&gt;        Create a character list
 
          The index should be between +1 and the list's size. You can also give
@@ -2532,6 +2543,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          </span><span style='color:#FFF'>#log append &lt;filename&gt;
 </span><span style='color:#AAA'>           Start logging to the given file, if the file already exists it won't
            be overwritten and data will be appended to the end.
+
+         </span><span style='color:#FFF'>#log make &lt;directory&gt;
+</span><span style='color:#AAA'>           Create the given directory.
 
          </span><span style='color:#FFF'>#log move &lt;filename_1&gt; &lt;filename_2&gt;
 </span><span style='color:#AAA'>           Move filename_1 to filename_2. This can be any file and doesn't need
@@ -3237,6 +3251,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          Links can be created using the MSLP protocol which will generate link
          specific events when clicked.
 
+         In order to copy/paste, most terminals require that you press the shift
+         key during selection.
+
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#BUTTON'>button</a>, <a href='#DRAW'>draw</a>, <a href='#EVENT'>event</a> and <a href='#MSLP'>MSLP</a>.
 <a name='MSDP'></a>
@@ -3302,7 +3319,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          you need to use &bsol;e]68;2;&bsol;a, and they instead trigger the SECURE LINK
          event.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4m%0&bsol;e[24m}
+         To creae a link that is not undelined, use &bsol;e]4;24m text &bsol;e]24m.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4;24m%0&bsol;e[24m}
 </span><span style='color:#FFF'>       </span><span style='color:#AAA'>  #event {PRESSED SECURE LINK EXEC MOUSE BUTTON ONE} {%4}
 
          This would make you start a reply when clicking on a tell.
@@ -3444,7 +3463,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          is used.
 
 </span><span style='color:#FFF'>TinTin++ Description                                      POSIX
-      %a </span><span style='color:#AAA'>Match zero or more characters including newlines ([^&bsol;n]*?)
+      %a </span><span style='color:#AAA'>Match zero or more characters including newlines ([^&bsol;0]*?)
 </span><span style='color:#FFF'>      %A </span><span style='color:#AAA'>Match zero or more newlines                      ([&bsol;n]*?)
 </span><span style='color:#FFF'>      %c </span><span style='color:#AAA'>Match zero or more ansi color codes              ((?:&bsol;e&bsol;[[0-9;]*m)*?)
 </span><span style='color:#FFF'>      %d </span><span style='color:#AAA'>Match zero or more digits                        ([0-9]*?)
@@ -3452,6 +3471,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FFF'>      %i </span><span style='color:#AAA'>Matches become case insensitive                  (?i)
 </span><span style='color:#FFF'>      %I </span><span style='color:#AAA'>Matches become case sensitive (default)          (?-i)
 </span><span style='color:#FFF'>      %s </span><span style='color:#AAA'>Match zero or more spaces                        ([&bsol;r&bsol;n&bsol;t ]*?)
+</span><span style='color:#FFF'>      %S </span><span style='color:#AAA'>Match zero or more non-spaces                    ([^&bsol;r&bsol;n&bsol;t ]*?)
 </span><span style='color:#FFF'>      %w </span><span style='color:#AAA'>Match zero or more word characters               ([A-Za-z0-9_]*?)
 </span><span style='color:#FFF'>      %W </span><span style='color:#AAA'>Match zero or more non-word characters           ([^A-Za-z0-9_]*?)
 </span><span style='color:#FFF'>      %? </span><span style='color:#AAA'>Match zero or one character                      (.??)
@@ -3791,10 +3811,10 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #</span><span style='color:#FFF'>[</span><span style='color:#AAA'>number</span><span style='color:#FFF'>] {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
 
-        Sometimes you want to repeat the same command multiple times. This is
+</span><span style='color:#AAA'>        Sometimes you want to repeat the same command multiple times. This is
         the easiest way to accomplish that.
 
-Example</span><span style='color:#AAA'>: #10 {buy bread}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #10 {buy bread}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#MATHEMATICS'>mathematics</a> and <a href='#STATEMENTS'>statements</a>.
 <a name='REPLACE'></a>
@@ -4294,7 +4314,7 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
          Replace generic dark blue color codes with bright blue ones.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%1massacres%2} {&lt;018&gt;%1&lt;118&gt;MASSACRES&lt;018&gt;%2}
-         Replaces all occurrences of 'massacres' with 'MASSACRES' in red.
+         Replace a line containing 'massacres' with 'MASSACRES' in red.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: See '#help action', for more information about triggers.
 
@@ -4562,23 +4582,25 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
 
 </span><span style='color:#5F5'>         Multi-line triggers
 
-</span><span style='color:#AAA'>         If an action contains the &bsol;n sequence it will be turned into a
-         multi-line trigger. A multi-line action is executed on incoming blocks
-         of text from the MUD, and they will not trigger if the regular
-         expression spans more than one block. You can visualize incoming
-         blocks by using #event {RECEIVED OUTPUT} {#echo &lt;058&gt;%+80h BLOCK}
+</span><span style='color:#AAA'>         If an action or substitution contains the &bsol;n sequence it will be
+         turned into a multi-line trigger. A multi-line trigger is executed on
+         incoming blocks of text from the MUD, and they will not trigger if the
+         regular expression spans more than one block. You can visualize
+         incoming blocks by using the following event:
+
+         #event {RECEIVED OUTPUT} {#echo &lt;058&gt;%+80h BLOCK}
 
          Since the %* expression does not capture the &bsol;n sequence it is required
          to use %a to capture multiple lines. To capture the start of the block
          use &bsol;A and for the end use &bsol;Z. You can use ^ and &dollar; to capture the
          start and end of a line.
 
-         Multi-line actions trigger before regular actions. Multiple
+         Multi-line triggers trigger before regular triggers. Multiple
          multi-line actions can trigger per block, and each multi-line action
          can trigger multiple times per block. Packet fragmentation is not
          currently handled.
 
-         Multi-line actions are experimental and subject to change.
+         Multi-line triggers are experimental and subject to change.
 
 </span><span style='color:#5F5'>         Input triggers
 
@@ -4649,6 +4671,10 @@ Example</span><span style='color:#AAA'>: #10 {buy bread}
          It's possible to use regular expressions.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {Targets starting with the letter A: &dollar;targets[A%*]
+
+              To disable using regular expressions start the match with '='.
+
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {A target literally defined as A%*: &dollar;targets[&bsol;A%*]
 
          To see the internal index of a variable use &amp;&lt;variable name&gt;. To see
          the size of a table you would use: &amp;targets[] or &amp;targets[%*]. A non

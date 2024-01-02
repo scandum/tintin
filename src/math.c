@@ -115,7 +115,7 @@ DO_COMMAND(do_math)
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #MATH {variable} {expression}.");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #MATH <VARIABLE> <EXPRESSION>");
 	}
 	else
 	{
@@ -473,7 +473,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "MATH EXP: { FOUND INSIDE A NUMBER");
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: \x7B FOUND INSIDE A NUMBER");
 							}
 							pop_call();
 							return FALSE;
@@ -488,7 +488,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "MATH EXP: \" FOUND INSIDE A NUMBER");
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: \" FOUND INSIDE A NUMBER");
 							}
 							pop_call();
 							return FALSE;
@@ -503,7 +503,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "#MATH EXP: PARANTESES FOUND INSIDE A NUMBER");
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: PARANTESES FOUND INSIDE A NUMBER");
 							}
 							pop_call();
 							return FALSE;
@@ -523,7 +523,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case ':':
 						if (debug && wonky == 0)
 						{
-							show_error(gtd->ses, LIST_COMMAND, "\e[1;31m#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
+							show_error(gtd->ses, LIST_COMMAND, "#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
 						}
 						*pta++ = *pti++;
 						break;
@@ -556,7 +556,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							{
 								if (debug)
 								{
-									show_debug(ses, LIST_VARIABLE, "#MATH EXP: MORE THAN ONE POINT FOUND INSIDE A NUMBER");
+									show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: MORE THAN ONE POINT FOUND INSIDE A NUMBER");
 								}
 								precision = 0;
 								pop_call();
@@ -587,7 +587,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "#MATH EXP: EXPRESSION STARTED WITH AN OPERATOR.");
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: EXPRESSION STARTED WITH AN OPERATOR.");
 							}
 							pop_call();
 							return FALSE;
@@ -608,7 +608,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: FOUND OPERATOR %s WHILE EXPECTING A VALUE.", str, buf3);
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH {%s}: FOUND OPERATOR %s WHILE EXPECTING A VALUE.", str, buf3);
 							}
 							pop_call();
 							return FALSE;
@@ -630,7 +630,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3);
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH {%s}: INVALID NUMBER %s.", str, buf3);
 							}
 
 							pop_call();
@@ -709,7 +709,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 
 						if (debug)
 						{
-							show_debug(ses, LIST_VARIABLE, "#MATH EXP {%s}: INVALID NUMBER %s.", str, buf3);
+							show_debug(ses, LIST_VARIABLE, "#DEBUG MATH {%s}: INVALID NUMBER %s.", str, buf3);
 						}
 						pop_call();
 						return FALSE;
@@ -783,7 +783,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 						{
 							if (debug)
 							{
-								show_debug(ses, LIST_VARIABLE, "#MATH EXP: UNKNOWN OPERATOR: %c%c", pti[0], pti[1]);
+								show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: UNKNOWN OPERATOR: %c%c", pti[0], pti[1]);
 							}
 							pop_call();
 							return FALSE;
@@ -956,7 +956,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 							default:
 								if (debug)
 								{
-									show_debug(ses, LIST_VARIABLE, "#MATH EXP: UNKNOWN OPERATOR: %c%c", pti[-1], pti[0]);
+									show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: UNKNOWN OPERATOR: %c%c", pti[-1], pti[0]);
 								}
 								pop_call();
 								return FALSE;
@@ -966,7 +966,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					default:
 						if (debug)
 						{
-							show_debug(ses, LIST_VARIABLE, "#MATH EXP: UNKNOWN OPERATOR: %c", *pti);
+							show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: UNKNOWN OPERATOR: %c", *pti);
 						}
 						pop_call();
 						return FALSE;
@@ -979,7 +979,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 	{
 		if (debug)
 		{
-			show_debug(ses, LIST_VARIABLE, "#MATH EXP: UNMATCHED PARENTHESES, LEVEL: %d", level);
+			show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: UNMATCHED PARENTHESES, LEVEL: %d", level);
 		}
 		pop_call();
 		return FALSE;
@@ -1070,7 +1070,7 @@ void mathexp_compute(struct session *ses, struct math_node *node)
 		case EXP_OP_DICE:
 			if (node->next->val <= 0)
 			{
-				show_debug(ses, LIST_VARIABLE, "#MATHEXP: INVALID DICE: %lld", (long long) node->next->val);
+				show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: INVALID DICE: %lld", (long long) node->next->val);
 				value = 0;
 			}
 			else
@@ -1094,7 +1094,7 @@ void mathexp_compute(struct session *ses, struct math_node *node)
 		case EXP_OP_DIVIDE:
 			if (node->next->val == 0)
 			{
-				show_debug(ses, LIST_VARIABLE, "#MATH ERROR: DIVISION ZERO.");
+				show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: DIVISION BY ZERO.");
 				value = 0;
 				precision = 0;
 			}
@@ -1196,7 +1196,7 @@ void mathexp_compute(struct session *ses, struct math_node *node)
 			break;
 
 		default:
-			show_debug(ses, LIST_VARIABLE, "#MATH COMPUTE EXP: UNKNOWN OPERATOR: %c%c%c", (int) node->val % 128, (int) node->val % 16384 / 128, (int) node->val % 2097152 / 16384);
+			show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: UNKNOWN OPERATOR: %c%c%c", (int) node->val % 128, (int) node->val % 16384 / 128, (int) node->val % 2097152 / 16384);
 			value = 0;
 			break;
 	}
@@ -1526,7 +1526,7 @@ long double tincmp(struct math_node *left, struct math_node *right)
 {
 	if (left->type != right->type)
 	{
-		show_debug(NULL, LIST_VARIABLE, "#MATH COMPUTE: COMPARING STRING WITH A NUMBER.");
+		show_debug(gtd->ses, LIST_VARIABLE, "#DEBUG MATH: COMPARING STRING WITH A NUMBER.");
 
 		return 0;
 	}
@@ -1545,7 +1545,7 @@ long double tineval(struct session *ses, struct math_node *left, struct math_nod
 {
 	if (left->type != right->type)
 	{
-		show_debug(ses, LIST_VARIABLE, "#MATH COMPUTE: COMPARING %s WITH %s.", left->type == EXP_NUMBER ? "NUMBER" : "STRING", right->type == EXP_NUMBER ? "NUMBER" : "STRING");
+		show_debug(ses, LIST_VARIABLE, "#DEBUG MATH: COMPARING %s WITH %s.", left->type == EXP_NUMBER ? "NUMBER" : "STRING", right->type == EXP_NUMBER ? "NUMBER" : "STRING");
 
 		return 0;
 	}

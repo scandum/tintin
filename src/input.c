@@ -1058,12 +1058,18 @@ void input_printf(char *format, ...)
 	}
 
 	va_start(args, format);
-	vasprintf(&buf, format, args);
+
+	if (vasprintf(&buf, format, args) == -1)
+	{
+		syserr_printf(gtd->ses, "input_printf(%s): vasprintf:", format);
+	}
+	else
+	{
+		print_stdout(0, 0, "%s", buf);
+
+		free(buf);
+	}
 	va_end(args);
-
-	print_stdout(0, 0, "%s", buf);
-
-	free(buf);
 
 	return;
 }

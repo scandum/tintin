@@ -145,7 +145,7 @@ DO_COMMAND(do_session)
 			return activate_session(sesptr);
 		}
 
-		tintin_puts2(ses, "#THAT SESSION IS NOT DEFINED.");
+		tintin_printf2(ses, "#SESSION {%s} IS NOT DEFINED.", arg1);
 	}
 	else
 	{
@@ -168,7 +168,7 @@ DO_COMMAND(do_snoop)
 
 		if (sesptr == NULL)
 		{
-			show_error(ses, LIST_COMMAND, "#SNOOP: THERE'S NO SESSION NAMED {%s}", arg1);
+			show_error(ses, LIST_COMMAND, "#SNOOP: THERE'S NO SESSION NAMED {%s}.", arg1);
 			
 			return ses;
 		}
@@ -182,23 +182,23 @@ DO_COMMAND(do_snoop)
 	{
 		if (HAS_BIT(sesptr->flags, SES_FLAG_SNOOP))
 		{
-			show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SESSION '%s'", sesptr->name);
+			show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SESSION '%s'.", sesptr->name);
 		}
 		else
 		{
-			show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SESSION '%s'", sesptr->name);
+			show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SESSION '%s'.", sesptr->name);
 		}
 		TOG_BIT(sesptr->flags, SES_FLAG_SNOOP);
 	}
 	else if (is_abbrev(arg2, "ON"))
 	{
-		show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SESSION '%s'", sesptr->name);
+		show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SESSION '%s'.", sesptr->name);
 
 		SET_BIT(sesptr->flags, SES_FLAG_SNOOP);
 	}
 	else if (is_abbrev(arg2, "OFF"))
 	{
-		show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SESSION '%s'", sesptr->name);
+		show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SESSION '%s'.", sesptr->name);
 		DEL_BIT(sesptr->flags, SES_FLAG_SNOOP);
 	}
 	else if (is_abbrev(arg2, "SCROLL"))
@@ -209,33 +209,33 @@ DO_COMMAND(do_snoop)
 		{
 			if (HAS_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL))
 			{
-				show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+				show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'.", sesptr->name);
 			}
 			else
 			{
-				show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+				show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'.", sesptr->name);
 			}
 			TOG_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
 		}
 		else if (is_abbrev(arg2, "ON"))
 		{
-			show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+			show_message(ses, LIST_COMMAND, "#SNOOP: SNOOPING SCROLL REGION OF SESSION '%s'.", sesptr->name);
 
 			SET_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
 		}
 		else if (is_abbrev(arg2, "OFF"))
 		{
-			show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'", sesptr->name);
+			show_message(ses, LIST_COMMAND, "#SNOOP: NO LONGER SNOOPING SCROLL REGION OF SESSION '%s'.", sesptr->name);
 			DEL_BIT(sesptr->flags, SES_FLAG_SNOOPSCROLL);
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP {session} {SCROLL} {ON|OFF}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP <SESSION> {SCROLL} {ON|OFF}");
 		}
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP {session} {ON|OFF|SCROLL}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SNOOP <SESSION> {ON|OFF|SCROLL}");
 	}
 	return ses;
 }
@@ -376,7 +376,7 @@ struct session *new_session(struct session *ses, char *name, char *arg, int desc
 	{
 		if (*host == 0)
 		{
-			tintin_puts2(ses, "#HEY! SPECIFY AN ADDRESS WILL YOU?");
+			show_error(ses, LIST_COMMAND, "#ERROR: #SESSION {%s} {%s}: YOU MUST SPECIFY AN ADDRESS.", name, host);
 
 			pop_call();
 			return ses;
@@ -662,16 +662,18 @@ void cleanup_session(struct session *ses)
 
 	if (ses->socket)
 	{
+		if (HAS_BIT(ses->flags, SES_FLAG_CONNECTED) && !HAS_BIT(ses->flags, SES_FLAG_LINKLOST))
+		{
+			if (shutdown(ses->socket, SHUT_RDWR) == -1)
+			{
+				syserr_printf(ses, "cleanup_session: shutdown");
+			}
+		}
+
 		if (close(ses->socket) == -1)
 		{
 			syserr_printf(ses, "cleanup_session: close");
 		}
-/*		else
-		{
-			int status;
-
-			wait(&status);
-		}*/
 
 		// the PID is stored in the session's port.
 

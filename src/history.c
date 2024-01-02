@@ -127,15 +127,6 @@ struct session *repeat_history(struct session *ses, char *line)
 	return ses;
 }
 
-DO_HISTORY(history_character)
-{
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-	gtd->repeat_char = *arg1;
-
-	show_message(ses, LIST_HISTORY, "#HISTORY CHARACTER SET TO {%c}.", gtd->repeat_char);
-}
-
 DO_HISTORY(history_delete)
 {
 	if (ses->list[LIST_HISTORY]->used)
@@ -251,7 +242,7 @@ DO_HISTORY(history_read)
 
 	if (file == NULL)
 	{
-		show_message(ses, LIST_HISTORY, "#HISTORY: COULDN'T OPEN FILE {%s} TO READ.", arg1);
+		show_message(ses, LIST_HISTORY, "#HISTORY READ {%s}: COULDN'T OPEN FILE.", arg1);
 
 		return;
 	}
@@ -277,21 +268,6 @@ DO_HISTORY(history_read)
 	return;
 }
 
-DO_HISTORY(history_size)
-{
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
-
-	if (atoi(arg1) < 1 || atoi(arg1) > 100000)
-	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY SIZE: PROVIDE A NUMBER BETWEEN 1 and 100,000");
-	}
-	else
-	{
-		gtd->history_size = atoi(arg1);
-	}
-	return;
-}
-
 DO_HISTORY(history_write)
 {
 	struct listroot *root = ses->list[LIST_HISTORY];
@@ -304,7 +280,7 @@ DO_HISTORY(history_write)
 
 	if (file == NULL)
 	{
-		tintin_printf2(ses, "#HISTORY: COULDN'T OPEN FILE {%s} TO WRITE.", arg1);
+		tintin_printf2(ses, "#HISTORY WRITE {%s}: COULDN'T OPEN FILE.", arg1);
 
 		return;
 	}

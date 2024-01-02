@@ -54,7 +54,7 @@ DO_COMMAND(do_run)
 
 	if (*arg1 == 0 || *arg2 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #RUN {NAME} {SYSTEM SHELL COMMAND}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #RUN <NAME> <SHELL COMMAND>");
 		
 		return ses;
 	}
@@ -104,7 +104,7 @@ DO_COMMAND(do_script)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SCRIPT: ONE ARGUMENT REQUIRED.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCRIPT <VARIABLE> <SHELL COMMAND>");
 	}
 	else if (*arg2 == 0)
 	{
@@ -282,12 +282,12 @@ DO_COMMAND(do_system)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SYSTEM {COMMAND}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SYSTEM <COMMAND>");
 		
 		return ses;
 	}
 
-	show_message(ses, LIST_COMMAND, "#OK: EXECUTING '%s'", arg1);
+	show_message(ses, LIST_COMMAND, "#SYSTEM: EXECUTING {%s}.", arg1);
 
 	if (!HAS_BIT(gtd->ses->flags, SES_FLAG_READMUD) && IS_SPLIT(gtd->ses))
 	{
@@ -322,7 +322,7 @@ DO_COMMAND(do_textin)
 
 	if ((fp = fopen(arg1, "r")) == NULL)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #TEXTIN {%s} - FILE NOT FOUND.", arg1);
+		show_error(ses, LIST_COMMAND, "#ERROR: #TEXTIN {%s}: FILE NOT FOUND.", arg1);
 		
 		return ses;
 	}
@@ -345,7 +345,7 @@ DO_COMMAND(do_textin)
 	}
 	fclose(fp);
 
-	show_message(ses, LIST_COMMAND, "#TEXTIN {%s} - FILE READ.", arg1);
+	show_message(ses, LIST_COMMAND, "#TEXTIN {%s}: FILE READ.", arg1);
 
 	return ses;
 }

@@ -457,7 +457,7 @@ DO_COMMAND(do_draw)
 
 			if (!is_math(ses, arg1) || !is_math(ses, arg2) || !is_math(ses, arg3) || !is_math(ses, arg4))
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW NON-NUMERIC SQUARE: %s {%s %s %s %s}",
+				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW: NON-NUMERIC SQUARE: %s {%s %s %s %s}",
 					draw_table[index].name,
 					is_math(ses, arg1) ? ntos(top_row) : arg1,
 					is_math(ses, arg2) ? ntos(top_col) : arg2,
@@ -508,7 +508,7 @@ DO_COMMAND(do_draw)
 
 			if (top_row > bot_row || top_col > bot_col)
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW INVALID SQUARE: %s {%d %d %d %d} ROWS: %d COLS: %d", draw_table[index].name, top_row, top_col, bot_row, bot_col, 1 + bot_row - top_row, 1 + bot_col - top_col);
+				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW: INVALID SQUARE: %s {%d %d %d %d} ROWS: %d COLS: %d", draw_table[index].name, top_row, top_col, bot_row, bot_col, 1 + bot_row - top_row, 1 + bot_col - top_col);
 
 				return ses;
 			}
@@ -1510,10 +1510,14 @@ DO_DRAW(draw_buffer)
 		line = ses->scroll->line;
 	}
 
-	for (cnt = rows ; cnt >= 0 && line - cnt >= 0 ; cnt--)
+	for (cnt = rows ; cnt >= 0 ; cnt--)
 	{
-		str_cat_printf(&buf, "{%s}", ses->scroll->buffer[line - cnt]->str);
+		if (line - cnt >= 0)
+		{
+			str_cat_printf(&buf, "{%s}", ses->scroll->buffer[line - cnt]->str);
+		}
 	}
+	tintin_printf2(gtd->ses, "[%d] (%d) (%s)", line, rows, buf);
 
 	draw_box(ses, top_row, top_col, bot_row, bot_col, rows, cols, flags, box_color, txt_color, buf, arg1, arg2, arg3);
 
@@ -1806,7 +1810,7 @@ DO_DRAW(draw_hbar)
 
 	if (bar <= 0)
 	{
-		show_error(ses, LIST_COMMAND, "#DRAW BAR %d %d %d %d: DRAWING WIDTH (%d) MUST BE GREATER THAN 0.", top_row, top_col, bot_row, bot_col, bar);
+		show_error(ses, LIST_COMMAND, "#ERROR: #DRAW BAR %d %d %d %d: DRAWING WIDTH (%d) MUST BE GREATER THAN 0.", top_row, top_col, bot_row, bot_col, bar);
 
 		return;
 	}
@@ -1836,7 +1840,7 @@ DO_DRAW(draw_hbar)
 
 	if (max <= 0)
 	{
-		show_error(ses, LIST_COMMAND, "#DRAW BAR {%s;%s;%s}: MAX (%Lg) MUST BE GREATER THAN 0.", arg1, arg2, arg3, max);
+		show_error(ses, LIST_COMMAND, "#ERROR: #DRAW BAR {%s;%s;%s}: MAX (%Lg) MUST BE GREATER THAN 0.", arg1, arg2, arg3, max);
 
 		return;
 	}
@@ -1932,7 +1936,7 @@ DO_DRAW(draw_rain)
 
 	if (!valid_variable(ses, arg1))
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #DRAW {<COLOR>} RAIN %d %d %d %d {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}.", top_row, top_col, bot_row, bot_col);
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #DRAW <COLOR> RAIN %d %d %d %d <VARIABLE> [SPAWN] [FADE] [LEGEND]", top_row, top_col, bot_row, bot_col);
 
 		return;
 	}

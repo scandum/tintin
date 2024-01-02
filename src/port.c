@@ -65,7 +65,7 @@ DO_COMMAND(do_port)
 
 		if (port_table[cnt].fun != port_initialize && ses->port == NULL)
 		{
-			tintin_printf(ses, "#PORT: You must initialize a port first.");
+			tintin_printf(ses, "#PORT: YOU MUST INITIALIZE A PORT FIRST.");
 
 			return ses;
 		}
@@ -551,6 +551,14 @@ int process_port_input(struct session *ses, struct port_data *buddy)
 		}
 
 		input[size] = 0;
+
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_PORT, 0, 5, "PORT RECEIVED DATA", buddy->name, buddy->ip, ntos(buddy->port), input, ntos(size));
+
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 5, "CATCH PORT RECEIVED DATA", buddy->name, buddy->ip, ntos(buddy->port), input, ntos(size)))
+		{
+			pop_call();
+			return 0;
+		}
 
 		echo = buddy->intop;
 

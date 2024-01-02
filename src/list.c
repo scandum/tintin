@@ -32,6 +32,7 @@
 extern DO_ARRAY(array_add);
 extern DO_ARRAY(array_clear);
 extern DO_ARRAY(array_collapse);
+extern DO_ARRAY(array_copy);
 extern DO_ARRAY(array_create);
 extern DO_ARRAY(array_delete);
 extern DO_ARRAY(array_explode);
@@ -49,6 +50,7 @@ extern DO_ARRAY(array_shuffle);
 extern DO_ARRAY(array_simplify);
 extern DO_ARRAY(array_size);
 extern DO_ARRAY(array_sort);
+extern DO_ARRAY(array_swap);
 extern DO_ARRAY(array_tokenize);
 
 typedef struct session *ARRAY(struct session *ses, struct listnode *list, char *arg, char *var, char *arg1, char *arg2);
@@ -66,6 +68,7 @@ struct array_type array_table[] =
 	{     "CLEAR",            array_clear,       "Clear a list"                            },
 	{     "CLR",              array_clear,       NULL                                      },
 	{     "COLLAPSE",         array_collapse,    "Collapse the list into a variable"       },
+	{     "COPY",             array_copy,        "Copy a list to a list"                   },
 	{     "CREATE",           array_create,      "Create a list with given items"          },
 	{     "DELETE",           array_delete,      "Delete a list item with given index"     },
 	{     "EXPLODE",          array_explode,     "Explode the variable into a list"        },
@@ -86,6 +89,7 @@ struct array_type array_table[] =
 	{     "SIZE",             array_size,        NULL                                      },
 	{     "SORT",             array_sort,        "Sort a list table alphabetically"        },
 	{     "SRT",              array_sort,        NULL                                      },
+	{     "SWAP",             array_swap,        "Swap two list items"                     },
 	{     "TOKENIZE",         array_tokenize,    "Create a list with given characters"     },
 	{     "",                 NULL,              ""                                        }
 };
@@ -115,7 +119,7 @@ DO_COMMAND(do_list)
 	}
 	else if (*arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} {option} {argument}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> <OPTION> <ARGUMENT>");
 	}
 	else
 	{
@@ -254,6 +258,47 @@ DO_ARRAY(array_collapse)
 	return ses;
 }
 
+DO_ARRAY(array_copy)
+{
+	struct listnode *from;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {%s} COPY <VARIABLE>.", var);
+
+		return ses;
+	}
+
+	if ((from = search_nest_node_ses(ses, arg1)) == NULL)
+	{
+		show_error(ses, LIST_VARIABLE, "#LIST COPY: VARIABLE {%s} NOT FOUND.", arg1);
+		
+		return ses;
+	}
+
+	if (!strcmp(var, arg1))
+	{
+		return ses;
+	}
+
+	str_cpy(&list->arg2, from->arg2);
+	str_cpy(&list->arg3, from->arg3);
+	str_cpy(&list->arg4, from->arg4);
+
+	if (list->root)
+	{
+		free_list(list->root);
+
+		list->root = NULL;
+	}
+
+	copy_nest_node(ses->list[LIST_VARIABLE], list, from);
+
+	return ses;
+}
+
 DO_ARRAY(array_create)
 {
 	char *buf, *str;
@@ -329,7 +374,7 @@ DO_ARRAY(array_delete)
 
 		if (index == -1)
 		{
-			show_error(ses, LIST_VARIABLE, "#LIST {%s} DELETE: INVALID INDEX: {%s}.", var, arg1);
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} DELETE: INVALID INDEX {%s}.", var, arg1);
 
 			return ses;
 		}
@@ -351,7 +396,7 @@ DO_ARRAY(array_delete)
 	}
 	else
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST DELETE: {%s} is not a list.", var);
+		show_error(ses, LIST_VARIABLE, "#LIST DELETE: VARIABLE {%s} IS NOT A LIST.", var);
 	}
 	return ses;
 }
@@ -366,7 +411,7 @@ DO_ARRAY(array_explode)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {%s} EXPLODE {<SEPARATOR>}.", var);
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {%s} EXPLODE <SEPARATOR>", var);
 
 		return ses;
 	}
@@ -375,7 +420,7 @@ DO_ARRAY(array_explode)
 	{
 		if (*arg2 == 0)
 		{
-			show_error(ses, LIST_VARIABLE, "#LIST {%s} EXPLODE: VARIABLE %s IS ALREADY A LIST.", var, var);
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} EXPLODE: VARIABLE {%s} IS ALREADY A LIST.", var, var);
 
 			return ses;
 		}
@@ -422,7 +467,7 @@ DO_ARRAY(array_filter)
 
 	if (*arg1 == 0 && *arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} FILTER {keep} {remove}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> FILTER <KEEP> [REMOVE]");
 
 		return ses;
 	}
@@ -478,7 +523,7 @@ DO_ARRAY(array_find)
 
 	if (*arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} FIND {string} {variable}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> FIND <TEXT> <VARIABLE>");
 
 		return ses;
 	}
@@ -510,7 +555,7 @@ DO_ARRAY(array_get)
 
 	if (*arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} GET {index} {variable}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> GET <INDEX> <VARIABLE>");
 		
 		return ses;
 	}
@@ -604,7 +649,7 @@ DO_ARRAY(array_insert)
 
 	if (toi == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST INSERT: INVALID INDEX: {%s}.", arg1);
+		show_error(ses, LIST_VARIABLE, "#LIST INSERT: INVALID INDEX {%s}.", arg1);
 
 		return ses;
 	}
@@ -725,7 +770,7 @@ DO_ARRAY(array_refine)
 
 	if (*arg1 == 0 && *arg2 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} REFINE {keep} {remove}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> REFINE <KEEP> [REMOVE]");
 
 		return ses;
 	}
@@ -833,7 +878,7 @@ DO_ARRAY(array_simplify)
 	}
 	else
 	{
-		show_error(ses, LIST_VARIABLE, "#LIST SIMPLIFY: {%s} is not a list.", list->arg1);
+		show_error(ses, LIST_VARIABLE, "#LIST SIMPLIFY: VARIABLE {%s} IS NOT A LIST.", list->arg1);
 	}
 
 	return ses;
@@ -845,7 +890,7 @@ DO_ARRAY(array_size)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST {variable} SIZE {variable}");
+		show_error(ses, LIST_VARIABLE, "#SYNTAX: #LIST <VARIABLE> SIZE <VARIABLE>");
 		
 		return ses;
 	}
@@ -874,16 +919,18 @@ DO_ARRAY(array_set)
 
 		if (index == -1)
 		{
-			show_error(ses, LIST_VARIABLE, "#LIST {%s} SET: Invalid index: %s", var, arg1);
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} SET: INVALID INDEX {%s}.", var, arg1);
 
 			return ses;
 		}
-		str_cpy(&list->root->list[index]->arg2, arg2);
+		set_nest_node(list->root, list->root->list[index]->arg1, "%s", arg2);
+
+//		str_cpy(&list->root->list[index]->arg2, arg2);
 
 		return ses;
 	}
 
-	show_error(ses, LIST_VARIABLE, "#LIST SET: {%s} is not a list.", var);
+	show_error(ses, LIST_VARIABLE, "#LIST SET: VARIABLE {%s} IS NOT A LIST.", var);
 
 	return ses;
 }
@@ -922,7 +969,7 @@ DO_ARRAY(array_sort)
 	{
 		if (*list->root->list[0]->arg2 == 0)
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ORDER: LIST IS NOT INDEXED.", var);
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} SORT: LIST IS NOT INDEXED.", var);
 
 			return ses;
 		}
@@ -978,6 +1025,37 @@ DO_ARRAY(array_sort)
 			free(arg2_buffer);
 		}
 	}
+	return ses;
+}
+
+DO_ARRAY(array_swap)
+{
+	char *swap;
+	int index1, index2;
+	struct listroot *toor;
+
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
+
+	if (list->root)
+	{
+		index1 = get_list_index(ses, list->root, arg1);
+		index2 = get_list_index(ses, list->root, arg2);
+
+		if (index1 == -1 || index2 == -1)
+		{
+			show_error(ses, LIST_VARIABLE, "#LIST {%s} SWAP: INVALID INDEX {%s} {%s}.", var, arg1, arg2);
+
+			return ses;
+		}
+		swap = list->root->list[index1]->arg2; list->root->list[index1]->arg2 = list->root->list[index2]->arg2; list->root->list[index2]->arg2 = swap;
+		toor = list->root->list[index1]->root; list->root->list[index1]->root = list->root->list[index2]->root; list->root->list[index2]->root = toor;
+
+		return ses;
+	}
+
+	show_error(ses, LIST_VARIABLE, "#LIST SWAP: VARIABLE {%s} IS NOT A LIST.", var);
+
 	return ses;
 }
 

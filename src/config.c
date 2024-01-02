@@ -391,16 +391,9 @@ DO_CONFIG(config_autotab)
 {
 	if (*arg2)
 	{
-		if (!is_number(arg2))
+		if (!is_number(arg2) || atoi(arg2) < 1 || atoi(arg2) > 999999)
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {AUTO TAB} <NUMBER>");
-
-			return NULL;
-		}
-
-		if (atoi(arg2) < 1 || atoi(arg2) > 999999)
-		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG BUFFER: PROVIDE A NUMBER BETWEEN 1 and 999999");
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {%s} {%s}: PROVIDE A NUMBER BETWEEN 1 and 999999.", config_table[index].name, arg2);
 
 			return NULL;
 		}
@@ -419,7 +412,7 @@ DO_CONFIG(config_buffersize)
 	{
 		if (!is_number(arg2))
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {BUFFER SIZE} <NUMBER>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <NUMBER>", config_table[index].name);
 
 			return NULL;
 		}
@@ -434,7 +427,7 @@ DO_CONFIG(config_buffersize)
 				break;
 
 			default:
-				show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG BUFFER: SIZE MUST BE 100, 1000, 10000, 100000, or 1000000.");
+				show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {BUFFER SIZE}: SIZE MUST BE 100, 1000, 10000, 100000, or 1000000.");
 				return NULL;
 		}
 		init_buffer(ses, atoi(arg2));
@@ -482,7 +475,7 @@ DO_CONFIG(config_charset)
 
 			if (*charset_table[index].name == 0)
 			{
-				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {CHARSET} <AUTO|ASCII|BIG-5|BIG5TOUTF8|CP437TOUTF8|CP949|CP949TOUTF8|CP1251TOUTF8|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8>");
+				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {CHARSET} {AUTO|ASCII|BIG-5|BIG5TOUTF8|CP437TOUTF8|CP949|CP949TOUTF8|CP1251TOUTF8|GBK-1|GBK1TOUTF8|ISO1TOUTF8|ISO2TOUTF8|KOI8TOUTF8|UTF-8}");
 
 				return NULL;
 			}
@@ -503,7 +496,7 @@ DO_CONFIG(config_charset)
 
 	if (*charset_table[index].name == 0)
 	{
-		show_error(ses, LIST_CONFIG, "#CONFIG CHARSET: INVALID FLAG: %d", ses->charset);
+		show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {CHARSET}: INVALID FLAG: %d.", ses->charset);
 
 		return NULL;
 	}
@@ -527,7 +520,7 @@ DO_CONFIG(config_childlock)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -564,7 +557,7 @@ DO_CONFIG(config_colormode)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF|ANSI|256|TRUE>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF|ANSI|256|TRUE}", config_table[index].name);
 
 			return NULL;
 		}
@@ -588,7 +581,7 @@ DO_CONFIG(config_colorpatch)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -625,7 +618,7 @@ DO_CONFIG(config_commandecho)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -649,7 +642,7 @@ DO_CONFIG(config_compact)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -665,13 +658,13 @@ DO_CONFIG(config_connectretry)
 	{
 		if (!is_number(arg2))
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {CONNECT RETRY} <NUMBER>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <NUMBER>", config_table[index].name);
 
 			return NULL;
 		}
 		else if (atof(arg2) < 0 || atof(arg2) > 10000)
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG CONNECT RETRY: PROVIDE A NUMBER BETWEEN 0.0 and 10000.0");
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {CONNECT RETRY}: PROVIDE A NUMBER BETWEEN 0.0 and 10000.");
 
 			return NULL;
 		}
@@ -697,7 +690,7 @@ DO_CONFIG(config_convertmeta)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -721,7 +714,7 @@ DO_CONFIG(config_debugtelnet)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -737,14 +730,14 @@ DO_CONFIG(config_historysize)
 	{
 		if (!is_number(arg2))
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {HISTORY SIZE} <NUMBER>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <NUMBER>", config_table[index].name);
 
 			return NULL;
 		}
 
 		if (atoi(arg2) < 0 || atoi(arg2) > 9999)
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG HISTORY: PROVIDE A NUMBER BETWEEN 0 and 9999");
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {%s}: PROVIDE A NUMBER BETWEEN 0 and 9999.", config_table[index].name);
 
 			return NULL;
 		}
@@ -770,7 +763,7 @@ DO_CONFIG(config_hibernate)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -794,7 +787,7 @@ DO_CONFIG(config_inheritance)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -819,7 +812,7 @@ DO_CONFIG(config_loglevel)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <LOW|HIGH>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {LOW|HIGH}", config_table[index].name);
 
 			return NULL;
 		}
@@ -854,7 +847,7 @@ DO_CONFIG(config_logmode)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG LOG <HTML|PLAIN|RAW>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {HTML|PLAIN|RAW}", config_table[index].name);
 
 			return NULL;
 		}
@@ -879,7 +872,7 @@ DO_CONFIG(config_mccp)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -938,7 +931,7 @@ DO_CONFIG(config_mousetracking)
 			}
 			else
 			{
-				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF|DEBUG|INFO|PIXELS>", config_table[index].name);
+				show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF|DEBUG|INFO|PIXELS}", config_table[index].name);
 
 				return NULL;
 			}
@@ -991,13 +984,13 @@ DO_CONFIG(config_packetpatch)
 		}
 		else if (!is_number(arg2))
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {PACKET PATCH} <NUMBER>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <NUMBER>", config_table[index].name);
 
 			return NULL;
 		}
 		else if (atof(arg2) < 0 || atof(arg2) > 10)
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG PACKET PATCH: PROVIDE A NUMBER BETWEEN 0.00 and 10.00");
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {PACKET PATCH}: PROVIDE A NUMBER BETWEEN 0.00 and 10.");
 
 			return NULL;
 		}
@@ -1045,7 +1038,7 @@ DO_CONFIG(config_randomseed)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <AUTO|NUMBER>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {AUTO|<NUMBER>}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1061,7 +1054,7 @@ DO_CONFIG(config_repeatchar)
 	{
 		if (!ispunct((int) arg2[0]))
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG REPEAT CHAR: INVALID CHARACTER {%c}", arg2[0]);
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {%s}: INVALID CHARACTER {%c}.", config_table[index].name, arg2[0]);
 
 			return NULL;
 		}
@@ -1090,7 +1083,7 @@ DO_CONFIG(config_repeatenter)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1115,7 +1108,7 @@ DO_CONFIG(config_screenreader)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1142,7 +1135,7 @@ DO_CONFIG(config_scrolllock)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1166,7 +1159,7 @@ DO_CONFIG(config_speedwalk)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1186,13 +1179,13 @@ DO_CONFIG(config_tabwidth)
 		}
 		else if (!is_number(arg2))
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {TAB WIDTH} <NUMBER>");
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <NUMBER>", config_table[index].name);
 
 			return NULL;
 		}
 		else if (atof(arg2) < 1 || atof(arg2) > 16)
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG TAB WIDTH: PROVIDE A NUMBER BETWEEN 1 and 16");
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {TAB WIDTH}: PROVIDE A NUMBER BETWEEN 1 and 16.");
 
 			return NULL;
 		}
@@ -1234,7 +1227,7 @@ DO_CONFIG(config_telnet)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF|DEBUG|INFO>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF|DEBUG|INFO}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1251,7 +1244,7 @@ DO_CONFIG(config_tintinchar)
 	{
 		if (!ispunct((int) arg2[0]))
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG TINTIN CHAR: INVALID CHARACTER {%c}", arg2[0]);
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {%s}: INVALID CHARACTER {%c}.", config_table[index].name, arg2[0]);
 
 			return NULL;
 		}
@@ -1277,7 +1270,7 @@ DO_CONFIG(config_verbatim)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1293,7 +1286,7 @@ DO_CONFIG(config_verbatimchar)
 	{
 		if (!ispunct((int) arg2[0]))
 		{
-			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG VERBATIM CHAR: INVALID CHARACTER {%c}", arg2[0]);
+			show_error(ses, LIST_CONFIG, "#ERROR: #CONFIG {%s}: INVALID CHARACTER {%c}.", config_table[index].name, arg2[0]);
 
 			return NULL;
 		}
@@ -1319,7 +1312,7 @@ DO_CONFIG(config_verbose)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}
@@ -1343,7 +1336,7 @@ DO_CONFIG(config_wordwrap)
 		}
 		else
 		{
-			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} <ON|OFF>", config_table[index].name);
+			show_error(ses, LIST_CONFIG, "#SYNTAX: #CONFIG {%s} {ON|OFF}", config_table[index].name);
 
 			return NULL;
 		}

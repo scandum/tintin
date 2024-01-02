@@ -462,8 +462,10 @@ DO_COMMAND(do_help)
 		{
 			if (is_abbrev(arg1, help_table[cnt].name))
 			{
-				print_lines(ses, SUB_COL, "", /*COLOR_HELP_DIM,*/ "%s<088>\n", help_table[cnt].text);
-
+				if (!check_all_events(ses, EVENT_FLAG_CATCH, 1, 0, "CATCH HELP %s", help_table[cnt].name))
+				{
+					print_lines(ses, SUB_COL, "", /*COLOR_HELP_DIM,*/ "%s<088>\n", help_table[cnt].text);
+				}
 				if (*help_table[cnt].also)
 				{
 					print_lines(ses, SUB_COL, "", "%s<088>\n\n", help_related(ses, cnt, 0));
@@ -489,7 +491,7 @@ DO_COMMAND(do_help)
 
 		if (found == FALSE)
 		{
-			tintin_printf2(ses, "No help found for '%s'", arg1);
+			show_message(ses, LIST_COMMAND, "#HELP: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	return ses;
@@ -1283,7 +1285,7 @@ struct help_type help_table[] =
 		"<278>         BOTTOM      draw on the bottom side if possible.\n"
 		"<278>         BOXED       draw a box along the square.\n"
 		"<278>         BUMPED      precede the draw with an enter.\n"
-		"<278>         CALIGN      center text.\n"
+		"<278>         CALIGN      both LALIGN and RALIGN to center text.\n"
 		"<278>         CIRCLED     circle the corners.\n"
 		"<278>         CONVERT     draw text with meta conversion.\n"
 		"<278>         CROSSED     cross the corners.\n"
@@ -1342,7 +1344,7 @@ struct help_type help_table[] =
 		"<278>         All draw types take an optional text argument as long as a valid\n"
 		"<278>         square with enough space has been defined. Text is automatically\n"
 		"<278>         word wrapped and text formatting can be customized with the\n"
-		"<278>         CALIGN, LALIGN, RALIGN, and UALIGN options.\n"
+		"<278>         BALIGN, TALIGN, LALIGN, RALIGN, and UALIGN options.\n"
 		"\n"
 		"<178>Example<278>: #draw Blue box 1 1 3 20 {Hello world!}\n"
 		,
@@ -1701,6 +1703,8 @@ struct help_type help_table[] =
 		"<278>         <178>BUFFER UPDATE<278>, <178>DISPLAY UPDATE\n"
 		"<278>           These events have no additional arguments.\n"
 		"\n"
+		"<278>         <178>PROCESSED LINE         <278>%0 raw text %1 plain text %2 prompt (0 or 1)\n"
+		"\n"
 		"<278>         <178>RECEIVED LINE          <278>%0 raw text %1 plain text\n"
 		"<278>         <178>RECEIVED OUTPUT        <278>%0 raw text %1 plain text\n"
 		"<278>         <178>RECEIVED PROMPT        <278>%0 raw text %1 plain text\n"
@@ -1714,6 +1718,7 @@ struct help_type help_table[] =
 		"<278>         <178>PORT DISCONNECTION     <278>%0 name %1 ip %2 port\n"
 		"<278>         <178>PORT LOG MESSAGE       <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
 		"<278>         <178>PORT RECEIVED MESSAGE  <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
+		"<278>         <178>PORT RECEIVED DATA     <278>%0 name %1 ip %2 port %3 data %4 size\n"
 		"\n"
 		"<278>         <128>SCAN EVENTS\n"
 		"\n"
@@ -1765,6 +1770,8 @@ struct help_type help_table[] =
 		"<278>         <178>SYSTEM ERROR           <278>%0 name %1 system msg %2 error %3 error msg\n"
 		"<278>         <178>UNKNOWN COMMAND        <278>%0 raw text\n"
 		"<278>         <178>SIGUSR                 <278>%0 signal\n"
+		"\n"
+		"<278>         <178>REFORMAT <MESSAGE>     <278>Use #return to change MESSAGE\n"
 		"\n"
 		"<278>         <128>TELNET EVENTS\n"
 		"\n"
@@ -2035,11 +2042,12 @@ struct help_type help_table[] =
 	{
 		"HISTORY",
 		TOKEN_TYPE_COMMAND,
-		"<178>Command<278>: #history <178>{<278>delete<178>}<278>                 Delete the last command.\n"
-		"<278>         #history <178>{<278>insert<178>}    {<278>command<178>}<278>    Insert a command.\n"
-		"<278>         #history <178>{<278>list<178>}<278>                   Display the entire command history.\n"
-		"<278>         #history <178>{<278>read<178>}      {<278>filename<178>}<278>   Read a command history from file.\n"
-		"<278>         #history <178>{<278>write<178>}     {<278>filename<178>}<278>   Write a command history to file.\n"
+		"<178>Command<278>: #history <178>{<278>delete<178>}<278>                    Delete the last command.\n"
+		"<278>         #history <178>{<278>get<178>}    {<278>variable<178>} {<278>range<178>}<278> Store list in variable.\n"
+		"<278>         #history <178>{<278>insert<178>} {<278>command<178>}<278>          Insert a command.\n"
+		"<278>         #history <178>{<278>list<178>}     <278>                 Display the command history.\n"
+		"<278>         #history <178>{<278>read<178>}   {<278>filename<178>}<278>         Read a command history from file.\n"
+		"<278>         #history <178>{<278>write<178>}  {<278>filename<178>}<278>         Write a command history to file.\n"
 		"\n"
 		"<278>         Without an argument all available options are shown.\n"
 		"\n"
@@ -2069,7 +2077,7 @@ struct help_type help_table[] =
 	{
 		"IF",
 		TOKEN_TYPE_COMMAND,
-		"<178>Command<278>: #if <178>{<278>conditional<178>} {<278>commands if true<178>}\n"
+		"<178>Command<278>: #if <178>{<278>conditional<178>} {<278>commands if true<178>} {<278>commands if false<178>}\n"
 		"\n"
 		"<278>         The #if command works similar to an if statement in other languages,\n"
 		"<278>         and is based on the way C handles its conditional statements.\n"
@@ -2081,12 +2089,15 @@ struct help_type help_table[] =
 		"<278>         executed. See the 'math' helpfile for more information.\n"
 		"\n"
 		"<278>         To handle the case where an if statement is false it can be followed\n"
-		"<278>         by the #else command.\n"
+		"<278>         by the #else command. Alternatively, the else can be provided as the\n"
+		"<278>         third argument.\n"
 		"\n"
 		"<178>Example<278>: #action {%0 gives you %1 gold coins.} {#if {%1 > 5000} {thank %0}}\n"
 		"<278>         If someone gives you more than 5000 coins, thank them.\n"
 		"\n"
-		"<178>Example<278>: #alias {k} {#if {\"%0\" == \"\"} {kill $target};#else {kill %0}}\n",
+		"<178>Example<278>: #alias {k} {#if {\"%0\" == \"\"} {kill $target};#else {kill %0}}\n"
+		"\n"
+		"<178>Example<278>: #if {\"%0\" == \"{bli|bla}\"} {#showme %0 is either bli or bla.}\n",
 		
 		"case default else elseif math switch regexp"
 	},
@@ -2525,7 +2536,7 @@ struct help_type help_table[] =
 		"<278>         <178>#line background <argument>\n"
 		"<278>           Prevent new session activation.\n"
 		"\n"
-		"<278>         <178>#line capture <variable> <argument.\n"
+		"<278>         <178>#line capture <variable> <argument>\n"
 		"<278>           Argument is executed and output stored in <variable>.\n"
 		"\n"
 		"<278>         <178>#line convert <argument>\n"
@@ -2589,6 +2600,7 @@ struct help_type help_table[] =
 		"<278>         #list {var} {add} <items>              Add <items> to the list\n"
 		"<278>         #list {var} {clear}                    Empty the given list\n"
 		"<278>         #list {var} {collapse} <separator>     Turn list into a variable\n"
+		"<278>         #list {var} {copy} <variable>          Copy variable to the list\n"
 		"<278>         #list {var} {create} <items>           Create a list using <items>\n"
 		"<278>         #list {var} {delete} <index> [amount]  Delete the item at <index>,\n"
 		"<278>                                                the [amount] is optional.\n"
@@ -2609,6 +2621,7 @@ struct help_type help_table[] =
 		"<278>         #list {var} {size} <variable>          Copy list size to {variable}\n"
 		"<278>         #list {var} {sort} [items]             Sort list alphabetically, if\n"
 		"<278>                                                an item is given it's added.\n"
+		"<278>         #list {var} {swap} <index> <index>     Swap two items\n"
 		"<278>         #list {var} {tokenize} <string>        Create a character list\n"
 		"\n"
 		"<278>         The index should be between +1 and the list's size. You can also give\n"
@@ -3004,6 +3017,9 @@ struct help_type help_table[] =
 		"<278>         <178>#log append <filename>\n"
 		"<278>           Start logging to the given file, if the file already exists it won't\n"
 		"<278>           be overwritten and data will be appended to the end.\n"
+		"\n"
+		"<278>         <178>#log make <directory>\n"
+		"<278>           Create the given directory.\n"
 		"\n"
 		"<278>         <178>#log move <filename_1> <filename_2>\n"
 		"<278>           Move filename_1 to filename_2. This can be any file and doesn't need\n"
@@ -3727,6 +3743,9 @@ struct help_type help_table[] =
 		"\n"
 		"<278>         Links can be created using the MSLP protocol which will generate link\n"
 		"<278>         specific events when clicked.\n"
+		"\n"
+		"<278>         In order to copy/paste, most terminals require that you press the shift\n"
+		"<278>         key during selection.\n"
 		"\n",
 		
 		"button draw event MSLP"
@@ -3795,7 +3814,9 @@ struct help_type help_table[] =
 		"<278>         you need to use \\e]68;2;\\a, and they instead trigger the SECURE LINK\n"
 		"<278>         event.\n"
 		"\n"
-		"<178>Example<278>: #sub {%* tells %*} {\\e]68;2;EXEC;#cursor set tell %1 \\a\\e[4m%0\\e[24m}\n"
+		"<278>         To creae a link that is not undelined, use \\e]4;24m text \\e]24m.\n"
+		"\n"
+		"<178>Example<278>: #sub {%* tells %*} {\\e]68;2;EXEC;#cursor set tell %1 \\a\\e[4;24m%0\\e[24m}\n"
 		"<178>       <278>  #event {PRESSED SECURE LINK EXEC MOUSE BUTTON ONE} {%4}\n"
 		"\n"
 		"<278>         This would make you start a reply when clicking on a tell.\n"
@@ -3938,7 +3959,7 @@ struct help_type help_table[] =
 		"<278>         is used.\n"
 		"\n"
 		"<178>TinTin++ <178>Description                                      POSIX\n"
-		"<178>      %a <278>Match zero or more characters including newlines ([^\\n]*?)\n"       
+		"<178>      %a <278>Match zero or more characters including newlines ([^\\0]*?)\n"       
 		"<178>      %A <278>Match zero or more newlines                      ([\\n]*?)\n"
 		"<178>      %c <278>Match zero or more ansi color codes              ((?:\\e\\[[0-9;]*m)*?)\n"
 		"<178>      %d <278>Match zero or more digits                        ([0-9]*?)\n"
@@ -3946,6 +3967,7 @@ struct help_type help_table[] =
 		"<178>      %i <278>Matches become case insensitive                  (?i)\n"
 		"<178>      %I <278>Matches become case sensitive (default)          (?-i)\n"
 		"<178>      %s <278>Match zero or more spaces                        ([\\r\\n\\t ]*?)\n"
+		"<178>      %S <278>Match zero or more non-spaces                    ([^\\r\\n\\t ]*?)\n"
 		"<178>      %w <278>Match zero or more word characters               ([A-Za-z0-9_]*?)\n"
 		"<178>      %W <278>Match zero or more non-word characters           ([^A-Za-z0-9_]*?)\n"
 		"<178>      %? <278>Match zero or one character                      (.\?\?)\n"
@@ -4289,8 +4311,8 @@ struct help_type help_table[] =
 		TOKEN_TYPE_STRING,
 		"<178>Command<278>: #<178>[<078>number<178>] {<278>commands<178>}\n"
 		"\n"
-		"        Sometimes you want to repeat the same command multiple times. This is\n"
-		"        the easiest way to accomplish that.\n"
+		"<278>        Sometimes you want to repeat the same command multiple times. This is\n"
+		"<278>        the easiest way to accomplish that.\n"
 		"\n"
 		"<178>Example<278>: #10 {buy bread}\n",
 		
@@ -4798,7 +4820,7 @@ struct help_type help_table[] =
 		"<278>         Replace generic dark blue color codes with bright blue ones.\n"
 		"\n"
 		"<178>Example<278>: #sub {%1massacres%2} {<<888>018>%1<<888>118>MASSACRES<<888>018>%2}\n"
-		"<278>         Replaces all occurrences of 'massacres' with 'MASSACRES' in red.\n"
+		"<278>         Replace a line containing 'massacres' with 'MASSACRES' in red.\n"
 		"\n"
 		"<178>Comment<278>: See '#help action', for more information about triggers.\n"
 		"\n"
@@ -5066,23 +5088,25 @@ struct help_type help_table[] =
 		"\n"
 		"<128>         Multi-line triggers\n"
 		"\n"
-		"<278>         If an action contains the \\n sequence it will be turned into a\n"
-		"<278>         multi-line trigger. A multi-line action is executed on incoming blocks\n"
-		"<278>         of text from the MUD, and they will not trigger if the regular\n"
-		"<278>         expression spans more than one block. You can visualize incoming\n"
-		"<278>         blocks by using #event {RECEIVED OUTPUT} {#echo <<888>058>%+80h BLOCK}\n"
+		"<278>         If an action or substitution contains the \\n sequence it will be\n"
+		"<278>         turned into a multi-line trigger. A multi-line trigger is executed on\n"
+		"<278>         incoming blocks of text from the MUD, and they will not trigger if the\n"
+		"<278>         regular expression spans more than one block. You can visualize\n"
+		"<278>         incoming blocks by using the following event:\n"
+		"\n"
+		"<278>         #event {RECEIVED OUTPUT} {#echo <<888>058>%+80h BLOCK}\n"
 		"\n"
 		"<278>         Since the %* expression does not capture the \\n sequence it is required\n"
 		"<278>         to use %a to capture multiple lines. To capture the start of the block\n"
 		"<278>         use \\A and for the end use \\Z. You can use ^ and $ to capture the\n"
 		"<278>         start and end of a line.\n"
 		"\n"
-		"<278>         Multi-line actions trigger before regular actions. Multiple\n"
+		"<278>         Multi-line triggers trigger before regular triggers. Multiple\n"
 		"<278>         multi-line actions can trigger per block, and each multi-line action\n"
 		"<278>         can trigger multiple times per block. Packet fragmentation is not\n"
 		"<278>         currently handled.\n"
 		"\n"
-		"<278>         Multi-line actions are experimental and subject to change.\n"
+		"<278>         Multi-line triggers are experimental and subject to change.\n"
 		"\n"
 		"<128>         Input triggers\n"
 		"\n"
@@ -5154,6 +5178,10 @@ struct help_type help_table[] =
 		"<278>         It's possible to use regular expressions.\n"
 		"\n"
 		"<178>Example<278>: #show {Targets starting with the letter A: $targets[A%*]\n"
+		"\n"
+		"              To disable using regular expressions start the match with '='.\n"
+		"\n"
+		"<178>Example<278>: #show {A target literally defined as A%*: $targets[\\A%*]\n"
 		"\n"
 		"<278>         To see the internal index of a variable use &<variable name>. To see\n"
 		"<278>         the size of a table you would use: &targets[] or &targets[%*]. A non\n"

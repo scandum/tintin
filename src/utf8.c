@@ -473,7 +473,7 @@ int utf8_strlen(char *str, int *str_len)
 	return raw_len;
 }
 
-int utf8_to_all(struct session *ses, char *in, char *out)
+int utf8_to_all(struct session *ses, char *in, char *out, int size)
 {
 	switch (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
 	{
@@ -487,7 +487,7 @@ int utf8_to_all(struct session *ses, char *in, char *out)
 			return utf8_to_cp949(in, out);
 
 		case CHARSET_FLAG_GBK1TOUTF8:
-			return utf8_to_gbk1(in, out);
+			return utf8_to_gbk1(in, out, size);
 
 		case CHARSET_FLAG_FANSITOUTF8:
 			return sprintf(out, "%s", in);
@@ -1343,7 +1343,7 @@ int is_gbk1(char *str)
 	return ptu[0] > 128 && ptu[0] < 255 && ptu[1] > 64 && ptu[1] < 255;
 }
 
-int utf8_to_gbk1(char *input, char *output)
+int utf8_to_gbk1(char *input, char *output, int length)
 {
 	char *pti, *pto;
 	int size, index, result;
@@ -1351,7 +1351,8 @@ int utf8_to_gbk1(char *input, char *output)
 	pti = input;
 	pto = output;
 
-	while (*pti)
+//	while (*pti)
+	while (length--)
 	{
 		size = get_utf8_index(pti, &index);
 

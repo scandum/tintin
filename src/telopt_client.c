@@ -629,21 +629,7 @@ int client_recv_sb_ttype(struct session *ses, int cplen, unsigned char *cpsrc)
 	if (HAS_BIT(ses->telopts, TELOPT_FLAG_MTTS))
 	{
 		char mtts[BUFFER_SIZE];
-/*
-		sprintf(mtts, "MTTS %d", 0
-			+ (ses->color > 0 ? 1 : 0)
-			+ (HAS_BIT(ses->flags, SES_FLAG_SPLIT) ? 0 : 2)
-			+ (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && !HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8) ? 4 : 0)
-			+ (ses->color > 16 ? 8 : 0)
-			+ (HAS_BIT(ses->flags, TINTIN_FLAG_MOUSETRACKING) ? 16 + 1024 : 0)
-			+ (HAS_BIT(ses->config_flags, CONFIG_FLAG_SCREENREADER) ? 64 : 0)
-			+ (ses->color > 256 ? 256 : 0)
-			+ 512
-#ifdef HAVE_GNUTLS_H
-			+ 2048
-#endif
-			);
-*/
+
 		sprintf(mtts, "MTTS %d", get_mtts_val(ses));
 
 		telnet_printf(ses, 6 + strlen(mtts), "%c%c%c%c%s%c%c", IAC, SB, TELOPT_TTYPE, 0, mtts, IAC, SE);
@@ -1462,7 +1448,6 @@ int client_recv_sb_charset(struct session *ses, int cplen, unsigned char *src)
 	NEW-ENVIRON
 */
 
-
 char *get_charset_mnes(struct session *ses)
 {
 	int index;
@@ -1490,8 +1475,6 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 		return cplen + 1;
 	}
 
-//	client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON %d %d", src[3], src[4]);
-
 	switch (src[3])
 	{
 		case ENV_IS:
@@ -1509,6 +1492,13 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 	}
 
 	i = 4;
+
+	if (src[3] == ENV_SEND && src[4] == IAC)
+	{
+		strcpy(sub2, "VAR");
+
+		goto shortcut;
+	}
 
 	while (i < cplen && src[i] != IAC)
 	{
@@ -1533,6 +1523,9 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 			case ENV_VAR:
 			case ENV_USR:
 				i++;
+
+				shortcut:
+
 				pto = buf;
 
 				while (i < cplen && src[i] >= 4 && src[i] != IAC)
@@ -1543,7 +1536,7 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 
 				substitute(ses, buf, var, SUB_SEC);
 
-				if (src[3] == ENV_SEND)
+				if (src[3] == ENV_SEND && !strcmp(sub2, "VAR"))
 				{
 					client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON SEND %s %s", sub2, var);
 
@@ -1555,51 +1548,31 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 
 						if (!check_all_events(ses, EVENT_FLAG_CATCH, 1, 4, "CATCH IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, ""))
 						{
-							if (!strcmp(var, ""))
-							{
-								if (!strcmp(sub2, "VAR"))
-								{
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CHARSET", get_charset(ses));
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_NAME", CLIENT_NAME);
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_VERSION", CLIENT_VERSION);
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR MTTS VAL %d", get_mtts_val(ses));
-									client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR TERMINAL_TYPE VAL %s", gtd->system->term);
-
-									telnet_printf(ses, -1, "%c%c%c" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%s" "%c%c%s%c%d" "%c%c%s%c%s" "%c%c",
-										IAC, SB, TELOPT_NEW_ENVIRON,
-										ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset(ses),
-										ENV_IS, ENV_VAR, "CLIENT_NAME", ENV_VAL, CLIENT_NAME,
-										ENV_IS, ENV_VAR, "CLIENT_VERSION", ENV_VAL, CLIENT_VERSION,
-										ENV_IS, ENV_VAR, "MTTS", ENV_VAL, get_mtts_val(ses),
-										ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->system->term,
-										IAC, SE);
-								}
-							}
-							else if (!strcmp(var, "CHARSET"))
+							if (*var == 0 || !strcmp(var, "CHARSET"))
 							{
 								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CHARSET", ENV_VAL, get_charset_mnes(ses), IAC, SE);
 
 								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CHARSET", get_charset(ses));
 							}
-							else if (!strcmp(var, "CLIENT_NAME"))
+							if (*var == 0 || !strcmp(var, "CLIENT_NAME"))
 							{
 								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CLIENT_NAME", ENV_VAL, CLIENT_NAME, IAC, SE);
 
 								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_NAME", CLIENT_NAME);
 							}
-							else if (!strcmp(var, "CLIENT_VERSION"))
+							if (*var == 0 || !strcmp(var, "CLIENT_VERSION"))
 							{
 								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "CLIENT_VERSION", ENV_VAL, CLIENT_VERSION, IAC, SE);
 
 								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR %s VAL %s", "CLIENT_VERSION", CLIENT_VERSION);
 							}
-							else if (!strcmp(var, "MTTS") || *var == 0)
+							if (*var == 0 || !strcmp(var, "MTTS") || *var == 0)
 							{
 								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%d%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "MTTS", ENV_VAL, get_mtts_val(ses), IAC, SE);
 
 								client_telopt_debug(ses, "SENT IAC SB NEW-ENVIRON IS VAR MTTS VAL %d", get_mtts_val(ses));
 							}
-							else if (!strcmp(var, "TERMINAL_TYPE"))
+							if (*var == 0 || !strcmp(var, "TERMINAL_TYPE"))
 							{
 								telnet_printf(ses, -1, "%c%c%c%c%c%s%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_IS, ENV_VAR, "TERMINAL_TYPE", ENV_VAL, gtd->system->term, IAC, SE);
 

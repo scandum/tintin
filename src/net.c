@@ -322,7 +322,7 @@ void write_line_mud(struct session *ses, char *line, int size)
 	{
 		char buf[BUFFER_SIZE];
 
-		size = utf8_to_all(ses, line, buf);
+		size = utf8_to_all(ses, line, buf, size);
 
 		memcpy(line, buf, size);
 
@@ -540,6 +540,7 @@ void readmud(struct session *ses)
 								str_cat(&ses->more_output, line);
 								ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);
 
+								check_all_events(ses, EVENT_FLAG_OUTPUT, 0, 0, "PACKET PATCH");
 								break;
 							}
 						}
@@ -547,6 +548,8 @@ void readmud(struct session *ses)
 						{
 							str_cat(&ses->more_output, line);
 							ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);
+
+							check_all_events(ses, EVENT_FLAG_OUTPUT, 0, 0, "PACKET PATCH");
 							break;
 						}
 					}
@@ -691,6 +694,19 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 		pop_call();
 		return;
+	}
+
+	if (HAS_BIT(ses->event_flags, EVENT_FLAG_OUTPUT|EVENT_FLAG_CATCH))
+	{
+		strip_vt102_codes(linebuf, line);
+
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 3, "PROCESSED LINE", linebuf, line, ntos(prompt));
+
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 3, "CATCH PROCESSED LINE", linebuf, line, ntos(prompt)))
+		{
+			pop_call();
+			return;
+		}
 	}
 
 	add_line_buffer(ses, linebuf, prompt);

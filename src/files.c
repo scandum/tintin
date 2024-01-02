@@ -33,13 +33,14 @@ DO_COMMAND(do_read)
 {
 	FILE *file;
 
-	sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
 	if ((file = fopen(arg1, "r")) == NULL)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", arg1, "FILE NOT FOUND.");
 
-		tintin_printf(ses, "#READ {%s} - FILE NOT FOUND.", arg1);
+		tintin_printf(ses, "#READ {%s}: FILE NOT FOUND.", arg1);
 
 		return ses;
 	}
@@ -63,7 +64,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "INVALID START OF FILE");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - INVALID START OF FILE '%c'.", filename, temp[0]);
+		tintin_printf(ses, "#ERROR: #READ {%s}: INVALID START OF FILE '%c'.", filename, temp[0]);
 
 		return ses;
 	}
@@ -88,7 +89,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
+		tintin_printf(ses, "#ERROR: #READ {%s}: FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
 		return ses;
 	}
@@ -98,7 +99,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FREAD FAILURE");
 		
-		tintin_printf(ses, "#ERROR: #READ {%s} - FREAD FAILURE.", filename);
+		tintin_printf(ses, "#ERROR: #READ {%s}: FREAD FAILURE.", filename);
 
 		return ses;
 	}
@@ -209,7 +210,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 						{
 							if (*pti == gtd->tintin_char)
 							{
-								show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s} MISSING SEMICOLON ON LINE %d.", filename, lnc);
+								show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s}: MISSING SEMICOLON ON LINE %d.", filename, lnc);
 							}
 						}
 
@@ -297,7 +298,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING BRACE OPEN OR CLOSE");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
+		tintin_printf(ses, "#ERROR: #READ {%s}: MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
 
 		free(bufi);
 		free(bufo);
@@ -309,7 +310,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "MISSING COMMENT OPEN OR CLOSE");
 
-		tintin_printf(ses, "#ERROR: #READ {%s} - MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
+		tintin_printf(ses, "#ERROR: #READ {%s}: MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
 
 		free(bufi);
 		free(bufo);
@@ -324,7 +325,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 		gtd->level->verbose++;
 		gtd->level->debug++;
 
-		show_error(ses, LIST_COMMAND, "\e[1;5;31mWARNING: SETTING THE COMMAND CHARACTER TO '%c' BECAUSE IT'S THE FIRST CHARACTER IN THE FILE.", bufo[0]);
+		show_error(ses, LIST_COMMAND, "#WARNING: #READ {%s}: SETTING THE COMMAND CHARACTER TO '%c' BECAUSE IT'S THE FIRST CHARACTER IN THE FILE.", filename, bufo[0]);
 
 		gtd->level->debug--;
 		gtd->level->verbose--;
@@ -359,7 +360,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		if (pto - bufi >= BUFFER_SIZE)
 		{
-			show_debug(ses, LIST_COMMAND, "#WARNING: #READ {%s} - POSSIBLE BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
+			show_debug(ses, LIST_COMMAND, "#WARNING: #READ {%s}: POSSIBLE BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
 		}
 
 		if (bufi[0])
@@ -421,7 +422,7 @@ DO_COMMAND(do_write)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "INVALID FILE NAME");
 
-		tintin_printf2(ses, "#SYNTAX: #WRITE {<filename>} {[FORCE]}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #WRITE <FILENAME> [FORCE]");
 
 		return ses;
 	}
@@ -429,6 +430,7 @@ DO_COMMAND(do_write)
 	if (is_suffix(arg1, ".map") && !is_abbrev(arg2, "FORCE"))
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "INVALID FILE EXTENSION");
+
 		tintin_printf2(ses, "#WRITE {%s}: USE {FORCE} TO OVERWRITE .map FILES.", arg1);
 
 		return ses;
@@ -438,7 +440,7 @@ DO_COMMAND(do_write)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "WRITE ERROR", arg1, "FAILED TO OPEN");
 
-		tintin_printf(ses, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", arg1);
+		show_error(ses, LIST_COMMAND, "#ERROR: #WRITE: COULDN'T OPEN {%s} TO WRITE.", arg1);
 
 		return ses;
 	}

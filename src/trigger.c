@@ -41,19 +41,19 @@ DO_COMMAND(do_action)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_ACTION]) == FALSE)
 		{
-			show_message(ses, LIST_ACTION, "#ACTION: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_ACTION, "#ACTION: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
 	{
 		if (*arg3 && (atof(arg3) < 1 || atof(arg3) >= 10))
 		{
-			show_error(ses, LIST_ACTION, "\e[1;31m#WARNING: #ACTION {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
+			show_error(ses, LIST_ACTION, "#WARNING: #ACTION {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
 		}
 
 		update_node_list(ses->list[LIST_ACTION], arg1, arg2, arg3, "");
 
-		show_message(ses, LIST_ACTION, "#OK. #ACTION {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
+		show_message(ses, LIST_ACTION, "#OK: #ACTION {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
 	}
 	return ses;
 }
@@ -103,7 +103,7 @@ void check_all_actions_multi(struct session *ses, char *original, char *stripped
 {
 	struct listroot *root = ses->list[LIST_ACTION];
 	struct listnode *node;
-	char *pto, *pts;
+	char *pto, *pts, *ptm;
 
 	for (root->multi_update = 0 ; root->multi_update < root->used ; root->multi_update++)
 	{
@@ -152,6 +152,13 @@ void check_all_actions_multi(struct session *ses, char *original, char *stripped
 				}
 			}
 			script_driver(ses, LIST_ACTION, buf);
+
+			ptm = node->arg1 + (*node->arg1 == '~');
+
+			if (ptm[0] == '\\' && ptm[1] == 'A')
+			{
+				break;
+			}
 		}
 	}
 }
@@ -178,7 +185,7 @@ DO_COMMAND(do_alias)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_ALIAS]) == FALSE)
 		{
-			show_message(ses, LIST_ALIAS, "#ALIAS: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_ALIAS, "#ALIAS: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -250,21 +257,20 @@ int check_all_aliases(struct session *ses, char *input)
 
 				for (i = 1 ; i < 100 ; i++)
 				{
-					arg = get_arg_in_braces(ses, arg, buf, GET_ONE);
-
-					RESTRING(gtd->vars[i], buf);
-
-					gtd->varc = i + 1;
+					gtd->varc = i;
 
 					if (*arg == 0)
 					{
-						while (++i < 100)
+						while (i < 100)
 						{
-							*gtd->vars[i] = 0;
+							*gtd->vars[i++] = 0;
 						}
 						break;
 					}
 
+					arg = get_arg_in_braces(ses, arg, buf, GET_ONE);
+
+					RESTRING(gtd->vars[i], buf);
 				}
 			}
 
@@ -306,7 +312,7 @@ DO_COMMAND(do_button)
 	struct listnode *node;
 	int index;
 
-	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 	arg = get_arg_in_braces(ses, arg, arg3, GET_ALL);
 
@@ -318,7 +324,7 @@ DO_COMMAND(do_button)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_BUTTON]) == FALSE)
 		{
-			show_message(ses, LIST_BUTTON, "#BUTTON: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_BUTTON, "#BUTTON: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -328,7 +334,7 @@ DO_COMMAND(do_button)
 
 		node = update_node_list(ses->list[LIST_BUTTON], arg1, arg2, arg3, "");
 
-		show_message(ses, LIST_BUTTON, "#OK. BUTTON {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
+		show_message(ses, LIST_BUTTON, "#OK: BUTTON {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
 
 		arg = arg1;
 
@@ -468,7 +474,7 @@ DO_COMMAND(do_delay)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_DELAY]) == FALSE)
 		{
-			show_message(ses, LIST_DELAY, "#DELAY: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_DELAY, "#DELAY: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -483,7 +489,7 @@ DO_COMMAND(do_delay)
 
 			create_node_list(ses->list[LIST_DELAY], time, arg2, arg1, arg3);
 
-			show_message(ses, LIST_DELAY, "#OK, IN {%s} SECONDS {%s} IS EXECUTED.", arg1, arg2);
+			show_message(ses, LIST_DELAY, "#DELAY: IN {%s} SECONDS {%s} IS EXECUTED.", arg1, arg2);
 
 		}
 		else
@@ -498,7 +504,7 @@ DO_COMMAND(do_delay)
 
 			node->shots = 1;
 
-			show_message(ses, LIST_TICKER, "#ONESHOT: #TICK {%s} WILL EXECUTE {%s} IN {%s} SECONDS.", arg1, arg2, time);
+			show_message(ses, LIST_TICKER, "#ONESHOT: #TICKER {%s} WILL EXECUTE {%s} IN {%s} SECONDS.", arg1, arg2, time);
 		}
 	}
 	return ses;
@@ -544,14 +550,14 @@ DO_COMMAND(do_function)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_FUNCTION]) == FALSE)
 		{
-			show_message(ses, LIST_FUNCTION, "#FUNCTION: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_FUNCTION, "#FUNCTION: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
 	{
 		update_node_list(ses->list[LIST_FUNCTION], arg1, arg2, "", "");
 
-		show_message(ses, LIST_FUNCTION, "#OK. FUNCTION {%s} NOW TRIGGERS {%s}.", arg1, arg2);
+		show_message(ses, LIST_FUNCTION, "#OK: FUNCTION {%s} NOW TRIGGERS {%s}.", arg1, arg2);
 	}
 	return ses;
 }
@@ -585,7 +591,7 @@ DO_COMMAND(do_gag)
 	{
 		update_node_list(ses->list[LIST_GAG], arg1, "", "", "");
 
-		show_message(ses, LIST_GAG, "#OK. {%s} IS NOW GAGGED.", arg1);
+		show_message(ses, LIST_GAG, "#OK: {%s} IS NOW GAGGED.", arg1);
 	}
 	return ses;
 }
@@ -647,7 +653,7 @@ DO_COMMAND(do_highlight)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_HIGHLIGHT]) == FALSE)
 		{
-			show_message(ses, LIST_HIGHLIGHT, "#HIGHLIGHT: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_HIGHLIGHT, "#HIGHLIGHT: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -661,7 +667,7 @@ DO_COMMAND(do_highlight)
 		{
 			update_node_list(ses->list[LIST_HIGHLIGHT], arg1, arg2, arg3, "");
 
-			show_message(ses, LIST_HIGHLIGHT, "#OK. {%s} NOW HIGHLIGHTS {%s} @ {%s}.", arg1, arg2, arg3);
+			show_message(ses, LIST_HIGHLIGHT, "#OK: {%s} NOW HIGHLIGHTS {%s} @ {%s}.", arg1, arg2, arg3);
 		}
 	}
 	return ses;
@@ -773,7 +779,7 @@ DO_COMMAND(do_macro)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_MACRO]) == FALSE)
 		{
-			show_message(ses, LIST_MACRO, "#MACRO: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_MACRO, "#MACRO: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -782,7 +788,7 @@ DO_COMMAND(do_macro)
 
 		update_node_list(ses->list[LIST_MACRO], arg1, arg2, "", arg3);
 
-		show_message(ses, LIST_MACRO, "#OK. MACRO {%s} NOW TRIGGERS {%s}.", arg1, arg2);
+		show_message(ses, LIST_MACRO, "#OK: MACRO {%s} NOW TRIGGERS {%s}.", arg1, arg2);
 	}
 	return ses;
 }
@@ -818,7 +824,7 @@ DO_COMMAND(do_prompt)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_PROMPT]) == FALSE)
 		{
-			show_message(ses, LIST_PROMPT, "#PROMPT: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_PROMPT, "#PROMPT: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
@@ -831,7 +837,7 @@ DO_COMMAND(do_prompt)
 
 		update_node_list(ses->list[LIST_PROMPT], arg1, arg2, arg3, arg4);
 
-		show_message(ses, LIST_PROMPT, "#OK. {%s} NOW PROMPTS {%s} @ {%s} {%s}.", arg1, arg2, arg3, arg4);
+		show_message(ses, LIST_PROMPT, "#OK: {%s} NOW PROMPTS {%s} @ {%s} {%s}.", arg1, arg2, arg3, arg4);
 	}
 	return ses;
 }
@@ -915,14 +921,14 @@ DO_COMMAND(do_substitute)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_SUBSTITUTE]) == FALSE)
 		{
-			show_message(ses, LIST_SUBSTITUTE, "#SUBSTITUTE: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_SUBSTITUTE, "#SUBSTITUTE: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
 	{
 		update_node_list(ses->list[LIST_SUBSTITUTE], arg1, arg2, arg3, "");
 
-		show_message(ses, LIST_SUBSTITUTE, "#OK. {%s} IS NOW SUBSTITUTED AS {%s} @ {%s}.", arg1, arg2, arg3);
+		show_message(ses, LIST_SUBSTITUTE, "#OK: {%s} IS NOW SUBSTITUTED AS {%s} @ {%s}.", arg1, arg2, arg3);
 	}
 	return ses;
 }
@@ -952,6 +958,11 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
 		node = root->list[root->update];
+
+		if (HAS_BIT(node->flags, NODE_FLAG_MULTI))
+		{
+			continue;
+		}
 
 		if (check_one_regexp(ses, node, line, original, 0))
 		{
@@ -996,8 +1007,106 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 				pto = ptm + len;
 
 				show_debug(ses, LIST_SUBSTITUTE, COLOR_DEBUG "#DEBUG SUBSTITUTE " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1, match);
+
+				ptm = node->arg1 + (*node->arg1 == '~');
+
+				if (ptm[0] == '\\' && ptm[1] == 'A')
+				{
+					break;
+				}
 			}
-			while (*pto && check_one_regexp(ses, node, ptl, pto, 0));
+			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE_NOTBOL));
+
+			if (node->shots && --node->shots == 0)
+			{
+				delete_node_list(ses, LIST_SUBSTITUTE, node);
+			}
+			strcpy(ptr, pto);
+
+			strcpy(original, result);
+
+			strip_vt102_codes(original, line);
+		}
+	}
+	pop_call();
+	return;
+}
+
+void check_all_substitutions_multi(struct session *ses, char *original, char *line)
+{
+	char *match, *subst, *result, *temp, *ptl, *ptm, *pto, *ptr;
+	struct listroot *root = ses->list[LIST_SUBSTITUTE];
+	struct listnode *node;
+	int len;
+
+	push_call("check_all_substitutions(%p,%p,%p)",ses,original,line);
+
+	match  = str_alloc_stack(0);
+	subst  = str_alloc_stack(0);
+	result = str_alloc_stack(0);
+	temp   = str_alloc_stack(0);
+
+	for (root->multi_update = 0 ; root->multi_update < root->used ; root->multi_update++)
+	{
+		node = root->list[root->multi_update];
+
+		if (!HAS_BIT(node->flags, NODE_FLAG_MULTI))
+		{
+			continue;
+		}
+
+		if (check_one_regexp(ses, node, line, original, 0))
+		{
+			pto = original;
+			ptl = line;
+			ptr = result;
+
+			*result = *gtd->color_reset = 0;
+
+			do
+			{
+				if (*gtd->vars[0] == 0)
+				{
+					break;
+				}
+
+				strcpy(match, gtd->vars[0]);
+
+				substitute(ses, node->arg2, temp, SUB_ARG);
+
+				if (*node->arg1 == '~')
+				{
+					ptm = strstr(pto, match);
+
+					len = strlen(match);
+				}
+				else
+				{
+					ptm = strip_vt102_strstr(pto, match, &len);
+
+					ptl = strstr(ptl, match) + strlen(match);
+				}
+
+				*ptm = 0;
+
+				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
+
+				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
+
+				ptr += sprintf(ptr, "%s%s", pto, subst);
+
+				pto = ptm + len;
+
+				show_debug(ses, LIST_SUBSTITUTE, COLOR_DEBUG "#DEBUG SUBSTITUTE " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1, match);
+
+				ptm = node->arg1 + (*node->arg1 == '~');
+
+				if (ptm[0] == '\\' && ptm[1] == 'A')
+				{
+					break;
+				}
+			}
+			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE_NOTBOL));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -1034,7 +1143,7 @@ DO_COMMAND(do_tab)
 	{
 		update_node_list(ses->list[LIST_TAB], arg1, "", "", "");
 
-		show_message(ses, LIST_TAB, "#OK. {%s} IS NOW A TAB.", arg1);
+		show_message(ses, LIST_TAB, "#OK: {%s} IS NOW A TAB.", arg1);
 	}
 	return ses;
 }
@@ -1087,14 +1196,14 @@ DO_COMMAND(do_tick)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_TICKER]) == FALSE) 
 		{
-			show_message(ses, LIST_TICKER, "#TICK, NO MATCH(ES) FOUND FOR {%s}.", arg1);
+			show_message(ses, LIST_TICKER, "#TICKER: NO MATCHES FOUND FOR {%s}.", arg1);
 		}
 	}
 	else
 	{
 		update_node_list(ses->list[LIST_TICKER], arg1, arg2, time, arg3);
 
-		show_message(ses, LIST_TICKER, "#OK. #TICK {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, time);
+		show_message(ses, LIST_TICKER, "#OK: #TICKER {%s} NOW EXECUTES {%s} EVERY {%s} SECONDS.", arg1, arg2, time);
 	}
 	return ses;
 }

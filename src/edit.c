@@ -180,7 +180,7 @@ DO_EDIT(edit_read)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #EDIT READ {<FILENAME>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #EDIT READ <FILENAME>");
 
 		return ses;
 	}

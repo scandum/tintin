@@ -96,6 +96,21 @@ struct iac_type iac_server_table [] =
 	{ 0, NULL,                                                                  NULL}
 };
 
+void server_telopt_debug(struct session *ses, char *format, ...)
+{
+	char buf[BUFFER_SIZE];
+	va_list args;
+
+	if (HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
+	{
+		va_start(args, format);
+		vsprintf(buf, format, args);
+		va_end(args);
+
+		tintin_puts(ses, buf);
+	}
+}
+
 /*
 	Call this to announce support for telopts marked as such in tables.c
 */
@@ -105,17 +120,21 @@ void announce_support(struct session *ses, struct port_data *buddy)
 	int i;
 
 	push_call("announce_support(%p,%p)",ses,buddy);
-	
+
 	for (i = 0 ; i < 255 ; i++)
 	{
 		if (telopt_table[i].flags)
 		{
 			if (HAS_BIT(telopt_table[i].flags, ANNOUNCE_WILL))
 			{
+				server_telopt_debug(ses, "SENT IAC WILL %s", telopt_table[i].name);
+
 				port_telnet_printf(ses, buddy, 3, "%c%c%c", IAC, WILL, i);
 			}
 			if (HAS_BIT(telopt_table[i].flags, ANNOUNCE_DO))
 			{
+				server_telopt_debug(ses, "SENT IAC DO %s", telopt_table[i].name);
+
 				port_telnet_printf(ses, buddy, 3, "%c%c%c", IAC, DO, i);
 			}
 		}
@@ -276,6 +295,12 @@ int server_translate_telopts(struct session *ses, struct port_data *buddy, unsig
 		switch (*pti)
 		{
 			case IAC:
+				if (!HAS_BIT(ses->config_flags, CONFIG_FLAG_TELNET))
+				{
+					*pto++ = *pti++;
+					srclen--;
+					break;
+				}
 				skip = 2;
 
 				debug_telopts(ses, buddy, pti, srclen);
@@ -400,12 +425,12 @@ void telopt_debug(struct session *ses, char *format, ...)
 
 void debug_telopts(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
-	if (srclen > 1 && TELOPT_DEBUG)
+	if (srclen > 1)
 	{
 		switch(src[1])
 		{
 			case IAC:
-				tintin_printf2(ses, "RCVD IAC IAC");
+				server_telopt_debug(ses, "RCVD IAC IAC");
 				break;
 
 			case DO:
@@ -419,39 +444,39 @@ void debug_telopts(struct session *ses, struct port_data *buddy, unsigned char *
 					{
 						if (skip_sb(ses, buddy, src, srclen) == srclen + 1)
 						{
-							tintin_printf2(ses, "RCVD IAC SB %s ?", TELOPT(src[2]));
+							server_telopt_debug(ses, "RCVD IAC SB %s ?", TELOPT(src[2]));
 						}
 						else
 						{
-							tintin_printf2(ses, "RCVD IAC SB %s IAC SE", TELOPT(src[2]));
+							server_telopt_debug(ses, "RCVD IAC SB %s IAC SE", TELOPT(src[2]));
 						}
 					}
 					else
 					{
-						tintin_printf2(ses, "RCVD IAC %s %s", TELCMD(src[1]), TELOPT(src[2]));
+						server_telopt_debug(ses, "RCVD IAC %s %s", TELCMD(src[1]), TELOPT(src[2]));
 					}
 				}
 				else
 				{
-					tintin_printf2(ses, "RCVD IAC %s ?", TELCMD(src[1]));
+					server_telopt_debug(ses, "RCVD IAC %s ?", TELCMD(src[1]));
 				}
 				break;
 
 			default:
 				if (TELCMD_OK(src[1]))
 				{
-					tintin_printf2(ses, "RCVD IAC %s", TELCMD(src[1]));
+					server_telopt_debug(ses, "RCVD IAC %s", TELCMD(src[1]));
 				}
 				else
 				{
-					tintin_printf2(ses, "RCVD IAC %d", src[1]);
+					server_telopt_debug(ses, "RCVD IAC %d", src[1]);
 				}
 				break;
 		}
 	}
 	else
 	{
-		tintin_printf2(ses, "RCVD IAC ?");
+		server_telopt_debug(ses, "RCVD IAC ?");
 	}
 }
 
@@ -544,7 +569,7 @@ int process_sb_ttype_is(struct session *ses, struct port_data *buddy, unsigned c
 
 				if (TELOPT_DEBUG)
 				{
-					tintin_printf2(ses, "INFO IAC SB TTYPE RCVD VAL %s.", val);
+					server_telopt_debug(ses, "INFO IAC SB TTYPE RCVD VAL %s.", val);
 				}
 
 				if (*buddy->ttype == 0)
@@ -611,10 +636,7 @@ int process_sb_naws(struct session *ses, struct port_data *buddy, unsigned char 
 		}
 	}
 
-	if (TELOPT_DEBUG)
-	{
-		tintin_printf2(ses, "INFO IAC SB NAWS RCVD ROWS %d COLS %d", buddy->rows, buddy->cols);
-	}
+	server_telopt_debug(ses, "INFO IAC SB NAWS RCVD ROWS %d COLS %d", buddy->rows, buddy->cols);
 
 	return skip_sb(ses, buddy, src, srclen);
 }
@@ -626,6 +648,8 @@ int process_sb_naws(struct session *ses, struct port_data *buddy, unsigned char 
 int process_will_new_environ(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
 {
 	port_socket_printf(ses, buddy, "%c%c%c%c%c%s%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_SEND, ENV_VAR, "SYSTEMTYPE", IAC, SE);
+
+	port_socket_printf(ses, buddy, "%c%c%c%c%c%c", IAC, SB, TELOPT_NEW_ENVIRON, ENV_SEND, IAC, SE);
 
 	return 3;
 }
@@ -662,7 +686,7 @@ int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigne
 
 				if (src[i] != ENV_VAL)
 				{
-					tintin_printf2(ses, "INFO IAC SB NEW-ENVIRON RCVD %d VAR %s", src[3], var);
+					server_telopt_debug(ses, "INFO IAC SB NEW-ENVIRON RCVD %s KEY %s VAL (EMPTY)", src[3] == ENV_VAR ? "VAR" : "USERVAR", var);
 				}
 				break;
 
@@ -676,10 +700,7 @@ int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigne
 				}
 				*pto = 0;
 
-				if (TELOPT_DEBUG)
-				{
-					tintin_printf2(ses, "INFO IAC SB NEW-ENVIRON RCVD %d VAR %s VAL %s", src[3], var, val);
-				}
+				server_telopt_debug(ses, "INFO IAC SB NEW-ENVIRON RCVD %s KEY %s VAL %s", src[3] == ENV_VAR ? "VAR" : "USERVAR", var, val);
 
 				if (src[3] == ENV_IS)
 				{
@@ -757,13 +778,10 @@ int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned ch
 		}
 		*pto = 0;
 
-		if (TELOPT_DEBUG)
-		{
-			tintin_printf2(ses, "INFO IAC SB CHARSET RCVD %d VAL %s", src[3], val);
-		}
-
 		if (src[3] == CHARSET_ACCEPTED)
 		{
+			server_telopt_debug(ses, "INFO IAC SB CHARSET RCVD ACCEPED VAL %s", val);
+
 			if (!strcasecmp(val, "UTF-8"))
 			{
 				SET_BIT(buddy->comm_flags, COMM_FLAG_UTF8);
@@ -771,10 +789,16 @@ int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned ch
 		}
 		else if (src[3] == CHARSET_REJECTED)
 		{
+			server_telopt_debug(ses, "INFO IAC SB CHARSET RCVD REJECTED VAL %s", val);
+
 			if (!strcasecmp(val, "UTF-8"))
 			{
 				DEL_BIT(buddy->comm_flags, COMM_FLAG_UTF8);
 			}
+		}
+		else
+		{
+			server_telopt_debug(ses, "INFO IAC SB CHARSET RCVD %d VAL %s", src[3], val);
 		}
 		i++;
 	}
@@ -806,7 +830,7 @@ int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char 
 		buddy->msdp_data[index]->value = strdup("");
 	}
 
-	tintin_printf2(ses, "INFO MSDP INITIALIZED");
+	server_telopt_debug(ses, "INFO MSDP INITIALIZED");
 
 	// Easiest to handle variable initialization here.
 
@@ -905,7 +929,7 @@ int process_do_gmcp(struct session *ses, struct port_data *buddy, unsigned char 
 	{
 		return 3;
 	}
-	tintin_printf2(ses, "INFO MSDP OVER GMCP INITIALIZED");
+	server_telopt_debug(ses, "INFO MSDP OVER GMCP INITIALIZED");
 
 	SET_BIT(buddy->comm_flags, COMM_FLAG_GMCP);
 

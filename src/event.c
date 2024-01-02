@@ -128,7 +128,7 @@ DO_COMMAND(do_event)
 
 			if (symbol == 0)
 			{
-				show_message(ses, LIST_ALIAS, "#EVENT: NO MATCH(ES) FOUND FOR {%s}.", arg1);
+				show_message(ses, LIST_EVENT, "#EVENT: NO MATCHES FOUND FOR {%s}.", arg1);
 			}
 		}
 	}
@@ -157,7 +157,7 @@ DO_COMMAND(do_event)
 				return ses;
 			}
 		}
-		show_error(ses, LIST_EVENT, "#EVENT {%s} IS NOT AN EXISTING EVENT.", arg1);
+		show_error(ses, LIST_EVENT, "#ERROR: #EVENT {%s} IS NOT AN EXISTING EVENT.", arg1);
 	}
 	return ses;
 }

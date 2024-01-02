@@ -65,7 +65,7 @@ DO_COMMAND(do_regexp)
 
 	if (*arg3 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "SYNTAX: #REGEXP {string} {expression} {true} {false}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #REGEXP <TEXT> <EXPRESSION> <TRUE> [FALSE]");
 	}
 	else
 	{
@@ -90,14 +90,14 @@ DO_COMMAND(do_regexp)
 	return ses;
 }
 
-int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, int option, int flag)
+int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
 	pcre *regex;
 	int i, j, matches;
 
 	if (nodepcre == NULL)
 	{
-		regex = regexp_compile(ses, exp, option);
+		regex = regexp_compile(ses, exp, comp_option);
 	}
 	else
 	{
@@ -189,17 +189,17 @@ int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, in
 	return TRUE;
 }
 
-pcre *regexp_compile(struct session *ses, char *exp, int option)
+pcre *regexp_compile(struct session *ses, char *exp, int comp_option)
 {
 	const char *error;
 	int i;
 /*
 	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 	{
-		option |= PCRE_UTF8|PCRE_NO_UTF8_CHECK;
+		comp_option |= PCRE_UTF8|PCRE_NO_UTF8_CHECK;
 	}
 */
-	return pcre_compile(exp, option, &error, &i, NULL);
+	return pcre_compile(exp, comp_option, &error, &i, NULL);
 }
 
 
@@ -210,7 +210,7 @@ pcre *regexp_compile(struct session *ses, char *exp, int option)
 * in the text represented by the wildcards on success.                        *
 ******************************************************************************/
 
-int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int option)
+int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int comp_option)
 {
 	char *exp, *str;
 
@@ -237,7 +237,7 @@ int check_one_regexp(struct session *ses, struct listnode *node, char *line, cha
 		str = line;
 	}	
 
-	return tintin_regexp(ses, node->regex, str, exp, option, REGEX_FLAG_ARG);
+	return tintin_regexp(ses, node->regex, str, exp, comp_option, REGEX_FLAG_ARG);
 }
 
 /*
@@ -473,7 +473,7 @@ int tintin_regexp_check(struct session *ses, char *exp)
 //    3.4 If FIX is set the gtd->args index is used and valid tinexp is assumed
 //    3.4 return TRUE
 
-int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int option, int flag)
+int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
 	int i, arg = 1, var = 1, fix = 0;
@@ -518,7 +518,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 			case '\\':
 				if (pti[1] == 'n')
 				{
-					SET_BIT(option, PCRE_MULTILINE);
+					SET_BIT(comp_option, PCRE_MULTILINE);
 				}
 				else if (pti[1] == 0)
 				{
@@ -822,10 +822,10 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 	}
 	*pto = 0;
 
-	return regexp_compare(ses, nodepcre, str, out, option, flag + fix);
+	return regexp_compare(ses, nodepcre, str, out, comp_option, flag + fix);
 }
 
-pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option)
+pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int comp_option)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
 
@@ -880,7 +880,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 				}
 				else if (pti[1] == 'n')
 				{
-					SET_BIT(option, PCRE_MULTILINE);
+					SET_BIT(comp_option, PCRE_MULTILINE);
 					SET_BIT(node->flags, NODE_FLAG_MULTI);
 				}
 				else if (pti[1] == 0)
@@ -1182,9 +1182,9 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 
 	if (HAS_BIT(node->flags, NODE_FLAG_COLOR) && *exp != '~')
 	{
-		show_error(ses, LIST_COMMAND, "\e[1;31mWARNING: REGEX MATCHES ESCAPE CODES BUT DOES NOT START WITH A '~' (%s)", exp);
+		show_error(ses, LIST_COMMAND, "#WARNING: REGEX {%s} MATCHES ESCAPE CODES BUT DOES NOT START WITH A '~'.", exp);
 	}
-	return regexp_compile(ses, out, option);
+	return regexp_compile(ses, out, comp_option);
 }
 
 void tintin_macro_compile(char *input, char *output)

@@ -1181,6 +1181,11 @@ void check_one_line_multi(struct session *ses, char *original, char *stripped)
 	{
 		check_all_actions_multi(ses, original, stripped, buf);
 	}
+
+	if (!HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
+	{
+		check_all_substitutions_multi(ses, original, stripped);
+	}
 }
 
 void check_one_line(struct session *ses, char *line)

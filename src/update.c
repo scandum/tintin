@@ -403,14 +403,6 @@ void update_sessions(void)
 					if (rv < 0)
 					{
 						break; // bug report after removal.
-
-						syserr_printf(ses, "update_sessions: select:");
-
-						cleanup_session(ses);
-
-						gtd->mud_output_len = 0;
-
-						break;
 					}
 
 					if (rv == 0)
@@ -424,6 +416,8 @@ void update_sessions(void)
 						{
 							readmud(ses);
 
+							SET_BIT(ses->flags, SES_FLAG_LINKLOST);
+
 							cleanup_session(ses);
 
 							gtd->mud_output_len = 0;
@@ -435,6 +429,8 @@ void update_sessions(void)
 					if (FD_ISSET(ses->socket, &error_fd))
 					{
 						FD_CLR(ses->socket, &read_fd);
+
+						SET_BIT(ses->flags, SES_FLAG_LINKLOST);
 
 						cleanup_session(ses);
 
@@ -481,8 +477,10 @@ void update_sessions(void)
 				}
 				else
 				{
+/*
 					if (HAS_BIT(ses->flags, SES_FLAG_SNOOPSCROLL))
 					{
+
 						if (HAS_BIT(ses->scroll->flags, SCROLL_FLAG_RESIZE))
 						{
 							buffer_refresh(ses, "", "", "");
@@ -492,9 +490,9 @@ void update_sessions(void)
 							print_scroll_region(ses);
 						}
 					}
+*/
 					buffer_end(ses, "", "", "");
 				}
-
 				DEL_BIT(ses->flags, SES_FLAG_PRINTBUFFER);
 			}
 
@@ -897,7 +895,7 @@ void tick_update(void)
 			{
 				node->val64 += (long long) (get_number(ses, node->arg3) * 1000000LL);
 
-				show_info(ses, LIST_TICKER, "#INFO TICK {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
+				show_info(ses, LIST_TICKER, "#INFO TICKER {%s} INITIALIZED WITH TIMESTAMP {%lld}", node->arg1, node->val64);
 
 				if (node->val64 < gtd->utime_next_tick)
 				{

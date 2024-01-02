@@ -1,32 +1,33 @@
-#info mem
-#INFO MEMORY: STACK SIZE: 1800045
-#INFO MEMORY: STACK  MAX: 64
-#INFO MEMORY: STACK  CAP: 45
-#INFO MEMORY: STACK  LEN: 3
+- Problem with restoring true color subs.
+#sub bla {<F00AA00>bla}
+#high blo <118>
+#showme <158>test bli bla blo test
 
-#ERROR: index 386297 len = 1/0 max = 5706 flags = 6 (e)
-#INFO MEMORY: ALLOC SIZE: 17963354
-#INFO MEMORY: ALLOC USED: 13862779
-#INFO MEMORY: ALLOC  MAX: 1048576
-#INFO MEMORY: ALLOC  LEN: 547640
+- make #regex be able to use \n
 
-#INFO MEMORY: FREED SIZE: 1626853344
-#INFO MEMORY: FREED  MAX: 1048576
-#INFO MEMORY: FREED  LEN: 546481
+- split screen scrollback setting in #screen
 
-#INFO MEMORY: DEBUG SIZE: 1024
-#INFO MEMORY: DEBUG  MAX: 48
-#INFO MEMORY: DEBUG  LEN: 4
+- Make #draw scroll grid table work properly.
 
-- #var foo {x;{a;b;c};y;z}
-  #list foo create {$foo}
-  #list foo simplify
+- Make sure #config compact also applies to the log file.
 
-  #list explode has an issue with ';'
+- look into handling VARIABLE UPDATE event better
+
+- catch event to handle #map global exceptions
+
+- switch to pcre2
+
+- Add routine to escape 0x00 in port.c RECEIVED DATA event.
+
+- allow a full telnet disable in port.c
+
+- Add message when a substitution exceeds available memory.
+
+- config loglevel medium option
+
+- look into GMCP larger than buffer size
 
 - finish ? : support in #math
-
-- multiline triggers
 
 - finish create_node()
 
@@ -50,8 +51,6 @@
 
 - look into a #debug flag for #class
 
-- switch to pcre2
-
 - Another nice thing would be if there was some flag to make a trigger match newlines as space.
 
 - fix up named delays and undelay
@@ -72,16 +71,13 @@
   - add shadow session support with access to all events.
 
   - set_line_screen debug: col = -5 (64) from draw_text(%p,%d,%p,%p,%p)
+  - set_line_screen stack call triggered on android
 
   - regex101 like regex tester
 
   - check: #var bla { x};#draw scroll box 1 1 3 40 $bla
 
-  - set_line_screen stack call triggered on android
-
   - input spell checking, #cursor display ?
-
-  - look into named actions as a 4th argument
 
   - Get discworld / aardwolf mxp to work for @sentix
 
@@ -137,18 +133,17 @@
   - multiple global exit rooms and noglobal flags.
   - auto align routine that inserts void rooms where needed
   - look into writing script to drag rooms + void with mouse
-  - pancake mode to display rooms at all levels and annotations
   - Store the map filename to differentiate between maps.
   - #map list {<exits>} breaks on rooms that have e mapped to eu.
   - finish landmarks
   - map sandbox mode support (flags to disable saving?)
   - add ghosting to fix #map flag nofollow exit cmd issues?
   - Request: 'stop' #map center command, so i could see how the 'user' moves, rather map moves around him? 
-  - #map uninsert <vnum>
   - make map spacing easier
   - event for failed #map move.
   - look into #send triggering follow map.
   - add {roomdata} search to #map list
+  - change 'C' to 'S' in map file
 
   - Make actions with a priority of 0. trigger always
 
@@ -171,13 +166,9 @@
 
   - look into discord api / arachnos
 
-  - better color syntax highlighting configuration.
-
-  - See about adding SESSIONS to the list table.
+  - Add SESSIONS to the list table.
 
   - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
-
-  - fix readmud in net.c to not move the cursor on inactive sessions.
 
   - add packets patched counter
 
@@ -189,17 +180,9 @@
 
   - see if #break 2 is possible, maybe #continue 2 as well.
 
-  - http://tintin.sourceforge.net/board/viewtopic.php?t=2339 (map area data)
-
   - IPv6 for chat
 
-  - http://tintin.sourceforge.net/board/viewtopic.php?p=9109 (vt102 strip \e[2J\e[H )
-
-  - http://tintin.sourceforge.net/board/viewtopic.php?p=8766#8766 (global verbose toggle?)
-
   - See about adding ~/ handling for file names.
-
-  - Look into adding basic EUC-KR support.
 
 --------------------------------------------------------------------------------
 
@@ -211,11 +194,7 @@
 
   - multi-line buffer searches / captures / deletes
 
-  - multi-line triggers (use nested actions?)
-
   - add color based auto unwrap routine.
-
-  - Start of line anchors aren't working in #replace.
 
   - add #history filter option to filter out 1 letter commands.
 

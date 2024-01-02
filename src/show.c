@@ -104,6 +104,8 @@ DO_COMMAND(do_echo)
 		arg += strlen(arg);
 	}
 
+	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
+
 	substitute(ses, arg1, arg1, SUB_COL|SUB_ESC);
 
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
@@ -115,8 +117,6 @@ DO_COMMAND(do_echo)
 
 		return ses;
 	}
-
-	prompt = is_suffix(arg1, "\\") && !is_suffix(arg1, "\\\\");
 
 	str_cpy_printf(&out, "%s%s%s", COLOR_TEXT, arg1, COLOR_TEXT);
 
@@ -156,6 +156,11 @@ void show_message(struct session *ses, int index, char *format, ...)
 	}
 
 	display:
+
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
 
 	va_start(args, format);
 
@@ -210,6 +215,11 @@ void show_error(struct session *ses, int index, char *format, ...)
 	va_list args;
 
 	push_call("show_error(%p,%p,%p)",ses,index,format);
+
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
 
 	va_start(args, format);
 	if (vasprintf(&buffer, format, args) == -1)
@@ -278,8 +288,19 @@ void show_debug(struct session *ses, int index, char *format, ...)
 		return;
 	}
 
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
+
 	va_start(args, format);
-	vasprintf(&buffer, format, args);
+
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "show_debug(%s): vasprintf:", format);
+
+		buffer = strdup("vasprintf error");
+	}
 	va_end(args);
 
 	if (gtd->level->debug || HAS_BIT(root->flags, LIST_FLAG_DEBUG))
@@ -430,8 +451,18 @@ void tintin_header(struct session *ses, int width, char *format, ...)
 		return;
 	}
 
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
+
 	va_start(args, format);
-	vasprintf(&title, format, args);
+	if (vasprintf(&title, format, args) == -1)
+	{
+		syserr_printf(ses, "tintin_header(%s): vasprintf:", format);
+
+		buffer = strdup("vasprintf error");
+	}
 	va_end(args);
 
 	if ((int) strlen(title) > cols - 2)
@@ -469,6 +500,11 @@ void tintin_printf(struct session *ses, char *format, ...)
 
 	push_call("tintin_printf(%p,%p,...)",ses,format);
 
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
+
 	buffer = str_alloc_stack(0);
 
 	va_start(args, format);
@@ -487,6 +523,11 @@ void tintin_printf2(struct session *ses, char *format, ...)
 	va_list args;
 
 	push_call("tintin_printf2(%p,%p,...)",ses,format);
+
+	if (check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
 
 	va_start(args, format);
 	if (vasprintf(&buffer, format, args) == -1)
@@ -511,12 +552,12 @@ void tintin_printf3(struct session *ses, char *format, ...)
 	char *buffer;
 	va_list args;
 
-	push_call("tintin_printf2(%p,%p,...)",ses,format);
+	push_call("tintin_printf3(%p,%p,...)",ses,format);
 
 	va_start(args, format);
 	if (vasprintf(&buffer, format, args) == -1)
 	{
-		syserr_printf(ses, "tintin_printf2: vasprintf:");
+		syserr_printf(ses, "tintin_printf3: vasprintf:");
 
 		pop_call();
 		return;

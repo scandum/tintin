@@ -108,7 +108,7 @@ DO_LINE(line_background)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BACKGROUND} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BACKGROUND} <COMMAND>");
 
 		return ses;
 	}
@@ -130,7 +130,7 @@ DO_LINE(line_benchmark)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BENCHMARK} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {BENCHMARK} <COMMAND>");
 
 		return ses;
 	}
@@ -170,7 +170,7 @@ DO_LINE(line_capture)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE CAPTURE {VARIABLE} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE CAPTURE <VARIABLE> <COMMAND>");
 	}
 	return ses;
 }
@@ -181,7 +181,7 @@ DO_LINE(line_convert)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {CONVERT} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {CONVERT} <COMMAND>");
 
 		return ses;
 	}
@@ -203,7 +203,7 @@ DO_LINE(line_debug)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {DEBUG} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {DEBUG} <COMMAND>");
 
 		return ses;
 	}
@@ -252,7 +252,7 @@ DO_LINE(line_ignore)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {IGNORE} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {IGNORE} <COMMAND>");
 		
 		return ses;
 	}
@@ -272,7 +272,7 @@ DO_LINE(line_local)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOCAL} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOCAL} <COMMAND>");
 
 		return ses;
 	}
@@ -329,7 +329,7 @@ DO_LINE(line_log)
 			}
 			else
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s} - COULDN'T OPEN FILE.", arg1);
+				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s}: COULDN'T OPEN FILE.", arg1);
 			}
 		}
 	}
@@ -355,12 +355,12 @@ DO_LINE(line_log)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s} - COULDN'T OPEN FILE.", arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s}: COULDN'T OPEN FILE.", arg1);
 		}
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOG} {filename} [string]");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOG} <FILENAME> [TEXT]");
 	}
 	return ses;
 }
@@ -401,7 +401,7 @@ DO_LINE(line_logverbatim)
 			}
 			else
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
+				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s}: COULDN'T OPEN FILE.", arg1);
 			}
 		}
 	}
@@ -427,12 +427,12 @@ DO_LINE(line_logverbatim)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s} - COULDN'T OPEN FILE.", arg1);
+			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s}: COULDN'T OPEN FILE.", arg1);
 		}
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGVERBATIM} {filename} {string}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGVERBATIM} <FILENAME> <TEXT>");
 	}
 	return ses;
 }
@@ -469,7 +469,7 @@ DO_LINE(line_logmode)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGMODE} {HTML|PLAIN|RAW|STAMP} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {LOGMODE} {HTML|PLAIN|RAW|STAMP} <COMMAND>");
 
 		return ses;
 	}
@@ -489,7 +489,7 @@ DO_LINE(line_msdp)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MSDP} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MSDP} <COMMAND>");
 
 		return ses;
 	}
@@ -508,7 +508,7 @@ DO_LINE(line_json)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {JSON} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {JSON} <VARIABLE> <COMMAND>");
 
 		return ses;
 	}
@@ -556,7 +556,7 @@ DO_LINE(line_multishot)
 
 	if (!is_math(ses, arg1) || *arg2 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MULTISHOT} {number} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {MULTISHOT} <NUMBER> <COMMAND>");
 		
 		return ses;
 	}
@@ -580,7 +580,7 @@ DO_LINE(line_oneshot)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {ONESHOT} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {ONESHOT} <COMMAND>");
 		
 		return ses;
 	}
@@ -602,7 +602,7 @@ DO_LINE(line_quiet)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {QUIET} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {QUIET} <COMMAND>");
 		
 		return ses;
 	}
@@ -622,7 +622,7 @@ DO_LINE(line_strip)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {STRIP} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {STRIP} <COMMAND>");
 
 		return ses;
 	}
@@ -645,7 +645,7 @@ DO_LINE(line_substitute)
 	{
 		for (i = 0 ; *substitution_table[i].name ; i++)
 		{
-			tintin_printf2(ses, "#SYNTAX: #LINE {SUBSTITUTE} {%s} {command}.", substitution_table[i].name);
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {SUBSTITUTE} {%s} <COMMAND>", substitution_table[i].name);
 		}
 		return ses;
 	}
@@ -683,7 +683,7 @@ DO_LINE(line_verbatim)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {VERBATIM} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {VERBATIM} <COMMAND>");
 		
 		return ses;
 	}
@@ -703,7 +703,7 @@ DO_LINE(line_verbose)
 
 	if (*arg1 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {VERBOSE} {command}.");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {VERBOSE} <COMMAND>");
 		
 		return ses;
 	}

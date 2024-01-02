@@ -441,7 +441,7 @@ DO_SCREEN(screen_clear)
 
 		if (bot_col == 0)
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN CLEAR SQUARE {<ROW>} {<COL>} {<ROW>} {<COL>}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN CLEAR SQUARE <ROW> <COL> <ROW> <COL>");
 		}
 		else
 		{
@@ -587,7 +587,7 @@ DO_SCREEN(screen_fill)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN FILL {TOP|BOT|LEFT|RIGHT|SCROLL|SPLIT|DEFAULT} {arg}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN FILL {TOP|BOT|LEFT|RIGHT|SCROLL|SPLIT|DEFAULT} <ARGUMENT>");
 	}
 }
 
@@ -616,16 +616,16 @@ DO_SCREEN(screen_get)
 {
 	if (*arg1 == 0 || *arg2 == 0)
 	{
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {FOCUS} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {ROWS|COLS|HEIGHT|WIDTH} {<VAR>}");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {FOCUS} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {ROWS|COLS|HEIGHT|WIDTH} <VAR>");
 		
 		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {CHAR_HEIGHT|CHAR_WIDTH}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SPLIT_TOP_BAR|SPLIT_BOT_BAR|SPLIT_LEFT_BAR|SPLIT_RIGHT_BAR} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SCROLL_TOP_ROW|SCROLL_TOP_COL|SCROLL_BOT_ROW|SCROLL_BOT_COL} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {INPUT_TOP_ROW|INPUT_TOP_COL|INPUT_BOT_ROW|INPUT_BOT_COL} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SCROLL_ROWS|SCROLL_COLS|INPUT_ROWS|INPUT_COLS} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {INPUT_NAME} {<VAR>}");
-		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {CUR_ROW|CUR_COL} {<VAR>}");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SPLIT_TOP_BAR|SPLIT_BOT_BAR|SPLIT_LEFT_BAR|SPLIT_RIGHT_BAR} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SCROLL_TOP_ROW|SCROLL_TOP_COL|SCROLL_BOT_ROW|SCROLL_BOT_COL} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {INPUT_TOP_ROW|INPUT_TOP_COL|INPUT_BOT_ROW|INPUT_BOT_COL} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {SCROLL_ROWS|SCROLL_COLS|INPUT_ROWS|INPUT_COLS} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {INPUT_NAME} <VAR>");
+		tintin_printf2(ses, "#SYNTAX: #SCREEN {GET} {CUR_ROW|CUR_COL} <VAR>");
 
 		return;
 	}
@@ -867,7 +867,7 @@ DO_SCREEN(screen_rescale)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {[WIDTH]}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} [WIDTH]");
 		}
 	}
 	else if (is_abbrev(arg1, "VERTICALLY"))
@@ -878,7 +878,7 @@ DO_SCREEN(screen_rescale)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {[HEIGHT]}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} [HEIGHT]");
 		}
 	}
 	else if (*arg1 == 0 || is_math(ses, arg1))
@@ -894,9 +894,9 @@ DO_SCREEN(screen_rescale)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {[HEIGHT]} {[WIDTH]}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} {<HEIGHT>}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} {<WIDTH>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} [HEIGHT] [WIDTH]");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {VERTICALLY} <HEIGHT>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {RESCALE} {HORIZONTALLY} <WIDTH>");
 	}
 }
 
@@ -948,7 +948,7 @@ DO_SCREEN(screen_scrollregion)
 
 	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLLREGION {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLLREGION <TOP ROW> <TOP COL> <BOT ROW> <BOT COL>");
 
 		return;
 	}
@@ -961,7 +961,7 @@ DO_SCREEN(screen_scrollregion)
 
 	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLL {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN SCROLL <TOP ROW> <TOP COL> <BOT ROW> <BOT COL>");
 
 		return;
 	}
@@ -1002,7 +1002,7 @@ DO_SCREEN(screen_inputregion)
 
 	if (*arg1 == 0 || *arg2 == 0 || !is_math(ses, arg1) || !is_math(ses, arg2))
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUTREGION {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUTREGION <TOP ROW> <TOP COL> <BOT ROW> <BOT COL>");
 
 		return;
 	}
@@ -1015,7 +1015,7 @@ DO_SCREEN(screen_inputregion)
 
 	if ((*arg1 && !is_math(ses, arg1)) || (*arg2 && !is_math(ses, arg2)))
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUT {TOP ROW} {TOP COL} {BOT ROW} {BOT COL}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN INPUT <TOP ROW> <TOP COL> <BOT ROW> <BOT COL>");
 
 		return;
 	}
@@ -1076,7 +1076,7 @@ DO_SCREEN(screen_resize)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {HORIZONTALLY} {[COLS]}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {HORIZONTALLY} [COLS]");
 		}
 	}
 	else if (is_abbrev(arg1, "VERTICALLY"))
@@ -1087,7 +1087,7 @@ DO_SCREEN(screen_resize)
 		}
 		else
 		{
-			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {VERTICALLY} {[ROWS]}");
+			show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {VERTICALLY} [ROWS]");
 		}
 	}
 	else if (*arg1 != 0 || *arg2 != 0)
@@ -1111,9 +1111,9 @@ DO_SCREEN(screen_resize)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {[ROWS]} {[COLS]}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {VERTICALLY} {<ROWS>}");
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {HORIZONTALLY} {<COLS>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} [ROWS] [COLS]");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {VERTICALLY} <ROWS>");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SIZE} {HORIZONTALLY} <COLS>");
 	}
 }
 
@@ -1173,7 +1173,7 @@ DO_SCREEN(screen_set)
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SET} {COLS|ROWS|LABEL|NAME|TITLE} {<ARG>}");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCREEN {SET} {COLS|ROWS|LABEL|NAME|TITLE} <ARG>");
 	}
 }
 
@@ -1440,14 +1440,7 @@ void screen_csit(struct session *ses, char *arg1, char *arg2, char *arg3)
 	}
 
 	print_stdout(0, 0, "\e[%s%s%s%s%st", arg1, *num1 ? XT_S : XT_V, *num1 && *num1 != ' ' ? num1 : "", *num2 ? XT_S : XT_V, *num2 && *num2 != ' ' ? num2 : "");
-
-//	convert_meta(buf, debug, FALSE);
-
-//	tintin_printf2(gtd->ses, "\e[1;32m[%s] num1 (%s) num2 (%s) %s %s", num1, num2, debug, buf);
 }
-
-
-
 
 
 /*
@@ -1569,7 +1562,6 @@ void erase_right_region(struct session *ses)
 		restore_pos(ses);
 	}
 }
-
 
 void erase_square(struct session *ses, int top_row, int top_col, int bot_row, int bot_col)
 {
