@@ -2222,7 +2222,7 @@ int client_write_compressed(struct session *ses, char *txt, int length)
 
 	result = write(ses->socket, gtd->mccp_buf, gtd->mccp_len - ses->mccp3->avail_out);
 
-	if (result < 1)
+	if (result == -1)
 	{
 		syserr_printf(ses, "client_write_compressed: write");
 

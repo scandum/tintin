@@ -55,7 +55,7 @@ a:active {color:#b06}
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #action </span><span style='color:#FFF'>{</span><span style='color:#AAA'>message</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>priority</span><span style='color:#FFF'>}
 
 </span><span style='color:#AAA'>         The #action command can be used to respond with one or several
-         commands to a specific message send by the server. The %1-%99
+         commands to a specific message sent by the server. The %1-%99
          variables are substituted from the message and can be used in the
          command part of the action.
 
@@ -434,7 +434,7 @@ a:active {color:#b06}
            and names longer than 20 characters.
          </span><span style='color:#FFF'>#chat {message} {buddy|all} {text}
 </span><span style='color:#AAA'>           This is the main command used for communication. If you use
-           #chat message all, the message is marked as public and send to
+           #chat message all, the message is marked as public and sent to
            everyone you are connected to.
          </span><span style='color:#FFF'>#chat {accept} {buddy} {boost}
 </span><span style='color:#AAA'>           Accept a file transfer from a buddy. The boost is optional and
@@ -1463,7 +1463,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.40                     </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.41b                    </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1738,7 +1738,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
          All TinTin++ commands starts with a '#'.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #help -- #help is a client command, and isn't send to the server.
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #help -- #help is a client command, and isn't sent to the server.
 
          All TinTin++ commands can be abbreviated when typed.
 
@@ -2593,7 +2593,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#AAA'>         Macros allow you to make tintin respond to function keys.
 
-         The key sequence send to the terminal when pressing a function key
+         The key sequence sent to the terminal when pressing a function key
          differs for every OS and terminal. To find out what sequence is sent
          you can enable the CONVERT META config option.
 
@@ -3315,7 +3315,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          Keep in mind that the server is allowed to use &bsol;e]68;1;&bsol;a as well,
          subsequently various security measures are in place.
 
-         To create secure links, which are filtered out when send by a server,
+         To create secure links, which are filtered out when sent by a server,
          you need to use &bsol;e]68;2;&bsol;a, and they instead trigger the SECURE LINK
          event.
 
@@ -3911,7 +3911,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          </span><span style='color:#FFF'>#scan {txt} &lt;filename&gt;
 
 </span><span style='color:#AAA'>           The scan txt &lt;filename&gt; command reads in a file and sends its content
-           to the screen as if it was send by a server. After using scan you can
+           to the screen as if it was sent by a server. After using scan you can
            use page-up and down to view the file.
 
            This command is useful to convert ansi color files to html or viewing
@@ -4390,7 +4390,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>&bsol; </span><span style='color:#AAA'>        The back slash is used to escape a character. All available options
           are listed at #help escape. Escapes are typically escaped when text
-          leaves the client, by being send to a server, the shell, being
+          leaves the client, by being sent to a server, the shell, being
           displayed on the screen, or being processed as part of a regex.
           Escapes try to mimic escapes in PCRE when possible.
 
@@ -4672,9 +4672,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {Targets starting with the letter A: &dollar;targets[A%*]
 
-              To disable using regular expressions start the match with '='.
+         To disable using regular expressions start the match with '='.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {A target literally defined as A%*: &dollar;targets[&bsol;A%*]
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show {A target literally defined as A%*: &dollar;targets[=A%*]
 
          To see the internal index of a variable use &amp;&lt;variable name&gt;. To see
          the size of a table you would use: &amp;targets[] or &amp;targets[%*]. A non

@@ -657,7 +657,8 @@ int bsearch_alnum_list(struct listroot *root, char *text, int seek)
 				}
 				break;
 
-			case '/':
+			case '=':
+			case '\\':
 				text++;
 				break;
 		}

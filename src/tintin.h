@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.40 "
+#define CLIENT_VERSION           "2.02.41 "
 
 
 #define XT_E                            0x27
@@ -594,6 +594,7 @@ enum operators
 #define EVENT_FLAG_UPDATE             BV18
 #define EVENT_FLAG_VARIABLE           BV19
 #define EVENT_FLAG_VT100              BV20
+#define EVENT_FLAG_REFORMAT           BV21
 
 #define TAB_FLAG_FORWARD              BV01
 #define TAB_FLAG_BACKWARD             BV02

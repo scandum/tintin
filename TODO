@@ -3,13 +3,15 @@
 #high blo <118>
 #showme <158>test bli bla blo test
 
-- make #regex be able to use \n
-
 - split screen scrollback setting in #screen
 
 - Make #draw scroll grid table work properly.
 
 - Make sure #config compact also applies to the log file.
+
+- Add an #event that triggers when a function/variable is not found.
+
+- tab completion on input history
 
 - look into handling VARIABLE UPDATE event better
 

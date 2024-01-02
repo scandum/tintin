@@ -98,11 +98,11 @@ struct iac_type iac_server_table [] =
 
 void server_telopt_debug(struct session *ses, char *format, ...)
 {
-	char buf[BUFFER_SIZE];
-	va_list args;
-
 	if (HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
 	{
+		char buf[BUFFER_SIZE];
+		va_list args;
+
 		va_start(args, format);
 		vsprintf(buf, format, args);
 		va_end(args);
@@ -1078,7 +1078,7 @@ void end_mccp2(struct session *ses, struct port_data *buddy)
 
 	buddy->mccp2 = NULL;
 
-	tintin_printf2(ses, "MCCP2: COMPRESSION END");
+	server_telopt_debug(ses, "INFO MCCP2 COMPRESSION END");
 
 	return;
 }
@@ -1164,7 +1164,7 @@ int process_sb_mccp3(struct session *ses, struct port_data *buddy, unsigned char
 	}
 	else
 	{
-		tintin_printf2(ses, "INFO IAC SB MCCP3 INITIALIZED");
+		server_telopt_debug(ses, "INFO IAC SB MCCP3 INITIALIZED");
 	}
 	return 5;
 }
@@ -1173,7 +1173,7 @@ void end_mccp3(struct session *ses, struct port_data *buddy)
 {
 	if (buddy->mccp3)
 	{
-		tintin_printf2(ses, "MCCP3: COMPRESSION END");
+		server_telopt_debug(ses, "INFO MCCP3 COMPRESSION END");
 		inflateEnd(buddy->mccp3);
 		free(buddy->mccp3);
 		buddy->mccp3 = NULL;

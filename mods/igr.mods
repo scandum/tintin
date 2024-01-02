@@ -1,4 +1,8 @@
-Mar 2023        2.02.32
+Jan 2024        2.02.41
+------------------------------------------------------------------------------
+tokenize.c      Fixed issues with tailing spaces for several statements.
+
+Mar 2023        2.02.40
 ------------------------------------------------------------------------------
 data.c          Changed the symbol for the strict equality assignment/lookup
                 from \ to = due to compatibility issues. You'll get a warning

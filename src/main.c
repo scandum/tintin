@@ -456,7 +456,7 @@ void init_tintin(int greeting)
 
 	gtd->flags          = TINTIN_FLAG_INHERITANCE;
 
-	gtd->mccp_len       = 10000;
+	gtd->mccp_len       = 16384;
 	gtd->mccp_buf       = (unsigned char *) calloc(1, gtd->mccp_len);
 
 	gtd->mud_output_max = 16384;
