@@ -1222,8 +1222,10 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 void timestring(struct session *ses, char *str)
 {
 	char *arg, *arg1, *arg2;
+	char *format, *ptms, *ptus;
 	struct tm timeval_tm;
 	time_t    timeval_t;
+	int       ms, us;
 
 	push_call("timestring(%p,%p)",ses,str);
 
@@ -1238,13 +1240,61 @@ void timestring(struct session *ses, char *str)
 	}
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
 
+	ptms = strstr(arg1, "%q");
+	ptus = strstr(arg1, "%f");
+
 	if (*arg2)
 	{
-		timeval_t = (time_t) get_number(ses, arg2);
+		unsigned long long time = get_ulong(ses, arg2);
+		if (time >= 1000000000LL * 1000000LL)
+		{
+			us = time % 1000000;
+			ms = us / 1000;
+			time /= 1000000;
+		}
+		else
+		{
+			us = 0;
+			ms = 0;
+		}
+		timeval_t = (time_t) time;
+	}
+	else if (ptms || ptus)
+	{
+		struct timeval now_time;
+		gettimeofday(&now_time, NULL);
+		timeval_t = now_time.tv_sec;
+		us = now_time.tv_usec;
+		ms = us / 1000;
 	}
 	else
 	{
 		timeval_t = gtd->time;
+	}
+
+	if (ptms || ptus)
+	{
+		int prefix;
+		if (ptms)
+		{
+			ptms = strstr(arg1, "%q");
+			format = str_alloc_stack(0);
+			prefix = ptms - arg1;
+			memcpy(format, arg1, prefix);
+			sprintf(format + prefix, "%03d", ms);
+			strcpy(format + prefix + 3, ptms + 2);
+			arg1 = format;
+		}
+		if (ptus)
+		{
+			ptus = strstr(arg1, "%f");
+			format = str_alloc_stack(0);
+			prefix = ptus - arg1;
+			memcpy(format, arg1, prefix);
+			sprintf(format + prefix, "%06d", us);
+			strcpy(format + prefix + 6, ptus + 2);
+			arg1 = format;
+		}
 	}
 
 	timeval_tm = *localtime(&timeval_t);

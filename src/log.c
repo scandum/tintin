@@ -268,13 +268,12 @@ void logit(struct session *ses, char *txt, FILE *file, int flags)
 	{
 		if (ses->log->stamp_time != gtd->time)
 		{
-			struct tm timeval_tm = *localtime(&gtd->time);
-
 			ses->log->stamp_time = gtd->time;
 
 			substitute(ses, ses->log->stamp_strf, out, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
 
-			strftime(ses->log->stamp_text, 99, out, &timeval_tm);
+			timestring(ses, out);
+			strcpy(ses->log->stamp_text, out);
 		}
 		fputs(ses->log->stamp_text, file);
 	}

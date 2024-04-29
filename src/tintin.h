@@ -3044,6 +3044,7 @@ extern void  charactertonumber(struct session *ses, char *str);
 extern  int  delete_variable(struct session *ses, char *variable);
 extern void  justify_string(struct session *ses, char *in, char *out, int align, int cut);
 extern void  format_string(struct session *ses, char *format, char *arg, char *out);
+extern void  timestring(struct session *ses, char *str);
 extern struct listnode *search_variable(struct session *ses, char *variable);
 extern struct listnode *get_variable(struct session *ses, char *variable, char *result);
 extern struct listnode *set_variable(struct session *ses, char *variable, char *format, ...);
