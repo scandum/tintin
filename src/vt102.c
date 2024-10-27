@@ -929,6 +929,13 @@ void get_color_codes(char *old, char *str, char *buf, int flags)
 
 			if (*pti++ == 'm')
 			{
+				// SGR 38/48 should not span across 'm' characters and other
+				// non-ANSI CODE sequences, otherwise it will cause confusion
+				// with SGR 2/5.
+				DEL_BIT(vtc, COL_XTF|COL_XTF_5|COL_XTF_R);
+				DEL_BIT(vtc, COL_XTB|COL_XTB_5|COL_XTB_R);
+				DEL_BIT(vtc, COL_TCF|COL_TCF_2|COL_TCF_R);
+				DEL_BIT(vtc, COL_TCB|COL_TCB_2|COL_TCB_R);
 				break;
 			}
 		}
