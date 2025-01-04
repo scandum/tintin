@@ -83,8 +83,6 @@ DO_COMMAND(do_map)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " MAP OPTIONS ");
 
 		for (cnt = 0 ; *map_table[cnt].fun != NULL ; cnt++)
@@ -136,8 +134,7 @@ DO_COMMAND(do_map)
 				return ses;
 			}
 		}
-
-		goto info;
+		show_error(ses, LIST_COMMAND, "#ERROR: #MAP {%s}: INVALID MAP OPTION.", arg1);
 	}
 	pop_call();
 	return ses;
@@ -286,11 +283,11 @@ int delete_map(struct session *ses)
 
 	// probably need to use a dummy node
 
-	delete_node(LIST_ACTION, ses->map->search->area);
-	delete_node(LIST_ACTION, ses->map->search->desc);
-	delete_node(LIST_ACTION, ses->map->search->name);
-	delete_node(LIST_ACTION, ses->map->search->note);
-	delete_node(LIST_ACTION, ses->map->search->terrain);
+	delete_node(ses, LIST_ACTION, ses->map->search->area);
+	delete_node(ses, LIST_ACTION, ses->map->search->desc);
+	delete_node(ses, LIST_ACTION, ses->map->search->name);
+	delete_node(ses, LIST_ACTION, ses->map->search->note);
+	delete_node(ses, LIST_ACTION, ses->map->search->terrain);
 
 	free(ses->map->search);
 
@@ -367,15 +364,23 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 		newroom->weight = 1;
 	}
 
-	if (newroom->vnum > 0 && newroom->vnum < ses->map->size)
+	if (newroom->vnum <= 0)
+	{
+		return newroom;
+	}
+
+	if (newroom->vnum < ses->map->size)
 	{
 		ses->map->room_list[newroom->vnum] = newroom;
 	}
 
-	if (!HAS_BIT(ses->map->flags, MAP_FLAG_READ) && newroom->vnum)
+	if (gtd->level->debug || !HAS_BIT(ses->map->flags, MAP_FLAG_READ))
 	{
 		show_message(ses, LIST_PATH, "#MAP CREATE ROOM %5d {%s}.", newroom->vnum, newroom->name);
+	}
 
+	if (!HAS_BIT(ses->map->flags, MAP_FLAG_READ))
+	{
 		check_all_events(ses, EVENT_FLAG_MAP, 0, 2, "MAP CREATE ROOM", ntos(newroom->vnum), newroom->name);
 	}
 
@@ -1820,7 +1825,7 @@ int follow_map(struct session *ses, char *argument)
 
 	room = ses->map->room_list[ses->map->in_room];
 
-	if (HAS_BIT(ses->map->flags, MAP_FLAG_NOFOLLOW))
+	if (HAS_BIT(ses->map->flags, MAP_FLAG_NOFOLLOW) && ses->map->nofollow == 0)
 	{
 		if (check_global(ses, room->vnum) && find_exit(ses, ses->map->global_vnum, argument))
 		{
@@ -1866,8 +1871,14 @@ int follow_map(struct session *ses, char *argument)
 		{
 			if (HAS_BIT(exit->flags, EXIT_FLAG_BLOCK) || HAS_BIT(ses->map->room_list[vnum]->flags, ROOM_FLAG_BLOCK))
 			{
-				show_error(ses, LIST_COMMAND, "#MAP FOLLOW: %s {%d} HAS THE BLOCK FLAG SET.", HAS_BIT(exit->flags, EXIT_FLAG_BLOCK) ? "EXIT" : "ROOM", vnum);
-
+				if (HAS_BIT(exit->flags, EXIT_FLAG_BLOCK))
+				{
+					show_error(ses, LIST_COMMAND, "#MAP FOLLOW: EXIT {%s} HAS THE BLOCK FLAG SET.", exit->name);
+				}
+				else
+				{
+					show_error(ses, LIST_COMMAND, "#MAP FOLLOW: ROOM {%d} HAS THE BLOCK FLAG SET.", vnum);
+				}
 				pop_call();
 				return 1;
 			}
@@ -5966,7 +5977,7 @@ DO_MAP(map_entrance)
 
 	if (rev_exit == NULL)
 	{
-		show_message(ses, LIST_COMMAND, "#MAP ENTRANCE {%s}: EXIT {%s} HAS NO MATCHING ENTRANCE.");
+		show_message(ses, LIST_COMMAND, "#MAP ENTRANCE: EXIT {%s} HAS NO MATCHING ENTRANCE.", arg1);
 
 		return;
 	}
@@ -6014,10 +6025,10 @@ DO_MAP(map_exitflag)
 
 	if (*arg2 == 0)
 	{
-		tintin_printf2(ses, "#MAP: AVOID FLAG IS SET TO %s.", HAS_BIT(exit->flags, EXIT_FLAG_AVOID) ? "ON" : "OFF");
-		tintin_printf2(ses, "#MAP: HIDE FLAG IS SET TO %s.", HAS_BIT(exit->flags, EXIT_FLAG_HIDE) ? "ON" : "OFF");
-		tintin_printf2(ses, "#MAP: INVIS FLAG IS SET TO %s.", HAS_BIT(exit->flags, EXIT_FLAG_INVIS) ? "ON" : "OFF");
-		tintin_printf2(ses, "#MAP: BLOCK FLAG IS SET TO %s.", HAS_BIT(exit->flags, EXIT_FLAG_BLOCK) ? "ON" : "OFF");
+		tintin_printf2(ses, "#MAP: AVOID FLAG IS SET TO %s. (%d)", HAS_BIT(exit->flags, EXIT_FLAG_AVOID) ? "ON" : "OFF", EXIT_FLAG_AVOID);
+		tintin_printf2(ses, "#MAP: BLOCK FLAG IS SET TO %s. (%d)", HAS_BIT(exit->flags, EXIT_FLAG_BLOCK) ? "ON" : "OFF", EXIT_FLAG_BLOCK);
+		tintin_printf2(ses, "#MAP: HIDE FLAG IS SET TO %s.  (%d)",  HAS_BIT(exit->flags, EXIT_FLAG_HIDE) ? "ON" : "OFF", EXIT_FLAG_HIDE);
+		tintin_printf2(ses, "#MAP: INVIS FLAG IS SET TO %s. (%d)", HAS_BIT(exit->flags, EXIT_FLAG_INVIS) ? "ON" : "OFF", EXIT_FLAG_INVIS);
 
 		return;
 	}
@@ -6554,9 +6565,9 @@ DO_MAP(map_info)
 
 	if (is_abbrev(arg1, "SAVE"))
 	{
-		set_nest_node_ses(ses, "info[map]", "{DIRECTION}{%d}", ses->map->dir);
-		add_nest_node_ses(ses, "info[map]", "{EXITS}{%d}", exits);
-		add_nest_node_ses(ses, "info[map]", "{FLAGS}{{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}}",
+		set_nest_node_ses(ses, "info[MAP]", "{DIRECTION}{%d}", ses->map->dir);
+		add_nest_node_ses(ses, "info[MAP]", "{EXITS}{%d}", exits);
+		add_nest_node_ses(ses, "info[MAP]", "{FLAGS}{{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}{%s}{%d}}",
 			"ASCIIGRAPHICS", HAS_BIT(ses->map->flags, MAP_FLAG_ASCIIGRAPHICS) != 0,
 			"ASCIILENGTH", HAS_BIT(ses->map->flags, MAP_FLAG_ASCIILENGTH) != 0,
 			"ASCIIVNUMS", HAS_BIT(ses->map->flags, MAP_FLAG_ASCIIVNUMS) != 0,
@@ -6570,9 +6581,9 @@ DO_MAP(map_info)
 			"SYMBOLGRAPHICS", HAS_BIT(ses->map->flags, MAP_FLAG_SYMBOLGRAPHICS) != 0,
 			"TERRAIN", HAS_BIT(ses->map->flags, MAP_FLAG_TERRAIN) != 0,
 			"UNICODEGRAPHICS", HAS_BIT(ses->map->flags, MAP_FLAG_UNICODEGRAPHICS) != 0);
-		add_nest_node_ses(ses, "info[map]", "{LAST_ROOM}{%d}", ses->map->last_room);
-		add_nest_node_ses(ses, "info[map]", "{ROOMS}{%d}", cnt);
-		add_nest_node_ses(ses, "info[map]", "{ROOMS_MAX}{%d}", ses->map->size);
+		add_nest_node_ses(ses, "info[MAP]", "{LAST_ROOM}{%d}", ses->map->last_room);
+		add_nest_node_ses(ses, "info[MAP]", "{ROOMS}{%d}", cnt);
+		add_nest_node_ses(ses, "info[MAP]", "{ROOMS_MAX}{%d}", ses->map->size);
 
 		return;
 	}
@@ -7617,10 +7628,19 @@ DO_MAP(map_offset)
 		arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN);
 		arg = sub_arg_in_braces(ses, arg, arg4, GET_ONE, SUB_VAR|SUB_FUN);
 
-		ses->map->sav_top_row = get_number(ses, arg1);
-		ses->map->sav_top_col = get_number(ses, arg2);
-		ses->map->sav_bot_row = get_number(ses, arg3);
-		ses->map->sav_bot_col = get_number(ses, arg4);
+		if (*arg1 && *arg2 && *arg3 && *arg4)
+		{
+			ses->map->sav_top_row = get_number(ses, arg1);
+			ses->map->sav_top_col = get_number(ses, arg2);
+			ses->map->sav_bot_row = get_number(ses, arg3);
+			ses->map->sav_bot_col = get_number(ses, arg4);
+		}
+		else
+		{
+			show_error(ses, LIST_COMMAND, "#MAP OFFSET: THIS COMMAND REQUIRES 4 ARGUMENTS.");
+
+			return;
+		}
 	}
 
 	show_vtmap(ses, 1);

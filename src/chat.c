@@ -79,8 +79,6 @@ DO_COMMAND(do_chat)
 
 	if (*cmd == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " CHAT OPTIONS ");
 
 		for (cnt = 0 ; *chat_table[cnt].name != 0 ; cnt++)
@@ -114,7 +112,7 @@ DO_COMMAND(do_chat)
 		return ses;
 	}
 
-	goto info;
+	show_error(ses, LIST_COMMAND, "#ERROR: #CHAT {%s}: INVALID CHAT OPTION.", cmd);
 
 	return ses;
 }
@@ -380,11 +378,31 @@ void *threaded_chat_call(void *arg)
 	new_buddy->prefix   = strdup("");
 	new_buddy->version  = strdup("");
 
+	new_buddy->timeout  = gtd->time + CALL_TIMEOUT * 6;
+
 	strip_vt102_codes(gtd->chat->name, name);
 
 	chat_socket_printf(new_buddy, "CHAT:%s\n%s%-5u", name, gtd->chat->ip, gtd->chat->port);
 
 	chat_printf("Socket connected, negotiating protocol...");
+
+#ifdef HAVE_LIBPTHREAD
+	while (gtd->chat->update)
+	{
+		chat_printf("Blocking the linking of %s.", new_buddy->name);
+
+		usleep(1000);
+
+		continue;
+	}
+#endif
+	LINK(new_buddy, gtd->chat->next, gtd->chat->prev);
+
+	freeaddrinfo(address);
+
+	return NULL;
+
+//	old code
 
 	FD_ZERO(&rds);
 	FD_SET(sock, &rds);
@@ -690,6 +708,8 @@ int process_chat_input(struct chat_data *buddy)
 			{
 				if (node != buddy && !strcasecmp(name, node->name))
 				{
+					// allow a relog from the same IP.
+
 					if (!strcmp(buddy->ip, node->ip))
 					{
 						close_chat(node, TRUE);
@@ -717,6 +737,15 @@ int process_chat_input(struct chat_data *buddy)
 				return -1;
 			}
 		}
+		else
+		{
+			chat_socket_printf(buddy, "%c\n%s has refused your connection due to an invalid handshake. (%s)\n%c", CHAT_MESSAGE, gtd->chat->name, buf, CHAT_END_OF_COMMAND);
+			
+			chat_printf("Refusing connection from %.21s:%d, invalid handshake.", buddy->ip, buddy->port);
+			
+			pop_call();
+			return -1;
+		}
 
 		strip_vt102_codes(gtd->chat->name, name);
 
@@ -739,6 +768,10 @@ int process_chat_input(struct chat_data *buddy)
 			strip_vt102_codes(&temp[4], name);
 
 			RESTRING(buddy->name, name);
+
+			buddy->timeout = 0;
+
+			chat_printf("Connection made to %s.", buddy->name);
 
 			chat_socket_printf(buddy, "%c%s %s%c", CHAT_VERSION, CLIENT_NAME, CLIENT_VERSION, CHAT_END_OF_COMMAND);
 

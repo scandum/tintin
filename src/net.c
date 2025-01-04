@@ -440,7 +440,7 @@ int detect_prompt(struct session *ses, char *original)
 void readmud(struct session *ses)
 {
 	char *line, *next_line/*, *strip*/;
-	char linebuf[BUFFER_SIZE];
+	char linebuf[STRING_SIZE];
 	int len;
 	struct session *cts;
 
@@ -574,7 +574,7 @@ void readmud(struct session *ses)
 		}
 		gtd->mud_output_line = linebuf;
 
-		process_mud_output(ses, linebuf, next_line == NULL);
+		process_one_line(ses, linebuf, next_line == NULL);
 
 		gtd->mud_output_line = gtd->mud_output_buf + gtd->mud_output_len;
 	}
@@ -623,7 +623,7 @@ void process_more_output(struct session *ses, char *append, int prompt)
 	str_cpy(&ses->more_output, "");
 	ses->check_output = 0;
 
-	process_mud_output(ses, line, prompt);
+	process_one_line(ses, line, prompt);
 
 	if (readmud == 0)
 	{
@@ -636,19 +636,19 @@ void process_more_output(struct session *ses, char *append, int prompt)
 	}
 }
 
-void process_mud_output(struct session *ses, char *linebuf, int prompt)
+void process_one_line(struct session *ses, char *linebuf, int prompt)
 {
-	char line[STRING_SIZE];
+	char temp[STRING_SIZE];
 	int str_len, raw_len;
 
-	push_call("process_mud_output(%p,%p,%d)",ses,linebuf,prompt);
+	push_call("process_one_line(%p,%p,%d)",ses,linebuf,prompt);
 
 	raw_len = strlen(linebuf);
-	str_len = strip_vt102_codes(linebuf, line);
+	str_len = strip_vt102_codes(linebuf, temp);
 
-	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, line);
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, temp);
 
-	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED LINE", linebuf, line))
+	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED LINE", linebuf, temp))
 	{
 		pop_call();
 		return;
@@ -656,9 +656,9 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (str_len && prompt)
 	{
-		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 4, "RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len));
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 4, "RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len));
 
-		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 4, "CATCH RECEIVED PROMPT", linebuf, line, ntos(raw_len), ntos(str_len)))
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 4, "CATCH RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len)))
 		{
 			pop_call();
 			return;
@@ -667,11 +667,11 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_COLORPATCH))
 	{
-		sprintf(line, "%s%s%s", ses->color_patch, linebuf, "\e[0m");
+		sprintf(temp, "%s%s%s", ses->color_patch, linebuf, "\e[0m");
 
 		get_color_codes(ses->color_patch, linebuf, ses->color_patch, GET_ALL);
 
-		linebuf = line;
+		strcpy(linebuf, temp);
 	}
 
 	check_one_line(ses, linebuf);   /* changes linebuf */
@@ -684,13 +684,13 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 	{
 		ses->gagline--;
 
-		strip_non_vt102_codes(linebuf, line);
+		strip_non_vt102_codes(linebuf, temp);
 
-		print_stdout(0, 0, "%s", line);
+		print_stdout(0, 0, "%s", temp);
 
-		strip_vt102_codes(linebuf, line);
+		strip_vt102_codes(linebuf, temp);
 
-		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", line, ses->gagline + 1);
+		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", temp, ses->gagline + 1);
 
 		pop_call();
 		return;
@@ -698,11 +698,11 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 
 	if (HAS_BIT(ses->event_flags, EVENT_FLAG_OUTPUT|EVENT_FLAG_CATCH))
 	{
-		strip_vt102_codes(linebuf, line);
+		strip_vt102_codes(linebuf, temp);
 
-		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 3, "PROCESSED LINE", linebuf, line, ntos(prompt));
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 3, "PROCESSED LINE", linebuf, temp, ntos(prompt));
 
-		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 3, "CATCH PROCESSED LINE", linebuf, line, ntos(prompt)))
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 3, "CATCH PROCESSED LINE", linebuf, temp, ntos(prompt)))
 		{
 			pop_call();
 			return;
@@ -725,11 +725,11 @@ void process_mud_output(struct session *ses, char *linebuf, int prompt)
 			{
 				int height, width;
 
-				word_wrap_split(ses, linebuf, line, ses->wrap, 0, 0, FLAG_NONE, &height, &width);
+				word_wrap_split(ses, linebuf, temp, ses->wrap, 0, 0, FLAG_NONE, &height, &width);
 
 				if (height > 1)
 				{
-					word_wrap_split(ses, linebuf, line, ses->wrap, height, height, WRAP_FLAG_SPLIT, &height, &width);
+					word_wrap_split(ses, linebuf, temp, ses->wrap, height, height, WRAP_FLAG_SPLIT, &height, &width);
 				}
 				ses->input->str_off = 1 + width;
 			}

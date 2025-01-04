@@ -90,7 +90,7 @@ char *tt_gui = "#line quiet #port init gui 0\n"
 "	{\n"
 "		#var gui[new] {$worldlist[%1]};\n"
 
-"		draw_worlds {%1}\n"
+"		draw_worlds\n"
 "	};\n"
 "	#else\n"
 "	{\n"
@@ -472,11 +472,11 @@ char *tt_gui = "#line quiet #port init gui 0\n"
 "	{\n"
 "		#if {{@gui{$gui[new][CHARACTER]}} !== {}}\n"
 "		{\n"
-"			#send {@gui{$gui[new][CHARACTER]}};\n"
+"			@gui{$gui[new][CHARACTER]};\n"
 
 "			#if {{@gui{$gui[new][PASSWORD]}} !== {}}\n"
 "			{\n"
-"				#send {@gui{@b64Z{$gui[new][PASSWORD]}}}\n"
+"				@gui{@b64Z{$gui[new][PASSWORD]}}\n"
 "			}\n"
 "		}\n"
 "	};\n"
@@ -511,7 +511,7 @@ char *tt_gui = "#line quiet #port init gui 0\n"
 
 "	gui_worlds;\n"
 
-"	draw_worlds {&worldlist[$gui[new][NAME]]};\n"
+"	draw_worlds;\n"
 
 "	reload_profile_tab;\n"
 
@@ -539,7 +539,7 @@ char *tt_gui = "#line quiet #port init gui 0\n"
 
 "	profile_tab_cancel;\n"
 
-"	draw_worlds 0;\n"
+"	draw_worlds;\n"
 
 
 "	#line ignore #showme {<acf>World <ffa>$gui[new][NAME]<acf> removed.};\n"

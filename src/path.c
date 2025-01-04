@@ -36,8 +36,6 @@ DO_COMMAND(do_path)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " PATH OPTIONS ");
 
 		for (cnt = 0 ; *path_table[cnt].fun != NULL ; cnt++)
@@ -63,7 +61,7 @@ DO_COMMAND(do_path)
 
 		if (*path_table[cnt].name == 0)
 		{
-			goto info;
+			show_error(ses, LIST_COMMAND, "#ERROR: #PATH {%s}: INVALID PATH OPTION.", arg1);
 		}
 		else
 		{

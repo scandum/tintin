@@ -175,7 +175,11 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	temp = str_alloc_stack(0);
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_SESSIONUPDATE);
-	SET_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
+
+	if (gtd->level->ignore == 0)
+	{
+		SET_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
+	}
 
 	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
@@ -634,8 +638,6 @@ DO_COMMAND(do_buffer)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " BUFFER OPTIONS ");
 
 		for (cnt = 0 ; *buffer_table[cnt].name != 0 ; cnt++)
@@ -659,7 +661,7 @@ DO_COMMAND(do_buffer)
 		return ses;
 	}
 
-	goto info;
+	show_error(ses, LIST_COMMAND, "#ERROR: #BUFFER {%s}: INVALID BUFFER OPTION.", arg1);
 
 	return ses;
 }

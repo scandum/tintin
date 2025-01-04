@@ -111,7 +111,10 @@ void print_stdout(int row, int col, char *format, ...)
 	}
 	else
 	{
-		SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
+		if (gtd->level->ignore == 0)
+		{
+			SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
+		}
 
 		fputs(buffer, stdout);
 //		printf("%s", buffer);

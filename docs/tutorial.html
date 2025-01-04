@@ -398,6 +398,8 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          3 - Yellow               8 - Skip
          4 - Blue                 9 - Default
 
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show &lt;125&gt;Bold green on a magenta background.
+
          For xterm 256 colors support use &lt;aaa&gt; to &lt;fff&gt; for RGB foreground
          colors and &lt;AAA&gt; to &lt;FFF&gt; for RGB background colors. For the grayscale
          foreground colors use &lt;g00&gt; to &lt;g23&gt;, for grayscale background colors
@@ -612,7 +614,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.41b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.42                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1012,7 +1014,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          default room number (vnum) 1 is created, so you can go to it using
          #map goto 1. Once you are inside the map new rooms are automatically
          created as you move around. Movement commands are defined with the
-         pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are
+         #pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are
          defined.
 
          </span><span style='color:#FFF'>#map map &lt;rows&gt; &lt;cols&gt; &lt;append|overwrite|list|variable&gt; &lt;name&gt;
@@ -1057,7 +1059,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          </span><span style='color:#FFF'>#map write &lt;filename&gt;
 
 </span><span style='color:#AAA'>         You can save your map using #map write, to load a map you can use
-         #map read &lt;filename&gt;.
+         #map read &lt;filename&gt;. You can return to the room you were in when
+         the map was last saved by using #map return. You can use #event to
+         automatically read and write the map on session start and end.
 
          </span><span style='color:#FFF'>#map set &lt;option&gt; &lt;value&gt;
 
@@ -1226,7 +1230,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          Available MSDP events can be queried using the MSDP protocol
          as described in the specification.
 
-         </span><span style='color:#5FF'>https://tintin.sourceforge.io/protocols/msdp
+         </span><span style='color:#5FF'>https://tintin.mudhalla.net/protocols/msdp
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='help.html#EVENT'>event</a> and <a href='help.html#PORT'>port</a>.
 <a name='MSLP'></a>
@@ -1277,7 +1281,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          you need to use &bsol;e]68;2;&bsol;a, and they instead trigger the SECURE LINK
          event.
 
-         To creae a link that is not undelined, use &bsol;e]4;24m text &bsol;e]24m.
+         To create a link that is not underlined, use &bsol;e]4;24m text &bsol;e]24m.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4;24m%0&bsol;e[24m}
 </span><span style='color:#FFF'>       </span><span style='color:#AAA'>  #event {PRESSED SECURE LINK EXEC MOUSE BUTTON ONE} {%4}
@@ -1472,9 +1476,13 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FFF'>      &bsol;W </span><span style='color:#AAA'>Match non-letters, numbers, and underscores    [^A-Za-z0-9_]
 </span><span style='color:#FFF'>      &bsol;x </span><span style='color:#AAA'>Insert hex character                           &bsol;x
 </span><span style='color:#FFF'>      &bsol;Z </span><span style='color:#AAA'>Match end of string                            &dollar;
+</span><span style='color:#FFF'>      &bsol;&bsol; </span><span style='color:#AAA'>Match a backslash                              &bsol;&bsol;
 
          &bsol;s matches one space, &bsol;s+ matches one or multiple spaces, the use
-         of {&bsol;s+} is required for this sequence to work in tintin, &bsol;s by         itself will work outside of a set of braces.
+         of {&bsol;s+} is required for this sequence to work in tintin, &bsol;s by
+         itself will work outside of a set of braces.
+
+         Use &bsol;% to forcibly match a literal % character.
 
          </span><span style='color:#5F5'>Color triggers
 
@@ -1517,7 +1525,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          is being used by utilizing the MTTS standard. The MTTS specification
          is available at:
 
-         http://tintin.sourceforge.net/protocols/mtts
+         https://tintin.mudhalla.net/protocols/mtts
 
          With the screen reader mode enabled TinTin++ will try to remove or
          alter visual elements where possible.

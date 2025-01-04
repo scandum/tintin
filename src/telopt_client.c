@@ -1536,12 +1536,12 @@ int client_recv_sb_new_environ(struct session *ses, int cplen, unsigned char *sr
 
 				substitute(ses, buf, var, SUB_SEC);
 
+				client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON %s %s %s", sub1, sub2, var);
+
+				check_all_events(ses, EVENT_FLAG_TELNET, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, src[4] == IAC ? "USERVAR" : "");
+
 				if (src[3] == ENV_SEND && !strcmp(sub2, "VAR"))
 				{
-					client_telopt_debug(ses, "RCVD IAC SB NEW-ENVIRON SEND %s %s", sub2, var);
-
-					check_all_events(ses, EVENT_FLAG_TELNET, 0, 4, "IAC SB NEW-ENVIRON", sub1, sub2, var, "");
-
 					if (!check_all_events(ses, EVENT_FLAG_CATCH, 0, 4, "CATCH IAC SB NEW-ENVIRON", sub1, sub2, var, ""))
 					{
 						check_all_events(ses, EVENT_FLAG_TELNET, 1, 4, "IAC SB NEW-ENVIRON SEND %s", var, sub1, sub2, var, "");

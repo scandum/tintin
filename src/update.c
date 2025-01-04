@@ -781,7 +781,7 @@ void update_chat(void)
 
 			if (buddy->timeout && buddy->timeout < gtd->time)
 			{
-				chat_socket_printf(buddy, "<CHAT> Connection timed out.");
+				chat_socket_printf(buddy, "%c\n%s closed the connection because no handshake was completed.\n%c", CHAT_MESSAGE, gtd->chat->name, CHAT_END_OF_COMMAND);
 
 				close_chat(buddy, TRUE);
 			}

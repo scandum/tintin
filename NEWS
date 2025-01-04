@@ -1,6 +1,11 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.42
+----------------
+01) %%%s would get escaped to %%s in aliases and actions, this has been changed
+    so only %%%1 gets escaped to %%1, %%%s stays the same.
+
 TinTin++ 2.02.12
 ----------------
 01) The behavior of $variable[] is now identical to $variable[%*].

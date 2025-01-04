@@ -161,6 +161,30 @@ int count_class(struct session *ses, struct listnode *group)
 	return cnt;
 }
 
+void clear_class(struct session *ses, struct listnode *group)
+{
+	size_t type, index;
+
+	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CLEAR", group->arg1);
+	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CLEAR %s", group->arg1, group->arg1);
+
+	for (type = 0 ; type < LIST_MAX ; type++)
+	{
+		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
+		{
+			continue;
+		}
+
+		for (index = 0 ; index < ses->list[type]->used ; index++)
+		{
+			if (!strcmp(ses->list[type]->list[index]->group, group->arg1))
+			{
+				delete_index_list(ses->list[type], index--);
+			}
+		}
+	}
+}
+
 DO_CLASS(class_assign)
 {
 	if (node == NULL)
@@ -182,8 +206,6 @@ DO_CLASS(class_assign)
 
 DO_CLASS(class_clear)
 {
-	int type, index;
-
 	if (node == NULL)
 	{
 		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
@@ -191,24 +213,7 @@ DO_CLASS(class_clear)
 		return ses;
 	}
 
-	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS CLEAR", ses->group);
-	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS CLEAR %s", ses->group, ses->group);
-
-	for (type = 0 ; type < LIST_MAX ; type++)
-	{
-		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
-		{
-			continue;
-		}
-
-		for (index = 0 ; index < ses->list[type]->used ; index++)
-		{
-			if (!strcmp(ses->list[type]->list[index]->group, arg1))
-			{
-				delete_index_list(ses->list[type], index--);
-			}
-		}
-	}
+	clear_class(ses, node);
 
 	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLEARED.", arg1);
 
@@ -224,40 +229,44 @@ DO_CLASS(class_close)
 {
 	if (node == NULL)
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+		node = search_node_list(ses->list[LIST_CLASS], arg1);
+
+		if (node == NULL)
+		{
+			show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+			return ses;
+		}
+	}
+
+	if (atoi(node->arg3) == 0)
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", arg1);
 	}
 	else
 	{
-		if (atoi(node->arg3) == 0)
-		{
-			show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", arg1);
-		}
-		else
-		{
-			show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
 
-			update_node_list(ses->list[LIST_CLASS], arg1, "", "0", node->arg4);
+		update_node_list(ses->list[LIST_CLASS], arg1, "", "0", node->arg4);
 
-			if (!strcmp(ses->group, arg1))
+		if (!strcmp(ses->group, arg1))
+		{
+			check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DEACTIVATED", ses->group);
+			check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+
+			node = ses->list[LIST_CLASS]->list[0];
+
+			if (atoi(node->arg3))
 			{
-				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DEACTIVATED", ses->group);
-				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
+				RESTRING(ses->group, node->arg1);
 
-				node = ses->list[LIST_CLASS]->list[0];
+				show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
 
-				if (atoi(node->arg3))
-				{
-					RESTRING(ses->group, node->arg1);
-
-					show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
-
-					check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS ACTIVATED", node->arg1);
-					check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
-				}
-				else
-				{
-					RESTRING(ses->group, "");
-				}
+				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS ACTIVATED", node->arg1);
+				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+			}
+			else
+			{
+				RESTRING(ses->group, "");
 			}
 		}
 	}
@@ -304,8 +313,6 @@ DO_CLASS(class_list)
 
 DO_CLASS(class_kill)
 {
-	int group;
-
 	if (node == NULL)
 	{
 		show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
@@ -313,14 +320,18 @@ DO_CLASS(class_kill)
 		return ses;
 	}
 
-	class_clear(ses, node, arg1, arg2);
+//	Best to handle this in delete_node so it works with #kill
 
-	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
+//	class_clear(ses, node, arg1, arg2);
 
-	delete_index_list(ses->list[LIST_CLASS], group);
+	delete_node_list(ses, LIST_CLASS, node);
 
-	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", arg1);
-	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
+//	group = search_index_list(ses->list[LIST_CLASS], arg1, NULL);
+
+//	delete_index_list(ses->list[LIST_CLASS], group);
+
+//	check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", arg1);
+//	check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", arg1, arg1);
 
 	show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN KILLED.", arg1);
 

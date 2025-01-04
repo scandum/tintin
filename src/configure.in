@@ -72,8 +72,7 @@ AC_CHECK_HEADERS([zlib.h],,
 AC_CHECK_HEADERS([pcre.h],,
 	[AC_MSG_ERROR([pcre header file not found, is the development part present])])
 AC_CHECK_HEADERS([gnutls/gnutls.h],
-	[AC_DEFINE([HAVE_GNUTLS_H],,
-	[Define to 1 if you have <gnutls/gnutls.h>.])],
+	[AC_DEFINE([HAVE_GNUTLS_H],[1],[Define to 1 if you have <gnutls/gnutls.h>.])],
 	[AC_MSG_WARN([gnutls header file not found, is the develoment part present])])
 
 # Checks for typedefs, structures, and compiler characteristics.

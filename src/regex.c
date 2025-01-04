@@ -252,23 +252,14 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 	pti = in;
 	ptr = range;
 
-	switch (*pti)
+	if (in[-2] != '!')
 	{
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			*ptr++ = *pti++;
-			break;
+		*pto++ = '(';
+	}
 
-		default:
-			goto end;
+	if (*pti < '0' || *pti > '9')
+	{
+		goto end;
 	}
 
 	while (*pti)
@@ -302,46 +293,46 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 				continue;
 
 			case 'a':
-				pto += sprintf(pto, "%s", "([^\\0]");
+				pto += sprintf(pto, "%s", "[^\\0]");
 				break;
 			case 'A':
-				pto += sprintf(pto, "%s", "(\\n");
+				pto += sprintf(pto, "%s", "\\n");
 				break;
 			case 'c':
-				pto += sprintf(pto, "%s", "((?:\\e\\[[0-9;]*m)");
+				pto += sprintf(pto, "%s", "(?:\\e\\[[0-9;]*m)");
 				break;
 			case 'd':
-				pto += sprintf(pto, "%s", "([0-9]");
+				pto += sprintf(pto, "%s", "[0-9]");
 				break;
 			case 'D':
-				pto += sprintf(pto, "%s", "([^0-9]");
+				pto += sprintf(pto, "%s", "[^0-9]");
 				break;
 			case 'p':
-				pto += sprintf(pto, "%s", "([\\x20-\\xfe]");
+				pto += sprintf(pto, "%s", "[\\x20-\\xfe]");
 				break;
 			case 'P':
-				pto += sprintf(pto, "%s", "([^\\x20-\\xfe]");
+				pto += sprintf(pto, "%s", "[^\\x20-\\xfe]");
 				break;
 			case 's':
-				pto += sprintf(pto, "%s", "(\\s");
+				pto += sprintf(pto, "%s", "\\s");
 				break;
 			case 'S':
-				pto += sprintf(pto, "%s", "(\\S");
+				pto += sprintf(pto, "%s", "\\S");
 				break;
 			case 'u':
-				pto += sprintf(pto, "%s", "((?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})");
+				pto += sprintf(pto, "%s", "(?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})");
 				break;
 			case 'U':
-				pto += sprintf(pto, "%s", "([\\xF5-\\xFF]");
+				pto += sprintf(pto, "%s", "[\\xF5-\\xFF]");
 				break;
 			case 'w':
-				pto += sprintf(pto, "%s", "(\\w");
+				pto += sprintf(pto, "%s", "\\w");
 				break;
 			case 'W':
-				pto += sprintf(pto, "%s", "(\\W");
+				pto += sprintf(pto, "%s", "\\W");
 				break;
 			case '*':
-				pto += sprintf(pto, "%s", "(.");
+				pto += sprintf(pto, "%s", ".");
 				break;
 
 			default:
@@ -350,7 +341,7 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 		*ptr = 0;
 		pti++;
 
-		pto += sprintf(pto, "{%s}%s", range, *pti ? "?)" : ")");
+		pto += sprintf(pto, "{%s}%s%s", range, *pti ? "?" : "", in[-2] != '!' ? ")" : "");
 
 		return pti - in;
 	}
@@ -360,7 +351,8 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 	{
 		gtd->args[next_arg(*var)] = next_arg(*arg);
 	}*/
-	strcpy(out, *pti ? "(.+?)" : "(.+)");
+
+	pto += sprintf(pto, "%s%s", *in ? ".+?" : ".+", in[-2] != '!' ? ")" : "");
 
 	return 0;
 }
@@ -655,7 +647,8 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 					case 'u':
 						gtd->args[next_arg(var)] = next_arg(arg);
 						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "((?:[\\x00-\\x7F|\\xC0-\\xF4][\\x80-\\xC0]{1,3})*)" : "((?:[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?)");
+						pto += sprintf(pto, "%s", *pti == 0 ? "((?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*)" : "((?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?)");
+//						pto += sprintf(pto, "%s", *pti == 0 ? "((?:[\\x00-\\x7F|\\xC0-\\xF4][\\x80-\\xC0]{1,3})*)" : "((?:[\\x00-\\x7F|\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?)");
 						break;
 
 					case 'U':
@@ -789,7 +782,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 								break;
 
 							case '+':
-								pti += 3 + get_regex_range(&pti[3], pto, NULL, NULL);
+								pti += 3 + get_regex_range(pti + 3, pto, NULL, NULL);
 								pto += strlen(pto);
 								break;
 
@@ -905,6 +898,10 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 						{
 							return NULL;
 						}
+					}
+					if (pto[0] == '\\' && pto[1] == 'n')
+					{
+						SET_BIT(node->flags, NODE_FLAG_MULTI);
 					}
 					pto++;
 				}
@@ -1138,6 +1135,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 
 							case '+':
 								pti += 3 + get_regex_range(&pti[3], pto, NULL, NULL);
+								pto += strlen(pto);
 								break;
 
 							case '.':
@@ -1156,6 +1154,10 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 										{
 											return NULL;
 										}
+									}
+									if (pto[0] == '\\' && pto[1] == 'n')
+									{
+										SET_BIT(node->flags, NODE_FLAG_MULTI);
 									}
 									pto++;
 								}

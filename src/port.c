@@ -43,8 +43,6 @@ DO_COMMAND(do_port)
 
 	if (*cmd == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " PORT OPTIONS ");
 
 		for (cnt = 0 ; *port_table[cnt].name != 0 ; cnt++)
@@ -79,7 +77,7 @@ DO_COMMAND(do_port)
 		return ses;
 	}
 
-	goto info;
+	show_error(ses, LIST_COMMAND, "#ERROR: #PORT {%s}: INVALID PORT OPTION.", cmd);
 
 	return ses;
 }

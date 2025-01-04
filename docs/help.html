@@ -544,6 +544,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          3 - Yellow               8 - Skip
          4 - Blue                 9 - Default
 
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #show &lt;125&gt;Bold green on a magenta background.
+
          For xterm 256 colors support use &lt;aaa&gt; to &lt;fff&gt; for RGB foreground
          colors and &lt;AAA&gt; to &lt;FFF&gt; for RGB background colors. For the grayscale
          foreground colors use &lt;g00&gt; to &lt;g23&gt;, for grayscale background colors
@@ -924,7 +926,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>         The edit command can be used to turn the default line editor into a
          text editor.
 
-         </span><span style='color:#FFF'>#edit create &lt;arguments&gt;
+         </span><span style='color:#FFF'>#edit create [filename] [arguments]
 </span><span style='color:#AAA'>           Create an editor, initialize using the provided arguments.
 
          </span><span style='color:#FFF'>#edit load &lt;variable&gt;
@@ -943,10 +945,10 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>           Suspend editing, similar to pressing enter except that no
            events are triggered.
 
-         </span><span style='color:#FFF'>#edit write &lt;filename
+         </span><span style='color:#FFF'>#edit write [filename]
 </span><span style='color:#AAA'>           Write the editor content to file.
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #edit create {bli}{bla}{blo}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #edit create {bla.txt} {line 1} {line 2}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CURSOR'>cursor</a> and <a href='#MACRO'>macro</a>.
 <a name='EDITING'></a>
@@ -1160,6 +1162,10 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>CLASS_LOAD [CLASS]
 </span><span style='color:#AAA'>           %0 class name
 
+         </span><span style='color:#5F5'>FORMAT EVENTS
+
+</span><span style='color:#AAA'>         </span><span style='color:#FFF'>REFORMAT &lt;MESSAGE&gt;     </span><span style='color:#AAA'>Use #return to change MESSAGE
+
          </span><span style='color:#5F5'>GAG EVENTS
 
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>GAG &lt;EVENT&gt;
@@ -1211,7 +1217,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>           %0 old vnum  %1 new vnum  %2 exit name
 
          </span><span style='color:#FFF'>MAP REGION &lt;MOUSE&gt;, MAP ROOM &lt;MOUSE&gt;
-</span><span style='color:#AAA'>           %0 row  %1 col  %2 -row  %3 -col  %5 vnum  %6 info
+</span><span style='color:#AAA'>           %0 row  %1 col  %2 -row  %3 -col  %4 vnum  %5 info
 
          </span><span style='color:#5F5'>MOUSE EVENTS
 
@@ -1304,8 +1310,6 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>SYSTEM ERROR           </span><span style='color:#AAA'>%0 name %1 system msg %2 error %3 error msg
          </span><span style='color:#FFF'>UNKNOWN COMMAND        </span><span style='color:#AAA'>%0 raw text
          </span><span style='color:#FFF'>SIGUSR                 </span><span style='color:#AAA'>%0 signal
-
-         </span><span style='color:#FFF'>REFORMAT &lt;MESSAGE&gt;     </span><span style='color:#AAA'>Use #return to change MESSAGE
 
          </span><span style='color:#5F5'>TELNET EVENTS
 
@@ -1463,7 +1467,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.41b                    </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.42                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -1640,7 +1644,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          settings, as well as the list names that you can ignore.
 
          If you for example use #IGNORE ACTIONS ON actions will no longer
-         triger. Not every list can be ignored.
+         trigger. Not every list can be ignored.
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#CLASS'>class</a>, <a href='#DEBUG'>debug</a>, <a href='#INFO'>info</a>, <a href='#KILL'>kill</a> and <a href='#MESSAGE'>message</a>.
 <a name='INDEX'></a>
@@ -2065,6 +2069,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>#line background &lt;argument&gt;
 </span><span style='color:#AAA'>           Prevent new session activation.
 
+         </span><span style='color:#FFF'>#line benchmark &lt;argument&gt;
+</span><span style='color:#AAA'>           Argument is executed and the elapsed time is reported after.
+
          </span><span style='color:#FFF'>#line capture &lt;variable&gt; &lt;argument&gt;
 </span><span style='color:#AAA'>           Argument is executed and output stored in &lt;variable&gt;.
 
@@ -2154,8 +2161,8 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          #list {var} {tokenize} &lt;string&gt;        Create a character list
 
          The index should be between +1 and the list's size. You can also give
-         a negative value, in which case -1 equals the last item in the list, -2
-         the second last, etc.
+         a negative value, in which case -1 equals the last item in the list,
+         -2 the second last, etc.
 
          When inserting an item a positive index will prepend the item at the
          given index, while a negative index will append the item.
@@ -2173,7 +2180,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
          The indexate option prepares a table or list table for order, sort,
          filter, refine, and find operations for the given key. It is similar
-         to the SELECT option in SQL.
+         to the SELECT option in SQL. All entries must contain the given key.
 
          A size of 0 is returned for an empty or non-existent list. You can
          directly access the size of a list using &amp;var[].
@@ -2537,8 +2544,13 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #log </span><span style='color:#FFF'>{</span><span style='color:#AAA'>option</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>argument</span><span style='color:#FFF'>}
 
-</span><span style='color:#AAA'>         The log command allows logging session output to file. You can set the
-         data type to either plain, raw, or html with the config command.
+</span><span style='color:#AAA'>         The log command allows logging session output to file.
+
+         </span><span style='color:#FFF'>#config log_level &lt;low|high&gt;
+</span><span style='color:#AAA'>           Default is high. Low, logs server output before triggers.
+
+         </span><span style='color:#FFF'>#config log_mode &lt;html|plain|raw&gt;
+</span><span style='color:#AAA'>           Set the log's data type to either html, plain, or raw.
 
          </span><span style='color:#FFF'>#log append &lt;filename&gt;
 </span><span style='color:#AAA'>           Start logging to the given file, if the file already exists it won't
@@ -2972,7 +2984,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          default room number (vnum) 1 is created, so you can go to it using
          #map goto 1. Once you are inside the map new rooms are automatically
          created as you move around. Movement commands are defined with the
-         pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are
+         #pathdir command. By default n, ne, e, se, s, sw, w, nw, u, d are
          defined.
 
          </span><span style='color:#FFF'>#map map &lt;rows&gt; &lt;cols&gt; &lt;append|overwrite|list|variable&gt; &lt;name&gt;
@@ -3017,7 +3029,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          </span><span style='color:#FFF'>#map write &lt;filename&gt;
 
 </span><span style='color:#AAA'>         You can save your map using #map write, to load a map you can use
-         #map read &lt;filename&gt;.
+         #map read &lt;filename&gt;. You can return to the room you were in when
+         the map was last saved by using #map return. You can use #event to
+         automatically read and write the map on session start and end.
 
          </span><span style='color:#FFF'>#map set &lt;option&gt; &lt;value&gt;
 
@@ -3268,7 +3282,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          Available MSDP events can be queried using the MSDP protocol
          as described in the specification.
 
-         </span><span style='color:#5FF'>https://tintin.sourceforge.io/protocols/msdp
+         </span><span style='color:#5FF'>https://tintin.mudhalla.net/protocols/msdp
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#EVENT'>event</a> and <a href='#PORT'>port</a>.
 <a name='MSLP'></a>
@@ -3319,7 +3333,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          you need to use &bsol;e]68;2;&bsol;a, and they instead trigger the SECURE LINK
          event.
 
-         To creae a link that is not undelined, use &bsol;e]4;24m text &bsol;e]24m.
+         To create a link that is not underlined, use &bsol;e]4;24m text &bsol;e]24m.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #sub {%* tells %*} {&bsol;e]68;2;EXEC;#cursor set tell %1 &bsol;a&bsol;e[4;24m%0&bsol;e[24m}
 </span><span style='color:#FFF'>       </span><span style='color:#AAA'>  #event {PRESSED SECURE LINK EXEC MOUSE BUTTON ONE} {%4}
@@ -3607,9 +3621,13 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FFF'>      &bsol;W </span><span style='color:#AAA'>Match non-letters, numbers, and underscores    [^A-Za-z0-9_]
 </span><span style='color:#FFF'>      &bsol;x </span><span style='color:#AAA'>Insert hex character                           &bsol;x
 </span><span style='color:#FFF'>      &bsol;Z </span><span style='color:#AAA'>Match end of string                            &dollar;
+</span><span style='color:#FFF'>      &bsol;&bsol; </span><span style='color:#AAA'>Match a backslash                              &bsol;&bsol;
 
          &bsol;s matches one space, &bsol;s+ matches one or multiple spaces, the use
-         of {&bsol;s+} is required for this sequence to work in tintin, &bsol;s by         itself will work outside of a set of braces.
+         of {&bsol;s+} is required for this sequence to work in tintin, &bsol;s by
+         itself will work outside of a set of braces.
+
+         Use &bsol;% to forcibly match a literal % character.
 
          </span><span style='color:#5F5'>Color triggers
 
@@ -3711,6 +3729,11 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          The #show command takes a row and col argument as well so it's also
          possible to place text on your split lines using #show.
 
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #prompt {[%*] %* (%*) &gt; } {[%1] %2 (%3)}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #prompt {[%*] %* (%*) &gt; } {} {-2}
+         If the &lt;new text&gt; argument is left empty the original text is used,
+         including colors. Use {&bsol;} for a blank line.
+
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: See </span><span style='color:#FFF'>#help split</span><span style='color:#AAA'> for more information on split mode.
 
 </span><span style='color:#FFF'>Comment</span><span style='color:#AAA'>: See </span><span style='color:#FFF'>#help substitute</span><span style='color:#AAA'> for more information on text
@@ -3760,6 +3783,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FFF'>      %0 </span><span style='color:#AAA'>should be avoided in triggers, and if left alone lists all matches.
 </span><span style='color:#FFF'>     { } </span><span style='color:#AAA'>embed a raw regular expression, matches are stored to %1-%99.
 </span><span style='color:#FFF'>   %!{ } </span><span style='color:#AAA'>embed a raw regular expression, matches are not stored.
+
 </span><span style='color:#FFF'>         </span><span style='color:#AAA'>[ ] . + | ( ) ? * are treated as normal text unlessed used within
 </span><span style='color:#FFF'>         </span><span style='color:#AAA'>braces. Keep in mind that { } is replaced with ( ) automatically
 </span><span style='color:#FFF'>         </span><span style='color:#AAA'>unless %!{ } is used.
@@ -4003,7 +4027,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          is being used by utilizing the MTTS standard. The MTTS specification
          is available at:
 
-         http://tintin.sourceforge.net/protocols/mtts
+         https://tintin.mudhalla.net/protocols/mtts
 
          With the screen reader mode enabled TinTin++ will try to remove or
          alter visual elements where possible.
@@ -4648,7 +4672,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          underscores in order to be substituted.  If you do not meet these
          requirements do not panic, simply encapsulate the variable in braces:
 
-</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #variable {cool website} {http://tintin.sourceforge.net}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #variable {cool website} {https://tintin.mudhalla.net}
          #chat I was on &dollar;{cool website} yesterday!.
 
          Variables can be escaped by adding additional &dollar; signs.

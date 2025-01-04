@@ -104,8 +104,6 @@ DO_COMMAND(do_list)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " LIST OPTIONS ");
 
 		for (index = 0 ; *array_table[index].fun ; index++)
@@ -133,23 +131,23 @@ DO_COMMAND(do_list)
 
 		if (*array_table[cnt].name == 0)
 		{
-			goto info;
+			show_error(ses, LIST_VARIABLE, "#ERROR: #LIST {%s} {%s}: INVALID LIST OPTION.", arg1, arg2);
+			
+			return ses;
 		}
-		else
+
+		if (!valid_variable(ses, arg1))
 		{
-			if (!valid_variable(ses, arg1))
-			{
-				show_error(ses, LIST_VARIABLE, "#LIST: INVALID VARIABLE NAME {%s}.", arg1);
+			show_error(ses, LIST_VARIABLE, "#ERROR: #LIST {%s} {%s}: INVALID VARIABLE NAME.", arg1, arg2);
 
-				return ses;
-			}
-
-			if ((node = search_nest_node_ses(ses, arg1)) == NULL)
-			{
-				node = set_nest_node_ses(ses, arg1, "");
-			}
-			array_table[cnt].fun(ses, node, arg, arg1, arg2, arg3);
+			return ses;
 		}
+
+		if ((node = search_nest_node_ses(ses, arg1)) == NULL)
+		{
+			node = set_nest_node_ses(ses, arg1, "");
+		}
+		array_table[cnt].fun(ses, node, arg, arg1, arg2, arg3);
 	}
 	return ses;
 }
@@ -188,6 +186,25 @@ DO_ARRAY(array_add)
 	if (list->root == NULL)
 	{
 		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
+	}
+
+	if (list->root->used)
+	{
+		int numerate = atoi(list->root->list[0]->arg1) == 1 && atoi(list->root->list[list->root->used - 1]->arg1) == list->root->used;
+
+		if (numerate == 0)
+		{
+			for (index = 0 ; index < list->root->used ; index++)
+			{
+				if (atoi(list->root->list[index]->arg1) != index + 1)
+				{
+					break;
+				}
+			}
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ADD: INVALID LIST. INDEX %d IS SET TO {%s}.", var, index + 1, list->root->list[index]->arg1);
+
+			return ses;
+		}
 	}
 
 	index = list->root->used + 1;
@@ -578,11 +595,11 @@ DO_ARRAY(array_get)
 
 DO_ARRAY(array_indexate)
 {
-	int cnt;
+	int cnt, index;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
-	if (list->root == NULL || list->root->list[0]->root == NULL)
+	if (list->root == NULL || list->root->used == 0 || list->root->list[0]->root == NULL)
 	{
 		show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: NOT AN INDEXABLE LIST TABLE.", var);
 
@@ -599,13 +616,37 @@ DO_ARRAY(array_indexate)
 			}
 			else
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: ABORTED DUE TO INVALID INDEX {%s}.", var, list->root->list[cnt]->arg1);
 				break;
 			}
 		}
 		return ses;
 	}
 
+#if 1
+	if (list->root->used)
+	{
+		for (cnt = 0 ; cnt < list->root->used ; cnt++)
+		{
+			if (list->root->list[cnt]->root == NULL)
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST %s[%s] INDEXATE: FAILED TO FIND NEST {%s}.", var, list->root->list[cnt]->arg1, arg1);
+
+				return ses;
+			}
+
+			index = search_index_list(list->root->list[cnt]->root, arg1, "");
+
+			if (index == -1)
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST %s[%s] INDEXATE: FAILED TO FIND NEST {%s}.", var, list->root->list[cnt]->arg1, arg1);
+
+				return ses;
+			}
+			str_cpy(&list->root->list[cnt]->arg2, list->root->list[cnt]->root->list[index]->arg2);
+		}
+	}
+#else
 	if (list->root->used)
 	{
 		int index = search_index_list(list->root->list[0]->root, arg1, "");
@@ -625,11 +666,12 @@ DO_ARRAY(array_indexate)
 			}
 			else
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO POPULATE INDEX {%s}.", var, list->root->list[cnt]->arg1);
+				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: ABORTED DUE TO INVALID INDEX {%s}.", var, list->root->list[cnt]->arg1);
 				break;
 			}
 		}
 	}
+#endif
 	return ses;
 }
 

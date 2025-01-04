@@ -820,7 +820,7 @@ DO_COMMAND(do_prompt)
 	{
 		show_list(ses->list[LIST_PROMPT], 0);
 	}
-	else if (*arg1 && *arg2 == 0)
+	else if (*arg1 && *arg2 == 0 && *arg == 0)
 	{
 		if (show_node_with_wild(ses, arg1, ses->list[LIST_PROMPT]) == FALSE)
 		{

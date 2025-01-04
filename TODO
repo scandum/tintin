@@ -1,11 +1,66 @@
+- switch to pcre2
+
+- check if #scan file is escaping braces
+
+- If I set #config log_level low then it ignores #log timestamp {%Y-%m-%d-%H:%M:%S}
+
+- Update script's --time-style=full-iso doesn't work on Mac.
+
+- Investigate: EVENT_FLAG_UPDATE running as gtd->level->quiet++ in check_all_events
+
+- Add an example #edit script to SCRIPTS
+
+- #map offset 10 10 doesn't generate an error
+
+- strip [ ] from auto tab completion
+
+- #draw tile 1 1 1 1 {\x7B}
+
+- #screen scroll 10 1 -3 -1;#showme {bla} {-2}
+
+#draw RED ROUNDED BOX {1 1 2 2} gives a poor error message
+
+- #var foo {{}{aaa}} creates no assignment
+
+- With internet down, #session reconnect events might fail
+
+- Write an example script that makes tintin mimic Discord, with soft enters, emoticons, etc.
+
+- Add an example script to display time left on tickers using #info tickers save
+
+- comprehensive memory breakdown for variables/triggers/mapper/etc
+
+- #draw calign grid table {2} {2} {8} {42} {n;s;w;e} {n;s;w;e}; doesn't work properly.
+
+- a better trigger stack debug buffer
+
 - Problem with restoring true color subs.
 #sub bla {<F00AA00>bla}
 #high blo <118>
 #showme <158>test bli bla blo test
 
+- named delays don't work in gts
+
+- #SPLIT when you give the top bar a negative value for its size, TinTin isn’t drawing the white box around it
+
+- Add an option to insert multiple items to a list
+
+- allow setting output encoding for #port
+
+- https://github.com/mintty/mintty/wiki/CtrlSeqs#audio-support
+- mintty --configdir DIRNAME
+
+- Fix: #ERROR: UNKNOWN TOKEN TYPE: 14 (#info tokenizer)
+
 - split screen scrollback setting in #screen
 
+- terrain based weight modifier
+- weightless mode for #map list and #map find
+
 - Make #draw scroll grid table work properly.
+
+
+- update https://tintin.mudhalla.net/info/ansicolor/
 
 - Make sure #config compact also applies to the log file.
 
@@ -17,7 +72,7 @@
 
 - catch event to handle #map global exceptions
 
-- switch to pcre2
+
 
 - Add routine to escape 0x00 in port.c RECEIVED DATA event.
 
@@ -29,6 +84,8 @@
 
 - look into GMCP larger than buffer size
 
+- look into #button SWIPED MOUSE BUTTON ONE option
+
 - finish ? : support in #math
 
 - finish create_node()
@@ -36,6 +93,8 @@
 - Look into #split 1 1 1 1 on termux when hiding / showing keyboard.
 
 - look into invalid { } in MSDP / GMCP handling
+
+- MSLP jump link handling
 
 - mapper.c FAST handling
 
@@ -68,6 +127,9 @@
 - Look into delete_index_list leaving a table with ->used set to 0 causing #list crashes
 
 - #daemon attach fails under high cpu load
+
+- https://github.com/scandum/tintin/issues/161
+  Add note to package maintainers
 
 ----------------
   - add shadow session support with access to all events.
@@ -189,6 +251,8 @@
 --------------------------------------------------------------------------------
 
 * LOW PRIORITY
+
+  - #if {1 || bla} errors out
 
   - ./configure might error on /dev/ptmx
 

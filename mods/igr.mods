@@ -1,6 +1,31 @@
+Jan 2024        2.02.42
+------------------------------------------------------------------------------
+map.c           Fixed #map move not working with nofollow flag set.
+
+list.c          Made #list indexate no longer require a uniform key layout,
+                but the indexation key must be present in all list entries.
+
+chat.c          Increased to timeout for the handshake from 5 to 30 seconds.
+
+substitute.c    %%%s would get escaped to %%s in aliases and actions. This was
+                changed so only %%%1 gets escaped to %%1, %%%s stays the same.
+
+list.c          Added an error message when using #list add on invalid lists.
+
+map.c           #map info save will save to info[MAP] instead of info[map].
+
+system.c        Fixed a bug limiting #script to 50KB of output.
+
+net.c           Fixed a bug causing #config color_patch to strip all colors.
+
+data.c          Classes are properly cleared when removed with #kill.
+
 Jan 2024        2.02.41
 ------------------------------------------------------------------------------
+
 tokenize.c      Fixed issues with tailing spaces for several statements.
+
+parse.c         On entering #exit or #quit tintin suggests using #end or #zap.
 
 Mar 2023        2.02.40
 ------------------------------------------------------------------------------

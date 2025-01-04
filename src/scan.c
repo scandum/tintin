@@ -591,7 +591,7 @@ DO_SCAN(scan_txt)
 		}
 		line[BUFFER_SIZE / 2] = 0;
 
-		process_mud_output(ses, line, FALSE);
+		process_one_line(ses, line, FALSE);
 
 		if (HAS_BIT(ses->flags, SES_FLAG_SCANABORT))
 		{

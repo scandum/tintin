@@ -1352,7 +1352,7 @@ int utf8_to_gbk1(char *input, char *output, int length)
 	pto = output;
 
 //	while (*pti)
-	while (length--)
+	while (length)
 	{
 		size = get_utf8_index(pti, &index);
 
@@ -1380,6 +1380,7 @@ int utf8_to_gbk1(char *input, char *output, int length)
 		{
 			*pto++ = *pti++;
 		}
+		length -= size;
 	}
 	*pto = 0;
 

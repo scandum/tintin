@@ -110,6 +110,14 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 					node->val64 = sourcelist->list[i]->val64;
 					break;
 
+				case LIST_CLASS:
+					if (sourcelist->list[i]->data)
+					{
+						node->data = malloc(atoi(node->arg4));
+						memcpy(node->data, sourcelist->list[i]->data, atoi(node->arg4));
+					}
+					break;
+
 				case LIST_VARIABLE:
 					copy_nest_node(ses->list[type], node, sourcelist->list[i]);
 					break;
@@ -369,7 +377,7 @@ void delete_node_list(struct session *ses, int type, struct listnode *node)
 	delete_index_list(ses->list[type], index);
 }
 
-void delete_node(int type, struct listnode *node)
+void delete_node(struct session *ses, int type, struct listnode *node)
 {
 	if (HAS_BIT(list_table[type].flags, LIST_FLAG_REGEX))
 	{
@@ -382,6 +390,8 @@ void delete_node(int type, struct listnode *node)
 	switch (type)
 	{
 		case LIST_CLASS:
+			clear_class(ses, node);
+
 			if (node->data)
 			{
 				free(node->data);
@@ -409,6 +419,14 @@ void delete_node(int type, struct listnode *node)
 	// dispose in memory update for one shot handling
 
 	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
+
+	switch (type)
+	{
+		case LIST_CLASS:
+			check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", node->arg1);
+			check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", node->arg1, node->arg1);
+			break;
+	}
 }
 
 void delete_index_list(struct listroot *root, int index)
@@ -417,7 +435,7 @@ void delete_index_list(struct listroot *root, int index)
 
 	remove_index_list(root, index);
 
-	delete_node(root->type, node);
+	delete_node(root->ses, root->type, node);
 }
 
 void dispose_node(struct listnode *node)
@@ -1404,18 +1422,20 @@ DO_COMMAND(do_info)
 			case CTRL_A:
 				if (is_abbrev(arg1, "ARGUMENTS"))
 				{
+					int vars = atoi(arg2) ? atoi(arg2) : gtd->varc;
+
 					if (is_abbrev(arg2, "SAVE"))
 					{
 						set_nest_node_ses(ses, "info[ARGUMENTS]", "");
 
-						for (index = 0 ; index < gtd->varc ; index++)
+						for (index = 0 ; index < vars ; index++)
 						{
 							add_nest_node_ses(ses, "info[ARGUMENTS]", "{%d}{%s}", index, gtd->vars[index]);
 						}
 					}
 					else
 					{
-						for (index = 0 ; index < gtd->varc ; index++)
+						for (index = 0 ; index < vars ; index++)
 						{
 							tintin_printf2(ses, "#INFO ARGUMENTS: %2d: %s", index, gtd->vars[index]);
 						}

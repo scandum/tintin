@@ -112,8 +112,8 @@
 }
 
 #nop -------------------------------------------------------------------------
-#nop Append a goto to your current room when saving a map. You can use
-#nop #map return instead.
+#nop Append a goto to your current room when saving a map. Alternatively, you
+#nop can use #map return.
 #nop -------------------------------------------------------------------------
 
 #alias {savemap}
@@ -124,7 +124,8 @@
 }
 
 #nop -------------------------------------------------------------------------
-#nop Log all text to a file with a timestamp with decisecond precision.
+#nop Log all text to a file with a timestamp with decisecond precision. 
+#nop Alternatively you can use #log timestamp.
 #nop -------------------------------------------------------------------------
 
 #function {timestamp}
@@ -269,7 +270,7 @@
 #showme $temp
 
 #nop -------------------------------------------------------------------------
-#nop Draw a health bar.
+#nop Draw a health bar. Alternatively: #draw bar -2 1 -2 20 {%1;%2;<faa><afa>}
 #nop -------------------------------------------------------------------------
 
 #alias {hpbar}
@@ -340,7 +341,7 @@
 
 #split
 
-#function spellcheck
+#function {spellcheck}
 {
 	#format result %S %1;
 	#if {$result == 0}
@@ -370,7 +371,7 @@
 #nop This function tests the random number engine
 #nop -------------------------------------------------------------------------
 
-#alias random
+#alias {random}
 {
 	#var random {};
 	#loop 1 1000 cnt
@@ -382,7 +383,8 @@
 }
 
 #nop -------------------------------------------------------------------------
-#nop This macro allows pasting multi-line code fragments on pressing ctrl-v
+#nop This macro allows pasting multi-line code fragments on pressing ctrl-v.
+#nop Alternatively, use ctrl-enter after pressing ctrl-v and pasting a script.
 #nop -------------------------------------------------------------------------
 
 #macro {\cv}
@@ -397,19 +399,6 @@
 		#replace paste {;;} {;};
 		#1 {$paste}
 	}
-}
-
-#nop -------------------------------------------------------------------------
-#nop This macro allows pasting multi-line code fragments on pressing ctrl-v
-#nop followed by pressing ctrl-enter
-#nop -------------------------------------------------------------------------
-
-#macro {\e[13;5u}
-{
-	#cursor get tmp;
-	#cursor home;
-	#cursor set {#line sub esc };
-	#cursor enter
 }
 
 #nop -------------------------------------------------------------------------
@@ -772,6 +761,36 @@
 }
 
 #nop -------------------------------------------------------------------------
+#nop Example script for creating clickable menus in the scrolling region.
+#nop -------------------------------------------------------------------------
+
+#con mouse on
+
+#function link {#var result {\e]68;1;%1;%2\a\e[4m%3\e[24m}}
+
+#event {PRESSED LINK MENU MOUSE BUTTON ONE}
+{
+	#local {link} {%4};
+
+	#foreach {*link[]} {key}
+	{
+		#line {substitute} {variables;functions}
+		{
+			#var link[$key] {@link{MENU_ITEM;$link[$key];<faa>$key}}
+		}
+	};
+	#draw Azure scaled box %0+1 %1 %0+1 %1+9 $link[%*]
+}
+
+#event {PRESSED LINK MENU_ITEM MOUSE BUTTON ONE}
+{
+	#showme {<ffa>%4};
+	#buffer refresh
+}
+
+#showme {Example link: @link{MENU;{{bli}{bla}{blo}{blu}};<128>click me}}
+
+#nop -------------------------------------------------------------------------
 #nop This creates two input lines that can be switched between using the tab
 #nop key.
 #nop -------------------------------------------------------------------------
@@ -945,9 +964,9 @@
 
 #config mouse on
 
-#event {MAP SHORT-CLICKED MOUSE BUTTON ONE}
+#event {MAP ROOM SHORT-CLICKED MOUSE BUTTON ONE}
 {
-	#map run {%0} 0.25
+	#map run {%4} 0.25
 }
 
 #nop -------------------------------------------------------------------------
@@ -972,6 +991,51 @@
 		#cursor end;
 		#history insert {}
 	}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Digitalize a spoken number, example: wton one hundred and thirty-six
+#nop -------------------------------------------------------------------------
+
+#alias {wton}
+{
+	#var wton {%0};
+	#replace wton {-} {};
+	#replace wton { and } {};
+
+	#replace wton {ninety} {+90};
+	#replace wton {eighty} {+80};
+	#replace wton {seventy} {+70};
+	#replace wton {sixty} {+60};
+	#replace wton {fifty} {+50};
+	#replace wton {forty} {+40};
+	#replace wton {thirty} {+30};
+	#replace wton {twenty} {+20};
+	#replace wton {twelve} {+12};
+	#replace wton {eleven} {+11};
+	#replace wton {teen} {+10};
+	#replace wton {ten} {+10};
+	#replace wton {nine} {+9};
+	#replace wton {eight} {+8};
+	#replace wton {eigh} {+8};
+	#replace wton {seven} {+7};
+	#replace wton {six} {+6};
+	#replace wton {five} {+5};
+	#replace wton {fif} {+5};
+	#replace wton {four} {+4};
+	#replace wton {three} {+3};
+	#replace wton {thir} {+3};
+	#replace wton {two} {+2};
+	#replace wton {one} {+1};
+
+	#replace wton {%S billion} {+ (&1) * 1000000000};
+	#replace wton {%S million} {+ (&1) * 1000000};
+	#replace wton {%S thousand} {+ (&1) * 1000};
+	#replace wton {%S hundred} {+ (&1) * 100};
+
+	#math wton $wton;
+
+	#line ignore #showme <118>wton %0 = $wton
 }
 
 #nop -------------------------------------------------------------------------

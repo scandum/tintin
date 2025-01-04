@@ -457,12 +457,11 @@ DO_COMMAND(do_draw)
 
 			if (!is_math(ses, arg1) || !is_math(ses, arg2) || !is_math(ses, arg3) || !is_math(ses, arg4))
 			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW: NON-NUMERIC SQUARE: %s {%s %s %s %s}",
-					draw_table[index].name,
-					is_math(ses, arg1) ? ntos(top_row) : arg1,
-					is_math(ses, arg2) ? ntos(top_col) : arg2,
-					is_math(ses, arg3) ? ntos(bot_row) : arg3,
-					is_math(ses, arg4) ? ntos(bot_col) : arg4);
+				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW: INVALID SQUARE: %s {%s} {%s} {%s} {%s}", draw_table[index].name, arg1, arg2, arg3, arg4);
+//					is_math(ses, arg1) ? ntos(top_row) : arg1,
+//					is_math(ses, arg2) ? ntos(top_col) : arg2,
+//					is_math(ses, arg3) ? ntos(bot_row) : arg3,
+//					is_math(ses, arg4) ? ntos(bot_col) : arg4);
 
 				return ses;
 			}
@@ -639,7 +638,7 @@ void scale_drawing(struct session *ses, int *top_row, int *top_col, int *bot_row
 
 	while (*arg)
 	{
-		arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN|SUB_COL|SUB_LIT|SUB_ESC);
+		arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
 
 		word_wrap_split(ses, buf, out, max_width - bor_width, 0, 0, WRAP_FLAG_NONE, &height, &width);
 
@@ -1390,7 +1389,8 @@ char *draw_vertical(long long flags, char *str)
 
 DO_DRAW(draw_bot_side)
 {
-	int col, corner;
+	int col;
+	long long corner;
 
 	if (!HAS_BIT(flags, DRAW_FLAG_LEFT) && !HAS_BIT(flags, DRAW_FLAG_RIGHT) && !HAS_BIT(flags, DRAW_FLAG_BOT))
 	{
@@ -1550,7 +1550,8 @@ DO_DRAW(draw_corner)
 
 DO_DRAW(draw_line_horizontal)
 {
-	int col, corner, ins_len;
+	int col, ins_len;
+	long long corner;
 	char *line;
 
 	if (!HAS_BIT(flags, DRAW_FLAG_VER))
@@ -1568,7 +1569,7 @@ DO_DRAW(draw_line_horizontal)
 
 	corner = flags;
 
-	sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC|SUB_VAR|SUB_FUN);
+	sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
 
 	arg = arg2;
 
@@ -1646,7 +1647,8 @@ DO_DRAW(draw_line_horizontal)
 
 DO_DRAW(draw_line_vertical)
 {
-	int row, corner;
+	int row;
+	long long corner;
 
 	if (!HAS_BIT(flags, DRAW_FLAG_HOR))
 	{
@@ -2199,7 +2201,8 @@ DO_DRAW(draw_square)
 DO_DRAW(draw_table_grid)
 {
 	char buf1[BUFFER_SIZE], *str, buf2[BUFFER_SIZE], buf3[BUFFER_SIZE], row_color[COLOR_SIZE];
-	int corner, blank, row, col, max_r, max_c, r, c, top_r, top_c, bot_r, bot_c, tot_r, tot_c;
+	int blank, row, col, max_r, max_c, r, c, top_r, top_c, bot_r, bot_c, tot_r, tot_c;
+	long long corner;
 
 	row = cnt_arg_all(ses, arg, GET_ALL);
 
@@ -2347,7 +2350,7 @@ DO_DRAW(draw_table_grid)
 					{
 						strcpy(buf2, row_color);
 
-						str = sub_arg_in_braces(ses, str, buf2 + strlen(buf2), GET_ALL, SUB_VAR|SUB_FUN|SUB_LIT|SUB_ESC|SUB_COL);
+						str = sub_arg_in_braces(ses, str, buf2 + strlen(buf2), GET_ALL, SUB_LIT|SUB_ESC|SUB_COL);
 
 //						get_color_codes(row_color, buf2, row_color, GET_ALL);
 
@@ -2468,11 +2471,6 @@ DO_DRAW(draw_text)
 
 	txt = buf2;
 
-	substitute(ses, arg, buf1, SUB_VAR|SUB_FUN);
-	substitute(ses, buf1, buf3, SUB_ESC|SUB_COL|SUB_LIT);
-
-	arg = buf3;
-
 	if (*arg3)
 	{
 		txt += substitute(ses, arg3, txt, SUB_COL|SUB_LIT|SUB_ESC);
@@ -2486,7 +2484,7 @@ DO_DRAW(draw_text)
 	{
 		while (*arg)
 		{
-			arg = get_arg_in_braces(ses, arg, buf1, GET_ALL);
+			arg = sub_arg_in_braces(ses, arg, buf1, GET_ALL, SUB_COL|SUB_LIT|SUB_ESC);
 
 			txt += sprintf(txt, "%s\n", buf1);
 
@@ -2702,7 +2700,8 @@ DO_DRAW(draw_text)
 
 DO_DRAW(draw_top_side)
 {
-	int col, corner;
+	int col;
+	long long corner;
 
 	SET_BIT(flags, HAS_BIT(flags, DRAW_FLAG_VER) ? DRAW_FLAG_VER : DRAW_FLAG_HOR);
 

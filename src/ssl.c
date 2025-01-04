@@ -312,7 +312,7 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 	{
 		t -= gnutls_x509_crt_get_expiration_time(oldcert);
 
-		if (err || t < -7*24*3600)
+		if (err || t < -31*24*3600)
 		{
 			if (err)
 			{

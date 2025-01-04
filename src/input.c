@@ -782,9 +782,9 @@ void convert_meta(char *input, char *output, int eol)
 
 	while (*pti && pti - input < BUFFER_SIZE / 2)
 	{
-		switch (*pti)
+		switch ((unsigned char) *pti)
 		{
-			case -1:
+			case 255:
 				*pto++ = '\\';
 				*pto++ = 'x';
 				*pto++ = 'F';

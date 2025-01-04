@@ -65,8 +65,6 @@ DO_COMMAND(do_line)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " LINE OPTIONS ");
 
 		for (cnt = 0 ; *line_table[cnt].fun != NULL ; cnt++)
@@ -92,7 +90,7 @@ DO_COMMAND(do_line)
 
 		if (*line_table[cnt].name == 0)
 		{
-			goto info;
+			show_error(ses, LIST_COMMAND, "#ERROR: #LINE {%s}: INVALID LINE OPTION.", arg1);
 		}
 		else
 		{

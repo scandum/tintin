@@ -157,7 +157,7 @@ void show_message(struct session *ses, int index, char *format, ...)
 
 	display:
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -216,7 +216,7 @@ void show_error(struct session *ses, int index, char *format, ...)
 
 	push_call("show_error(%p,%p,%p)",ses,index,format);
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -288,7 +288,7 @@ void show_debug(struct session *ses, int index, char *format, ...)
 		return;
 	}
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -451,7 +451,7 @@ void tintin_header(struct session *ses, int width, char *format, ...)
 		return;
 	}
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -500,7 +500,7 @@ void tintin_printf(struct session *ses, char *format, ...)
 
 	push_call("tintin_printf(%p,%p,...)",ses,format);
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -524,7 +524,7 @@ void tintin_printf2(struct session *ses, char *format, ...)
 
 	push_call("tintin_printf2(%p,%p,...)",ses,format);
 
-	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 0, "REFORMAT %s", format))
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
 	{
 		format = get_variable_def(ses, "result", format);
 	}
@@ -632,13 +632,17 @@ void tintin_puts3(struct session *ses, char *string, int prompt)
 
 	if (ses->line_capturefile)
 	{
+		char buf[BUFFER_SIZE];
+
+		substitute(ses, string, buf, SUB_BRA);
+
 		if (ses->line_captureindex == 1)
 		{
-			set_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, string);
+			set_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, buf);
 		}
 		else
 		{
-			add_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, string);
+			add_nest_node_ses(ses, ses->line_capturefile, "{%d}{%s}", ses->line_captureindex++, buf);
 		}
 	}
 

@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.41 "
+#define CLIENT_VERSION           "2.02.42 "
 
 
 #define XT_E                            0x27
@@ -1970,6 +1970,13 @@ extern DO_CHAT(chat_zap);
 
 #endif
 
+#ifndef __CLASS_H__
+#define __CLASS_H__
+
+extern void clear_class(struct session *ses, struct listnode *group);
+
+#endif
+
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
@@ -2186,7 +2193,7 @@ extern void show_list(struct listroot *root, int level);
 extern void remove_node_list(struct session *ses, int type, struct listnode *node);
 extern void remove_index_list(struct listroot *root, int index);
 extern void dispose_node(struct listnode *node);
-extern void delete_node(int type, struct listnode *node);
+extern void delete_node(struct session *ses, int type, struct listnode *node);
 extern void delete_node_list(struct session *ses, int type, struct listnode *node);
 extern  int delete_node_with_wild(struct session *ses, int index, char *string);
 extern void delete_index_list(struct listroot *root, int index);
@@ -2511,7 +2518,7 @@ extern void write_line_mud(struct session *ses, char *line, int size);
 extern int read_buffer_mud(struct session *ses);
 extern void readmud(struct session *ses);
 extern void process_more_output(struct session *ses, char *append, int prompt);
-extern void process_mud_output(struct session *ses, char *linebuf, int prompt);
+extern void process_one_line(struct session *ses, char *linebuf, int prompt);
 
 #endif
 

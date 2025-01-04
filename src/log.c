@@ -69,8 +69,6 @@ DO_COMMAND(do_log)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " LOG OPTIONS ");
 
 		for (cnt = 0 ; *log_table[cnt].fun != NULL ; cnt++)
@@ -83,25 +81,19 @@ DO_COMMAND(do_log)
 		pop_call();
 		return ses;
 	}
-	else
-	{
-		for (cnt = 0 ; *log_table[cnt].name ; cnt++)
-		{
-			if (is_abbrev(arg1, log_table[cnt].name))
-			{
-				break;
-			}
-		}
 
-		if (*log_table[cnt].name == 0)
-		{
-			goto info;
-		}
-		else
+	for (cnt = 0 ; *log_table[cnt].name ; cnt++)
+	{
+		if (is_abbrev(arg1, log_table[cnt].name))
 		{
 			log_table[cnt].fun(ses, arg, arg1, arg2);
+
+			pop_call();
+			return ses;
 		}
 	}
+	show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s}: INVALID LOG OPTION.", arg1);
+
 	pop_call();
 	return ses;
 }
@@ -136,6 +128,7 @@ DO_LOG(log_info)
 	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : HAS_BIT(ses->log->mode, LOG_FLAG_RAW) ? "RAW" : "UNSET");
 	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->log->line_file ? ses->log->line_name : "");
 	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->log->next_file ? ses->log->next_name : "");
+	tintin_printf2(ses, "#LOG INFO: STAMP = %s", ses->log->stamp_strf);
 }
 
 DO_LOG(log_make)

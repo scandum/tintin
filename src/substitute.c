@@ -1621,7 +1621,14 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						{
 							*pto++ = *pti++;
 						}
-						pti++;
+						if (is_digit(pti[1]))
+						{
+							pti++;
+						}
+						else
+						{
+							*pto++ = *pti++;
+						}
 					}
 					else
 					{

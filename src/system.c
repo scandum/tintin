@@ -95,7 +95,7 @@ DO_COMMAND(do_run)
 
 DO_COMMAND(do_script)
 {
-	char *cptr, buf[BUFFER_SIZE], var[BUFFER_SIZE], tmp[BUFFER_SIZE];
+	char *cptr, buf[BUFFER_SIZE], tmp[BUFFER_SIZE];
 	FILE *script;
 	int index;
 
@@ -139,7 +139,7 @@ DO_COMMAND(do_script)
 
 		if (script)
 		{
-			var[0] = 0;
+			set_nest_node_ses(ses, arg1, "");
 
 			while (fgets(buf, BUFFER_SIZE - 1, script))
 			{
@@ -152,10 +152,8 @@ DO_COMMAND(do_script)
 
 				substitute(ses, buf, tmp, SUB_SEC);
 
-				cat_sprintf(var, "{%d}{%s}", index++, tmp);
+				add_nest_node_ses(ses, arg1, "{%d}{%s}", index++, tmp);
 			}
-
-			set_nest_node_ses(ses, arg1, "%s", var);
 
 			pclose(script);
 		}

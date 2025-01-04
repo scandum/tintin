@@ -33,8 +33,6 @@ DO_COMMAND(do_history)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " HISTORY COMMANDS ");
 
 		for (cnt = 0 ; *history_table[cnt].name != 0 ; cnt++)
@@ -58,7 +56,7 @@ DO_COMMAND(do_history)
 		return ses;
 	}
 
-	goto info;
+	show_error(ses, LIST_COMMAND, "#ERROR: #HISTORY {%s}: INVALID HISTORY OPTION.", arg1);
 
 	return ses;
 }

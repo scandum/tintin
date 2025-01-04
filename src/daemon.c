@@ -49,8 +49,6 @@ DO_COMMAND(do_daemon)
 
 	if (*arg1 == 0)
 	{
-		info:
-
 		tintin_header(ses, 80, " DAEMON OPTIONS ");
 
 		for (cnt = 0 ; *daemon_table[cnt].fun != NULL ; cnt++)
@@ -76,7 +74,7 @@ DO_COMMAND(do_daemon)
 
 		if (*daemon_table[cnt].name == 0)
 		{
-			goto info;
+			show_error(ses, LIST_COMMAND, "#ERROR: #DAEMON {%s}: INVALID DAEMON OPTION.", arg1);
 		}
 		else
 		{

@@ -103,23 +103,49 @@ void banner_expires(struct session *ses, char *name, char *arg, char *arg1)
 
 void banner_init(struct session *ses, char *arg1)
 {
-	banner_create(ses, "Armageddon", arg1);
+	banner_create(ses, "RetroMUD", arg1);
 
-	banner_desc(ses, "Armageddon",
-		"Armageddon MUD is set in the brutal post-apocalyptic world of Zalanthas.\n"
-		"Emphasizing roleplay over combat, the game offers a rich, immersive experience.\n"
-		"Zalanthas is ruled by sorcerer-kings and their powerful Templarate, dominating\n"
-		"the twin cities of Allanak and Tuluk. Magic not sanctioned by these rulers is\n"
-		"feared and often met with fatal consequences. Survival is a constant struggle\n"
-		"in this harsh environment, and death is permanent. Armageddon MUD delivers a\n"
-		"distinctive roleplaying adventure, with a dedicated community of players and\n"
-		"staff actively shaping the ongoing Zalanthan narrative for over three decades.", arg1);
+	banner_desc(ses, "RetroMUD",
+		"RetroMUD features over 100 levels of play, a huge array of character advancement\n"
+		"options, and dozens of quests across six different worlds. It's like six games\n"
+		"in one.", arg1);
 
-	banner_website(ses, "Armageddon", "https://armageddon.org", arg1);
-	banner_address(ses, "Armageddon", "arm armageddon.org 4050", arg1);
-	banner_expires(ses, "Armageddon", "2030", arg1);
+	banner_website(ses, "RetroMUD", "http://www.retromud.org", arg1);
+	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
+	banner_expires(ses, "RetroMUD", "2032", arg1);
 
 
+	banner_create(ses, "New Worlds Ateraan", arg1);
+
+	banner_desc(ses, "New Worlds Ateraan",
+		"Ateraan is a world of Intensive Roleplaying offering many unique and powerful\n"
+		"guilds, races, politics, religion, justice, economy, and a storyline that is\n"
+		"dominantly player controlled and based on a novel. The game is based on a\n"
+		"Kingdom with knights, merchants, mages, and thieves, and a fierce southern\n"
+		"state that has warriors, shaman, slaves, and servants. Ships rule the seas and\n"
+		"caravans travel the lands. With 100's of players and features like invasions,\n"
+		"ship creation, house building, clans, theaters, leatherball fields, and massive\n"
+		"events, the game is incredibly robust and diverse.", arg1);
+
+	banner_website(ses, "New Worlds Ateraan", "http://www.ateraan.com", arg1);
+	banner_address(ses, "New Worlds Ateraan", "nwa ateraan.com 4002", arg1);
+	banner_expires(ses, "New Worlds Ateraan", "2029", arg1);
+
+
+	banner_create(ses, "Untold Dawn", arg1);
+
+	banner_desc(ses, "Untold Dawn",
+		"Untold Dawn is an early access post-cyberpunk permadeath text-based roleplay\n"
+		"required multiplayer game. The game aims to redefine the RPI genre with a focus\n"
+		"on building a positive community, innovative features and a fresh look on game\n"
+		"rules. The game was developed from scratch using Rust and Bevy, a project which\n"
+		"began in January of 2024.\n", arg1);
+
+	banner_website(ses, "Untold Dawn", "https://blog.untold-dawn.com", arg1);
+	banner_address(ses, "Untold Dawn", "ud www.untold-dawn.com 4000", arg1);
+	banner_expires(ses, "Untold Dawn", "2030", arg1);
+		
+/*
 	banner_create(ses, "Lost Souls", arg1);
 
 	banner_desc(ses, "Lost Souls",
@@ -193,18 +219,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_expires(ses, "3Kingdoms", "2029", arg1);
 
 
-	banner_create(ses, "RetroMUD", arg1);
-
-	banner_desc(ses, "RetroMUD",
-		"RetroMUD features over 100 levels of play, a huge array of character advancement\n"
-		"options, and dozens of quests across six different worlds. It's like six games\n"
-		"in one.", arg1);
-
-	banner_website(ses, "RetroMUD", "http://www.retromud.org", arg1);
-	banner_address(ses, "RetroMUD", "rm 96.126.116.118 3000", arg1);
-	banner_expires(ses, "RetroMUD", "2032", arg1);
-
-
 	banner_create(ses, "Alter Aeon", arg1);
 
 	banner_desc(ses, "Alter Aeon",
@@ -221,23 +235,22 @@ void banner_init(struct session *ses, char *arg1)
 	banner_expires(ses, "Alter Aeon", "2029", arg1);
 
 
-	banner_create(ses, "New Worlds Ateraan", arg1);
+	banner_create(ses, "Armageddon", arg1);
 
-	banner_desc(ses, "New Worlds Ateraan",
-		"Ateraan is a world of Intensive Roleplaying offering many unique and powerful\n"
-		"guilds, races, politics, religion, justice, economy, and a storyline that is\n"
-		"dominantly player controlled and based on a novel. The game is based on a\n"
-		"Kingdom with knights, merchants, mages, and thieves, and a fierce southern\n"
-		"state that has warriors, shaman, slaves, and servants. Ships rule the seas and\n"
-		"caravans travel the lands. With 100's of players and features like invasions,\n"
-		"ship creation, house building, clans, theaters, leatherball fields, and massive\n"
-		"events, the game is incredibly robust and diverse.", arg1);
+	banner_desc(ses, "Armageddon",
+		"Armageddon MUD is set in the brutal post-apocalyptic world of Zalanthas.\n"
+		"Emphasizing roleplay over combat, the game offers a rich, immersive experience.\n"
+		"Zalanthas is ruled by sorcerer-kings and their powerful Templarate, dominating\n"
+		"the twin cities of Allanak and Tuluk. Magic not sanctioned by these rulers is\n"
+		"feared and often met with fatal consequences. Survival is a constant struggle\n"
+		"in this harsh environment, and death is permanent. Armageddon MUD delivers a\n"
+		"distinctive roleplaying adventure, with a dedicated community of players and\n"
+		"staff actively shaping the ongoing Zalanthan narrative for over three decades.", arg1);
 
-	banner_website(ses, "New Worlds Ateraan", "http://www.ateraan.com", arg1);
-	banner_address(ses, "New Worlds Ateraan", "nwa ateraan.com 4002", arg1);
-	banner_expires(ses, "New Worlds Ateraan", "2029", arg1);
+	banner_website(ses, "Armageddon", "https://armageddon.org", arg1);
+	banner_address(ses, "Armageddon", "arm armageddon.org 4050", arg1);
+	banner_expires(ses, "Armageddon", "2030", arg1);
 
-/*
 	banner_create(ses, "Threshold RPG", arg1);
 
 	banner_desc(ses, "Threshold RPG",

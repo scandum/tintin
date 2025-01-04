@@ -486,6 +486,11 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 		return ses;
 	}
 
+	if (check_all_events(ses, EVENT_FLAG_GAG, 0, 1, "GAG UNKNOWN COMMAND", line))
+	{
+		return ses;
+	}
+
 	if (!strcasecmp(line, "exit") || !strcasecmp(line, "quit"))
 	{
 		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: 'end' OR 'zap'.", line);
