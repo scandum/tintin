@@ -965,6 +965,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 				break;
 
 			case CHAT_SNOOP_START:
+				chat_socket_printf(buddy, "%c%s%c", CHAT_MESSAGE, "\nTintin++ does not natively support this; ask peer via a message to FORWARD, FORWARDALL or SERVE you instead.\n", CHAT_END_OF_COMMAND);
 				break;
 
 			case CHAT_SNOOP_DATA:
