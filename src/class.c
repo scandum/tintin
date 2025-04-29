@@ -145,7 +145,7 @@ int count_class(struct session *ses, struct listnode *group)
 
 	for (cnt = list = 0 ; list < LIST_MAX ; list++)
 	{
-		if (!HAS_BIT(ses->list[list]->flags, LIST_FLAG_CLASS))
+		if (ses->list[list] == NULL || !HAS_BIT(ses->list[list]->flags, LIST_FLAG_CLASS))
 		{
 			continue;
 		}
@@ -170,7 +170,7 @@ void clear_class(struct session *ses, struct listnode *group)
 
 	for (type = 0 ; type < LIST_MAX ; type++)
 	{
-		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
+		if (ses->list[type] == NULL || !HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
 		{
 			continue;
 		}
