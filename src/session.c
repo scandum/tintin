@@ -778,6 +778,7 @@ void dispose_session(struct session *ses)
 	for (index = 0 ; index < LIST_MAX ; index++)
 	{
 		free_list(ses->list[index]);
+		ses->list[index] = NULL;
 	}
 
 	init_buffer(ses, 0);
