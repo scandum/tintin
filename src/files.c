@@ -332,7 +332,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		gtd->level->quiet++;
 
-		script_driver(ses, LIST_COMMAND, temp);
+		script_driver(ses, LIST_COMMAND, NULL, temp);
 
 		gtd->level->quiet--;
 	}
@@ -360,12 +360,12 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		if (pto - bufi >= BUFFER_SIZE)
 		{
-			show_debug(ses, LIST_COMMAND, "#WARNING: #READ {%s}: POSSIBLE BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
+			show_debug(ses, LIST_COMMAND, NULL, "#WARNING: #READ {%s}: POSSIBLE BUFFER OVERFLOW AT COMMAND: %.30s", filename, bufi);
 		}
 
 		if (bufi[0])
 		{
-			ses = script_driver(ses, LIST_COMMAND, bufi);
+			ses = script_driver(ses, LIST_COMMAND, NULL, bufi);
 		}
 		pto = bufi;
 		pti++;

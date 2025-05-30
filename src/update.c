@@ -876,7 +876,7 @@ void tick_update(void)
 
 	gtd->utime_next_tick = gtd->utime + 1000000000;
 
-	for (ses = gts->next ; ses ; ses = gtd->update)
+	for (ses = gts ; ses ; ses = gtd->update)
 	{
 		gtd->update = ses->next;
 
@@ -889,6 +889,11 @@ void tick_update(void)
 			if (node->val64 == 0)
 			{
 				tintin_printf2(gtd->ses, "error: tick_update: node->val64 == 0");
+			}
+
+			if (ses == gts && node->shots == 0)
+			{
+				continue;
 			}
 
 			if (node->val64 <= gtd->utime)
@@ -904,13 +909,13 @@ void tick_update(void)
 
 				if (!HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 				{
-					show_debug(ses, LIST_TICKER, COLOR_DEBUG "#DEBUG TICKER " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
+					show_debug(ses, LIST_TICKER, node, COLOR_DEBUG "#DEBUG TICKER " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
 
 					if (node->shots && --node->shots == 0)
 					{
 						delete_node_list(ses, LIST_TICKER, node);
 					}
-					script_driver(ses, LIST_TICKER, node->arg2);
+					script_driver(ses, LIST_TICKER, node, node->arg2);
 				}
 			}
 			else
@@ -949,11 +954,11 @@ void delay_update(void)
 
 			if (node->val64 <= gtd->utime)
 			{
-				show_debug(ses, LIST_DELAY, COLOR_DEBUG "#DEBUG DELAY " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
+				show_debug(ses, LIST_DELAY, node, COLOR_DEBUG "#DEBUG DELAY " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg2);
 
 				delete_index_list(root, root->update);
 
-				script_driver(ses, LIST_DELAY, node->arg2);
+				script_driver(ses, LIST_DELAY, node, node->arg2);
 			}
 			else
 			{
@@ -993,9 +998,9 @@ void path_update(void)
 
 				node->val64 = 0;
 
-				show_debug(ses, LIST_PATH, COLOR_DEBUG "#DEBUG PATH " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
+				show_debug(ses, LIST_PATH, node, COLOR_DEBUG "#DEBUG PATH " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
-				script_driver(ses, LIST_PATH, node->arg1);
+				script_driver(ses, LIST_PATH, NULL, node->arg1);
 
 				if (root->update == root->used)
 				{

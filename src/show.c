@@ -61,7 +61,7 @@ DO_COMMAND(do_showme)
 	{
 		ses->gagline--;
 
-		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline + 1);
+		show_debug(ses, LIST_GAG, NULL, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline + 1);
 
 		return ses;
 	}
@@ -272,7 +272,7 @@ void show_error(struct session *ses, int index, char *format, ...)
 	return;
 }
 
-void show_debug(struct session *ses, int index, char *format, ...)
+void show_debug(struct session *ses, int index, struct listnode *node, char *format, ...)
 {
 	struct listroot *root;
 	char *buffer;
@@ -282,10 +282,13 @@ void show_debug(struct session *ses, int index, char *format, ...)
 
 	root = ses->list[index];
 
-	if (gtd->level->debug == 0 && !HAS_BIT(root->flags, LIST_FLAG_DEBUG) && !HAS_BIT(root->flags, LIST_FLAG_LOG))
+	if (node == NULL || !HAS_BIT(node->flags, NODE_FLAG_DEBUG))
 	{
-		pop_call();
-		return;
+		if (gtd->level->debug == 0 && !HAS_BIT(root->flags, LIST_FLAG_DEBUG) && !HAS_BIT(root->flags, LIST_FLAG_LOG))
+		{
+			pop_call();
+			return;
+		}
 	}
 
 	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
@@ -303,7 +306,7 @@ void show_debug(struct session *ses, int index, char *format, ...)
 	}
 	va_end(args);
 
-	if (gtd->level->debug || HAS_BIT(root->flags, LIST_FLAG_DEBUG))
+	if (gtd->level->debug || HAS_BIT(root->flags, LIST_FLAG_DEBUG) || (node != NULL && HAS_BIT(node->flags, NODE_FLAG_DEBUG)))
 	{
 		gtd->level->verbose++;
 
@@ -589,7 +592,7 @@ void tintin_puts(struct session *ses, char *string)
 
 		gtd->level->ignore++;
 
-		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", string, ses->gagline + 1);
+		show_debug(ses, LIST_GAG, NULL, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", string, ses->gagline + 1);
 
 		gtd->level->ignore--;
 	}

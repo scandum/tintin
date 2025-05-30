@@ -690,7 +690,7 @@ void process_one_line(struct session *ses, char *linebuf, int prompt)
 
 		strip_vt102_codes(linebuf, temp);
 
-		show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", temp, ses->gagline + 1);
+		show_debug(ses, LIST_GAG, NULL, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", temp, ses->gagline + 1);
 
 		pop_call();
 		return;

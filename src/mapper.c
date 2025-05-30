@@ -1885,7 +1885,7 @@ int follow_map(struct session *ses, char *argument)
 			else
 			{
 				ses->map->nofollow++;
-				script_driver(ses, LIST_COMMAND, exit->cmd);
+				script_driver(ses, LIST_COMMAND, NULL, exit->cmd);
 				ses->map->nofollow--;
 			}
 		}
@@ -1965,7 +1965,7 @@ int follow_map(struct session *ses, char *argument)
 		{
 			ses->map->nofollow++;
 
-			script_driver(ses, LIST_COMMAND, argument);
+			script_driver(ses, LIST_COMMAND, NULL, argument);
 
 			ses->map->nofollow--;
 		}
@@ -5401,7 +5401,7 @@ DO_MAP(map_at)
 
 	ses->map->in_room = new_room;
 
-	script_driver(ses, LIST_COMMAND, arg2);
+	script_driver(ses, LIST_COMMAND, NULL, arg2);
 
 	if (ses->map)
 	{
@@ -6585,6 +6585,8 @@ DO_MAP(map_info)
 		add_nest_node_ses(ses, "info[MAP]", "{ROOMS}{%d}", cnt);
 		add_nest_node_ses(ses, "info[MAP]", "{ROOMS_MAX}{%d}", ses->map->size);
 
+		show_message(ses, LIST_COMMAND, "#MAP INFO: DATA WRITTEN TO {info[MAP]}");
+
 		return;
 	}
 
@@ -7634,6 +7636,13 @@ DO_MAP(map_offset)
 			ses->map->sav_top_col = get_number(ses, arg2);
 			ses->map->sav_bot_row = get_number(ses, arg3);
 			ses->map->sav_bot_col = get_number(ses, arg4);
+
+			if (ses->map->sav_top_row == 0 || ses->map->sav_top_col == 0 || ses->map->sav_bot_row == 0 || ses->map->sav_bot_col == 0)
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #MAP OFFSET: INVALID SQUARE: {%s} {%s} {%s} {%s}", arg1, arg2, arg3, arg4);
+
+				return;
+			}
 		}
 		else
 		{
@@ -7845,7 +7854,7 @@ DO_MAP(map_read)
 
 			case '#':
 				buffer[0] = gtd->tintin_char;
-				ses = script_driver(ses, LIST_COMMAND, buffer);
+				ses = script_driver(ses, LIST_COMMAND, NULL, buffer);
 				break;
 
 			case  0:

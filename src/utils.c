@@ -393,6 +393,20 @@ char *capitalize(char *str)
 	return outbuf;
 }
 
+char *decapitalize(char *str)
+{
+	char *outbuf = str_alloc_stack(0);
+	int cnt;
+
+	for (cnt = 0 ; str[cnt] != 0 ; cnt++)
+	{
+		outbuf[cnt] = tolower((int) str[cnt]);
+	}
+	outbuf[cnt] = 0;
+
+	return outbuf;
+}
+
 char *ftos(double number)
 {
 	static char outbuf[10][NUMBER_SIZE];

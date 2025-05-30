@@ -1,78 +1,27 @@
+- make roomdata searchable in #map
+
+- #split 0 0 -100 -100 should do something sensible
+
+- Add blight to msdp/gmcp/mssp listing
+
 - switch to pcre2
-
-- check if #scan file is escaping braces
-
-- If I set #config log_level low then it ignores #log timestamp {%Y-%m-%d-%H:%M:%S}
-
-- Update script's --time-style=full-iso doesn't work on Mac.
-
-- Investigate: EVENT_FLAG_UPDATE running as gtd->level->quiet++ in check_all_events
-
-- Add an example #edit script to SCRIPTS
-
-- #map offset 10 10 doesn't generate an error
-
-- strip [ ] from auto tab completion
-
-- #draw tile 1 1 1 1 {\x7B}
-
-- #screen scroll 10 1 -3 -1;#showme {bla} {-2}
-
-#draw RED ROUNDED BOX {1 1 2 2} gives a poor error message
-
-- #var foo {{}{aaa}} creates no assignment
-
-- With internet down, #session reconnect events might fail
-
-- Write an example script that makes tintin mimic Discord, with soft enters, emoticons, etc.
-
-- Add an example script to display time left on tickers using #info tickers save
 
 - comprehensive memory breakdown for variables/triggers/mapper/etc
 
-- #draw calign grid table {2} {2} {8} {42} {n;s;w;e} {n;s;w;e}; doesn't work properly.
-
 - a better trigger stack debug buffer
-
-- Problem with restoring true color subs.
-#sub bla {<F00AA00>bla}
-#high blo <118>
-#showme <158>test bli bla blo test
-
-- named delays don't work in gts
-
-- #SPLIT when you give the top bar a negative value for its size, TinTin isn’t drawing the white box around it
-
-- Add an option to insert multiple items to a list
 
 - allow setting output encoding for #port
 
 - https://github.com/mintty/mintty/wiki/CtrlSeqs#audio-support
 - mintty --configdir DIRNAME
 
-- Fix: #ERROR: UNKNOWN TOKEN TYPE: 14 (#info tokenizer)
-
-- split screen scrollback setting in #screen
-
-- terrain based weight modifier
-- weightless mode for #map list and #map find
-
 - Make #draw scroll grid table work properly.
-
 
 - update https://tintin.mudhalla.net/info/ansicolor/
 
 - Make sure #config compact also applies to the log file.
 
-- Add an #event that triggers when a function/variable is not found.
-
-- tab completion on input history
-
-- look into handling VARIABLE UPDATE event better
-
-- catch event to handle #map global exceptions
-
-
+- catch event for #map global to handle exceptions
 
 - Add routine to escape 0x00 in port.c RECEIVED DATA event.
 
@@ -110,19 +59,13 @@
 
 - #line escape {variables;functions}
 
-- look into a #debug flag for #class
-
 - Another nice thing would be if there was some flag to make a trigger match newlines as space.
-
-- fix up named delays and undelay
 
 - add a #regex like command for #cursor to update the input line.
 
 - custom mapping for unicode table to set width
 
 - color code for dynamic color ranges
-
-- #MACRO {\cz} {#cursor get t;#var t} does not handle { } in input.
 
 - Look into delete_index_list leaving a table with ->used set to 0 causing #list crashes
 
@@ -137,7 +80,7 @@
   - set_line_screen debug: col = -5 (64) from draw_text(%p,%d,%p,%p,%p)
   - set_line_screen stack call triggered on android
 
-  - regex101 like regex tester
+
 
   - check: #var bla { x};#draw scroll box 1 1 3 40 $bla
 
@@ -155,10 +98,6 @@
 
   - vertical bar drawing
 
-  - error: cursor_check_line_modified1: 
-  - https://tintin.sourceforge.io/forum/viewtopic.php?f=10&t=2811 (possible
-    issue with initiating input buffer for a new session)
-
   - finish BUFFER_SIZE replacement.
 
   - WSL sound, double check soundpack scripts for lag/stutter
@@ -172,10 +111,6 @@
   - Add a way to set env variables either 1) for the current process, and/or 2) as a parameter to #system (i.e. after fork in the child process).
 
 * STUFF THAT IS PROBABLY GONNA GET DONE
-
-  - #line timeshot to auto destroy a trigger after given interval.
-
-  - make named delays proper delays
 
   - Finish port proxy support: resizing, input, security
 
@@ -223,8 +158,6 @@
 
   - Remote script loading
 
-  - add class specific debug
-  - better class event and class size handling ?
 
   - more potent long-click handling including held down ticks.
 
@@ -239,8 +172,6 @@
   - reportable_sounds
 
   - TELNET documentation.
-
-  - Add JSON support to #scan
 
   - see if #break 2 is possible, maybe #continue 2 as well.
 

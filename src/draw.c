@@ -458,14 +458,9 @@ DO_COMMAND(do_draw)
 			if (!is_math(ses, arg1) || !is_math(ses, arg2) || !is_math(ses, arg3) || !is_math(ses, arg4))
 			{
 				show_error(ses, LIST_COMMAND, "#ERROR: #DRAW: INVALID SQUARE: %s {%s} {%s} {%s} {%s}", draw_table[index].name, arg1, arg2, arg3, arg4);
-//					is_math(ses, arg1) ? ntos(top_row) : arg1,
-//					is_math(ses, arg2) ? ntos(top_col) : arg2,
-//					is_math(ses, arg3) ? ntos(bot_row) : arg3,
-//					is_math(ses, arg4) ? ntos(bot_col) : arg4);
 
 				return ses;
 			}
-
 
 			if (top_row == 0 && top_col == 0)
 			{
@@ -476,8 +471,6 @@ DO_COMMAND(do_draw)
 
 			if (top_row == 0)
 			{
-				top_row = 1;
-
 				SET_BIT(flags, DRAW_FLAG_SCROLL);
 			}
 			else
@@ -490,20 +483,10 @@ DO_COMMAND(do_draw)
 				}
 			}
 
-			if (top_col == 0)
-			{
-				top_col = 1;
-			}
-
-			if (bot_row == 0)
-			{
-				bot_row = 1;
-			}
-
-			if (bot_col == 0)
-			{
-				bot_col = 1;
-			}
+			if (top_row == 0) top_row = 1;
+			if (top_col == 0) top_col = 1;
+			if (bot_row == 0) bot_row = 1;
+			if (bot_col == 0) bot_col = 1;
 
 			if (top_row > bot_row || top_col > bot_col)
 			{

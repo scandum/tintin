@@ -31,6 +31,7 @@
 extern DO_CLASS(class_assign);
 extern DO_CLASS(class_clear);
 extern DO_CLASS(class_close);
+extern DO_CLASS(class_debug);
 extern DO_CLASS(class_kill);
 extern DO_CLASS(class_list);
 extern DO_CLASS(class_load);
@@ -54,6 +55,7 @@ struct class_type class_table[] =
 	{    "ASSIGN",            class_assign,   "Execute command with given class opened."        },
 	{    "CLEAR",             class_clear,    "Delete triggers associated with given class."    },
 	{    "CLOSE",             class_close,    "Close given class."                              },
+	{    "DEBUG",             class_debug,    "Show debug messages for given class."            },
 	{    "KILL",              class_kill,     "Clear, close, and remove given class."           },
 	{    "LIST",              class_list,     "List triggers associated with given class."      },
 	{    "LOAD",              class_load,     "Load saved data of given class."                 },
@@ -145,7 +147,7 @@ int count_class(struct session *ses, struct listnode *group)
 
 	for (cnt = list = 0 ; list < LIST_MAX ; list++)
 	{
-		if (ses->list[list] == NULL || !HAS_BIT(ses->list[list]->flags, LIST_FLAG_CLASS))
+		if (!HAS_BIT(ses->list[list]->flags, LIST_FLAG_CLASS))
 		{
 			continue;
 		}
@@ -170,7 +172,7 @@ void clear_class(struct session *ses, struct listnode *group)
 
 	for (type = 0 ; type < LIST_MAX ; type++)
 	{
-		if (ses->list[type] == NULL || !HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
+		if (!HAS_BIT(ses->list[type]->flags, LIST_FLAG_CLASS))
 		{
 			continue;
 		}
@@ -195,7 +197,7 @@ DO_CLASS(class_assign)
 
 	ses->group = strdup(arg1);
 
-	script_driver(ses, LIST_COMMAND, arg2);
+	script_driver(ses, LIST_COMMAND, node, arg2);
 
 	free(ses->group);
 
@@ -267,6 +269,71 @@ DO_CLASS(class_close)
 			else
 			{
 				RESTRING(ses->group, "");
+			}
+		}
+	}
+	return ses;
+}
+
+DO_CLASS(class_debug)
+{
+	if (node == NULL)
+	{
+		node = search_node_list(ses->list[LIST_CLASS], arg1);
+
+		if (node == NULL)
+		{
+			show_message(ses, LIST_CLASS, "#CLASS {%s} DOES NOT EXIST.", arg1);
+			return ses;
+		}
+	}
+
+	if (*arg2 == 0)
+	{
+		TOG_BIT(node->flags, NODE_FLAG_DEBUG);
+	}
+	else if (!strcasecmp(arg2, "ON"))
+	{
+		SET_BIT(node->flags, NODE_FLAG_DEBUG);
+	}
+	else if (!strcasecmp(arg2, "OFF"))
+	{
+		DEL_BIT(node->flags, NODE_FLAG_DEBUG);
+	}
+	else
+	{
+		show_error(ses, LIST_CLASS, "#SYNTAX: #CLASS {%s} DEBUG {ON|OFF}", arg1);
+		return ses;
+	}
+
+	if (HAS_BIT(node->flags, NODE_FLAG_DEBUG))
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS NOW BEING DEBUGGED.", arg1);
+	}
+	else
+	{
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS NO LONGER BEING DEBUGGED.", arg1);
+	}
+
+	for (int i = 0 ; i < LIST_MAX ; i++)
+	{
+		if (!HAS_BIT(ses->list[i]->flags, LIST_FLAG_CLASS))
+		{
+			continue;
+		}
+
+		for (int j = 0 ; j < ses->list[i]->used ; j++)
+		{
+			if (!strcmp(ses->list[i]->list[j]->group, node->arg1))
+			{
+				if (HAS_BIT(node->flags, NODE_FLAG_DEBUG))
+				{
+					SET_BIT(ses->list[i]->list[j]->flags, NODE_FLAG_DEBUG);
+				}
+				else
+				{
+					DEL_BIT(ses->list[i]->list[j]->flags, NODE_FLAG_DEBUG);
+				}
 			}
 		}
 	}

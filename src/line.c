@@ -113,7 +113,7 @@ DO_LINE(line_background)
 
 	gtd->level->background++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->background--;
 
@@ -135,7 +135,7 @@ DO_LINE(line_benchmark)
 
 	start = utime();
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	end = utime();
 
@@ -158,7 +158,7 @@ DO_LINE(line_capture)
 		ses->line_capturefile  = strdup(arg1);
 		ses->line_captureindex = 1;
 
-		ses = script_driver(ses, LIST_COMMAND, arg2);
+		ses = script_driver(ses, LIST_COMMAND, NULL, arg2);
 
 		if (ses->line_capturefile)
 		{
@@ -188,7 +188,7 @@ DO_LINE(line_convert)
 
 	gtd->level->convert++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->convert--;
 
@@ -208,7 +208,7 @@ DO_LINE(line_debug)
 
 	gtd->level->debug++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->debug--;
 
@@ -239,7 +239,7 @@ DO_LINE(line_gag)
 	{
 		ses->gagline = 0;
 	}
-	show_debug(ses, LIST_GAG, COLOR_DEBUG "#DEBUG LINE GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline);
+	show_debug(ses, LIST_GAG, NULL, COLOR_DEBUG "#DEBUG LINE GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", arg1, ses->gagline);
 
 	return ses;
 }
@@ -257,7 +257,7 @@ DO_LINE(line_ignore)
 
 	gtd->level->ignore++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->ignore--;
 
@@ -279,7 +279,7 @@ DO_LINE(line_local)
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->local--;
 
@@ -474,7 +474,7 @@ DO_LINE(line_logmode)
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
-	active_ses = script_driver(ses, LIST_COMMAND, arg1);
+	active_ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	ses->log->mode = old_mode;
 
@@ -494,7 +494,7 @@ DO_LINE(line_msdp)
 
 	tintin2msdp(arg1, arg2);
 
-	ses = script_driver(ses, LIST_COMMAND, arg2);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg2);
 
 	return ses;
 }
@@ -538,7 +538,7 @@ DO_LINE(line_json)
 
 	substitute(ses, arg2, str_sub, SUB_CMD);
 
-	ses = script_driver(ses, LIST_COMMAND, str_sub);
+	ses = script_driver(ses, LIST_COMMAND, NULL, str_sub);
 
 	return ses;
 }
@@ -563,7 +563,7 @@ DO_LINE(line_multishot)
 
 	gtd->level->mshot = shots;
 
-	ses = script_driver(ses, LIST_COMMAND, arg2);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg2);
 
 	gtd->level->mshot = 1;
 
@@ -587,7 +587,7 @@ DO_LINE(line_oneshot)
 
 	gtd->level->mshot = 1;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->shots--;
 
@@ -607,7 +607,7 @@ DO_LINE(line_quiet)
 
 	gtd->level->quiet++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->quiet--;
 
@@ -627,7 +627,7 @@ DO_LINE(line_strip)
 
 	strip_vt102_codes(arg1, arg2);
 
-	ses = script_driver(ses, LIST_COMMAND, arg2);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg2);
 
 	return ses;
 }
@@ -670,7 +670,7 @@ DO_LINE(line_substitute)
 
 	substitute(ses, arg2, arg3, flags);
 
-	ses = script_driver(ses, LIST_COMMAND, arg3);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg3);
 
 	return ses;
 }
@@ -708,7 +708,7 @@ DO_LINE(line_verbose)
 
 	gtd->level->verbose++;
 
-	ses = script_driver(ses, LIST_COMMAND, arg1);
+	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
 
 	gtd->level->verbose--;
 

@@ -268,9 +268,12 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 
 				substitute(ses_ptr, node->arg2, buf, sub);
 
-				if (!HAS_BIT(flags, EVENT_FLAG_UPDATE) && HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_DEBUG))
+				if (!HAS_BIT(flags, EVENT_FLAG_UPDATE))
 				{
-					show_debug(ses_ptr, LIST_EVENT, COLOR_DEBUG "#DEBUG EVENT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
+					if (HAS_BIT(ses_ptr->list[LIST_EVENT]->flags, LIST_FLAG_DEBUG) || HAS_BIT(node->flags, NODE_FLAG_DEBUG))
+					{
+						show_debug(ses_ptr, LIST_EVENT, node, COLOR_DEBUG "#DEBUG EVENT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
+					}
 				}
 
 				if (node->shots && --node->shots == 0)
@@ -280,7 +283,7 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 
 				gtd->level->quiet += HAS_BIT(flags, EVENT_FLAG_UPDATE) ? 1 : 0;
 
-				script_driver(ses_ptr, LIST_EVENT, buf);
+				script_driver(ses_ptr, LIST_EVENT, node, buf);
 
 				gtd->level->quiet -= HAS_BIT(flags, EVENT_FLAG_UPDATE) ? 1 : 0;
 

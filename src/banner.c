@@ -25,8 +25,6 @@
 
 #include "tintin.h"
 
-#include "gui.h"
-
 #define BANNER_FLAG_DUPLICATE BV01
 
 void banner_create(struct session *ses, char *name, char *arg)
@@ -129,7 +127,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "New Worlds Ateraan", "http://www.ateraan.com", arg1);
 	banner_address(ses, "New Worlds Ateraan", "nwa ateraan.com 4002", arg1);
-	banner_expires(ses, "New Worlds Ateraan", "2029", arg1);
+	banner_expires(ses, "New Worlds Ateraan", "2030", arg1);
 
 
 	banner_create(ses, "Untold Dawn", arg1);
@@ -144,25 +142,24 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Untold Dawn", "https://blog.untold-dawn.com", arg1);
 	banner_address(ses, "Untold Dawn", "ud www.untold-dawn.com 4000", arg1);
 	banner_expires(ses, "Untold Dawn", "2030", arg1);
-		
-/*
-	banner_create(ses, "Lost Souls", arg1);
 
-	banner_desc(ses, "Lost Souls",
-		"\"Lost Souls is not for the faint of heart.\" -- Net Games\n"
-		"\n"
-		"\"The depth of Lost Souls can be amazing.\" -- Playing MUDs On The Internet\n"
-		"\n"
-		"\"Have you ever come upon a place on the Net that's so incredible that you\n"
-		"can't believe such entertainment is free? This MUD will blow your mind with\n"
-		"its marvelous attention to detail and incredible role-playing atmosphere!\"\n"
-		"\n"
-		"  -- Yahoo! Wild Web Rides", arg1);
 
-	banner_website(ses, "Lost Souls", "https://lostsouls.org", arg1);
-	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
-	banner_expires(ses, "Lost Souls", "2029", arg1);
+	banner_create(ses, "Northern Crossroads", arg1);
 
+	banner_desc(ses, "Northern Crossroads",
+		"Northern Crossroads is a diverse world of blade wielders, assassins\n"
+		"and magic users who use their powers together to seek out the darkest\n"
+		"dungeons for hack'n'slash action. Decide between many classes, as\n"
+		"allowed by your choice of ten races, and prove your strength to ascend\n"
+		"to an Advanced class. Venture to dangerous zones with other mortals,\n"
+		"claim the rarest of items, join one of several clubs and build your character\n"
+		"to challenge other mortals. NC has enthralled players with hundreds of\n"
+		"detailed areas of various themes since 1993 and is one of the oldest\n"
+		"MUDs in the world.\n", arg1);
+
+	banner_website(ses, "Northern Crossroads", "https://www.ncmud.org", arg1);
+	banner_address(ses, "Northern Crossroads", "NC ncmud.org 9000", arg1);
+	banner_expires(ses, "Northern Crossroads", "2031", arg1);
 
 	banner_create(ses, "Kallisti MUD", arg1);
 
@@ -179,7 +176,7 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Kallisti MUD", "https://www.KallistiMUD.com", arg1);
 	banner_address(ses, "Kallisti MUD", "LoK kallistimud.com 4000", arg1);
-	banner_expires(ses, "Kallisti MUD", "2029", arg1);
+	banner_expires(ses, "Kallisti MUD", "2031", arg1);
 	banner_flag(ses, "Kallisti MUD", BANNER_FLAG_DUPLICATE);
 
 
@@ -198,7 +195,26 @@ void banner_init(struct session *ses, char *arg1)
 
 	banner_website(ses, "Legends of Kallisti", "https://legendsofkallisti.com", arg1);
 	banner_address(ses, "Legends of Kallisti", "LoK legendsofkallisti.com 4000", arg1);
-	banner_expires(ses, "Legends of Kallisti", "2029", arg1);
+	banner_expires(ses, "Legends of Kallisti", "2031", arg1);
+
+/*
+	banner_create(ses, "Lost Souls", arg1);
+
+	banner_desc(ses, "Lost Souls",
+		"\"Lost Souls is not for the faint of heart.\" -- Net Games\n"
+		"\n"
+		"\"The depth of Lost Souls can be amazing.\" -- Playing MUDs On The Internet\n"
+		"\n"
+		"\"Have you ever come upon a place on the Net that's so incredible that you\n"
+		"can't believe such entertainment is free? This MUD will blow your mind with\n"
+		"its marvelous attention to detail and incredible role-playing atmosphere!\"\n"
+		"\n"
+		"  -- Yahoo! Wild Web Rides", arg1);
+
+	banner_website(ses, "Lost Souls", "https://lostsouls.org", arg1);
+	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
+	banner_expires(ses, "Lost Souls", "2029", arg1);
+
 
 
 	banner_create(ses, "3Kingdoms", arg1);
@@ -490,49 +506,6 @@ void banner_test(struct session *ses, char *arg1)
 	tintin_header(ses, 80, "");
 }
 
-struct session *banner_gui(struct session *ses, char *arg1)
-{
-	char data[BUFFER_SIZE];
-	FILE *file;
-	size_t len;
-
-	strcpy(data, tt_gui);
-
-	len = strlen(data);
-
-	file = fmemopen(data, len, "r");
-
-	gtd->level->quiet++;
-
-	ses = read_file(ses, file, "tt_gui.h");
-
-	gtd->level->quiet--;
-
-	fclose(file);
-
-	return ses;
-
-/*
-	char filename[PATH_SIZE];
-	FILE *file;
-
-	sprintf(filename, "%s/gui.tin", gtd->system->tt_dir);
-
-	if ((file = fopen(filename, "w")) == NULL)
-	{
-		tintin_printf2(ses, "#BANNER GUI: FAILED TO CREATE {%s}.", filename);
-
-		return ses;
-	}
-
-	fputs(tt_gui, file);
-
-	fclose(file);
-
-	return command(ses, do_line, "quiet #read %s", filename);
-*/
-}
-
 DO_COMMAND(do_banner)
 {
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
@@ -544,10 +517,6 @@ DO_COMMAND(do_banner)
 	else if (is_abbrev(arg1, "INIT"))
 	{
 		banner_init(ses, arg1);
-	}
-	else if (is_abbrev(arg1, "GUI"))
-	{
-		return banner_gui(ses, arg1);
 	}
 	else if (is_abbrev(arg1, "LIST"))
 	{
@@ -563,8 +532,8 @@ DO_COMMAND(do_banner)
 	}
 	else if (is_abbrev(arg1, "HELP"))
 	{
-		tintin_printf2(ses, "#SYNTAX: #BANNER {GUI|INIT|LIST|RANDOM|SAVE|TEST}");
-	}	
+		tintin_printf2(ses, "#SYNTAX: #BANNER {INIT|LIST|RANDOM|SAVE|TEST}");
+	}
 	else
 	{
 		banner_list(ses, arg1);

@@ -1,3 +1,33 @@
+Jan 2025        2.02.51
+------------------------------------------------------------------------------
+data.c          #info system will report WINTIN++ as the OS for WinTin++.
+
+parse.c         Added support for multiple braced arguments to the repeat
+                option. #1 {#showme bli} {#showme bla}
+
+main.c          Added tt++ -l regex startup option to load a regex tester.
+
+input.c         Added the MODIFIED INPUT event. Triggers whenever the input
+                line is modified.
+
+vt102.c         Fixed true color handling for #highlight.
+
+cursor.c        Added automatic tab support on the input history.
+
+scan.c          Fixed a bug where #scan dir was storing invalid timestamps
+                on 32 bit systems.
+
+scan.c          The plain text argument of #scan file will have braces
+                substituted with \x7B \x7D.
+
+trigger.c       Using an alias that doesn't contain %0-%99 and providing an
+                an argument will generate a warning.
+
+class.c         Added #class <name> debug <on|off> option.
+
+scan.c          Added the #scan json <file> <variable> option. It will load
+                the given json file and store the data in the given variable.
+
 Jan 2024        2.02.42
 ------------------------------------------------------------------------------
 map.c           Fixed #map move not working with nofollow flag set.

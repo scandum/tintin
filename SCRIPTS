@@ -7,14 +7,17 @@
 #nop static (16) flag to <168>.
 #nop -------------------------------------------------------------------------
 
-#loop 1 1000 vnum
+#alias {color_static}
 {
-	#map at $vnum
+	#loop 1 1000 vnum
 	{
-		#map get roomflags result;
-		#if {$result & 16}
+		#map at $vnum
 		{
-			#map set roomcolor <168>
+			#map get roomflags result;
+			#if {$result & 16}
+			{
+				#map set roomcolor <168>
+			}
 		}
 	}
 }
@@ -152,7 +155,7 @@
 }
 {60}
 
-#alias {ticklist}
+#alias {tickers}
 {
 	#info tickers save;
 
@@ -242,32 +245,34 @@
 #nop Show xterm 256 colors.
 #nop -------------------------------------------------------------------------
 
-#var temp {}
-
-#foreach {0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15} {var1}
+#alias {color_table}
 {
-	#showme {$var1 \e[38;5;${var1}m}
-}
+	#var temp {};
 
-#foreach {a;b;c;d;e;f} {var1}
-{
-	#foreach {a;b;c;d;e;f} {var2}
+	#foreach {0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15} {var1}
 	{
-		#foreach {a;b;c;d;e;f} {var3}
+		#showme {$var1 \e[38;5;${var1}m}
+	};
+
+	#foreach {a;b;c;d;e;f} {var1}
+	{
+		#foreach {a;b;c;d;e;f} {var2}
 		{
-			#var temp {$temp <$var1$var2$var3><<888>$var1$var2$var3>}
-		};
-		#showme $temp;
-		#var temp {}
-	}
-}
+			#foreach {a;b;c;d;e;f} {var3}
+			{
+				#var temp {$temp <$var1$var2$var3><<888>$var1$var2$var3>}
+			};
+			#showme $temp;
+			#var temp {}
+		}
+	};
 
-#loop 0 23 cnt
-{
-	#format temp {$temp <g%+02s><<888>g%+02s} {$cnt} {$cnt};
+	#loop 0 23 cnt
+	{
+		#format temp {$temp <g%+02s><<888>g%+02s} {$cnt} {$cnt};
+	};
+	#showme $temp
 }
-
-#showme $temp
 
 #nop -------------------------------------------------------------------------
 #nop Draw a health bar. Alternatively: #draw bar -2 1 -2 20 {%1;%2;<faa><afa>}
@@ -437,7 +442,7 @@
 	#line gag
 }
 
-#alias {repeat_check}
+#alias {repeat_show}
 {
 	#if {$repeat[cnt] <= 1}
 	{
@@ -445,7 +450,7 @@
 	};
 	#else
 	{
-		#line ignore #showme {($repeat[cnt]) %0}
+		#line ignore #showme {<128>($repeat[cnt]) <088>$repeat[str]}
 	};
 	#var repeat[str] {};
 	#var repeat[cnt] 1
@@ -848,7 +853,7 @@
 
 			#draw red teed line $SCROLL[BOT_ROW]+1 $SCROLL[TOP_COL] $SCROLL[BOT_ROW]+1 $SCROLL[BOT_COL];
 
-			#screen clear square $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL];
+			#nop #screen clear square $SCROLL[BOT_ROW]+2 $SCROLL[TOP_COL] $SCROLL[OLD_ROW] $SCROLL[BOT_COL];
 		};
 	};
 	#if {$SCROLL[MODE] == 1}
@@ -1037,6 +1042,95 @@
 
 	#line ignore #showme <118>wton %0 = $wton
 }
+
+#nop -------------------------------------------------------------------------
+#nop Utility aliases to save variables as json, and load json as variables.
+#nop -------------------------------------------------------------------------
+
+#alias {json_save}
+{
+	#if {"%1" == "" || "%2" == ""}
+	{
+		#showme Syntax: json_save <variable> <filename>;
+		#return
+	};
+
+	#line quiet #log remove %2;
+	#line json {%1} {#line log {%2} {&0}}
+}
+
+#alias {json_load}
+{
+	#if {"%1" == "" || "%2" == ""}
+	{
+		#showme Syntax: json_load <variable> <filename>;
+		#return
+	};
+	#line quiet #unvar {%2};
+	#scan json {%2} {%1}
+}
+
+#nop -------------------------------------------------------------------------
+#nop Example of switching to an editing window, with mouse support. Use #edit
+#nop create to start editing. After editing is finished you can use #edit save
+#nop to store the data to a variable.
+#nop -------------------------------------------------------------------------
+
+#config mouse on
+
+#event {PROGRAM START}
+{
+	#screen raise {SCREEN RESIZE}
+}
+
+#event {SCREEN RESIZE}
+{
+	#screen clear all;
+
+	#screen scroll  2 2 -10 -2;
+	#screen input  -7 2 -2 -2;
+
+	#draw azure rounded left right bot top side 1 1 -9 -1;
+	#draw azure rounded left right bot top side -8 1 -1 -1
+}
+
+#event {PRESSED INPUT MOUSE BUTTON ONE}
+{
+	#cursor position %0 %1
+}
+
+#event {EDIT STARTED}
+{
+	#screen inputregion 2 2 -10 -2;
+	#screen scrollregion -7 2 -2 -2
+}
+
+#event {CATCH EDIT FINISHED}
+{
+	#screen input  -7 2 -2 -2;
+	#screen scroll  2 2 -10 -2;
+	#showme <138>EDIT FINISHED %0. LINES: %1  SIZE: %2
+}
+
+#nop -------------------------------------------------------------------------
+#nop Example script for drawing health bars
+#nop -------------------------------------------------------------------------
+
+#split 26 0
+#screen clear top
+
+#alias {draw_bar}
+{
+	#math value 0;
+	#loop 1 26 cnt
+	{
+		#draw ralign tile $cnt 1 $cnt 8 <178>$value/100;
+		#draw horizontal bar $cnt 10 $cnt 20 {$value;100;%0};
+		#math value $value + 4
+	}
+}
+
+draw_bar <faa><afa>
 
 #nop -------------------------------------------------------------------------
 #nop 

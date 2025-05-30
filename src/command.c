@@ -170,7 +170,7 @@ struct session *execute(struct session *ses, char *format, ...)
 		get_arg_all(ses, buffer, buffer, FALSE);
 	}
 
-	ses = script_driver(ses, LIST_COMMAND, buffer);
+	ses = script_driver(ses, LIST_COMMAND, NULL, buffer);
 
 	free(buffer);
 

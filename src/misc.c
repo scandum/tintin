@@ -26,6 +26,7 @@
 
 #include "tintin.h"
 
+#include "gui.h"
 
 DO_COMMAND(do_bell)
 {
@@ -212,6 +213,53 @@ DO_COMMAND(do_test)
 		command(gtd->ses, do_line, "quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg1);
 
 		return ses;
+	}
+
+	if (!strcmp(arg1, "gui"))
+	{
+		char data[BUFFER_SIZE];
+		FILE *file;
+		size_t len;
+
+		strcpy(data, tt_gui);
+
+		len = strlen(data);
+
+		file = fmemopen(data, len, "r");
+
+		gtd->level->quiet++;
+
+		ses = read_file(ses, file, "tt_gui.h");
+
+		gtd->level->quiet--;
+
+		fclose(file);
+
+		return ses;
+	}
+
+	if (!strcmp(arg1, "regex"))
+	{
+		char data[BUFFER_SIZE];
+		FILE *file;
+		size_t len;
+
+		strcpy(data, tt_regex);
+
+		len = strlen(data);
+
+		file = fmemopen(data, len, "r");
+
+		gtd->level->quiet++;
+
+		ses = read_file(ses, file, "tt_regex.h");
+
+		gtd->level->quiet--;
+
+		fclose(file);
+
+		return ses;
+
 	}
 
 	return ses;

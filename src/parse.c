@@ -183,6 +183,7 @@ int is_vowel(char *str)
 struct session *parse_input(struct session *ses, char *input)
 {
 	char *line;
+	struct listnode *node;
 
 	push_call("parse_input(%s,%s)",ses->name,input);
 /*
@@ -200,9 +201,11 @@ struct session *parse_input(struct session *ses, char *input)
 	{
 		sub_arg_all(ses, input, line, 1, SUB_SEC);
 
-		if (check_all_aliases(ses, line))
+		node = check_all_aliases(ses, line);
+
+		if (node)
 		{
-			ses = script_driver(ses, LIST_ALIAS, line);
+			ses = script_driver(ses, LIST_ALIAS, node, line);
 		}
 		else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
 		{
@@ -233,21 +236,25 @@ struct session *parse_input(struct session *ses, char *input)
 
 		if (parse_command(ses, line))
 		{
-			ses = script_driver(ses, LIST_COMMAND, line);
-		}
-		else if (check_all_aliases(ses, line))
-		{
-			ses = script_driver(ses, LIST_ALIAS, line);
-		}
-		else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
-		{
-			process_speedwalk(ses, line);
+			ses = script_driver(ses, LIST_COMMAND, NULL, line);
 		}
 		else
 		{
-			write_mud(ses, line, SUB_VAR|SUB_FUN|SUB_ESC|SUB_EOL);
-		}
+			node = check_all_aliases(ses, line);
 
+			if (node)
+			{
+				ses = script_driver(ses, LIST_ALIAS, node, line);
+			}
+			else if (HAS_BIT(ses->config_flags, CONFIG_FLAG_SPEEDWALK) && is_speedwalk(ses, line))
+			{
+				process_speedwalk(ses, line);
+			}
+			else
+			{
+				write_mud(ses, line, SUB_VAR|SUB_FUN|SUB_ESC|SUB_EOL);
+			}
+		}
 		if (*input == COMMAND_SEPARATOR)
 		{
 			input++;
@@ -452,9 +459,13 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 
 		input = get_arg_in_braces(ses, input, line, GET_ALL);
 
-		while (cnt-- > 0)
+		while (*line)
 		{
-			ses = script_driver(ses, LIST_COMMAND, line);
+			for (int i = cnt ; i > 0 ; i--)
+			{
+				ses = script_driver(ses, LIST_COMMAND, NULL, line);
+			}
+			input = get_arg_in_braces(ses, input, line, GET_ALL);
 		}
 		return ses;
 	}
@@ -469,7 +480,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 
 			substitute(ses, line, line, SUB_VAR|SUB_FUN);
 
-			script_driver(sesptr, LIST_COMMAND, line);
+			script_driver(sesptr, LIST_COMMAND, NULL, line);
 
 			return ses;
 		}

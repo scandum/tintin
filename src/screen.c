@@ -483,9 +483,9 @@ DO_SCREEN(screen_fill)
 			command(ses, do_screen, "CLEAR SPLIT");
 		}
 
-		if (ses->split->sav_top_row > 0)
+		if (ses->split->top_row > 1)
 		{
-			if (ses->split->sav_top_row == 1)
+			if (ses->split->top_row == 2)
 			{
 				command(ses, do_draw, "%s LINE %d %d %d %d", arg2, 1, 1, ses->split->top_row - 1, gtd->screen->cols);
 			}
@@ -499,9 +499,9 @@ DO_SCREEN(screen_fill)
 
 		if (ses->split->sav_bot_row)
 		{
-			if (ses->split->sav_bot_row - inputline_max_row() >= 0)
+			if (ses->split->bot_row + inputline_max_row() < gtd->screen->rows)
 			{
-				if (ses->split->sav_bot_row - inputline_max_row() == 0)
+				if (ses->split->bot_row + inputline_max_row() == gtd->screen->rows - 1)
 				{
 					command(ses, do_draw, "%s LINE %d %d %d %d", arg2, ses->split->bot_row + 1, 1, gtd->screen->rows - inputline_max_row(), gtd->screen->cols);
 				}

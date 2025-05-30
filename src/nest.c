@@ -282,7 +282,7 @@ void update_nest_node(struct listroot *root, char *arg)
 		{
 			update_nest_node(update_nest_root(root, arg1), arg2);
 		}
-		else if (*arg1)
+		else //if (*arg1)
 		{
 			update_node_list(root, arg1, arg2, "", "");
 		}

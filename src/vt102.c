@@ -806,7 +806,7 @@ void get_color_codes(char *old, char *str, char *buf, int flags)
 					fgc = rgb[0] * 256 * 256 + rgb[1] * 256 + rgb[2];
 					
 					DEL_BIT(vtc, COL_TCF_2|COL_TCF_R);
-					SET_BIT(vtc, COL_TCB);
+					SET_BIT(vtc, COL_TCF);
 				}
 			}
 			else if (HAS_BIT(vtc, COL_TCB_R))

@@ -94,10 +94,6 @@ a:active {color:#b06}
          arguments. The priority part is optional and determines the priority
          of the alias, it defaults to 5.
 
-         If no % variable is used in the commands section any argument will be
-         appended to the end as if %0 was used. This feature might be removed
-         in the future, and shouldn't be used.
-
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #alias {k} {kill %1;kick}
 
          Typing 'k orc' would result in attacking the orc followed by a kick.
@@ -417,7 +413,7 @@ a:active {color:#b06}
          clients, typically for the purpose of chatting and sending files.
          This is a decentralized chat system, meaning you have to exchange ip
          addresses and port numbers with other users in order to connect to
-         them.
+         them. Chat events are triggered in the startup session.
 
          </span><span style='color:#FFF'>#chat {init} {port}
 </span><span style='color:#AAA'>           #chat initialize launches your chat server. The port number is
@@ -472,8 +468,8 @@ a:active {color:#b06}
            used instead of the connection's name when sending someone a message
            The second column shows the connection's name. The third column
            shows flags set for the connection, (P)rivate, (I)gnore, (S)erve,
-           (F)orward to user, and (f)orward from user. The next columns show
-           ip, port, and client name.
+           Forward(A)ll to user, (F)orward to user, and (f)orward from user.
+           The next columns show ip, port, and client name.
          </span><span style='color:#FFF'>#chat {zap}        {buddy}            Close a connection
 
 Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
@@ -492,6 +488,8 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 </span><span style='color:#AAA'>           Will delete all triggers associated with the given class.
          </span><span style='color:#FFF'>#class {&lt;name&gt;} {close}
 </span><span style='color:#AAA'>           Close the given class, opening the last open class, if any.
+         </span><span style='color:#FFF'>#class {&lt;name&gt;} {debug} {on|off}
+</span><span style='color:#AAA'>           Toggle debug mode for given class.
          </span><span style='color:#FFF'>#class {&lt;name&gt;} {kill}
 </span><span style='color:#AAA'>           Will clear, close, and remove the class.
          </span><span style='color:#FFF'>#class {&lt;name&gt;} {list}
@@ -714,6 +712,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
          COMPLETE    makes tab completion work while editing
 
          DICTIONARY  performs tab completion on the dictionary
+         INPUT       performs tab completion on the input history
          LIST        performs tab completion on the tab completion list
          SCROLLBACK  performs tab completion on the scrollback buffer
 
@@ -882,7 +881,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          [BOXED] </span><span style='color:#FFF'>MAP
 </span><span style='color:#AAA'>           will draw the map
          </span><span style='color:#FFF'>RAIN</span><span style='color:#AAA'> {&lt;VARIABLE&gt;} {[SPAWN]} {[FADE]} {[LEGEND]}
-           will draw digital rain.
+           will draw digital rain SPAWN (0.01-100) FADE (1-100).
          [JOINTED|TOP|LEFT|BOTTOM|RIGHT] </span><span style='color:#FFF'>SIDE
 </span><span style='color:#AAA'>           will draw one or more sides of a box.
          [GRID] </span><span style='color:#FFF'>TABLE</span><span style='color:#AAA'> {[LIST1]} {[LIST2]}
@@ -1177,6 +1176,9 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 </span><span style='color:#AAA'>         </span><span style='color:#FFF'>EDIT STARTED, EDIT FINISHED
 </span><span style='color:#AAA'>           %0 name  %1 lines %2 size %3 data
 
+         </span><span style='color:#FFF'>EDIT RESUMED, EDIT SUSPENDED
+</span><span style='color:#AAA'>           %0 name
+
          </span><span style='color:#FFF'>HISTORY UPDATE
 </span><span style='color:#AAA'>           %0 command
 
@@ -1251,12 +1253,13 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
          </span><span style='color:#5F5'>PORT EVENTS
 
-</span><span style='color:#AAA'>         </span><span style='color:#FFF'>CHAT MESSAGE</span><span style='color:#AAA'>, </span><span style='color:#FFF'>PORT MESSAGE
-</span><span style='color:#AAA'>           %0 raw text  %1 plain text
+</span><span style='color:#AAA'>         </span><span style='color:#FFF'>CHAT MESSAGE           </span><span style='color:#AAA'>%0 raw text  %1 plain text
+         </span><span style='color:#FFF'>CHAT SNOOP REQUEST     </span><span style='color:#AAA'>%0 name %1 ip %2 port
 
          </span><span style='color:#FFF'>PORT CONNECTION        </span><span style='color:#AAA'>%0 name %1 ip %2 port
          </span><span style='color:#FFF'>PORT DISCONNECTION     </span><span style='color:#AAA'>%0 name %1 ip %2 port
          </span><span style='color:#FFF'>PORT LOG MESSAGE       </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
+         </span><span style='color:#FFF'>PORT MESSAGE           </span><span style='color:#AAA'>%0 raw text %1 plain text
          </span><span style='color:#FFF'>PORT RECEIVED MESSAGE  </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 plain data
          </span><span style='color:#FFF'>PORT RECEIVED DATA     </span><span style='color:#AAA'>%0 name %1 ip %2 port %3 data %4 size
 
@@ -1467,7 +1470,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
 
 </span><span style='color:#0AA'>      ####################################################################
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
-      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.42                     </span><span style='color:#0AA'>#
+      #</span><span style='color:#AAA'>                    T I N T I N + +   2.02.51                     </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>      Code by Peter Unold, Bill Reis, and Igor van den Hoven      </span><span style='color:#0AA'>#
       #</span><span style='color:#AAA'>                                                                  </span><span style='color:#0AA'>#
@@ -3269,7 +3272,7 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          key during selection.
 
 
-</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#BUTTON'>button</a>, <a href='#DRAW'>draw</a>, <a href='#EVENT'>event</a> and <a href='#MSLP'>MSLP</a>.
+</span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#BUTTON'>button</a>, <a href='#DRAW'>draw</a>, <a href='#EVENT'>event</a> and <a href='#MSLP'>mslp</a>.
 <a name='MSDP'></a>
 
 </span><span style='color:#FF5'>         MSDP
@@ -3748,12 +3751,11 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #read </span><span style='color:#FFF'>{</span><span style='color:#AAA'>filename</span><span style='color:#FFF'>}
 
-</span><span style='color:#AAA'>         Reads a commands file into memory.  The coms file is merged in with
-         the currently loaded commands.  Duplicate commands are overwritten.
+</span><span style='color:#AAA'>         Reads a commands file into memory.  The commands are merged with the
+         currently loaded commands.  Duplicate commands are overwritten.
 
-         If you uses braces, { and } you can use several lines for 1 commands.
-         This however means you must always match every { with a } for the read
-         command to work.
+         If you uses braces you can use several lines for each command.  You
+         must match every { with a } for the read command to work.
 
          You can comment out triggers using /* text */
 
@@ -3833,12 +3835,13 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FF5'>         REPEAT
 
-</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #</span><span style='color:#FFF'>[</span><span style='color:#AAA'>number</span><span style='color:#FFF'>] {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>}
+</span><span style='color:#FFF'>Command</span><span style='color:#AAA'>: #</span><span style='color:#FFF'>[</span><span style='color:#AAA'>number</span><span style='color:#FFF'>] {</span><span style='color:#AAA'>commands</span><span style='color:#FFF'>} {</span><span style='color:#AAA'>..</span><span style='color:#FFF'>}
 
 </span><span style='color:#AAA'>        Sometimes you want to repeat the same command multiple times. This is
         the easiest way to accomplish that.
 
 </span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #10 {buy bread}
+</span><span style='color:#FFF'>Example</span><span style='color:#AAA'>: #2 {buy bread} {buy apple}
 
 </span><span style='color:#FFF'>Related</span><span style='color:#AAA'>: <a href='#MATHEMATICS'>mathematics</a> and <a href='#STATEMENTS'>statements</a>.
 <a name='REPLACE'></a>
@@ -3915,8 +3918,12 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 
 </span><span style='color:#FFF'>         #scan {dir} &lt;filename&gt; &lt;variable&gt;
 
-</span><span style='color:#AAA'>          The scan dir command will read the given filename or directory and
-          store any gathered information into the provided variable.
+</span><span style='color:#AAA'>           The scan dir command will read the given filename or directory and
+           store any gathered information into the provided variable.
+
+</span><span style='color:#FFF'>         #scan {json} &lt;filename&gt; &lt;variable&gt;
+</span><span style='color:#AAA'>           The scan json command will read the given filename and store the data
+           in the provided tintin variable.
 
          </span><span style='color:#FFF'>#scan {tsv} &lt;filename&gt;
 
@@ -3928,9 +3935,9 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
          </span><span style='color:#FFF'>#scan {file} &lt;filename&gt; {commands}
 
 </span><span style='color:#AAA'>           The scan file command reads the given files and executes the
-            commands argument. &amp;0 contains the raw content of the file and
-            &amp;1 contains the plain content. &amp;2 contains the raw byte size of the
-            file and &amp;3 the plain byte size. &amp;5 contains the line count.
+           commands argument. &amp;0 contains the raw content of the file and
+           &amp;1 contains the plain content. &amp;2 contains the raw byte size of the
+           file and &amp;3 the plain byte size. &amp;5 contains the line count.
 
          </span><span style='color:#FFF'>#scan {txt} &lt;filename&gt;
 

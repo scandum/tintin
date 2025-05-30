@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 
 	if (argc > 1)
 	{
-		while ((c = getopt(argc, argv, "a: e: g G h H M:: r: R:: s t: T v V")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: g G h l H M:: r: R:: s t: T v V")) != EOF)
 		{
 			switch (c)
 			{
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 					printf("  -G  Don't show the greeting screen.\n");
 					printf("  -h  This help section.\n");
 					printf("  -H  Nohup compatible mode.\n");
-					printf("  -M  Matrix Digital Rain.\n");
+					printf("  -l  <rain|regex>\n");
 					printf("  -r  Read given file.\n");
 					printf("  -R  Reattach to daemonized process.\n");
 					printf("  -s  Enable screen reader mode.\n");
@@ -302,6 +302,13 @@ int main(int argc, char **argv)
 
 	init_tintin(greeting);
 
+	gtd->system->exec = strdup(argv[0]);
+
+	if (!strcmp(gtd->system->exec, "././tt++"))
+	{
+		RESTRING(gtd->system->os, "WINTIN++");
+	}
+
 	RESTRING(gtd->vars[1], argv[0]);
 
 	if (argc > 1)
@@ -310,7 +317,7 @@ int main(int argc, char **argv)
 
 		RESTRING(gtd->vars[2], argv[1]);
 
-		while ((c = getopt(argc, argv, "a: e: g G h H M:: r: R:: s t: T v")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: g G h H l: M:: r: R:: s t: T v")) != EOF)
 		{
 			switch (c)
 			{
@@ -321,19 +328,34 @@ int main(int argc, char **argv)
 
 				case 'e':
 					gtd->level->input++;
-					gtd->ses = script_driver(gtd->ses, LIST_COMMAND, optarg);
+					gtd->ses = script_driver(gtd->ses, LIST_COMMAND, NULL, optarg);
 					gtd->level->input--;
 					break;
 
 				case 'g':
-					gtd->ses = command(gtd->ses, do_banner, "gui");
+					gtd->ses = command(gtd->ses, do_test, "gui");
 					break;
 
 				case 'G':
 					break;
 
+				case 'l':
+					if (!strcasecmp(optarg, "rain"))
+					{
+						command(gts, do_test, "rain %s", optarg ? optarg : "");
+					}
+					else if (!strcasecmp(optarg, "regex"))
+					{
+						gtd->ses = command(gtd->ses, do_test, "regex");
+					}
+					else
+					{
+						tintin_printf2(NULL, "Option arguments are: -l <rain|regex>.");
+						exit(1);
+					}
+					break;
+
 				case 'M':
-					command(gts, do_test, "rain %s", optarg ? optarg : "");
 					break;
 
 				case 'r':
@@ -379,8 +401,6 @@ int main(int argc, char **argv)
 		command(gts, do_screen, "SAVE BOTH");
 		command(gts, do_screen, "SET BOTH TinTin++");
 	}
-
-	gtd->system->exec = strdup(argv[0]);
 
 	if (argc > 2)
 	{
@@ -469,7 +489,7 @@ void init_tintin(int greeting)
 	gtd->system         = (struct system_data *) calloc(1, sizeof(struct system_data));
 
 	gtd->system->os     = strdup(getenv("OS")   ? getenv("OS")   : "UNKNOWN");
-	gtd->system->home   = strdup(getenv("HOME") ? getenv("HOME") : "~/");
+	gtd->system->home   = strdup(getenv("HOME") ? getenv("HOME") : ".");
 	gtd->system->lang   = strdup(getenv("LANG") ? getenv("LANG") : "UNKNOWN");
 	gtd->system->term   = strdup(getenv("TERM") ? getenv("TERM") : "UNKNOWN");
 

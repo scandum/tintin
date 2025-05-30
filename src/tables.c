@@ -693,8 +693,8 @@ struct cursor_type cursor_table[] =
 	{     "ESCAPE ENTER",       "Process multi-line input.",                      "\e[13;5u",    CURSOR_FLAG_GET_ALL,     cursor_escape_enter,          ""          },
 	{     "SUSPEND",            "Suspend program, return with fg",                "",           CURSOR_FLAG_GET_ALL,     cursor_suspend,               ""          },
 	{     "TAB",                "<LIST|SCROLLBACK> <BACKWARD|FORWARD>",           "",            CURSOR_FLAG_GET_ONE,     cursor_tab,                   ""          },
-	{     "TAB L S BACKWARD",   "",                                               "\e[Z",        CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L S B"     }, // shift tab
-	{     "TAB L S FORWARD",    "",                                               "\t",          CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L S F"     },
+	{     "TAB L S BACKWARD",   "",                                               "\e[Z",        CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L I S B"   }, // shift tab
+	{     "TAB L S FORWARD",    "",                                               "\t",          CURSOR_FLAG_GET_ALL,     cursor_tab,                   "L I S F"   },
 	{     "UP",                 "Move cursor up",                                 "\e[A",        CURSOR_FLAG_GET_ALL,     cursor_move_up,               ""          },
 	{     "",                   "",                                               "\e[6~",                          0,    cursor_buffer_down,           ""          },
 	{     "",                   "",                                               "\e[1;5F",                        0,    cursor_buffer_end,            ""          },
@@ -786,7 +786,9 @@ struct event_type event_table[] =
 	{    "DISPLAY UPDATE",                         0, EVENT_FLAG_UPDATE,   "UPDATE",    "when display is updated"    },
 	{    "DOUBLE-CLICKED ",                        0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is double-clicked"    },
 	{    "EDIT FINISHED",                          0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is finished"   },
+	{    "EDIT RESUMED",                           0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is resumed"    },
 	{    "EDIT STARTED",                           0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is started"    },
+	{    "EDIT SUSPENDED",                         0, EVENT_FLAG_INPUT,    "INPUT",     "when editing is suspended"  },
 	{    "END OF PATH",                            0, EVENT_FLAG_MAP,      "MAP",       "walking the last room"      },
 	{    "END OF RUN",                             0, EVENT_FLAG_MAP,      "MAP",       "running the last room"      },
 	{    "GAG ",                                   0, EVENT_FLAG_GAG,      "GAG",       "prefix for gag events"      },
@@ -817,6 +819,7 @@ struct event_type event_table[] =
 	{    "MAP TRIPLE-CLICKED ",                    0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
 	{    "MAP UPDATED VTMAP",                      0, EVENT_FLAG_MAP,      "MAP",       "vt map update"              },
 	{    "MINUTE",                                 0, EVENT_FLAG_TIME,     "TIME",      "minute or given minute"     },
+	{    "MODIFIED INPUT",                         0, EVENT_FLAG_INPUT,    "INPUT",     "input line was modified"    },
 	{    "MONTH",                                  0, EVENT_FLAG_TIME,     "TIME",      "month or given month"       },
 	{    "MOVED ",                                 0, EVENT_FLAG_MOUSE,    "MOUSE",     "mouse is moved"             },
 	{    "NO SESSION ACTIVE",                      0, EVENT_FLAG_INPUT,    "INPUT",     "input on startup session"   },

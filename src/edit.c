@@ -260,6 +260,8 @@ DO_EDIT(edit_resume)
 
 	inputline_set(edit->line[edit->update]->str, 0);
 
+	check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 1, "EDIT RESUMED", gtd->ses->input->edit_name);
+
 	cursor_redraw_edit(ses, "");
 
 	return ses;
@@ -283,6 +285,8 @@ DO_EDIT(edit_suspend)
 	cursor_clear_line(ses, "");
 
 	cursor_redraw_edit(ses, "");
+
+	check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 1, "EDIT SUSPENDED", gtd->ses->input->edit_name);
 
 	return ses;
 }
@@ -347,14 +351,15 @@ void enable_editor(struct edit_data *edit)
 
 	filesize = str_save_editor(gtd->ses->input->edit, &str1);
 
-	cursor_redraw_edit(gtd->ses, "");
-
-	check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 4, "STARTED EDITING", gtd->ses->input->edit_name, ntos(edit->used), ntos(filesize), str1);
+	check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 4, "EDIT STARTED", gtd->ses->input->edit_name, ntos(edit->used), ntos(filesize), str1);
 
 	if (*gtd->ses->input->edit_name)
 	{
-		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 1, 4, "STARTED EDITING %s", gtd->ses->input->edit_name, gtd->ses->input->edit_name, ntos(edit->used), ntos(filesize), str1);
+		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 1, 4, "EDIT STARTED %s", gtd->ses->input->edit_name, gtd->ses->input->edit_name, ntos(edit->used), ntos(filesize), str1);
 	}
+
+	cursor_redraw_edit(gtd->ses, "");
+
 }
 
 int str_save_editor(struct edit_data *edit, char **str)

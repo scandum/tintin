@@ -43,7 +43,7 @@ DO_COMMAND(do_all)
 
 			if (!HAS_BIT(sesptr->flags, SES_FLAG_CLOSED))
 			{
-				script_driver(sesptr, LIST_COMMAND, arg1);
+				script_driver(sesptr, LIST_COMMAND, NULL, arg1);
 			}
 		}
 	}
@@ -777,8 +777,12 @@ void dispose_session(struct session *ses)
 
 	for (index = 0 ; index < LIST_MAX ; index++)
 	{
+		kill_list(ses->list[index]);
+	}
+
+	for (index = 0 ; index < LIST_MAX ; index++)
+	{
 		free_list(ses->list[index]);
-		ses->list[index] = NULL;
 	}
 
 	init_buffer(ses, 0);

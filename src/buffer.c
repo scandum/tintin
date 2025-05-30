@@ -1233,9 +1233,9 @@ DO_COMMAND(do_grep)
 	{
 		page = get_number(ses, arg1);
 
-		arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
-		if (*arg2 == 0)
+		if (*arg1 == 0)
 		{
 			show_error(ses, LIST_COMMAND, "#SYNTAX: #GREP {%s} <SEARCH TEXT>", arg1);
 
@@ -1245,8 +1245,6 @@ DO_COMMAND(do_grep)
 	else
 	{
 		page = 1;
-
-		strcpy(arg2, arg1);
 	}
 
 	if (page > 0)
@@ -1262,7 +1260,7 @@ DO_COMMAND(do_grep)
 
 	gtd->level->grep++;
 
-	tintin_header(ses, 80, " GREPPING PAGE %d FOR %s ", page, arg2);
+	tintin_header(ses, 80, " GREPPING PAGE %d FOR %s ", page, arg1);
 
 	if (page > 0)
 	{
@@ -1273,7 +1271,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg2, SUB_NONE, REGEX_FLAG_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg1, SUB_NONE, REGEX_FLAG_NONE))
 			{
 				grep_add = ses->scroll->buffer[scroll_cnt]->height;
 
@@ -1302,7 +1300,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg2, SUB_NONE, REGEX_FLAG_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg1, SUB_NONE, REGEX_FLAG_NONE))
 			{
 				grep_add = ses->scroll->buffer[scroll_cnt]->height;
 
@@ -1326,7 +1324,7 @@ DO_COMMAND(do_grep)
 				continue;
 			}
 
-			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg2, SUB_NONE, REGEX_FLAG_NONE))
+			if (find(ses, ses->scroll->buffer[scroll_cnt]->str, arg1, SUB_NONE, REGEX_FLAG_NONE))
 			{
 				grep_add = ses->scroll->buffer[scroll_cnt]->height;
 

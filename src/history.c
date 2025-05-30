@@ -113,7 +113,7 @@ struct session *repeat_history(struct session *ses, char *line)
 
 			gtd->level->repeat++;
 
-			ses = script_driver(ses, LIST_COMMAND, root->list[root->used - 1]->arg1);
+			ses = script_driver(ses, LIST_COMMAND, NULL, root->list[root->used - 1]->arg1);
 
 			gtd->level->repeat--;
 

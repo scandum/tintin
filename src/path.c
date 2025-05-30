@@ -565,7 +565,7 @@ DO_PATH(path_run)
 		{
 			while (root->update < root->used)
 			{
-				script_driver(ses, LIST_COMMAND, root->list[root->update++]->arg1);
+				script_driver(ses, LIST_COMMAND, NULL, root->list[root->update++]->arg1);
 			}
 			check_all_events(ses, EVENT_FLAG_MAP, 0, 0, "END OF RUN");
 		}
@@ -593,7 +593,7 @@ DO_PATH(path_walk)
 		}
 		else
 		{
-			script_driver(ses, LIST_COMMAND, root->list[--root->update]->arg2);
+			script_driver(ses, LIST_COMMAND, NULL, root->list[--root->update]->arg2);
 
 			if (root->update == 0)
 			{
@@ -609,7 +609,7 @@ DO_PATH(path_walk)
 		}
 		else
 		{
-			script_driver(ses, LIST_COMMAND, root->list[root->update++]->arg1);
+			script_driver(ses, LIST_COMMAND, NULL, root->list[root->update++]->arg1);
 
 			if (root->update == root->used)
 			{
@@ -944,7 +944,7 @@ DO_PATH(path_undo)
 
 	DEL_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
-	script_driver(ses, LIST_COMMAND, root->list[root->used - 1]->arg2);
+	script_driver(ses, LIST_COMMAND, NULL, root->list[root->used - 1]->arg2);
 
 	SET_BIT(ses->flags, SES_FLAG_PATHMAPPING);
 
@@ -965,7 +965,7 @@ void check_append_path(struct session *ses, char *forward, char *backward, doubl
 	{
 		if ((node = search_node_list(ses->list[LIST_PATHDIR], forward)))
 		{
-			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
+			show_debug(ses, LIST_PATHDIR, node, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
 
 			create_node_list(root, node->arg1, node->arg2, ftos(delay), "");
 
@@ -973,7 +973,7 @@ void check_append_path(struct session *ses, char *forward, char *backward, doubl
 		}
 		else if (force)
 		{
-			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
+			show_debug(ses, LIST_PATHDIR, NULL, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
 				
 			create_node_list(root, forward, backward, ftos(delay), "");
 
@@ -985,13 +985,13 @@ void check_append_path(struct session *ses, char *forward, char *backward, doubl
 	{
 		if ((node = search_node_list(ses->list[LIST_PATHDIR], forward)))
 		{
-			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
+			show_debug(ses, LIST_PATHDIR, node, "#DEBUG PATHDIR {%s} {%s}", node->arg1, node->arg2);
 
 			create_node_list(root, node->arg1, node->arg2, ftos(delay), "");
 		}
 		else
 		{
-			show_debug(ses, LIST_PATHDIR, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
+			show_debug(ses, LIST_PATHDIR, NULL, "#DEBUG PATHDIR {%s} {%s}", forward, backward);
 
 			create_node_list(root, forward, backward, ftos(delay), "");
 		}

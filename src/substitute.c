@@ -1193,7 +1193,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 					{
 						substitute(ses, temp, buf, flags_neol);
 					}
-					show_debug(ses, LIST_FUNCTION, COLOR_DEBUG "#DEBUG FUNCTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
+					show_debug(ses, LIST_FUNCTION, node, COLOR_DEBUG "#DEBUG FUNCTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
 					RESTRING(gtd->vars[0], buf);
 
@@ -1228,7 +1228,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						delete_node_list(ses, LIST_FUNCTION, node);
 					}
 
-					script_driver(ses, LIST_FUNCTION, buf);
+					script_driver(ses, LIST_FUNCTION, node, buf);
 
 					node = search_nest_node_ses(ses, "result");
 

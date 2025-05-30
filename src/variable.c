@@ -298,7 +298,7 @@ DO_COMMAND(do_replace)
 	}
 	else
 	{
-//		show_debug(ses, LIST_VARIABLE, "#REPLACE {%s} {%s} {%s}", node->arg2, arg2, arg3);
+//		show_debug(ses, LIST_VARIABLE, node, "#REPLACE {%s} {%s} {%s}", node->arg2, arg2, arg3);
 
 		pti = node->arg2;
 		str = str_alloc_stack(0);

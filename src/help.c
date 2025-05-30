@@ -71,8 +71,8 @@ char *help_related(struct session *ses, int index, int html)
 
 	push_call("help_related(%p,%d,%d)",ses,index,html);
 
-	tmp  = str_alloc_stack(0);
-	link = str_alloc_stack(0);
+	tmp   = str_alloc_stack(0);
+	link  = str_alloc_stack(0);
 
 	arg  = help_table[index].also;
 
@@ -84,7 +84,7 @@ char *help_related(struct session *ses, int index, int html)
 
 		if (html == 1)
 		{
-			sprintf(link, "\\c<a href='%s.php'\\c>%s\\c</a\\c>", tmp, tmp);
+			sprintf(link, "\\c<a href='%s.php'\\c>%s\\c</a\\c>", decapitalize(tmp), tmp);
 		}
 		else if (html == 2)
 		{
@@ -216,7 +216,7 @@ DO_COMMAND(do_help)
 
 		FILE *logfile = fopen("../docs/help.html", "w");
 
-		script_driver(ses, LIST_COMMAND, "#config {log} {html}");
+		script_driver(ses, LIST_COMMAND, NULL, "#config {log} {html}");
 
 		if (HAS_BIT(ses->log->mode, LOG_FLAG_HTML))
 		{
@@ -415,7 +415,7 @@ DO_COMMAND(do_help)
 	{
 		FILE *logfile;
 
-		script_driver(ses, LIST_COMMAND, "#config {log} {html}");
+		script_driver(ses, LIST_COMMAND, NULL, "#config {log} {html}");
 
 		*buf = 0;
 
@@ -543,10 +543,6 @@ struct help_type help_table[] =
 		"<278>         in the commands part of the alias. If %0 is used it will contain all\n"
 		"<278>         arguments. The priority part is optional and determines the priority\n"
 		"<278>         of the alias, it defaults to 5.\n"
-		"\n"
-		"<278>         If no % variable is used in the commands section any argument will be\n"
-		"<278>         appended to the end as if %0 was used. This feature might be removed\n"
-		"<278>         in the future, and shouldn't be used.\n"
 		"\n"
 		"<178>Example<278>: #alias {k} {kill %1;kick}\n"
 		"\n"
@@ -869,7 +865,7 @@ struct help_type help_table[] =
 		"<278>         clients, typically for the purpose of chatting and sending files.\n"
 		"<278>         This is a decentralized chat system, meaning you have to exchange ip\n"
 		"<278>         addresses and port numbers with other users in order to connect to\n"
-		"<278>         them.\n"
+		"<278>         them. Chat events are triggered in the startup session.\n"
 		"\n"
 		"<278>         <178>#chat {init} {port}\n"
 		"<278>           #chat initialize launches your chat server. The port number is\n"
@@ -924,8 +920,8 @@ struct help_type help_table[] =
 		"<278>           used instead of the connection's name when sending someone a message\n"
 		"<278>           The second column shows the connection's name. The third column\n"
 		"<278>           shows flags set for the connection, (P)rivate, (I)gnore, (S)erve,\n"
-		"<278>           (F)orward to user, and (f)orward from user. The next columns show\n"
-		"<278>           ip, port, and client name.\n"
+		"<278>           Forward(A)ll to user, (F)orward to user, and (f)orward from user.\n"
+		"<278>           The next columns show ip, port, and client name.\n"
 		"<278>         <178>#chat {zap}        {buddy}            Close a connection\n",
 		
 		"port"
@@ -944,6 +940,8 @@ struct help_type help_table[] =
 		"<278>           Will delete all triggers associated with the given class.\n"
 		"<278>         <178>#class {<name>} {close}\n"
 		"<278>           Close the given class, opening the last open class, if any.\n"
+		"<278>         <178>#class {<name>} {debug} {on|off}\n"
+		"<278>           Toggle debug mode for given class.\n"
 		"<278>         <178>#class {<name>} {kill}\n"
 		"<278>           Will clear, close, and remove the class.\n"
 		"<278>         <178>#class {<name>} {list}\n"
@@ -1166,6 +1164,7 @@ struct help_type help_table[] =
 		"<278>         COMPLETE    makes tab completion work while editing\n"
 		"\n"
 		"<278>         DICTIONARY  performs tab completion on the dictionary\n"
+		"<278>         INPUT       performs tab completion on the input history\n"
 		"<278>         LIST        performs tab completion on the tab completion list\n"
 		"<278>         SCROLLBACK  performs tab completion on the scrollback buffer\n"
 		"\n"
@@ -1335,7 +1334,7 @@ struct help_type help_table[] =
 		"<278>         [BOXED] <178>MAP\n"
 		"<278>           will draw the map\n"
 		"<278>         <178>RAIN<278> {<VARIABLE>} {[SPAWN]} {[FADE]} {[LEGEND]}\n"
-		"<278>           will draw digital rain.\n"
+		"<278>           will draw digital rain SPAWN (0.01-100) FADE (1-100).\n"
 		"<278>         [JOINTED|TOP|LEFT|BOTTOM|RIGHT] <178>SIDE\n"
 		"<278>           will draw one or more sides of a box.\n"
 		"<278>         [GRID] <178>TABLE<278> {[LIST1]} {[LIST2]}\n"
@@ -1642,6 +1641,9 @@ struct help_type help_table[] =
 		"<278>         <178>EDIT STARTED, EDIT FINISHED\n"
 		"<278>           %0 name  %1 lines %2 size %3 data\n"
 		"\n"
+		"<278>         <178>EDIT RESUMED, EDIT SUSPENDED\n"
+		"<278>           %0 name\n"
+		"\n"
 		"<278>         <178>HISTORY UPDATE\n"
 		"<278>           %0 command\n"
 		"\n"
@@ -1716,12 +1718,13 @@ struct help_type help_table[] =
 		"\n"
 		"<278>         <128>PORT EVENTS\n"
 		"\n"
-		"<278>         <178>CHAT MESSAGE<278>, <178>PORT MESSAGE\n"
-		"<278>           %0 raw text  %1 plain text\n"
+		"<278>         <178>CHAT MESSAGE           <278>%0 raw text  %1 plain text\n"
+		"<278>         <178>CHAT SNOOP REQUEST     <278>%0 name %1 ip %2 port\n"
 		"\n"
 		"<278>         <178>PORT CONNECTION        <278>%0 name %1 ip %2 port\n"
 		"<278>         <178>PORT DISCONNECTION     <278>%0 name %1 ip %2 port\n"
 		"<278>         <178>PORT LOG MESSAGE       <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
+		"<278>         <178>PORT MESSAGE           <278>%0 raw text %1 plain text\n"
 		"<278>         <178>PORT RECEIVED MESSAGE  <278>%0 name %1 ip %2 port %3 data %4 plain data\n"
 		"<278>         <178>PORT RECEIVED DATA     <278>%0 name %1 ip %2 port %3 data %4 size\n"
 		"\n"
@@ -3761,7 +3764,7 @@ struct help_type help_table[] =
 		"<278>         key during selection.\n"
 		"\n",
 		
-		"button draw event MSLP"
+		"button draw event mslp"
 	},
 
 	{
@@ -4245,12 +4248,11 @@ struct help_type help_table[] =
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #read <178>{<278>filename<178>}\n"
 		"\n"
-		"<278>         Reads a commands file into memory.  The coms file is merged in with\n"
-		"<278>         the currently loaded commands.  Duplicate commands are overwritten.\n"
+		"<278>         Reads a commands file into memory.  The commands are merged with the\n"
+		"<278>         currently loaded commands.  Duplicate commands are overwritten.\n"
 		"\n"
-		"<278>         If you uses braces, { and } you can use several lines for 1 commands.\n"
-		"<278>         This however means you must always match every { with a } for the read\n"
-		"<278>         command to work.\n"
+		"<278>         If you uses braces you can use several lines for each command.  You\n"
+		"<278>         must match every { with a } for the read command to work.\n"
 		"\n"
 		"<278>         You can comment out triggers using /* text */\n"
 		,
@@ -4331,12 +4333,13 @@ struct help_type help_table[] =
 	{
 		"REPEAT",
 		TOKEN_TYPE_STRING,
-		"<178>Command<278>: #<178>[<078>number<178>] {<278>commands<178>}\n"
+		"<178>Command<278>: #<178>[<078>number<178>] {<278>commands<178>} {<278>..<178>}\n"
 		"\n"
 		"<278>        Sometimes you want to repeat the same command multiple times. This is\n"
 		"<278>        the easiest way to accomplish that.\n"
 		"\n"
-		"<178>Example<278>: #10 {buy bread}\n",
+		"<178>Example<278>: #10 {buy bread}\n"
+		"<178>Example<278>: #2 {buy bread} {buy apple}\n",
 		
 		"mathematics statements"
 	},
@@ -4413,8 +4416,12 @@ struct help_type help_table[] =
 		"\n"
 		"<178>         #scan {dir} <filename> <variable>\n"
 		"\n"
-		"<278>          The scan dir command will read the given filename or directory and\n"
-		"<278>          store any gathered information into the provided variable.\n"
+		"<278>           The scan dir command will read the given filename or directory and\n"
+		"<278>           store any gathered information into the provided variable.\n"
+		"\n"
+		"<178>         #scan {json} <filename> <variable>\n"
+		"<278>           The scan json command will read the given filename and store the data\n"
+		"<278>           in the provided tintin variable.\n"
 		"\n"
 		"<278>         <178>#scan {tsv} <filename>\n"
 		"\n"
@@ -4426,9 +4433,9 @@ struct help_type help_table[] =
 		"<278>         <178>#scan {file} <filename> {commands}\n"
 		"\n"
 		"<278>           The scan file command reads the given files and executes the\n"
-		"<278>            commands argument. &0 contains the raw content of the file and\n"
-		"<278>            &1 contains the plain content. &2 contains the raw byte size of the\n"
-		"<278>            file and &3 the plain byte size. &5 contains the line count.\n"
+		"<278>           commands argument. &0 contains the raw content of the file and\n"
+		"<278>           &1 contains the plain content. &2 contains the raw byte size of the\n"
+		"<278>           file and &3 the plain byte size. &5 contains the line count.\n"
 		"\n"
 		"<278>         <178>#scan {txt} <filename>\n"
 		"\n"

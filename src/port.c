@@ -392,6 +392,8 @@ void process_port_connections(struct session *ses, fd_set *read_set, fd_set *wri
 			FD_CLR(buddy->fd, read_set);
 
 			close_port(ses, buddy, TRUE);
+			
+			continue;
 		}
 		else if (FD_ISSET(buddy->fd, read_set))
 		{
@@ -401,6 +403,8 @@ void process_port_connections(struct session *ses, fd_set *read_set, fd_set *wri
 				FD_CLR(buddy->fd, read_set);
 
 				close_port(ses, buddy, TRUE);
+				
+				continue;
 			}
 		}
 

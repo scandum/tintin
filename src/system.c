@@ -121,7 +121,7 @@ DO_COMMAND(do_script)
 					*cptr = 0;
 				}
 
-				ses = script_driver(ses, LIST_COMMAND, buf);
+				ses = script_driver(ses, LIST_COMMAND, NULL, buf);
 			}
 
 			pclose(script);
@@ -170,6 +170,12 @@ DO_COMMAND(do_script)
 
 DO_COMMAND(do_suspend)
 {
+	if (!strcmp(gtd->system->os, "WINTIN++"))
+	{
+		show_error(gtd->ses, LIST_COMMAND, "#ERROR: #SUSPEND / ctrl-z is not supported for WinTin++.");
+
+		return ses;
+	}
 	print_stdout(0, 0, "\e[?1049l\e[r\e[%d;%dH", gtd->screen->rows, 1);
 
 	fflush(NULL);

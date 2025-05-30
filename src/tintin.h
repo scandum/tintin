@@ -212,7 +212,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.42 "
+#define CLIENT_VERSION           "2.02.51 "
 
 
 #define XT_E                            0x27
@@ -603,6 +603,7 @@ enum operators
 #define TAB_FLAG_DICTIONARY           BV05
 #define TAB_FLAG_LIST                 BV06
 #define TAB_FLAG_SCROLLBACK           BV07
+#define TAB_FLAG_INPUT                BV08
 
 #define REGEX_FLAG_NONE                  0
 #define REGEX_FLAG_FIX                BV01
@@ -698,6 +699,7 @@ enum operators
 
 #define NODE_FLAG_COLOR               BV01
 #define NODE_FLAG_MULTI               BV02
+#define NODE_FLAG_DEBUG               BV03
 
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
@@ -2713,7 +2715,7 @@ extern void dispose_session(struct session *ses);
 
 extern void show_message(struct session *ses, int index, char *format, ...);
 extern void show_error(struct session *ses, int index, char *format, ...);
-extern void show_debug(struct session *ses, int index, char *format, ...);
+extern void show_debug(struct session *ses, int index, struct listnode *node, char *format, ...);
 extern void show_info(struct session *ses, int index, char *format, ...);
 extern void tintin_header(struct session *ses, int width, char *format, ...);
 extern void socket_printf(struct session *ses, size_t length, char *format, ...);
@@ -2924,7 +2926,7 @@ extern void init_local(struct session *ses);
 extern struct scriptroot *push_script_stack(struct session *ses, int list);
 extern void pop_script_stack();
 extern struct listroot *local_list(struct session *ses);
-extern struct session *script_driver(struct session *ses, int list, char *str);
+extern struct session *script_driver(struct session *ses, int list, struct listnode *node, char *str);
 extern char *view_script(struct session *ses, struct scriptroot *root);
 extern char *script_writer(struct session *ses, char *str);
 extern char *script_viewer(struct session *ses, char *str);
@@ -2939,7 +2941,7 @@ extern DO_COMMAND(do_function);
 
 extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
 extern void check_all_actions_multi(struct session *ses, char *original, char *line, char *buf);
-extern  int check_all_aliases(struct session *ses, char *input);
+extern struct listnode *check_all_aliases(struct session *ses, char *input);
 extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);
 extern void check_all_gags(struct session *ses, char *original, char *line);
 extern void check_all_highlights(struct session *ses, char *original, char *line);
@@ -2977,6 +2979,7 @@ extern char *str_time(struct session *ses, char *format, time_t time);
 extern unsigned long long generate_rand(struct session *ses);
 extern void seed_rand(struct session *ses, unsigned long long seed);
 extern char *capitalize(char *str);
+extern char *decapitalize(char *str);
 extern char *ftos(double number);
 extern char *ntos(long long number);
 extern char *indent_one(int len);

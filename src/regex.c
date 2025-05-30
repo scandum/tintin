@@ -73,7 +73,7 @@ DO_COMMAND(do_regexp)
 		{
 			substitute(ses, arg3, arg3, SUB_CMD);
 
-			ses = script_driver(ses, LIST_COMMAND, arg3);
+			ses = script_driver(ses, LIST_COMMAND, NULL, arg3);
 		}
 		else
 		{
@@ -83,7 +83,7 @@ DO_COMMAND(do_regexp)
 
 			if (*arg4)
 			{
-				ses = script_driver(ses, LIST_COMMAND, arg4);
+				ses = script_driver(ses, LIST_COMMAND, NULL, arg4);
 			}
 		}
 	}

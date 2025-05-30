@@ -639,9 +639,9 @@ void chat_printf(char *format, ...)
 	}
 	str_cpy_printf(&tmp, "%s%s%s", gtd->chat->color, buf, "\e[0m");
 
-	check_all_events(gtd->ses, SUB_SEC|EVENT_FLAG_PORT, 0, 2, "CHAT MESSAGE", tmp, buf);
+	check_all_events(gts, SUB_SEC|EVENT_FLAG_PORT, 0, 2, "CHAT MESSAGE", tmp, buf);
 
-	if (!check_all_events(gtd->ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH CHAT MESSAGE", tmp, buf))
+	if (!check_all_events(gts, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH CHAT MESSAGE", tmp, buf))
 	{
 		tintin_printf(gtd->ses, "%s", tmp);
 	}
@@ -965,6 +965,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 				break;
 
 			case CHAT_SNOOP_START:
+				check_all_events(gts, EVENT_FLAG_PORT, 0, 3, "CHAT SNOOP REQUEST", buddy->name, buddy->ip, ntos(buddy->port));
 				break;
 
 			case CHAT_SNOOP_DATA:
@@ -1680,6 +1681,7 @@ DO_CHAT(chat_who)
 			HAS_BIT(buddy->flags, CHAT_FLAG_PRIVATE)   ? "P" : " ",
 			HAS_BIT(buddy->flags, CHAT_FLAG_IGNORE)    ? "I" : " ",
 			HAS_BIT(buddy->flags, CHAT_FLAG_SERVE)     ? "S" : " ",
+			HAS_BIT(buddy->flags, CHAT_FLAG_FORWARDALL) ? "A" :
 			HAS_BIT(buddy->flags, CHAT_FLAG_FORWARD)   ? "F" :
 			HAS_BIT(buddy->flags, CHAT_FLAG_FORWARDBY) ? "f" : " ",
 			" ",

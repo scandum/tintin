@@ -42,6 +42,7 @@ DO_SCAN(scan_csv);
 DO_SCAN(scan_dir);
 DO_SCAN(scan_file);
 DO_SCAN(scan_forward);
+DO_SCAN(scan_json);
 DO_SCAN(scan_tsv);
 DO_SCAN(scan_txt);
 
@@ -66,6 +67,7 @@ struct scan_type scan_table[] =
 	{       "DIR",              scan_dir,     SCAN_FLAG_NONE,                "Scan a directory to a variable."    },
 	{       "FILE",             scan_file,    SCAN_FLAG_FILE,                "Scan a file all at once."           },
 	{       "FORWARD",          scan_forward, SCAN_FLAG_FILE,                "Scan a file and send each line."    },
+	{       "JSON",             scan_json,    SCAN_FLAG_FILE,                "Scan a json file."                  },
 	{       "TSV",              scan_tsv,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a tab separated value file."   },
 	{       "TXT",              scan_txt,     SCAN_FLAG_FILE|SCAN_FLAG_SCAN, "Scan a text file line by line."     },
 	{       "",                 NULL,         0,                             ""                                   }
@@ -347,12 +349,12 @@ DO_SCAN(scan_dir)
 			arg = strchr(arg, '\\');
 		}
 
-		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%u}{TIME}{%lld}}",
+		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%lld}{TIME}{%lld}}",
 			arg,
 			!S_ISDIR(info.st_mode),
 			info.st_mode,
-			info.st_size,
-			info.st_mtime);
+			(long long) info.st_size,
+			(long long) info.st_mtime);
 
 		return ses;
 	}
@@ -368,12 +370,12 @@ DO_SCAN(scan_dir)
 			continue;
 		}
 
-		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%u}{TIME}{%lld}}",
+		add_nest_node_ses(ses, arg2, "{%s}{{FILE}{%d}{MODE}{%u}{SIZE}{%lld}{TIME}{%lld}}",
 			dirlist[index]->d_name,
 			!S_ISDIR(info.st_mode),
 			info.st_mode,
-			info.st_size,
-			info.st_mtime);
+			(long long) info.st_size,
+			(long long) info.st_mtime);
 	}
 
 	for (index = 0 ; index < size ; index++)
@@ -403,24 +405,24 @@ DO_SCAN(scan_file)
 	}
 
 	str_rip = str_alloc_stack(str_len(str_out));
+	str_sub = str_alloc_stack(str_len(str_rip) * 4 + BUFFER_SIZE);
 
 	strip_vt102_codes(str_out, str_rip);
+	substitute(ses, str_rip, str_sub, SUB_SEC);
 
 	RESTRING(gtd->cmds[0], str_out);
-	RESTRING(gtd->cmds[1], str_rip);
+	RESTRING(gtd->cmds[1], str_sub);
 	RESTRING(gtd->cmds[2], ntos(str_len(str_out)));
-	RESTRING(gtd->cmds[3], ntos(strlen(str_rip)));
+	RESTRING(gtd->cmds[3], ntos(strlen(str_sub)));
 	RESTRING(gtd->cmds[4], ntos(cnt));
 
 	gtd->cmdc = 5;
-
-	str_sub = str_alloc_stack(strlen(arg) * 2);
 
 	substitute(ses, arg2, str_sub, SUB_CMD);
 
 	show_message(ses, LIST_COMMAND, "#SCAN FILE: FILE {%s} SCANNED.", arg1);
 
-	ses = script_driver(ses, LIST_COMMAND, str_sub);
+	ses = script_driver(ses, LIST_COMMAND, NULL, str_sub);
 
 	return ses;
 }
@@ -461,6 +463,214 @@ DO_SCAN(scan_forward)
 	}
 
 	show_message(ses, LIST_COMMAND, "#SCAN FORWARD: FILE {%s} FORWARDED.", arg1);
+
+	return ses;
+}
+
+DO_SCAN(scan_json)
+{
+	char *src, *pto, mod[STRING_SIZE];
+	int i, size, state[100], nest, type;
+
+	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
+
+	if (*arg2 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #SCAN JSON <%s> <VARIABLE>.", arg1);
+
+		return ses;
+	}
+
+	mod[0] = state[0] = nest = type = 0;
+
+	fseek(fp, 0, SEEK_END);
+	size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	src = malloc(size + 1);
+
+	fread(src, size, 1, fp);
+
+	src[size] = 0;
+
+	i = 0;
+	pto = mod;
+
+	while (i < size && nest < 99 && nest >= 0)
+	{
+		switch (src[i])
+		{
+			case ' ':
+			case '\t':
+			case '\n':
+			case '\r':
+				i++;
+				break;
+
+			case '{':
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
+				if (nest != 0)
+				{
+					*pto++ = '{';
+				}
+				i++;
+				state[++nest] = 0;
+				break;
+
+			case '}':
+				nest--;
+				i++;
+				if (nest != 0)
+				{
+					*pto++ = '}';
+				}
+				break;
+
+			case '[':
+				if (nest != 0)
+				{
+					*pto++ = '{';
+				}
+				i++;
+				state[++nest] = 1;
+//				pto += sprintf(pto, "{%d}", state[nest]);
+				break;
+
+			case ']':
+				nest--;
+				i++;
+				if (nest != 0)
+				{
+					*pto++ = '}';
+				}
+				break;
+
+			case ':':
+				i++;
+				break;
+
+			case ',':
+				i++;
+				break;
+
+			case '"':
+				i++;
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
+				if (nest)
+				{
+					*pto++ = '{';
+				}
+				type = 1;
+
+				while (i < size && type == 1)
+				{
+					switch (src[i])
+					{
+						case '\\':
+							i++;
+
+							if (i < size && src[i] == '"')
+							{
+								*pto++ = src[i++];
+							}
+							else
+							{
+								*pto++ = '\\';
+							}
+							break;
+
+						case '"':
+							i++;
+							type = 0;
+							break;
+
+						case '{':
+							i++;
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'B';
+							break;
+
+						case '}':
+							i++;
+							*pto++ = '\\';
+							*pto++ = 'x';
+							*pto++ = '7';
+							*pto++ = 'D';
+							break;
+
+						case COMMAND_SEPARATOR:
+							i++;
+							*pto++ = '\\';
+							*pto++ = COMMAND_SEPARATOR;
+							break;
+
+						default:
+							*pto++ = src[i++];
+							break;
+					}
+				}
+
+				if (nest)
+				{
+					*pto++ = '}';
+				}
+				break;
+
+			default:
+				if (state[nest])
+				{
+					pto += sprintf(pto, "{%d}", state[nest]++);
+				}
+				if (nest)
+				{
+					*pto++ = '{';
+				}
+
+				type = 1;
+
+				while (i < size && type == 1)
+				{
+					switch (src[i])
+					{
+						case '}':
+						case ']':
+						case ',':
+						case ':':
+							type = 0;
+							break;
+
+						case ' ':
+							i++;
+							break;
+
+						default:
+							*pto++ = src[i++];
+							break;
+					}
+				}
+
+				if (nest)
+				{
+					*pto++ = '}';
+				}
+				break;
+		}
+	}
+	*pto = 0;
+
+	free(src);
+
+	show_message(ses, LIST_COMMAND, "#SCAN JSON: FILE {%s} SCANNED AND SAVED TO VARIABLE {%s}.", arg1, arg2);
+
+	add_nest_node_ses(ses, arg2, mod);
 
 	return ses;
 }
