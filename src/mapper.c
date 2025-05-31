@@ -3865,7 +3865,7 @@ void search_keywords(struct session *ses, char *arg, char *out, char *var)
 		}
 	}
 
-	if (buf[MAP_SEARCH_DESC])
+	if (*buf[MAP_SEARCH_DESC])
 	{
 		str = buf[MAP_SEARCH_DESC];
 

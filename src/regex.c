@@ -212,12 +212,10 @@ pcre *regexp_compile(struct session *ses, char *exp, int comp_option)
 
 int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int comp_option)
 {
-	char *exp, *str;
+	char *exp, *str, result[BUFFER_SIZE];
 
 	if (node->regex == NULL)
 	{
-		char result[BUFFER_SIZE];
-
 		substitute(ses, node->arg1, result, SUB_VAR|SUB_FUN);
 
 		exp = result;
