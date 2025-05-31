@@ -316,7 +316,7 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 		{
 			if (err)
 			{
-				sprintf(buf2, "CERTIFICATE MISMATCH, AND NEW %s", err);
+				sprintf(buf2, "CERTIFICATE MISMATCH, AND NEW %.*s", (BUFFER_SIZE-31), err);
 			}
 			else
 			{
