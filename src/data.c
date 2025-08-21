@@ -92,7 +92,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 			switch (type)
 			{
 				case LIST_ALIAS:
-					node->regex = tintin_regexp_compile(ses, node, node->arg1, PCRE_ANCHORED);
+					node->regex = tintin_regexp_compile(ses, node, node->arg1, PCRE2_ANCHORED);
 					break;
 
 				case LIST_ACTION:
@@ -196,7 +196,7 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 	switch (root->type)
 	{
 		case LIST_ALIAS:
-			node->regex = tintin_regexp_compile(root->ses, node, node->arg1, PCRE_ANCHORED);
+			node->regex = tintin_regexp_compile(root->ses, node, node->arg1, PCRE2_ANCHORED);
 			break;
 
 		case LIST_ACTION:
@@ -383,7 +383,7 @@ void delete_node(struct session *ses, int type, struct listnode *node)
 	{
 		if (node->regex)
 		{
-			free(node->regex);
+			pcre2_code_free(node->regex);
 		}
 	}
 

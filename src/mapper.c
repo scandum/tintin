@@ -3958,7 +3958,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->name->regex)
 	{
-		free(search->name->regex);
+		pcre2_code_free(search->name->regex);
 		search->name->regex = NULL;
 	}
 
@@ -3966,7 +3966,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->name->regex = tintin_regexp_compile(ses, search->name, buf, PCRE_ANCHORED);
+		search->name->regex = tintin_regexp_compile(ses, search->name, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN); // exits
@@ -4039,7 +4039,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->desc->regex)
 	{
-		free(search->desc->regex);
+		pcre2_code_free(search->desc->regex);
 		search->desc->regex = NULL;
 	}
 
@@ -4047,7 +4047,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->desc->regex = tintin_regexp_compile(ses, search->desc, buf, PCRE_ANCHORED);
+		search->desc->regex = tintin_regexp_compile(ses, search->desc, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
@@ -4056,7 +4056,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->area->regex)
 	{
-		free(search->area->regex);
+		pcre2_code_free(search->area->regex);
 		search->area->regex = NULL;
 	}
 
@@ -4064,7 +4064,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->area->regex = tintin_regexp_compile(ses, search->area, buf, PCRE_ANCHORED);
+		search->area->regex = tintin_regexp_compile(ses, search->area, buf, PCRE2_ANCHORED);
 	}
 
 	// note
@@ -4073,7 +4073,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->note->regex)
 	{
-		free(search->note->regex);
+		pcre2_code_free(search->note->regex);
 		search->note->regex = NULL;
 	}
 
@@ -4081,7 +4081,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->note->regex = tintin_regexp_compile(ses, search->note, buf, PCRE_ANCHORED);
+		search->note->regex = tintin_regexp_compile(ses, search->note, buf, PCRE2_ANCHORED);
 	}
 
 	// terrain
@@ -4090,7 +4090,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->terrain->regex)
 	{
-		free(search->terrain->regex);
+		pcre2_code_free(search->terrain->regex);
 		search->terrain->regex = NULL;
 	}
 
@@ -4098,7 +4098,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->terrain->regex = tintin_regexp_compile(ses, search->terrain, buf, PCRE_ANCHORED);
+		search->terrain->regex = tintin_regexp_compile(ses, search->terrain, buf, PCRE2_ANCHORED);
 	}
 
 	// flag

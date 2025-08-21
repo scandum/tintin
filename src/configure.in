@@ -69,8 +69,8 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h ctype.h fcntl.h net/errno.h netdb.h netinet/in.h param.h pthread.h socks.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/ptem.h sys/socket.h sys/termio.h sys/time.h time.h unistd.h util.h pty.h stropts.h]) 
 AC_CHECK_HEADERS([zlib.h],,
 	[AC_MSG_ERROR([zlib header file not found, is the development part present])])
-AC_CHECK_HEADERS([pcre.h],,
-	[AC_MSG_ERROR([pcre header file not found, is the development part present])])
+AC_CHECK_HEADERS([pcre2.h],,
+	[AC_MSG_ERROR([pcre2 header file not found, is the development part present])])
 AC_CHECK_HEADERS([gnutls/gnutls.h],
 	[AC_DEFINE([HAVE_GNUTLS_H],[1],[Define to 1 if you have <gnutls/gnutls.h>.])],
 	[AC_MSG_WARN([gnutls header file not found, is the develoment part present])])
@@ -103,8 +103,8 @@ AC_CHECK_LIB(pthread, pthread_create)
 AC_CHECK_LIB(nsl, gethostbyname)
 AC_CHECK_LIB(socket, rresvport)
 AC_CHECK_LIB(util, forkpty)
-AC_CHECK_LIB(pcre, pcre_compile,,
-	[AC_MSG_ERROR([pcre runtime library not working, is it AND the corresponding development (header) file installed])])
+AC_CHECK_LIB(pcre2-8, pcre2_compile_8,,
+	[AC_MSG_ERROR([pcre2 runtime library not working, is it AND the corresponding development (header) file installed])])
 AC_CHECK_LIB(gnutls, gnutls_init)
 AC_CHECK_LIB(m, sqrt)
 

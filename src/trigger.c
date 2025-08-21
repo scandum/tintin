@@ -234,7 +234,7 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, line, line, PCRE_ANCHORED))
+		if (check_one_regexp(ses, node, line, line, PCRE2_ANCHORED))
 		{
 			i = strlen(node->arg1);
 
@@ -1016,7 +1016,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 					break;
 				}
 			}
-			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE_NOTBOL));
+			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE2_NOTBOL));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -1107,7 +1107,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 					break;
 				}
 			}
-			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE_NOTBOL));
+			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE2_NOTBOL));
 
 			if (node->shots && --node->shots == 0)
 			{
