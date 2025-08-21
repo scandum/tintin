@@ -1,3 +1,4 @@
+# Build artifacts
 src/Makefile
 src/confdefs.h
 src/config.h
@@ -5,4 +6,39 @@ src/config.log
 src/config.status
 src/*.o
 src/tt++
+
+# Autotools cache and generated files
+src/autom4te.cache/
+autom4te.cache/
+
+# Backup and temporary files
+*~
+*.bak
+*.tmp
+*.swp
+*.swo
+*#
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.kate-swp
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Core dumps
+core
+core.*
+
+# Log files
+*.log
 

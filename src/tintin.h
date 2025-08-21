@@ -109,6 +109,63 @@
 #define __TINTIN_H__
 
 /*
+	Platform-specific definitions for Windows 64-bit support
+*/
+
+#if defined(_WIN64) || defined(__WIN64__) || defined(_M_X64) || defined(_M_AMD64)
+	#define WINTIN_64BIT
+	#define WIN64
+	#ifndef _WIN32
+		#define _WIN32  // _WIN64 implies _WIN32 but define it explicitly
+	#endif
+#elif defined(_WIN32) || defined(__WIN32__)
+	#define WINTIN_32BIT
+#endif
+
+/*
+	Include portable integer types for proper 64-bit support
+*/
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+/*
+	Platform-specific printf format macros for 64-bit compatibility
+*/
+#ifndef PRId64
+	#ifdef WINTIN_64BIT
+		#define PRId64 "I64d"
+		#define PRIu64 "I64u"
+		#define PRIx64 "I64x"
+		#define PRIX64 "I64X"
+	#else
+		#define PRId64 "lld"
+		#define PRIu64 "llu"
+		#define PRIx64 "llx"
+		#define PRIX64 "llX"
+	#endif
+#endif
+
+/*
+	Safe format macros for size_t and pointer types
+*/
+#ifndef PRIuPTR
+	#ifdef WINTIN_64BIT
+		#define PRIuPTR "I64u"
+		#define PRIxPTR "I64x"
+		#define PRIXPTR "I64X"
+	#else
+		#define PRIuPTR "lu"
+		#define PRIxPTR "lx"
+		#define PRIXPTR "lX"
+	#endif
+#endif
+
+/*
 	A bunch of constants
 */
 

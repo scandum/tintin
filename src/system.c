@@ -170,7 +170,7 @@ DO_COMMAND(do_script)
 
 DO_COMMAND(do_suspend)
 {
-	if (!strcmp(gtd->system->os, "WINTIN++"))
+	if (!strcmp(gtd->system->os, "WINTIN++") || !strcmp(gtd->system->os, "WINTIN++64"))
 	{
 		show_error(gtd->ses, LIST_COMMAND, "#ERROR: #SUSPEND / ctrl-z is not supported for WinTin++.");
 

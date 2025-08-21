@@ -306,7 +306,11 @@ int main(int argc, char **argv)
 
 	if (!strcmp(gtd->system->exec, "././tt++"))
 	{
+#ifdef WINTIN_64BIT
+		RESTRING(gtd->system->os, "WINTIN++64");
+#else
 		RESTRING(gtd->system->os, "WINTIN++");
+#endif
 	}
 
 	RESTRING(gtd->vars[1], argv[0]);
