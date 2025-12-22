@@ -4,8 +4,6 @@
 
 - Add blight to msdp/gmcp/mssp listing
 
-- switch to pcre2
-
 - comprehensive memory breakdown for variables/triggers/mapper/etc
 
 - a better trigger stack debug buffer

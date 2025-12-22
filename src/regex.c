@@ -24,7 +24,7 @@
 ******************************************************************************/
 
 #include <sys/types.h>
-#include <pcre.h>
+#include <pcre2.h>
 
 #include "tintin.h"
 
@@ -90,9 +90,9 @@ DO_COMMAND(do_regexp)
 	return ses;
 }
 
-int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, int comp_option, int flag)
+int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
-	pcre *regex;
+	pcre2_code *regex;
 	int i, j, matches;
 
 	if (nodepcre == NULL)
@@ -109,13 +109,23 @@ int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, in
 		return FALSE;
 	}
 
-	matches = pcre_exec(regex, NULL, str, strlen(str), 0, 0, gtd->match, 303);
+	pcre2_match_data *md = pcre2_match_data_create_from_pattern(regex, NULL);
+	matches = pcre2_match(regex, (PCRE2_SPTR)str, strlen(str), 0, 0, md, NULL);
+
+	if (matches >= 0)
+	{
+		// optional: copy to old ovector
+		PCRE2_SIZE *ov = pcre2_get_ovector_pointer(md);
+		for (int k = 0; k < 2*matches && k < 303; k++)
+			gtd->match[k] = (int)ov[k];
+	}
+	pcre2_match_data_free(md);
 
 	if (matches <= 0)
 	{
 		if (nodepcre == NULL)
 		{
-			free(regex);
+			pcre2_code_free(regex);
 		}
 		return FALSE;
 	}
@@ -183,25 +193,36 @@ int regexp_compare(struct session *ses, pcre *nodepcre, char *str, char *exp, in
 
 	if (nodepcre == NULL)
 	{
-		free(regex);
+		pcre2_code_free(regex);
 	}
 
 	return TRUE;
 }
 
-pcre *regexp_compile(struct session *ses, char *exp, int comp_option)
+pcre2_code *regexp_compile(struct session *ses, char *exp, int comp_option)
 {
-	const char *error;
-	int i;
-/*
+	int errornumber;
+	PCRE2_SIZE erroroffset;
+
+	// Enable UTF-8 mode if session charset is UTF-8
 	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
 	{
-		comp_option |= PCRE_UTF8|PCRE_NO_UTF8_CHECK;
+		comp_option |= PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_UCP;
 	}
-*/
-	return pcre_compile(exp, comp_option, &error, &i, NULL);
-}
 
+	// Compile the regex
+	pcre2_code *regex = pcre2_compile((PCRE2_SPTR)exp, PCRE2_ZERO_TERMINATED, comp_option, &errornumber, &erroroffset, NULL);
+
+	if (!regex)
+	{
+		return NULL;
+	}
+
+	// JIT compile for 10-100x speedup (safe to ignore errors)
+	pcre2_jit_compile(regex, PCRE2_JIT_COMPLETE);
+
+	return regex;
+}
 
 
 
@@ -463,7 +484,7 @@ int tintin_regexp_check(struct session *ses, char *exp)
 //    3.4 If FIX is set the gtd->args index is used and valid tinexp is assumed
 //    3.4 return TRUE
 
-int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int comp_option, int flag)
+int tintin_regexp(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
 	int i, arg = 1, var = 1, fix = 0;
@@ -508,7 +529,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 			case '\\':
 				if (pti[1] == 'n')
 				{
-					SET_BIT(comp_option, PCRE_MULTILINE);
+					SET_BIT(comp_option, PCRE2_MULTILINE);
 				}
 				else if (pti[1] == 0)
 				{
@@ -816,7 +837,7 @@ int tintin_regexp(struct session *ses, pcre *nodepcre, char *str, char *exp, int
 	return regexp_compare(ses, nodepcre, str, out, comp_option, flag + fix);
 }
 
-pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int comp_option)
+pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int comp_option)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
 
@@ -871,7 +892,7 @@ pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *ex
 				}
 				else if (pti[1] == 'n')
 				{
-					SET_BIT(comp_option, PCRE_MULTILINE);
+					SET_BIT(comp_option, PCRE2_MULTILINE);
 					SET_BIT(node->flags, NODE_FLAG_MULTI);
 				}
 				else if (pti[1] == 0)

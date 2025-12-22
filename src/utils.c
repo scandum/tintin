@@ -24,6 +24,7 @@
 *                      coded by Igor van den Hoven 2004                       *
 ******************************************************************************/
 
+#include <sys/time.h>
 #include "tintin.h"
 
 

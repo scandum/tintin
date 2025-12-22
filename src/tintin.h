@@ -31,7 +31,7 @@
 #include <zlib.h>
 #include <ctype.h>
 #include <termios.h>
-#include <pcre.h>
+#include <pcre2.h>
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>
@@ -1069,7 +1069,7 @@ struct listnode
 	int                     flags;
 	union
 	{
-		pcre              * regex;      // act, alias, gag, highlight, substitute
+		pcre2_code        * regex;      // act, alias, gag, highlight, substitute
 		char              * data;       // class
 		struct room_data  * room;       // terrain
 		long long           val64;      // delay, tick, path
@@ -2908,12 +2908,12 @@ DO_COMMAND(do_regexp);
 extern int substitute(struct session *ses, char *string, char *result, int flags);
 extern int match(struct session *ses, char *str, char *exp, int flags);
 extern int find(struct session *ses, char *str, char *exp, int sub, int flag);
-extern int regexp_compare(struct session *ses, pcre *regex, char *str, char *exp, int option, int flag);
+extern int regexp_compare(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
 extern int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int option);
 extern int tintin_regexp_check(struct session *ses, char *exp);
-extern int tintin_regexp(struct session *ses, pcre *pcre, char *str, char *exp, int option, int flag);
-extern pcre *regexp_compile(struct session *ses, char *exp, int option);
-extern pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option);
+extern int tintin_regexp(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
+extern pcre2_code *regexp_compile(struct session *ses, char *exp, int option);
+extern pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option);
 extern void  tintin_macro_compile(char *input, char *output);
 
 #endif

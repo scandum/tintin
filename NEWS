@@ -229,7 +229,7 @@ TinTin++ 1.99.1
 TinTin++ 1.99.1
 ---------------
 
-    Triggers now use PCRE (Perl Compatible Regular Expressions).
+    Triggers now use PCRE2 (Perl Compatible Regular Expressions version 2).
     See #help regex for details.
 
 
