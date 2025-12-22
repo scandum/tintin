@@ -1,8 +1,23 @@
-src/Makefile
-src/confdefs.h
-src/config.h
-src/config.log
-src/config.status
+# Build artifacts
 src/*.o
 src/tt++
+src/config.status
+src/config.log
+src/config.h
+src/config.guess
+src/config.sub
+src/configure
+src/Makefile
+src/Makefile.in
+src/aclocal.m4
+src/autom4te.cache/
 
+# Editor backup files
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Logs
+*.log
