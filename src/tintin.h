@@ -31,6 +31,7 @@
 #include <zlib.h>
 #include <ctype.h>
 #include <termios.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #include <errno.h>
 #include <math.h>
@@ -71,6 +72,10 @@
 #include <socks.h>
 #endif
 */
+
+#ifndef RETSIGTYPE
+#define RETSIGTYPE void
+#endif
 
 #ifndef BADSIG
 #define BADSIG (RETSIGTYPE (*)(int))-1
