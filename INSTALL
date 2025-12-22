@@ -3,6 +3,8 @@ INSTALLATION
 
 Installation should be easy; cd to the src/ directory, then type:
 
+autoreconf -i
+
 ./configure
 
 make install
