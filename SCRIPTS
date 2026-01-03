@@ -1133,5 +1133,51 @@
 draw_bar <faa><afa>
 
 #nop -------------------------------------------------------------------------
+#nop This script uses the '#snoop <session> scroll` option to display output
+#nop to another session. Split is used to reserve the top 6 rows, and the
+#nop scroll region of the snooped session is set to the top 5 rows.
+#nop -------------------------------------------------------------------------
+
+#line background #port init comm 0
+
+#ACTION {~%1 tells you %2}
+{
+     #comm #showme {%1 tells you %2\}
+}
+
+#ACTION {~%1 chats %2}
+{
+     #comm #showme {%1 chats %2\}
+}
+
+#ALIAS {test}
+{
+     #split 6 1;
+     #screen clear top;
+     #draw green horizontal line 6 1 6 -1;
+
+     #comm #screen scrollregion 1 1 5 -1;
+     #snoop comm scroll;
+
+     #showme <138>Bubba tells you 'hello';
+     #showme <158>Pamela chats 'bye';
+     #showme <168>Bobby tells you 'bli bla blo';
+     #showme <158>Dobby chats 'blu'
+}
+
+#CONFIG MOUSE ON
+
+#BUTTON {1;1;5;-1;SCROLLED MOUSE WHEEL UP} {#comm #buffer up 1}
+#BUTTON {1;1;5;-1;SCROLLED MOUSE WHEEL DOWN} {#comm #buffer down 1}
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
+#nop 
+#nop -------------------------------------------------------------------------
+
+#nop -------------------------------------------------------------------------
 #nop 
 #nop -------------------------------------------------------------------------

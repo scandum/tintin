@@ -489,7 +489,12 @@ DO_SCAN(scan_json)
 
 	src = malloc(size + 1);
 
-	fread(src, size, 1, fp);
+	if (fread(src, 1, size, fp) < size)
+	{
+		show_error(ses, LIST_COMMAND, "#SCAN JSON {%s}: ERROR READING FILE.", arg1);
+
+		return ses;
+	}
 
 	src[size] = 0;
 

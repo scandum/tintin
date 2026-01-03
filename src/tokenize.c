@@ -1308,7 +1308,6 @@ char *view_script(struct session *ses, struct scriptroot *root)
 		token = token->next;
 	}
 
-
 	return buf;
 }
 

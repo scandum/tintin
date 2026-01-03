@@ -1,6 +1,14 @@
 Due to continuous improvements old tintin scripts aren't always compatible
 with new versions. This document tries to list most compatibility conflicts.
 
+TinTin++ 2.02.60
+----------------
+01) Triggers now use PCRE (Perl Compatible Regular Expressions). This requires
+    installing the pcre2 development library to compile.
+
+02) People using tt++ -g will need to update their character passwords.
+
+01) 
 TinTin++ 2.02.42
 ----------------
 01) %%%s would get escaped to %%s in aliases and actions, this has been changed

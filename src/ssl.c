@@ -262,7 +262,7 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 	gnutls_x509_crt_t cert, oldcert;
 	const gnutls_datum_t *cert_list;
 	unsigned int cert_list_size;
-	char *err = 0;
+	char *err = NULL;
 
 	oldcert = 0;
 
@@ -316,7 +316,12 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 		{
 			if (err)
 			{
-				sprintf(buf2, "CERTIFICATE MISMATCH, AND NEW %.*s", (BUFFER_SIZE-31), err);
+				char temp[BUFFER_SIZE];
+
+				sprintf(temp, "CERTIFICATE MISMATCH, AND NEW ");
+				strcat(temp, err);
+
+				strcpy(buf2, temp);
 			}
 			else
 			{

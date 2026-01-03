@@ -805,6 +805,7 @@ struct event_type event_table[] =
 	{    "MAP ENTER ROOM",                         0, EVENT_FLAG_MAP,      "MAP",       "entering a map room"        },
 	{    "MAP EXIT MAP",                           0, EVENT_FLAG_MAP,      "MAP",       "exiting the map"            },
 	{    "MAP EXIT ROOM",                          0, EVENT_FLAG_MAP,      "MAP",       "exiting a map room"         },
+	{    "MAP FOLLOW GLOBAL",                      0, EVENT_FLAG_MAP,      "MAP",       "global move to a map room"  },
 	{    "MAP FOLLOW MAP",                         0, EVENT_FLAG_MAP,      "MAP",       "moving to a map room"       },
 	{    "MAP LOCATION",                           0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },
 	{    "MAP LONG-CLICKED ",                      0, EVENT_FLAG_MOUSE,    "MOUSE",     "vt map click"               },

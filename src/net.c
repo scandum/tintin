@@ -395,7 +395,7 @@ int read_buffer_mud(struct session *ses)
 	}
 	else
 #endif
-	size = read(ses->socket, buffer, BUFFER_SIZE - 1);
+	size = read(ses->socket, buffer, BUFFER_SIZE - 1000);
 
 	if (size <= 0)
 	{
@@ -503,10 +503,6 @@ void readmud(struct session *ses)
 
 		if (next_line)
 		{
-			if (next_line - line >= BUFFER_SIZE / 3)
-			{
-				next_line = &line[BUFFER_SIZE / 3]; // Not ideal. Shorten too long lines.
-			}
 			*next_line++ = 0;
 		}
 		else
@@ -516,18 +512,16 @@ void readmud(struct session *ses)
 				break;
 			}
 
-			len = strlen(line);
-
-			if (strlen(line) > BUFFER_SIZE / 3)
+			if (strlen(line) > BUFFER_SIZE / 2 - 2)
 			{
-				len = BUFFER_SIZE / 3;
+				len = BUFFER_SIZE / 2 - 2;
 
 				next_line = &line[len];
 
 				*next_line++ = 0;
 			}
 
-			if (str_len(ses->more_output) < BUFFER_SIZE / 3)
+			if (str_len(ses->more_output) < BUFFER_SIZE / 2)
 			{
 				if (!HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
 				{

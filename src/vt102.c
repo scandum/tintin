@@ -1186,6 +1186,17 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 				ses->cur_row = atoi(data);
 				break;
 
+			case 'n':
+/*				if (real == 0)
+				{
+					if (str[2] == '6')
+					{
+						check_all_events(ses, EVENT_FLAG_VT100, 0, 2, "VT100 CPR", ntos(ses->cur_row), ntos(ses->cur_col));
+						telnet_printf(ses, -1, "\e[%d;%dR", ses->cur_row, ses->cur_col);
+					}
+				}*/
+				break;
+
 			case 'r':
 				if (sscanf(data, "%d;%d", &ses->split->top_row, &ses->split->bot_row) != 2)
 				{
@@ -1204,8 +1215,16 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 				break;
 
 			case 's':
-				ses->sav_row = ses->cur_row;
-				ses->sav_col = ses->cur_col;
+				if (skip == 2)
+				{
+					ses->sav_row = ses->cur_row;
+					ses->sav_col = ses->cur_col;
+				}
+				else
+				{
+					ses->cur_row = 1;
+					ses->cur_col = 1;
+				}
 				break;
 
 			case 'u':
@@ -1293,21 +1312,24 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 							break;
 
 						case 'c':
-							check_all_events(ses, EVENT_FLAG_VT100, 0, 1, "VT100 DA", ntos(val[0]));
-							pop_call();
-							return len + 1;
+							if (check_all_events(ses, EVENT_FLAG_VT100, 0, 1, "CATCH VT100 DA", ntos(val[0])))
+							{
+								pop_call();
+								return len + 1;
+							}
+							goto end;
 
 						case 'n':
 							if (val[0] == 5)
 							{
-								check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "VT100 DSR");
+								if (!check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "CATCH VT100 DSR"))
+								{
+									telnet_printf(ses, 4, "\e[0n");
+								}
+								pop_call();
+								return len + 1;
 							}
-							if (val[0] == 6)
-							{
-								check_all_events(ses, EVENT_FLAG_VT100, 0, 2, "VT100 CPR", ntos(gtd->screen->cols), ntos(gtd->screen->rows));
-							}
-							pop_call();
-							return len + 1;
+							goto end;
 
 						case 'r':
 							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 2, "CATCH VT100 SCROLL REGION", ntos(val[0]), ntos(val[1])))
@@ -1388,10 +1410,22 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 							}
 							goto end;
 
-						case 'Z':
-							check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "VT100 DECID");
-							pop_call();
-							return len + 1;
+						case 't':
+							if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 1, "CATCH VT100 XTWINOPS", ntos(val[0])))
+							{
+								pop_call();
+								return len + 1;
+							}
+							if (val[0] == 16)
+							{
+								SET_BIT(gtd->flags, TINTIN_FLAG_REPORTCSIT);
+							}
+							if (val[0] == 18)
+							{
+								telnet_printf(ses, -1, "\e[8;%d;%dt", gtd->screen->rows, gtd->screen->cols);
+							}
+							goto end;
+
 
 						default:
 							goto end;
@@ -1470,6 +1504,15 @@ int catch_vt102_codes(struct session *ses, unsigned char *str, int cplen)
 				}
 			}
 			break;
+
+		case 'Z':
+			if (check_all_events(ses, EVENT_FLAG_VT100, 0, 0, "CATCH VT100 DECID"))
+			{
+				pop_call();
+				return 2;
+			}
+			break;
+
 	}
 
 	end:

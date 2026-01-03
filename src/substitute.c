@@ -885,7 +885,26 @@ int color_gradient(char *pti, int min, int max)
 
 	if (pti[0] == '<' && pti[4] == '>' && pti[5] == '<' && pti[9] == '>')
 	{
-//		if (pti[1] >= 'A' && pti[1] <= 'F' && pti[2] >= 'A' && pti[2] <= 'F' && pti[3] >= 'A' && pti[3] <= 'F')
+		if (pti[1] == 'g' && pti[2] >= '0' && pti[2] <= '2' && pti[3] >= '0' && pti[3] <= '9')
+		{
+			if (pti[6] == 'g' && pti[7] >= '0' && pti[7] <= '2' && pti[8] >= '0' && pti[8] <= '9')
+			{
+				int bot = (pti[2] - '0') * 10 + pti[3] - '0';
+				int top = (pti[7] - '0') * 10 + pti[8] - '0';
+
+				cap = bot + (top - bot) * min / max;
+
+				if (cap < 0 || cap > 23)
+				{
+					return 0;
+				}
+				pti[7] = '0' + cap / 10;
+				pti[8] = '0' + cap % 10;
+
+				return 1;
+			}
+		}
+				
 		if (pti[1] >= 'a' && pti[1] <= 'f' && pti[2] >= 'a' && pti[2] <= 'f' && pti[3] >= 'a' && pti[3] <= 'f')
 		{
 			if (pti[6] >= 'a' && pti[6] <= 'f' && pti[7] >= 'a' && pti[7] <= 'f' && pti[8] >= 'a' && pti[8] <= 'f')
@@ -1048,10 +1067,11 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 	temp   = str_alloc_stack(0);
 	buf    = str_alloc_stack(0);
-	buffer = str_alloc_stack(0);
+
+	buffer = (string == result) ? str_alloc_stack(0) : result;
 
 	pti = string;
-	pto = out = (string == result) ? buffer : result;
+	pto = out = buffer;
 
 	DEL_BIT(flags_neol, SUB_EOL|SUB_LNF);
 
@@ -1064,9 +1084,16 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 			continue;
 		}
 
+		if (pto - buffer > BUFFER_SIZE - 1000)
+		{
+			pto += sprintf(pto, "[BUFFER OVERFLOW]");
+			goto eol;
+		}
+
 		switch (*pti)
 		{
 			case '\0':
+				eol:
 				if (HAS_BIT(flags, SUB_EOL))
 				{
 					if (HAS_BIT(ses->telopts, TELOPT_FLAG_CR|TELOPT_FLAG_LF))
@@ -1105,16 +1132,9 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				if (string == result)
 				{
 					strcpy(result, buffer);
-
-					pop_call();
-					return pto - buffer;
 				}
-				else
-				{
-					pop_call();
-					return pto - result;
-				}
-				break;
+				pop_call();
+				return pto - buffer;
 
 			case '@':
 				if (HAS_BIT(flags, SUB_FUN) && !HAS_BIT(ses->list[LIST_FUNCTION]->flags, LIST_FLAG_IGNORE))

@@ -589,7 +589,7 @@ int check_key(char *input, int len)
 					return TRUE;
 				}
 
-				if (is_digit(gtd->macro_buf[2]))
+				if (is_digit(gtd->macro_buf[2]) || gtd->macro_buf[2] == '?' || gtd->macro_buf[2] == '>')
 				{
 					cnt = input[0] = 0;
 					memset(val, 0, sizeof(val));
@@ -600,8 +600,9 @@ int check_key(char *input, int len)
 					{
 						if (cnt > 5)
 						{
-							pop_call();
-							return FALSE;
+							cnt = 5;
+//							pop_call();
+//							return FALSE;
 						}
 
 						if (is_digit(gtd->macro_buf[len]))
@@ -624,6 +625,7 @@ int check_key(char *input, int len)
 										continue;
 									}
 									break;
+
 								case ';':
 									val[cnt++] = get_number(gtd->ses, input);
 									input[0] = 0;
@@ -640,15 +642,17 @@ int check_key(char *input, int len)
 									input[0] = 0;
 									break;
 
-								case 'w':
-									rqlp_handler(val[0], val[1], val[2], val[3]);
-									gtd->macro_buf[0] = 0;
-									pop_call();
-									return TRUE;
+								case '?':
+								case '>':
+									if (len != 2)
+									{
+										pop_call();
+										return FALSE;
+									}
+									break;
 
-								case 't':
-									val[cnt++] = get_number(gtd->ses, input);
-									csit_handler(val[0], val[1], val[2]);
+								case 'c':
+									telnet_printf(gtd->ses, -1, "%.*s", len + 1, gtd->macro_buf);
 									gtd->macro_buf[0] = 0;
 									pop_call();
 									return TRUE;
@@ -698,8 +702,29 @@ int check_key(char *input, int len)
 									}
 									pop_call();
 									return FALSE;
-										
-									
+
+								case 't':
+									val[cnt++] = get_number(gtd->ses, input);
+									csit_handler(val[0], val[1], val[2]);
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
+								case 'w':
+									rqlp_handler(val[0], val[1], val[2], val[3]);
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
+								case 'R':
+									if (!check_all_events(gtd->ses, EVENT_FLAG_VT100, 0, 2, "CATCH VT100 CPR", ntos(val[0]), ntos(val[1])))
+									{
+										telnet_printf(gtd->ses, -1, "\e[%d;%dR", val[0], val[1]);
+									}
+									gtd->macro_buf[0] = 0;
+									pop_call();
+									return TRUE;
+
 								default:
 									pop_call();
 									return FALSE;
@@ -742,17 +767,29 @@ int check_key(char *input, int len)
 					default:
 						for (len = 3 ; gtd->macro_buf[len] ; len++)
 						{
-							if (gtd->macro_buf[len] == '\a' || (gtd->macro_buf[len] == '\e' && gtd->macro_buf[len + 1] == '\\'))
+							if (gtd->macro_buf[len] == '\a')
 							{
 								break;
 							}
+							if (gtd->macro_buf[len] == '\e' && gtd->macro_buf[len + 1] == '\\')
+							{
+								len++;
+								break;
+							}
 						}
-						if (gtd->macro_buf[len] == 0 && len < 30)
+						if (gtd->macro_buf[len] == 0 && len < 50)
 						{
 							pop_call();
 							return TRUE;
 						}
-						print_stdout(0, 0, "\e[1;31merror: unknown osc input (%s)\n", str_convert_meta(gtd->macro_buf, TRUE));
+						if (len >= 50)
+						{
+							print_stdout(0, 0, "\e[1;31merror: unknown osc input (%s)\n", str_convert_meta(gtd->macro_buf, TRUE));
+						}
+						else
+						{
+							telnet_printf(gtd->ses, -1, "%.*s", len + 1, gtd->macro_buf);
+						}
 						gtd->macro_buf[0] = 0;
 						pop_call();
 						return TRUE;

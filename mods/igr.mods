@@ -1,5 +1,28 @@
+Jun 2025        2.02.60
+------------------------------------------------------------------------------
+cursor.c        Added #cursor flag keypad on/off option.
+
+base.c          Fixed a bug in the base64 conversion code. People using
+                tt++ -g will have to update their character passwords.
+
+regex.c         Upgraded from pcre1 to pcre2. This change requires installing
+                pcre2 devel to compile from source.
+
+sort.c          Upgraded the sorting algorithm to quadsort 1.2.1.3.
+
+map.c           Added MAP FOLLOW GLOBAL event which triggers when using an
+                exit in the global exit room.
+
 Jan 2025        2.02.51
 ------------------------------------------------------------------------------
+WinTin++        You can play .wav files in WinTin++ by creating the 'sounds'
+                directory in the 'bin' directory. Wav files stored in the
+                sounds directory can be played by executing:
+                #showme {\e]440;<filename>\a\}. To avoid playing multiple
+                sounds at once you can use:
+                #showme {\e]440;<filename>:async:nostop\a\}. You can cancel
+                an async sound using #showme {\e]440\a\}.
+
 data.c          #info system will report WINTIN++ as the OS for WinTin++.
 
 parse.c         Added support for multiple braced arguments to the repeat

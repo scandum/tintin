@@ -31,7 +31,9 @@
 #include <zlib.h>
 #include <ctype.h>
 #include <termios.h>
-#include <pcre.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+#define PCRE2_STATIC
+#include <pcre2.h>
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>
@@ -61,8 +63,7 @@
 #include <time.h>
 #endif
 
-
-#ifdef TIME_WITH_SYS_TIME
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 
@@ -73,7 +74,7 @@
 */
 
 #ifndef BADSIG
-#define BADSIG (RETSIGTYPE (*)(int))-1
+#define BADSIG (void (*)(int))-1
 #endif
 
 
@@ -198,8 +199,8 @@
 #define HISTORY_FILE         "history.txt"
 
 #define MALLOC_SIZE                1000000
-#define STRING_SIZE                  80000
-#define BUFFER_SIZE                  40000
+#define STRING_SIZE                 100000
+#define BUFFER_SIZE                  50000
 #define INPUT_SIZE                   10000
 #define PATH_SIZE                     4096
 #define STACK_SIZE                    1000
@@ -212,7 +213,7 @@
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.51 "
+#define CLIENT_VERSION           "2.02.60 "
 
 
 #define XT_E                            0x27
@@ -628,6 +629,7 @@ enum operators
 #define TINTIN_FLAG_WINCHUPDATE       BV14
 #define TINTIN_FLAG_NOHUP             BV15 // fixes tcsetattr crashes with nohup
 #define TINTIN_FLAG_HIBERNATE         BV16
+#define TINTIN_FLAG_REPORTCSIT        BV17
 
 #define CONFIG_FLAG_AUTOPATCH         BV01
 #define CONFIG_FLAG_AUTOPROMPT        BV02
@@ -1069,7 +1071,7 @@ struct listnode
 	int                     flags;
 	union
 	{
-		pcre              * regex;      // act, alias, gag, highlight, substitute
+		pcre2_code        * regex;      // act, alias, gag, highlight, substitute
 		char              * data;       // class
 		struct room_data  * room;       // terrain
 		long long           val64;      // delay, tick, path
@@ -1164,7 +1166,7 @@ struct tintin_data
 	char                    tintin_char;
 	char                    verbatim_char;
 	char                    repeat_char;
-	int                     match[303];
+	PCRE2_SIZE              match[202];
 	char                  * vars[100];
 	char                  * cmds[100];
 	int                     args[100];
@@ -2741,6 +2743,8 @@ extern void tintin_puts3(struct session *ses, char *string, int prompt);
 extern void quadsort(void *array, size_t nmemb, size_t size, CMPFUNC *cmp);
 extern int cmp_int(const void * a, const void * b);
 extern int cmp_str(const void * a, const void * b);
+extern int cmp_list_str(const void * a, const void * b);
+extern int cmp_list_num(const void * a, const void * b);
 extern int cmp_num(const void * a, const void * b);
 
 #endif
@@ -2908,12 +2912,12 @@ DO_COMMAND(do_regexp);
 extern int substitute(struct session *ses, char *string, char *result, int flags);
 extern int match(struct session *ses, char *str, char *exp, int flags);
 extern int find(struct session *ses, char *str, char *exp, int sub, int flag);
-extern int regexp_compare(struct session *ses, pcre *regex, char *str, char *exp, int option, int flag);
+extern int regexp_compare(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
 extern int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int option);
 extern int tintin_regexp_check(struct session *ses, char *exp);
-extern int tintin_regexp(struct session *ses, pcre *pcre, char *str, char *exp, int option, int flag);
-extern pcre *regexp_compile(struct session *ses, char *exp, int option);
-extern pcre *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option);
+extern int tintin_regexp(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
+extern pcre2_code *regexp_compile(struct session *ses, char *exp, int option);
+extern pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option);
 extern void  tintin_macro_compile(char *input, char *output);
 
 #endif

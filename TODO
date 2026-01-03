@@ -1,10 +1,16 @@
+- Look into #map find clearing room symbols on rooms with a symbol length of 2-5.
+
+- #config {COMMAND ECHO} mode that echoes all commands as sent to the mud.
+
+- Look into terminal queries: OSC 1337
+
+- VT420 https://ghostty.org/docs/vt/csi/decslrm
+
 - make roomdata searchable in #map
 
 - #split 0 0 -100 -100 should do something sensible
 
 - Add blight to msdp/gmcp/mssp listing
-
-- switch to pcre2
 
 - comprehensive memory breakdown for variables/triggers/mapper/etc
 
@@ -164,8 +170,6 @@
   - look into discord api / arachnos
 
   - Add SESSIONS to the list table.
-
-  - Add debugger to syntax highlighter, substitution highlighing, 256 color support, and variable expansion.
 
   - add packets patched counter
 

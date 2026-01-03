@@ -1345,7 +1345,23 @@ DO_CURSOR(cursor_flag)
 		return;
 	}
 
-	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|EOL|INSERT} {ON|OFF}");
+	if (is_abbrev(arg1, "KEYPAD"))
+	{
+		if (!strcasecmp(arg2, "ON"))
+		{
+			print_stdout(0, 0, "\e=");
+		}
+		else if (!strcasecmp(arg2, "OFF"))
+		{
+			print_stdout(0, 0, "\e>");
+		}
+		else
+		{
+			show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {KEYPAD} {ON|OFF}");
+		}
+		return;
+	}
+	show_error(gtd->ses, LIST_COMMAND, "#SYNTAX: #CURSOR {FLAG} {ECHO|EOL|INSERT|KEYPAD} {ON|OFF}");
 }
 
 DO_CURSOR(cursor_get)
@@ -1551,7 +1567,10 @@ DO_CURSOR(cursor_history_find)
 
 	push_call("cursor_history_find(%s)", gtd->ses->input->buf);
 
-	check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 0, "MODIFIED INPUT");
+	if (HAS_BIT(gtd->ses->event_flags, EVENT_FLAG_INPUT))
+	{
+		check_all_events(gtd->ses, EVENT_FLAG_INPUT, 0, 0, "MODIFIED INPUT");
+	}
 
 	if (!HAS_BIT(gtd->ses->input->flags, INPUT_FLAG_HISTORYSEARCH))
 	{

@@ -142,6 +142,7 @@ int decompress_data(char *in, size_t size_in, char *out, size_t size_out)
 int str_to_base64(char *in, char *out, size_t size)
 {
 	char *pto;
+	unsigned char *uin = (unsigned char *) in;
 	int cnt;
 
 	push_call("str_to_base64(%p,%p,%zu)",in,out,size);
@@ -150,24 +151,24 @@ int str_to_base64(char *in, char *out, size_t size)
 
 	for (cnt = 0 ; cnt + 3 <= size ; cnt += 3)
 	{
-		*pto++ = base64_table[(unsigned char) in[cnt + 0] % 64];
-		*pto++ = base64_table[(unsigned char) in[cnt + 0] / 64 + (unsigned char) in[cnt + 1] % 16 * 4];
-		*pto++ = base64_table[(unsigned char) in[cnt + 1] / 16 + (unsigned char) in[cnt + 2] % 4 * 16];
-		*pto++ = base64_table[(unsigned char) in[cnt + 2] /  4];
+		*pto++ = base64_table[uin[cnt + 0] / 4];
+		*pto++ = base64_table[uin[cnt + 0] % 4 * 16 + uin[cnt + 1] / 16];
+		*pto++ = base64_table[uin[cnt + 1] % 16 * 4 + uin[cnt + 2] / 64];
+		*pto++ = base64_table[uin[cnt + 2] % 64];
 	}
 
 	switch (size - cnt)
 	{
 		case 1:
-			*pto++ = base64_table[(unsigned char) in[cnt + 0] % 64];
-			*pto++ = base64_table[(unsigned char) in[cnt + 0] / 64];
+			*pto++ = base64_table[uin[cnt + 0] / 4];
+			*pto++ = base64_table[uin[cnt + 0] % 4 * 16];
 			*pto++ = '=';
 			*pto++ = '=';
 			break;
 		case 2:
-			*pto++ = base64_table[(unsigned char) in[cnt + 0] % 64];
-			*pto++ = base64_table[(unsigned char) in[cnt + 0] / 64 + (unsigned char) in[cnt + 1] % 16 * 4];
-			*pto++ = base64_table[(unsigned char) in[cnt + 1] / 16];
+			*pto++ = base64_table[uin[cnt + 0] / 4];
+			*pto++ = base64_table[uin[cnt + 0] % 4 * 16 + uin[cnt + 1] / 16];
+			*pto++ = base64_table[uin[cnt + 1] % 16 * 4];
 			*pto++ = '=';
 			break;
 	}
@@ -182,27 +183,28 @@ int str_to_base64(char *in, char *out, size_t size)
 int base64_to_str(char *in, char *out, size_t size)
 {
 	char *pto;
+	unsigned char *uin = (unsigned char *) in;
 	int cnt;
 
 	pto = out;
 
 	for (cnt = 0 ; cnt + 4 <= size ; cnt += 4)
 	{
-		*pto++ = str64_table[(unsigned char) in[cnt + 0]] + str64_table[(unsigned char) in[cnt + 1]] % 4 * 64;
+		*pto++ = str64_table[uin[cnt + 0]] * 4 + str64_table[uin[cnt + 1]] / 16;
 
 		if (in[cnt + 1] == '=')
 		{
 			break;
 		}
 
-		*pto++ = str64_table[(unsigned char) in[cnt + 1]] / 4 + str64_table[(unsigned char) in[cnt + 2]] % 16 * 16;
+		*pto++ = str64_table[uin[cnt + 1]] % 16 * 16 + str64_table[uin[cnt + 2]] / 4;
 
 		if (in[cnt + 2] == '=')
 		{
 			break;
 		}
 
-		*pto++ = str64_table[(unsigned char) in[cnt + 2]] / 16 + str64_table[(unsigned char) in[cnt + 3]] * 4;
+		*pto++ = str64_table[uin[cnt + 2]] % 4 * 64 + str64_table[uin[cnt + 3]];
 	}
 	*pto++ = 0;
 

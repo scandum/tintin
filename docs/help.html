@@ -700,6 +700,7 @@ Related</span><span style='color:#AAA'>: <a href='#PORT'>port</a>
 </span><span style='color:#AAA'>         EOL         end of line character(s)
          ECHO        local echo
          OVERTYPE    overtype mode
+         KEYPAD      keypad mode
 
          </span><span style='color:#FFF'>#cursor macro
 
@@ -1215,7 +1216,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>MAP EXIT ROOM [VNUM]
 </span><span style='color:#AAA'>           %0 old vnum  %1 new vnum %2 direction
 
-         </span><span style='color:#FFF'>MAP FOLLOW MAP
+         </span><span style='color:#FFF'>MAP FOLLOW MAP, MAP FOLLOW GLOBAL
 </span><span style='color:#AAA'>           %0 old vnum  %1 new vnum  %2 exit name
 
          </span><span style='color:#FFF'>MAP REGION &lt;MOUSE&gt;, MAP ROOM &lt;MOUSE&gt;
@@ -1309,6 +1310,7 @@ Command</span><span style='color:#AAA'>: #delay </span><span style='color:#FFF'>
          </span><span style='color:#FFF'>WRITE ERROR            </span><span style='color:#AAA'>%0 filename %1 error message
          </span><span style='color:#FFF'>WRITE FILE             </span><span style='color:#AAA'>%0 filename
 
+         </span><span style='color:#FFF'>RECEIVED ERROR         </span><span style='color:#AAA'>%0 message
          </span><span style='color:#FFF'>SYSTEM CRASH           </span><span style='color:#AAA'>%0 message
          </span><span style='color:#FFF'>SYSTEM ERROR           </span><span style='color:#AAA'>%0 name %1 system msg %2 error %3 error msg
          </span><span style='color:#FFF'>UNKNOWN COMMAND        </span><span style='color:#AAA'>%0 raw text
@@ -1991,7 +1993,8 @@ Example</span><span style='color:#AAA'>: #high </span><span style='color:#FFF'>{
 </span><span style='color:#FF5'>         KEYPAD
 
 </span><span style='color:#AAA'>         When TinTin++ starts up it sends &bsol;e= to the terminal to enable the
-         terminal's application keypad mode, which can be disabled using #show {&bsol;e&gt;}
+         terminal's application keypad mode, which can be disabled using
+         #cursor flag keypad off.
 
 </span><span style='color:#FFF'>      Configuration A           Configuration B           Configuration C
 </span><span style='color:#0AA'> ╭─────┬─────┬─────┬─────╮ ╭─────┬─────┬─────┬─────╮ ╭─────┬─────┬─────┬─────╮

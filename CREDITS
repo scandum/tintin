@@ -13,12 +13,12 @@ Special thanks to the following
 1998-1999 Sverre Norrman           see mods/1.8.mods Original #function code
 1998-1999 Robert Ellsworth         see mods/1.8.mods
 1999-2001 Davin Chan               see mods/1.8.mods
-2004-2019 Igor van den Hoven       see mods/igr.mods
+2004-2026 Igor van den Hoven       see mods/igr.mods
           Bryan Turner                               Map search enhancement
           David Champion                             Solaris forkpty fix
           Ben Love                                   Tab enhancements
           Adam Borowski                              SSL implementation
-
+          Jimmy0699 & AdeBlanche                     PCRE2 upgrade
 
 
 Beta Testers

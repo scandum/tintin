@@ -623,7 +623,6 @@ DO_ARRAY(array_indexate)
 		return ses;
 	}
 
-#if 1
 	if (list->root->used)
 	{
 		for (cnt = 0 ; cnt < list->root->used ; cnt++)
@@ -646,32 +645,6 @@ DO_ARRAY(array_indexate)
 			str_cpy(&list->root->list[cnt]->arg2, list->root->list[cnt]->root->list[index]->arg2);
 		}
 	}
-#else
-	if (list->root->used)
-	{
-		int index = search_index_list(list->root->list[0]->root, arg1, "");
-
-		if (index == -1)
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: FAILED TO FIND NEST {%s}.", var, arg1);
-
-			return ses;
-		}
-
-		for (cnt = 0 ; cnt < list->root->used ; cnt++)
-		{
-			if (list->root->list[cnt]->root && list->root->list[cnt]->root->used > index)
-			{
-				str_cpy(&list->root->list[cnt]->arg2, list->root->list[cnt]->root->list[index]->arg2);
-			}
-			else
-			{
-				show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} INDEXATE: ABORTED DUE TO INVALID INDEX {%s}.", var, list->root->list[cnt]->arg1);
-				break;
-			}
-		}
-	}
-#endif
 	return ses;
 }
 
@@ -734,71 +707,21 @@ DO_ARRAY(array_numerate)
 
 DO_ARRAY(array_order)
 {
-	int cnt, val, len;
-	char **arg2_buffer;
-
 	array_add(ses, list, arg, var, arg1, arg2);
 
 	if (list->root->used > 1)
 	{
-/*		if (*list->root->list[0]->arg2 == 0)
+		if (list->root->list[0]->root && *list->root->list[0]->arg2 == 0)
 		{
 			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} ORDER: LIST IS NOT INDEXED.", var);
 
 			return ses;
 		}
-*/
-		if (list->root->list[0]->root)
-		{
-			struct listroot **root_buffer;
+		quadsort(list->root->list, list->root->used, sizeof(size_t), cmp_list_num);
 
-			root_buffer = malloc(list->root->used * sizeof(struct listroot *));
-			arg2_buffer = malloc(list->root->used * sizeof(char *));
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				len = str_len(list->root->list[cnt]->arg2);
-
-				root_buffer[cnt] = list->root->list[cnt]->root;
-				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
-
-				str_resize(&arg2_buffer[cnt], 10);
-
-				sprintf(arg2_buffer[cnt] + len + 1, "%x", cnt);
-			}
-
-			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_num);
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				val = hex_number_32bit(arg2_buffer[cnt] + str_len(arg2_buffer[cnt]) + 1);
-
-				list->root->list[cnt]->root = root_buffer[val];
-				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
-			}
-
-			free(arg2_buffer);
-			free(root_buffer);
-		}
-		else
-		{
-			arg2_buffer = malloc(list->root->used * sizeof(char *));
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
-			}
-
-			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_num);
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
-			}
-
-			free(arg2_buffer);
-		}
+		array_numerate(ses, list, arg, var, arg1, arg2);
 	}
+
 	return ses;
 }
 
@@ -967,8 +890,6 @@ DO_ARRAY(array_set)
 		}
 		set_nest_node(list->root, list->root->list[index]->arg1, "%s", arg2);
 
-//		str_cpy(&list->root->list[index]->arg2, arg2);
-
 		return ses;
 	}
 
@@ -1002,70 +923,19 @@ DO_ARRAY(array_shuffle)
 
 DO_ARRAY(array_sort)
 {
-	int cnt, val, len;
-	char **arg2_buffer;
-
 	array_add(ses, list, arg, var, arg1, arg2);
 
 	if (list->root->used > 1)
 	{
-		if (*list->root->list[0]->arg2 == 0)
+		if (list->root->list[0]->root && *list->root->list[0]->arg2 == 0)
 		{
 			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} SORT: LIST IS NOT INDEXED.", var);
 
 			return ses;
 		}
+		quadsort(list->root->list, list->root->used, sizeof(size_t), cmp_list_str);
 
-		if (list->root->list[0]->root)
-		{
-			struct listroot **root_buffer;
-
-			root_buffer = malloc(list->root->used * sizeof(struct listroot *));
-			arg2_buffer = malloc(list->root->used * sizeof(char *));
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				len = str_len(list->root->list[cnt]->arg2);
-
-				root_buffer[cnt] = list->root->list[cnt]->root;
-				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
-
-				str_resize(&arg2_buffer[cnt], 10);
-
-				sprintf(arg2_buffer[cnt] + len + 1, "%x", cnt);
-			}
-
-			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_str);
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				val = hex_number_32bit(arg2_buffer[cnt] + str_len(arg2_buffer[cnt]) + 1);
-
-				list->root->list[cnt]->root = root_buffer[val];
-				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
-			}
-
-			free(arg2_buffer);
-			free(root_buffer);
-		}
-		else
-		{
-			arg2_buffer = malloc(list->root->used * sizeof(char *));
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				arg2_buffer[cnt] = list->root->list[cnt]->arg2;
-			}
-
-			quadsort(arg2_buffer, list->root->used, sizeof(char *), cmp_str);
-
-			for (cnt = 0 ; cnt < list->root->used ; cnt++)
-			{
-				list->root->list[cnt]->arg2 = arg2_buffer[cnt];
-			}
-
-			free(arg2_buffer);
-		}
+		array_numerate(ses, list, arg, var, arg1, arg2);
 	}
 	return ses;
 }

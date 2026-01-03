@@ -20,7 +20,7 @@
 
 DEFINES = -D_GNU_SOURCE @DEFS@
 
-CC = @CC@ -g -Wall
+CC = @CC@ -g -O3 -Wall
 MAKE = @MAKE@
 
 prefix = @prefix@

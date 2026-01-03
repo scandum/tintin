@@ -1294,6 +1294,13 @@ void csit_handler(int ind, int var1, int var2)
 {
 //	tintin_printf2(gtd->ses, "csit_handler(%d,%d,%d)",ind,var1,var2);
 
+	if (ind == 6 && HAS_BIT(gtd->flags, TINTIN_FLAG_REPORTCSIT))
+	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_REPORTCSIT);
+
+		telnet_printf(gtd->ses, -1, "\e[%d;%d;%dt", ind, var1, var2);
+	}
+
 	switch (ind)
 	{
 		case 1:
@@ -1357,6 +1364,9 @@ void csit_handler(int ind, int var1, int var2)
 			check_all_events(NULL, EVENT_FLAG_SCREEN, 0, 2, "SCREEN DESKTOP SIZE", ntos(var1), ntos(var2));
 			msdp_update_all("SCREEN_DESKTOP_ROWS", "%d", gtd->screen->desk_rows);
 			msdp_update_all("SCREEN_DESKTOP_COLS", "%d", gtd->screen->desk_cols);
+			break;
+		default:
+			printf("debug: unrecognized csit: %d %d %d\n", ind, var1, var2);
 			break;
 	}
 }

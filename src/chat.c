@@ -471,7 +471,7 @@ DO_CHAT(chat_call)
 
 		return;
 	}
-	snprintf(buf[i], 200, "{%s} {%s}", arg1, arg2);
+	sprintf(buf[i], "{%s} {%s}", arg1, arg2);
 
 	pthread_create(&thread, NULL, threaded_chat_call, (void *) buf[i]);
 

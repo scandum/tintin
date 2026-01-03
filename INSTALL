@@ -13,7 +13,7 @@ tt++
 
 You might need to install the following libraries:
 
-  pcre: pcre.org
+ pcre2: pcre.org
   zlib: zlib.net
 gnutls: gnutls.org
 
@@ -35,11 +35,12 @@ OS doesn't use one per default it's suggested to install xterm.
 STATIC LINKING
 --------------
 
-This is more so a note to myself to statically link PCRE on Cygwin.
+This is more so a note to myself to statically link PCRE2 on Cygwin.
 
-$ wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.34.tar.bz2
-$ tar xvf pcre-8.34.tar.bz2
-$ cd pcre-8.34/
-$ ./configure CC=i686-pc-mingw32-gcc CXX=i686-pc-mingw32-g++ --enable-jit --enable-unicode-properties --disable-shared
+wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.bz2
+$ tar xvf pcre2-10.44.tar.bz2
+$ cd pcre2-10.44/
+$ ./configure CC=i686-pc-mingw32-gcc CXX=i686-pc-mingw32-g++ --enable-jit --enable-unicode --disable-shared
 $ make
-$ ./configure --libdir='../pcre-8.34' --includedir='../pcre-8.34'
+$ ./configure --libdir='../pcre2-10.44' --includedir='../pcre2-10.44'
+

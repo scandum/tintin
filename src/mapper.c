@@ -621,6 +621,22 @@ char *get_exit_color(struct session *ses, int room, struct exit_data *exit)
 			pop_call();
 			return ses->map->color[MAP_COLOR_HIDE];
 		}
+		if (HAS_BIT(ses->map->room_list[exit->vnum]->flags, ROOM_FLAG_PATH) && ses->map->room_list[exit->vnum]->search_stamp == ses->map->search->stamp)
+		{
+			struct exit_data *rev_exit = ses->map->room_list[exit->vnum]->exit_grid[revdir_to_grid(exit->dir)];
+
+			if (rev_exit && ses->map->in_room == rev_exit->vnum)
+			{
+				pop_call();
+				return ses->map->color[MAP_COLOR_PATH];
+			}
+			if (rev_exit && HAS_BIT(ses->map->room_list[rev_exit->vnum]->flags, ROOM_FLAG_PATH) && ses->map->room_list[rev_exit->vnum]->search_stamp == ses->map->search->stamp)
+			{
+				pop_call();
+				return ses->map->color[MAP_COLOR_PATH];
+			}
+		}
+
 		pop_call();
 		return ses->map->color[MAP_COLOR_EXIT];
 	}
@@ -1819,11 +1835,13 @@ int follow_map(struct session *ses, char *argument)
 {
 	struct room_data *room;
 	struct exit_data *exit;;
-	int in_room, vnum;
+	int last_room, in_room, vnum;
 
 	push_call("follow_map(%p,%p)",ses,argument);
 
 	room = ses->map->room_list[ses->map->in_room];
+
+	last_room = ses->map->in_room;
 
 	if (HAS_BIT(ses->map->flags, MAP_FLAG_NOFOLLOW) && ses->map->nofollow == 0)
 	{
@@ -1843,6 +1861,10 @@ int follow_map(struct session *ses, char *argument)
 
 			vnum = tunnel_void(ses, in_room, exit->vnum, exit->dir);
 
+			if (in_room == ses->map->global_vnum)
+			{
+				check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP FOLLOW GLOBAL", ntos(last_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
+			}
 			check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
 		}
 		pop_call();
@@ -1890,9 +1912,13 @@ int follow_map(struct session *ses, char *argument)
 			}
 		}
 
-		check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP FOLLOW MAP", ntos(in_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
+		if (in_room == ses->map->global_vnum)
+		{
+			check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP FOLLOW GLOBAL", ntos(last_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
+		}
+		check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP FOLLOW MAP", ntos(last_room), ntos(vnum), exit->name, ntos(ses->map->nofollow));
 
-		add_undo(ses, "%d %d %d", vnum, in_room, MAP_UNDO_MOVE);
+		add_undo(ses, "%d %d %d", vnum, last_room, MAP_UNDO_MOVE);
 
 		goto_room(ses, vnum);
 
@@ -2688,9 +2714,10 @@ char *draw_room(struct session *ses, struct room_data *room, int line, int x, in
 
 			if (symsize > 1)
 			{
-				strcpy(room_symbol, " ");
-				symsize = 1;
-				symbol_color = "";
+//				strcpy(room_symbol, " ");
+//				symsize = 1;
+//				symbol_color = "";
+				symbol_color = ses->map->color[MAP_COLOR_PATH];
 			}
 		}
 		else if (*room->color)
@@ -3958,7 +3985,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->name->regex)
 	{
-		free(search->name->regex);
+		pcre2_code_free(search->name->regex);
 		search->name->regex = NULL;
 	}
 
@@ -3966,7 +3993,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->name->regex = tintin_regexp_compile(ses, search->name, buf, PCRE_ANCHORED);
+		search->name->regex = tintin_regexp_compile(ses, search->name, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN); // exits
@@ -4039,7 +4066,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->desc->regex)
 	{
-		free(search->desc->regex);
+		pcre2_code_free(search->desc->regex);
 		search->desc->regex = NULL;
 	}
 
@@ -4047,7 +4074,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->desc->regex = tintin_regexp_compile(ses, search->desc, buf, PCRE_ANCHORED);
+		search->desc->regex = tintin_regexp_compile(ses, search->desc, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
@@ -4056,7 +4083,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->area->regex)
 	{
-		free(search->area->regex);
+		pcre2_code_free(search->area->regex);
 		search->area->regex = NULL;
 	}
 
@@ -4064,7 +4091,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->area->regex = tintin_regexp_compile(ses, search->area, buf, PCRE_ANCHORED);
+		search->area->regex = tintin_regexp_compile(ses, search->area, buf, PCRE2_ANCHORED);
 	}
 
 	// note
@@ -4073,7 +4100,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->note->regex)
 	{
-		free(search->note->regex);
+		pcre2_code_free(search->note->regex);
 		search->note->regex = NULL;
 	}
 
@@ -4081,7 +4108,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->note->regex = tintin_regexp_compile(ses, search->note, buf, PCRE_ANCHORED);
+		search->note->regex = tintin_regexp_compile(ses, search->note, buf, PCRE2_ANCHORED);
 	}
 
 	// terrain
@@ -4090,7 +4117,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	if (search->terrain->regex)
 	{
-		free(search->terrain->regex);
+		pcre2_code_free(search->terrain->regex);
 		search->terrain->regex = NULL;
 	}
 
@@ -4098,7 +4125,7 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 	{
 		strcat(buf, "$");
 
-		search->terrain->regex = tintin_regexp_compile(ses, search->terrain, buf, PCRE_ANCHORED);
+		search->terrain->regex = tintin_regexp_compile(ses, search->terrain, buf, PCRE2_ANCHORED);
 	}
 
 	// flag
@@ -7306,7 +7333,7 @@ DO_MAP(map_map)
 			case 's':
 			case 'S':
 				strcpy(arg3, "SAVE");
-				strcpy(arg4, "SAVE");
+				strcpy(arg4, "NULL");
 				break;
 
 			case 'v':
@@ -7573,6 +7600,7 @@ DO_MAP(map_map)
 			break;
 
 		case 'S':
+			strcpy(arg3, "");
 			str_cpy(&gtd->buf, arg1);
 			break;
 
