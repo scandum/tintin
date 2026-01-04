@@ -27,7 +27,7 @@ parts:
     build-packages:
       - gcc
       - make
-      - libpcre3-dev
+      - libpcre2-dev
       - zlib1g-dev
       - gnutls-dev
     override-build: |
