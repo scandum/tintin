@@ -616,7 +616,11 @@ void process_more_output(struct session *ses, char *append, int prompt)
 	str_cpy(&ses->more_output, "");
 	ses->check_output = 0;
 
+	gtd->mud_output_line = line;
+
 	process_one_line(ses, line, prompt);
+
+	gtd->mud_output_line = gtd->mud_output_buf + gtd->mud_output_len;
 
 	if (readmud == 0)
 	{

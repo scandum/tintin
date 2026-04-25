@@ -1634,7 +1634,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '%':
-				if (HAS_BIT(flags, SUB_ARG) && (is_digit(pti[1]) || pti[1] == '%'))
+				if (HAS_BIT(flags, SUB_ARG) && ((is_digit(pti[1]) || pti[1] == '%') || pti[1] == '~'))
 				{
 					if (pti[1] == '%')
 					{
@@ -1651,6 +1651,11 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							*pto++ = *pti++;
 						}
 					}
+                    else if (pti[1] == '~')
+                    {
+                        pto += sprintf(pto, "%s", gtd->mud_output_line);
+					    pti += 2;
+                    }
 					else
 					{
 						i = is_digit(pti[2]) ? (pti[1] - '0') * 10 + pti[2] - '0' : pti[1] - '0';
