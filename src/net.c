@@ -662,7 +662,7 @@ void process_one_line(struct session *ses, char *linebuf, int prompt)
 	{
 		sprintf(temp, "%s%s%s", ses->color_patch, linebuf, "\e[0m");
 
-		get_color_codes(ses->color_patch, linebuf, ses->color_patch, GET_ALL);
+		get_color_codes(ses, ses->color_patch, linebuf, ses->color_patch, GET_ALL);
 
 		strcpy(linebuf, temp);
 	}

@@ -358,7 +358,7 @@ char *str_ins_str(struct session *ses, char **str, char *ins, int str_start, int
 
 	*old = (*str)[raw_end] = 0;
 
-	get_color_codes(old, *str, old, GET_ALL);
+	get_color_codes(ses, old, *str, old, GET_ALL);
 
 	(*str)[raw_end] = tmp;
 

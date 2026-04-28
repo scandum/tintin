@@ -736,7 +736,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 				*ptm = 0;
 
-				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
+				get_color_codes(ses, gtd->color_reset, pto, gtd->color_reset, GET_ALL);
 
 				cat_sprintf(output, "%s%s%s\e[0m%s", pto, color, plain, gtd->color_reset);
 
@@ -999,7 +999,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 
 				*ptm = 0;
 
-				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
+				get_color_codes(ses, gtd->color_reset, pto, gtd->color_reset, GET_ALL);
 
 				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
 
@@ -1090,7 +1090,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 
 				*ptm = 0;
 
-				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
+				get_color_codes(ses, gtd->color_reset, pto, gtd->color_reset, GET_ALL);
 
 				substitute(ses, temp, subst, SUB_VAR|SUB_FUN|SUB_COL|SUB_ESC);
 

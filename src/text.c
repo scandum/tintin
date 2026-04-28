@@ -166,7 +166,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 		{
 			if (ses->color)
 			{
-				get_color_codes(color, pti, color, GET_ONE);
+				get_color_codes(ses, color, pti, color, GET_ONE);
 
 				if (HAS_BIT(flags, WRAP_FLAG_DISPLAY))
 				{
@@ -357,7 +357,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 		{
 			if (ses->color)
 			{
-				get_color_codes(color, pti, color, GET_ONE);
+				get_color_codes(ses, color, pti, color, GET_ONE);
 
 				for (i = 0 ; i < skip ; i++)
 				{

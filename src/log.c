@@ -36,6 +36,8 @@ DO_LOG(log_off);
 DO_LOG(log_remove);
 DO_LOG(log_timestamp);
 
+static void write_single_log(struct session *ses, struct log_data *log_ptr, char *txt, FILE *file, int flags);
+
 typedef void LOG (struct session *ses, char *arg, char *arg1, char *arg2);
 
 struct log_type
@@ -100,35 +102,82 @@ DO_COMMAND(do_log)
 
 DO_LOG(log_append)
 {
-	if (ses->log->file)
-	{
-		fclose(ses->log->file);
+	char arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char name[BUFFER_SIZE], color[BUFFER_SIZE], filename[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC|SUB_COL);
+	arg = sub_arg_in_braces(ses, arg, arg4, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC|SUB_COL);
+
+	if (*arg3 == 0) {
+		strcpy(name, "default");
+		strcpy(color, "");
+		strcpy(filename, arg2);
+	} else if (*arg4 == 0) {
+		strcpy(name, arg2);
+		strcpy(color, "");
+		strcpy(filename, arg3);
+	} else {
+		strcpy(name, arg2);
+		strcpy(color, arg3);
+		strcpy(filename, arg4);
 	}
 
-	if ((ses->log->file = fopen(arg2, "a")))
+	struct log_data *log_ptr, *log_tail = NULL;
+	for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+		if (!strcmp(log_ptr->name, name)) break;
+		log_tail = log_ptr;
+	}
+
+	if (!log_ptr) {
+		log_ptr = calloc(1, sizeof(struct log_data));
+		RESTRING(log_ptr->name, name);
+		RESTRING(log_ptr->stamp_strf, "");
+		LINK(log_ptr, ses->log, log_tail);
+	}
+
+	if (log_ptr->file && log_ptr->file != (FILE *)1)
 	{
-		SET_BIT(ses->log->mode, LOG_FLAG_APPEND);
+		fclose(log_ptr->file);
+	}
 
-		RESTRING(ses->log->name, arg2);
+	if ((log_ptr->file = fopen(filename, "a")))
+	{
+		SET_BIT(log_ptr->mode, LOG_FLAG_APPEND);
 
-		logheader(ses, ses->log->file, ses->log->mode);
+		RESTRING(log_ptr->line_name, filename);
+		RESTRING(log_ptr->color_target, color);
 
-		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", arg2, ftell(ses->log->file));
+		logheader(ses, log_ptr->file, log_ptr->mode | (ses->log ? ses->log->mode : 0));
+
+		if (*color) {
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' (COLOR FILTER ACTIVE) FILESIZE: %ld", filename, ftell(log_ptr->file));
+		} else {
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' FILESIZE: %ld", filename, ftell(log_ptr->file));
+		}
+
+		if (!ses->log->file) ses->log->file = (FILE *)1;
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s}: COULDN'T OPEN FILE.", arg1, arg2);
+		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s}: COULDN'T OPEN FILE.", arg1, filename);
 	}
 }
 
 DO_LOG(log_info)
 {
-	tintin_printf2(ses, "#LOG INFO: FILE  = %s", ses->log->file ? ses->log->name : "");
-	tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(ses->log->mode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
-	tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(ses->log->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) ? "PLAIN" : HAS_BIT(ses->log->mode, LOG_FLAG_RAW) ? "RAW" : "UNSET");
-	tintin_printf2(ses, "#LOG INFO: LINE  = %s", ses->log->line_file ? ses->log->line_name : "");
-	tintin_printf2(ses, "#LOG INFO: NEXT  = %s", ses->log->next_file ? ses->log->next_name : "");
-	tintin_printf2(ses, "#LOG INFO: STAMP = %s", ses->log->stamp_strf);
+	struct log_data *log_ptr;
+	for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+		if (log_ptr->file && log_ptr->file != (FILE *)1) {
+			tintin_printf2(ses, "#LOG INFO: ID    = %s", log_ptr->name);
+			tintin_printf2(ses, "#LOG INFO: FILE  = %s", log_ptr->line_name);
+			tintin_printf2(ses, "#LOG INFO: LEVEL = %s", HAS_BIT(log_ptr->mode, LOG_FLAG_LOW) ? "LOW" : "HIGH");
+			tintin_printf2(ses, "#LOG INFO: MODE  = %s", HAS_BIT(log_ptr->mode, LOG_FLAG_HTML) ? "HTML" : HAS_BIT(log_ptr->mode, LOG_FLAG_PLAIN) ? "PLAIN" : HAS_BIT(log_ptr->mode, LOG_FLAG_RAW) ? "RAW" : "UNSET");
+			if (log_ptr->color_target && *log_ptr->color_target) {
+				tintin_printf2(ses, "#LOG INFO: COLOR = FILTER ACTIVE");
+			}
+			tintin_printf2(ses, "#LOG INFO: STAMP = %s\n", log_ptr->stamp_strf);
+		}
+	}
 }
 
 DO_LOG(log_make)
@@ -173,41 +222,101 @@ DO_LOG(log_move)
 
 DO_LOG(log_overwrite)
 {
-	if (ses->log->file)
-	{
-		fclose(ses->log->file);
+	char arg3[BUFFER_SIZE], arg4[BUFFER_SIZE];
+	char name[BUFFER_SIZE], color[BUFFER_SIZE], filename[BUFFER_SIZE];
+
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC|SUB_COL);
+	arg = sub_arg_in_braces(ses, arg, arg4, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC|SUB_COL);
+
+	if (*arg3 == 0) {
+		strcpy(name, "default");
+		strcpy(color, "");
+		strcpy(filename, arg2);
+	} else if (*arg4 == 0) {
+		strcpy(name, arg2);
+		strcpy(color, "");
+		strcpy(filename, arg3);
+	} else {
+		strcpy(name, arg2);
+		strcpy(color, arg3);
+		strcpy(filename, arg4);
 	}
 
-	if ((ses->log->file = fopen(arg2, "w")))
+	struct log_data *log_ptr, *log_tail = NULL;
+	for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+		if (!strcmp(log_ptr->name, name)) break;
+		log_tail = log_ptr;
+	}
+
+	if (!log_ptr) {
+		log_ptr = calloc(1, sizeof(struct log_data));
+		RESTRING(log_ptr->name, name);
+		RESTRING(log_ptr->stamp_strf, "");
+		LINK(log_ptr, ses->log, log_tail);
+	}
+
+	if (log_ptr->file && log_ptr->file != (FILE *)1)
 	{
-		SET_BIT(ses->log->mode, LOG_FLAG_OVERWRITE);
+		fclose(log_ptr->file);
+	}
 
-		RESTRING(ses->log->name, arg2);
+	if ((log_ptr->file = fopen(filename, "w")))
+	{
+		SET_BIT(log_ptr->mode, LOG_FLAG_OVERWRITE);
 
-		logheader(ses, ses->log->file, ses->log->mode);
+		RESTRING(log_ptr->line_name, filename);
+		RESTRING(log_ptr->color_target, color);
 
-		show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO {%s}", arg2);
+		logheader(ses, log_ptr->file, log_ptr->mode | (ses->log ? ses->log->mode : 0));
+
+		if (*color) {
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s' (COLOR FILTER ACTIVE)", filename);
+		} else {
+			show_message(ses, LIST_COMMAND, "#LOG: LOGGING OUTPUT TO '%s'", filename);
+		}
+
+		if (!ses->log->file) ses->log->file = (FILE *)1;
 	}
 	else
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s}: COULDN'T OPEN FILE.", arg1, arg2);
+		show_error(ses, LIST_COMMAND, "#ERROR: #LOG {%s} {%s}: COULDN'T OPEN FILE.", arg1, filename);
 	}
 }
 
 DO_LOG(log_off)
 {
-	if (ses->log->file)
-	{
-		DEL_BIT(ses->log->mode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+	char name[BUFFER_SIZE];
+	if (*arg2 == 0) strcpy(name, "default");
+	else if (!strcasecmp(arg2, "ALL")) strcpy(name, "ALL");
+	else strcpy(name, arg2);
 
-		fclose(ses->log->file);
-		ses->log->file = NULL;
+	struct log_data *log_ptr, *next_log;
+	int closed_any = 0;
 
-		show_message(ses, LIST_COMMAND, "#LOG {OFF}: LOGGING TURNED OFF.");
+	for (log_ptr = ses->log; log_ptr; log_ptr = next_log) {
+		next_log = log_ptr->next;
+		if (!strcasecmp(name, "ALL") || !strcmp(log_ptr->name, name)) {
+			if (log_ptr->file && log_ptr->file != (FILE *)1) {
+				DEL_BIT(log_ptr->mode, LOG_FLAG_APPEND|LOG_FLAG_OVERWRITE);
+				fclose(log_ptr->file);
+				log_ptr->file = NULL;
+				closed_any = 1;
+				show_message(ses, LIST_COMMAND, "#LOG {OFF}: LOGGING TURNED OFF FOR '%s'.", log_ptr->name);
+			}
+		}
 	}
-	else
-	{
-		show_message(ses, LIST_COMMAND, "#LOG: LOGGING ALREADY TURNED OFF.");
+
+	if (!closed_any) {
+		show_message(ses, LIST_COMMAND, "#LOG: LOGGING ALREADY TURNED OFF FOR '%s'.", name);
+	}
+
+	if (ses->log->file == NULL) {
+		for (log_ptr = ses->log->next; log_ptr; log_ptr = log_ptr->next) {
+			if (log_ptr->file && log_ptr->file != (FILE *)1) {
+				ses->log->file = (FILE *)1;
+				break;
+			}
+		}
 	}
 }
 
@@ -227,15 +336,46 @@ DO_LOG(log_remove)
 
 DO_LOG(log_timestamp)
 {
-	RESTRING(ses->log->stamp_strf, arg2);
-	ses->log->stamp_time = 0;
+	char arg3[BUFFER_SIZE];
+	char name[BUFFER_SIZE], format[BUFFER_SIZE];
 
-	show_message(ses, LIST_COMMAND, "#LOG TIMESTAMP: FORMAT SET TO {%s}.", arg2);
+	arg = sub_arg_in_braces(ses, arg, arg3, GET_ONE, SUB_VAR|SUB_FUN|SUB_ESC|SUB_COL);
+
+	if (*arg3 == 0) {
+		strcpy(name, "ALL");
+		strcpy(format, arg2);
+	} else {
+		strcpy(name, arg2);
+		strcpy(format, arg3);
+	}
+
+	struct log_data *log_ptr;
+	int found = 0;
+
+	for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+		if (!strcasecmp(name, "ALL") || !strcmp(log_ptr->name, name)) {
+			RESTRING(log_ptr->stamp_strf, format);
+			log_ptr->stamp_time = 0;
+			found = 1;
+		}
+	}
+
+	if (found) {
+		if (!strcasecmp(name, "ALL")) {
+			show_message(ses, LIST_COMMAND, "#LOG TIMESTAMP: FORMAT SET TO {%s} FOR ALL LOGS.", format);
+		} else {
+			show_message(ses, LIST_COMMAND, "#LOG TIMESTAMP: FORMAT SET TO {%s} FOR LOG '%s'.", format, name);
+		}
+	} else {
+		show_error(ses, LIST_COMMAND, "#ERROR: #LOG TIMESTAMP: NO ACTIVE LOG NAMED '%s' FOUND.", name);
+	}
 }
 
 void init_log(struct session *ses)
 {
-	ses->log->name        = strdup("");
+	if (!ses->log) ses->log = calloc(1, sizeof(struct log_data));
+	ses->log->name        = strdup("default");
+	ses->log->color_target= strdup("");
 	ses->log->next_name   = strdup("");
 	ses->log->line_name   = strdup("");
 	ses->log->stamp_strf  = strdup("");
@@ -243,40 +383,49 @@ void init_log(struct session *ses)
 
 void free_log(struct session *ses)
 {
-	free(ses->log->name);
-	free(ses->log->next_name);
-	free(ses->log->line_name);
-	free(ses->log->stamp_strf);
-
-	free(ses->log);
+	struct log_data *log_ptr, *next_log;
+	for (log_ptr = ses->log; log_ptr; log_ptr = next_log) {
+		next_log = log_ptr->next;
+		if (log_ptr->name) free(log_ptr->name);
+		if (log_ptr->color_target) free(log_ptr->color_target);
+		if (log_ptr->next_name) free(log_ptr->next_name);
+		if (log_ptr->line_name) free(log_ptr->line_name);
+		if (log_ptr->stamp_strf) free(log_ptr->stamp_strf);
+		if (log_ptr->file && log_ptr->file != (FILE *)1) {
+			fclose(log_ptr->file);
+			log_ptr->file = NULL;
+		}
+		free(log_ptr);
+	}
+	ses->log = NULL;
 }
 
-void logit(struct session *ses, char *txt, FILE *file, int flags)
+static void write_single_log(struct session *ses, struct log_data *log_ptr, char *txt, FILE *file, int flags)
 {
 	char out[BUFFER_SIZE];
 
-	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
-
-	if (*ses->log->stamp_strf && (HAS_BIT(ses->log->mode, LOG_FLAG_STAMP) || file == ses->log->file))
+	if (log_ptr && log_ptr->stamp_strf && *log_ptr->stamp_strf && (HAS_BIT(log_ptr->mode, LOG_FLAG_STAMP) || file == log_ptr->file))
 	{
-		if (ses->log->stamp_time != gtd->time)
+		if (log_ptr->stamp_time != gtd->time)
 		{
 			struct tm timeval_tm = *localtime(&gtd->time);
 
-			ses->log->stamp_time = gtd->time;
+			log_ptr->stamp_time = gtd->time;
 
-			substitute(ses, ses->log->stamp_strf, out, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
+			substitute(ses, log_ptr->stamp_strf, out, SUB_COL|SUB_ESC|SUB_VAR|SUB_FUN);
 
-			strftime(ses->log->stamp_text, 99, out, &timeval_tm);
+			strftime(log_ptr->stamp_text, 99, out, &timeval_tm);
 		}
-		fputs(ses->log->stamp_text, file);
+		fputs(log_ptr->stamp_text, file);
 	}
 
-	if (HAS_BIT(ses->log->mode, LOG_FLAG_PLAIN) || HAS_BIT(flags, LOG_FLAG_PLAIN))
+	int mode = log_ptr ? (log_ptr->mode | (ses->log ? ses->log->mode : 0)) : flags;
+
+	if (HAS_BIT(mode, LOG_FLAG_PLAIN) || HAS_BIT(flags, LOG_FLAG_PLAIN))
 	{
 		strip_vt102_codes(txt, out);
 	}
-	else if (HAS_BIT(ses->log->mode, LOG_FLAG_HTML))
+	else if (HAS_BIT(mode, LOG_FLAG_HTML))
 	{
 		vt102_to_html(ses, txt, out);
 	}
@@ -292,6 +441,76 @@ void logit(struct session *ses, char *txt, FILE *file, int flags)
 	fputs(out, file);
 
 	fflush(file);
+}
+
+void logit(struct session *ses, char *txt, FILE *file, int flags)
+{
+	struct log_data *log_ptr;
+	char next_color[COLOR_SIZE];
+
+	push_call("logit(%p,%p,%p,%d)",ses,txt,file,flags);
+
+	int is_session_log = 0;
+	for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+		if (file == log_ptr->file && file != NULL) {
+			is_session_log = 1;
+			break;
+		}
+	}
+	
+	if (file == (FILE *)1) is_session_log = 1;
+
+	if (!is_session_log && file != NULL) {
+		write_single_log(ses, ses->log, txt, file, flags);
+	} else {
+		// Calculate the final color state at the end of the line
+		get_color_codes(NULL, ses->active_log_color, txt, next_color, GET_ALL);
+
+		for (log_ptr = ses->log; log_ptr; log_ptr = log_ptr->next) {
+			if (!log_ptr->file || log_ptr->file == (FILE *)1) continue;
+
+			if (log_ptr->color_target && *log_ptr->color_target) {
+				char norm_target[COLOR_SIZE];
+				get_color_codes(NULL, "", log_ptr->color_target, norm_target, GET_ALL);
+
+				int is_match = 0;
+				char current_state[COLOR_SIZE];
+				strcpy(current_state, ses->active_log_color);
+
+				char *pti = txt;
+				while (*pti) {
+					int skip = skip_vt102_codes(pti);
+					if (skip) {
+						// State change detected. Evaluate the color state up to this point.
+						pti += skip;
+						char temp_char = *pti;
+						*pti = '\0';
+						get_color_codes(NULL, ses->active_log_color, txt, current_state, GET_ALL);
+						*pti = temp_char;
+					} else {
+						// Printable character detected. Is the terminal currently in our target state?
+						if (strcmp(current_state, norm_target) == 0) {
+							is_match = 1;
+							break;
+						}
+						pti++;
+					}
+				}
+				
+				// Fallback: If the line ended in the target state but had no printable text (just formatting)
+				if (!is_match && strcmp(current_state, norm_target) == 0) {
+					is_match = 1;
+				}
+
+				if (!is_match) continue;
+			}
+
+			write_single_log(ses, log_ptr, txt, log_ptr->file, flags);
+		}
+		
+		// Commit the evaluated state to memory for the next incoming line
+		strcpy(ses->active_log_color, next_color);
+	}
 
 	pop_call();
 	return;
@@ -315,7 +534,7 @@ void logheader(struct session *ses, FILE *file, int flags)
 	}
 	else if (HAS_BIT(flags, LOG_FLAG_OVERWRITE) && HAS_BIT(flags, LOG_FLAG_HTML))
 	{
-		if (HAS_BIT(ses->log->mode, LOG_FLAG_HTML))
+		if (HAS_BIT(flags, LOG_FLAG_HTML))
 		{
 			write_html_header(ses, file);
 		}

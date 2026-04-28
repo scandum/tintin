@@ -1223,6 +1223,7 @@ struct session
 //	char                    more_output[BUFFER_SIZE];
 	char                  * more_output;
 	int                     color;
+	char                    active_log_color[COLOR_SIZE];
 	char                    color_patch[100];
 	unsigned long long      packet_patch;
 	unsigned long long      check_output;
@@ -1310,8 +1311,11 @@ struct level_data
 
 struct log_data
 {
+	struct log_data       * next;
+	struct log_data       * prev;
 	FILE                  * file;
 	char                  * name;
+	char                  * color_target;
 	int                     mode;
 	FILE                  * next_file;
 	char                  * next_name;
@@ -3090,7 +3094,7 @@ extern int skip_vt102_codes_non_graph(char *str);
 extern int strip_vt102_codes(char *str, char *buf);
 extern void strip_vt102_codes_non_graph(char *str, char *buf);
 extern void strip_non_vt102_codes(char *str, char *buf);
-extern void get_color_codes(char *old, char *str, char *buf, int flags);
+extern void get_color_codes(struct session *ses, char *old, char *str, char *buf, int flags);
 extern int strip_vt102_strlen(struct session *ses, char *str);
 extern int strip_color_strlen(struct session *ses, char *str);
 extern char *strip_vt102_strstr(char *str, char *buf, int *len);

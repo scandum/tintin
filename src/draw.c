@@ -943,7 +943,7 @@ void string_to_stamp(struct session *ses, long long flags, char *in, char *out)
 
 		if (skip)
 		{
-			get_color_codes(color, pti, color, GET_ONE);
+			get_color_codes(ses, color, pti, color, GET_ONE);
 
 			pti += skip;
 			

@@ -703,7 +703,7 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 
 // mix old and str, then copy compressed color string to buf which can point to old.
 
-void get_color_codes(char *old, char *str, char *buf, int flags)
+void get_color_codes(struct session *ses, char *old, char *str, char *buf, int flags)
 {
 	char *pti, *ptb, *ptc, col[100];
 	int hop, vtc, fgc, bgc;
@@ -1001,6 +1001,11 @@ void get_color_codes(char *old, char *str, char *buf, int flags)
 	*ptb++ = 'm';
 
 	*ptb = 0;
+
+	if (ses)
+	{
+		sprintf(ses->active_log_color, "%s", buf);
+	}
 
 	return;
 }
