@@ -3815,6 +3815,10 @@ char *draw_room(struct session *ses, struct room_data *room, int line, int x, in
 			}
 		}
 	}
+	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYMBOLGRAPHICS))
+	{
+		cat_sprintf(buf, "%s%s", COLOR_RESET, ses->map->color[MAP_COLOR_BACK]);
+	}
 	pop_call();
 	return buf;
 }
