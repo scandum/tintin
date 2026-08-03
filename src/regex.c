@@ -123,6 +123,11 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 		return FALSE;
 	}
 
+	if (matches > 100)
+	{
+		matches = 100;
+	}
+
 	PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
 
 	memcpy(gtd->match, ovector, matches * 2 * sizeof(PCRE2_SIZE));
