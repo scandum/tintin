@@ -54,7 +54,7 @@ DO_COMMAND(do_read)
 
 struct session *read_file(struct session *ses, FILE *file, char *filename)
 {
-	char *bufi, *bufo, temp[INPUT_SIZE], *pti, *pto, last = 0;
+	char *bufi = NULL, *bufo = NULL, temp[INPUT_SIZE], *pti, *pto, last = 0;
 	int lvl, cnt, com, lnc, fix, ok, verbose, size;
 	int counter[LIST_MAX];
 
@@ -91,6 +91,9 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s}: FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
+		free(bufi);
+		free(bufo);
+
 		return ses;
 	}
 
@@ -100,6 +103,9 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FREAD FAILURE");
 		
 		tintin_printf(ses, "#ERROR: #READ {%s}: FREAD FAILURE.", filename);
+
+		free(bufi);
+		free(bufo);
 
 		return ses;
 	}
