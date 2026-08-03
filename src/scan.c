@@ -493,6 +493,8 @@ DO_SCAN(scan_json)
 	{
 		show_error(ses, LIST_COMMAND, "#SCAN JSON {%s}: ERROR READING FILE.", arg1);
 
+		free(src);
+
 		return ses;
 	}
 
