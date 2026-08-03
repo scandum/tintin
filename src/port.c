@@ -358,11 +358,25 @@ void close_port(struct session *ses, struct port_data *buddy, int unlink)
 	end_mccp2(ses, buddy);
 	end_mccp3(ses, buddy);
 
+	if (buddy->msdp_data)
+	{
+		int index;
+
+		for (index = 0 ; index < gtd->msdp_table_size ; index++)
+		{
+			free(buddy->msdp_data[index]->value);
+			free(buddy->msdp_data[index]);
+		}
+		free(buddy->msdp_data);
+	}
+
 	free(buddy->group);
 	free(buddy->ip);
 	free(buddy->name);
 	free(buddy->prefix);
 	free(buddy->color);
+	free(buddy->proxy);
+	free(buddy->ttype);
 
 	free(buddy);
 
