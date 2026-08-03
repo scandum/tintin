@@ -289,6 +289,10 @@ int delete_map(struct session *ses)
 	delete_node(ses, LIST_ACTION, ses->map->search->note);
 	delete_node(ses, LIST_ACTION, ses->map->search->terrain);
 
+	free(ses->map->search->arg);
+	free(ses->map->search->exit_list);
+	free(ses->map->search->id);
+
 	free(ses->map->search);
 
 	free(ses->map);
