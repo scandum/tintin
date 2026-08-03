@@ -428,6 +428,8 @@ void basetostring(char *str, char *base)
 			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
+	free(buf);
+
 	pop_call();
 	return;
 }
@@ -482,6 +484,8 @@ void basetostringz(char *str, char *base)
 			tintin_printf2(gtd->ses, "#FORMAT: UNKNOWN BASE CONVERSION {%s}.", base);
 			break;
 	}
+	free(buf);
+
 	pop_call();
 	return;
 }
