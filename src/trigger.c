@@ -734,6 +734,11 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 					ptl = strstr(ptl, match) + strlen(match);
 				}
 
+				if (ptm == NULL)
+				{
+					break;
+				}
+
 				*ptm = 0;
 
 				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
@@ -997,6 +1002,11 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 					ptl = strstr(ptl, match) + strlen(match);
 				}
 
+				if (ptm == NULL)
+				{
+					break;
+				}
+
 				*ptm = 0;
 
 				get_color_codes(gtd->color_reset, pto, gtd->color_reset, GET_ALL);
@@ -1086,6 +1096,11 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 					ptm = strip_vt102_strstr(pto, match, &len);
 
 					ptl = strstr(ptl, match) + strlen(match);
+				}
+
+				if (ptm == NULL)
+				{
+					break;
 				}
 
 				*ptm = 0;
