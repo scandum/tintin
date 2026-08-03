@@ -529,6 +529,11 @@ void close_chat(struct chat_data *buddy, int unlink)
 
 	close(buddy->fd);
 
+	if (buddy->file_pt)
+	{
+		fclose(buddy->file_pt);
+	}
+
 	free(buddy->color);
 	free(buddy->download);
 	free(buddy->group);
@@ -537,6 +542,7 @@ void close_chat(struct chat_data *buddy, int unlink)
 	free(buddy->prefix);
 	free(buddy->reply);
 	free(buddy->version);
+	free(buddy->file_name);
 
 	free(buddy);
 }
