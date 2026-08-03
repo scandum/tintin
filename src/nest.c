@@ -1406,9 +1406,7 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (*space_out(arg2) == DEFAULT_OPEN)
 	{
-		root = update_nest_root(root, name);
-
-		update_nest_node(root, arg2);
+		update_nest_node(update_nest_root(root, name), arg2);
 
 		node = search_node_list(root, name);
 	}
