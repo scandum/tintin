@@ -586,15 +586,16 @@ int find_secure_color_code(char *str)
 int strip_vt102_codes(char *str, char *buf)
 {
 	char *pti, *pto;
+	int skip;
 
 	pti = (char *) str;
 	pto = (char *) buf;
 
 	while (*pti)
 	{
-		while (skip_vt102_codes(pti))
+		while ((skip = skip_vt102_codes(pti)))
 		{
-			pti += skip_vt102_codes(pti);
+			pti += skip;
 		}
 
 		if (*pti)
