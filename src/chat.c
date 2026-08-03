@@ -867,7 +867,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 
 		*pto-- = 0;
 
-		while (is_space(*pto))
+		while (pto >= (unsigned char *) txt && is_space(*pto))
 		{
 			*pto-- = 0;
 		}
