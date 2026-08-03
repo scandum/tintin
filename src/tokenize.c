@@ -1318,6 +1318,14 @@ struct session *script_driver(struct session *ses, int list, struct listnode *no
 
 	push_call("script_driver(%p,%d,%p)",ses,list,str);
 
+	if (gtd->script_index + 1 >= STACK_SIZE)
+	{
+		show_error(ses, list, "#ERROR: SCRIPT STACK OVERFLOW, ABORTING (INFINITE RECURSION?).");
+
+		pop_call();
+		return ses;
+	}
+
 	root = push_script_stack(ses, list);
 
 	gtd->level->input += list != LIST_COMMAND;
