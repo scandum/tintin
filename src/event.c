@@ -348,8 +348,8 @@ void mouse_handler(struct session *ses, int flags, int row, int col)
 
 //		if (flags == 8) tintin_printf2(NULL, "debug: rpx %4d/%d cpx %4d/%d\n\n\n", char_row, gtd->screen->char_height, char_col, gtd->screen->char_width);
 
-		grid_pos  = char_row * 3 / gtd->screen->char_height * 3;
-		grid_pos += char_col * 3 / gtd->screen->char_width;
+		grid_pos  = (char_row - 1) * 3 / gtd->screen->char_height * 3;
+		grid_pos += (char_col - 1) * 3 / gtd->screen->char_width;
 	}
 	else
 	{
