@@ -317,7 +317,7 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 
 	newroom->vnum = atoi(arg1);
 
-	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYNC) && ses->map->room_list[newroom->vnum] != NULL)
+	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYNC) && newroom->vnum > 0 && newroom->vnum < ses->map->size && ses->map->room_list[newroom->vnum] != NULL)
 	{
 		int vnum = newroom->vnum;
 
@@ -454,6 +454,14 @@ struct exit_data *create_exit(struct session *ses, int vnum, char *format, ...)
 	va_end(args);
 
 	newexit = (struct exit_data *) calloc(1, sizeof(struct exit_data));
+
+	if (vnum <= 0 || vnum >= ses->map->size || ses->map->room_list[vnum] == NULL)
+	{
+		free(newexit);
+
+		pop_call();
+		return NULL;
+	}
 
 	room = ses->map->room_list[vnum];
 
