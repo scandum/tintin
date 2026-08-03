@@ -157,6 +157,13 @@ DO_HISTORY(history_get)
 		return;
 	}
 
+	if (root->used == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#HISTORY GET: THE HISTORY LIST IS EMPTY.");
+
+		return;
+	}
+
 	arg = get_arg_in_braces(ses, arg, arg2, GET_ONE);
 
 	min = get_number(ses, arg2);
