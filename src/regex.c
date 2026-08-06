@@ -108,7 +108,12 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 		return FALSE;
 	}
 
-	pcre2_match_data *match_data = pcre2_match_data_create(101, NULL);
+	static pcre2_match_data *match_data = NULL;
+
+	if (match_data == NULL)
+	{
+		match_data = pcre2_match_data_create(101, NULL);
+	}
 
 	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, match_data, NULL);
 
@@ -118,7 +123,6 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 		{
 			pcre2_code_free(regex);
 		}
-		pcre2_match_data_free(match_data);
 
 		return FALSE;
 	}
@@ -126,8 +130,6 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 	PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
 
 	memcpy(gtd->match, ovector, matches * 2 * sizeof(PCRE2_SIZE));
-
-	pcre2_match_data_free(match_data);
 
 	// REGEX_FLAG_FIX handles %1 to %99 usage. Backward compatible.
 
