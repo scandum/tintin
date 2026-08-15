@@ -774,6 +774,8 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 	return 0;
 }
 
+// variable can be the caller's own name buffer, so don't write to it.
+
 struct listnode *get_nest_node_key(struct listroot *root, char *variable, char **result, int def)
 {
 	struct listnode *node;
@@ -812,6 +814,8 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 	return NULL;
 }
 
+// variable can be the caller's own name buffer, so don't write to it.
+
 struct listnode *get_nest_node_val(struct listroot *root, char *variable, char **result, int def)
 {
 	struct listnode *node;
@@ -849,6 +853,8 @@ struct listnode *get_nest_node_val(struct listroot *root, char *variable, char *
 	}
 	return NULL;
 }
+
+// variable can be the caller's own name buffer, so don't write to it.
 
 int get_nest_index(struct listroot *root, char *variable, char **result, int def)
 {

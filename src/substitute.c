@@ -1364,18 +1364,23 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					if (brace == FALSE)
 					{
-						pti = get_arg_at_brackets(ses, &pti[i], temp + strlen(temp));
+						pti = get_arg_at_brackets(ses, &pti[i], ptt);
 					}
 					else
 					{
 						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
-					substitute(ses, temp, buf, flags_neol);
+					// A plain name has nothing to substitute.
+
+					if (brace || *ptt)
+					{
+						substitute(ses, temp, buf, flags_neol);
+					}
 
 					str = str_dup("");
 
-					get_nest_node_key(root, buf, &str, brace);
+					get_nest_node_key(root, brace || *ptt ? buf : temp, &str, brace);
 
 					substitute(ses, str, pto, flags_neol - SUB_VAR);
 
@@ -1470,18 +1475,23 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					if (brace == FALSE)
 					{
-						pti = get_arg_at_brackets(ses, &pti[i], temp + strlen(temp));
+						pti = get_arg_at_brackets(ses, &pti[i], ptt);
 					}
 					else
 					{
 						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
-					substitute(ses, temp, buf, flags_neol);
+					// A plain name has nothing to substitute.
+
+					if (brace || *ptt)
+					{
+						substitute(ses, temp, buf, flags_neol);
+					}
 
 					str = str_dup("");
 
-					get_nest_node_val(root, buf, &str, brace);
+					get_nest_node_val(root, brace || *ptt ? buf : temp, &str, brace);
 
 					substitute(ses, str, pto, flags_neol - SUB_VAR);
 
@@ -1604,18 +1614,23 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 					if (brace == FALSE)
 					{
-						pti = get_arg_at_brackets(ses, &pti[i], temp + strlen(temp));
+						pti = get_arg_at_brackets(ses, &pti[i], ptt);
 					}
 					else
 					{
 						pti = get_arg_in_braces(ses, &pti[i], temp, GET_ONE);
 					}
 
-					substitute(ses, temp, buf, flags_neol);
+					// A plain name has nothing to substitute.
+
+					if (brace || *ptt)
+					{
+						substitute(ses, temp, buf, flags_neol);
+					}
 
 					str = str_dup("");
 
-					get_nest_index(root, buf, &str, brace);
+					get_nest_index(root, brace || *ptt ? buf : temp, &str, brace);
 
 					substitute(ses, str, pto, flags_neol - SUB_VAR);
 
