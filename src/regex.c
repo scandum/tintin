@@ -89,26 +89,13 @@ DO_COMMAND(do_regexp)
 	return ses;
 }
 
-int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
+// Run the pattern and copy the captures to gtd->match. Returns the pcre2_match
+// result, so <= 0 means no match.
+
+static int regexp_run(pcre2_code *regex, char *str)
 {
-	pcre2_code *regex;
-	int i, j, matches;
-
-	if (nodepcre == NULL)
-	{
-		regex = regexp_compile(ses, exp, comp_option);
-	}
-	else
-	{
-		regex = nodepcre;
-	}
-
-	if (regex == NULL)
-	{
-		return FALSE;
-	}
-
 	static pcre2_match_data *match_data = NULL;
+	int matches;
 
 	if (match_data == NULL)
 	{
@@ -117,19 +104,19 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 
 	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, match_data, NULL);
 
-	if (matches <= 0)
+	if (matches > 0)
 	{
-		if (nodepcre == NULL)
-		{
-			pcre2_code_free(regex);
-		}
-
-		return FALSE;
+		memcpy(gtd->match, pcre2_get_ovector_pointer(match_data), matches * 2 * sizeof(PCRE2_SIZE));
 	}
 
-	PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+	return matches;
+}
 
-	memcpy(gtd->match, ovector, matches * 2 * sizeof(PCRE2_SIZE));
+// Copy the captures to gtd->vars or gtd->cmds.
+
+static void regexp_store(struct session *ses, char *str, int matches, int flag)
+{
+	int i, j;
 
 	// REGEX_FLAG_FIX handles %1 to %99 usage. Backward compatible.
 
@@ -191,13 +178,40 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 			gtd->varc = matches;
 			break;
 	}
+}
+
+int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
+{
+	pcre2_code *regex;
+	int matches;
+
+	if (nodepcre == NULL)
+	{
+		regex = regexp_compile(ses, exp, comp_option);
+	}
+	else
+	{
+		regex = nodepcre;
+	}
+
+	if (regex == NULL)
+	{
+		return FALSE;
+	}
+
+	matches = regexp_run(regex, str);
+
+	if (matches > 0)
+	{
+		regexp_store(ses, str, matches, flag);
+	}
 
 	if (nodepcre == NULL)
 	{
 		pcre2_code_free(regex);
 	}
 
-	return TRUE;
+	return matches > 0;
 }
 
 pcre2_code *regexp_compile(struct session *ses, char *exp, int comp_option)
@@ -479,7 +493,27 @@ int tintin_regexp_check(struct session *ses, char *exp)
 int tintin_regexp(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
-	int i, arg = 1, var = 1, fix = 0;
+	int i, arg = 1, var = 1, fix = 0, matches = 0;
+	PCRE2_SIZE match[202];
+
+	// The translation below is only read after a match, through gtd->args and
+	// the fix flag, and a precompiled pattern usually doesn't match, so run it
+	// first and skip the translation when it fails.
+
+	if (nodepcre)
+	{
+		matches = regexp_run(nodepcre, str);
+
+		if (matches <= 0)
+		{
+			return FALSE;
+		}
+
+		// an unmatched brace makes the translation call show_error(), which
+		// runs events, so keep the captures safe from a nested match.
+
+		memcpy(match, gtd->match, matches * 2 * sizeof(PCRE2_SIZE));
+	}
 
 	pti = exp;
 	pto = out;
@@ -829,6 +863,15 @@ int tintin_regexp(struct session *ses, pcre2_code *nodepcre, char *str, char *ex
 		}
 	}
 	*pto = 0;
+
+	if (nodepcre)
+	{
+		memcpy(gtd->match, match, matches * 2 * sizeof(PCRE2_SIZE));
+
+		regexp_store(ses, str, matches, flag + fix);
+
+		return TRUE;
+	}
 
 	return regexp_compare(ses, nodepcre, str, out, comp_option, flag + fix);
 }
