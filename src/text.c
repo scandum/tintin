@@ -95,6 +95,38 @@ void print_stdout(int row, int col, char *format, ...)
 	va_list args;
 	int len;
 
+	// "%s" and "%s\n" are the common case and need no formatting. The
+	// detached and set_line_screen paths want one contiguous buffer, so
+	// they keep using vasprintf.
+
+	if ((!strcmp(format, "%s") || !strcmp(format, "%s\n")) && gtd->detach_port == 0 && !(row && col))
+	{
+		char *str;
+
+		va_start(args, format);
+		str = va_arg(args, char *);
+		va_end(args);
+
+		// a null pointer still has to go through vasprintf, which prints it.
+
+		if (str)
+		{
+			if (gtd->level->ignore == 0)
+			{
+				SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
+			}
+
+			fputs(str, stdout);
+
+			if (format[2])
+			{
+				fputc('\n', stdout);
+			}
+
+			return;
+		}
+	}
+
 	va_start(args, format);
 	len = vasprintf(&buffer, format, args);
 	va_end(args);
