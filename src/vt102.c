@@ -612,15 +612,16 @@ int strip_vt102_codes(char *str, char *buf)
 void strip_vt102_codes_non_graph(char *str, char *buf)
 {
 	char *pti, *pto;
+	int skip;
 
 	pti = str;
 	pto = buf;
 
 	while (*pti)
 	{
-		while (skip_vt102_codes_non_graph(pti))
+		while ((skip = skip_vt102_codes_non_graph(pti)))
 		{
-			pti += skip_vt102_codes_non_graph(pti);
+			pti += skip;
 		}
 
 		if (*pti)
@@ -659,6 +660,7 @@ void strip_non_vt102_codes(char *str, char *buf)
 char *strip_vt102_strstr(char *str, char *buf, int *len)
 { 
 	char *pti, *ptm, *pts;
+	int skip;
 
 	push_call("strip_vt102_strstr(%p,%p,%p)",str,buf,len);
 
@@ -666,9 +668,9 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 
 	while (*pts)
 	{
-		while (skip_vt102_codes(pts))
+		while ((skip = skip_vt102_codes(pts)))
 		{
-			pts += skip_vt102_codes(pts);
+			pts += skip;
 		}
 
 		pti = pts;
@@ -691,9 +693,9 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 				return pts;
 			}
 
-			while (skip_vt102_codes(pti))
+			while ((skip = skip_vt102_codes(pti)))
 			{
-				pti += skip_vt102_codes(pti);
+				pti += skip;
 			}
 		}
 		pts++;
