@@ -1058,7 +1058,7 @@ int strip_color_strlen(struct session *ses, char *str)
 
 int interpret_vt102_codes(struct session *ses, char *str, int real)
 {
-	char *data = str_alloc_stack(0);
+	char *data = str + 2;
 	int skip = 0;
 
 	switch (str[skip])
@@ -1239,8 +1239,6 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 				return FALSE;
 
 			default:
-				data[skip - 2] = str[skip];
-				data[skip - 1] = 0;
 				break;
 		}
 
