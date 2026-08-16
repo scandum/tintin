@@ -398,11 +398,17 @@ int get_vt102_width(struct session *ses, char *str, int *str_len)
 
 	if (*str)
 	{
-		raw_len = skip_vt102_codes(str);
+		// A vt102 code always starts with a control character, so printable
+		// bytes can skip the scan entirely.
 
-		if (raw_len)
+		if ((unsigned char) *str < 32 || (unsigned char) *str == 127)
 		{
-			return raw_len;
+			raw_len = skip_vt102_codes(str);
+
+			if (raw_len)
+			{
+				return raw_len;
+			}
 		}
 
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC))
