@@ -637,7 +637,16 @@ void process_one_line(struct session *ses, char *linebuf, int prompt)
 	push_call("process_one_line(%p,%p,%d)",ses,linebuf,prompt);
 
 	raw_len = strlen(linebuf);
-	str_len = strip_vt102_codes(linebuf, temp);
+
+	// temp and str_len are only read when an event or a prompt uses them.
+
+	str_len = 0;
+	*temp = 0;
+
+	if (prompt || HAS_BIT(gtd->event_flags, EVENT_FLAG_OUTPUT|EVENT_FLAG_CATCH))
+	{
+		str_len = strip_vt102_codes(linebuf, temp);
+	}
 
 	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, temp);
 
