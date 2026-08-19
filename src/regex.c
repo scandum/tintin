@@ -452,6 +452,7 @@ int tintin_match_data(struct session *ses, char *exp)
 					case 'a':
 					case 'A':
 					case 'c':
+					case 'd':
 					case 'D':
 					case 'p':
 					case 'P':

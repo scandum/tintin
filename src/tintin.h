@@ -77,11 +77,9 @@
 #define BADSIG (void (*)(int))-1
 #endif
 
-
 #ifdef HAVE_NET_ERRNO_H
 #include <net/errno.h>
 #endif
-
 
 #ifdef HAVE_GNUTLS_H
 #include <gnutls/gnutls.h>
@@ -105,6 +103,11 @@
 #if !defined(SO_PEERCRED)
 	#define SO_PEERCRED 17
 #endif
+
+#if !defined(TCP_KEEPIDLE) && defined(TCP_KEEPALIVE)
+#define TCP_KEEPIDLE TCP_KEEPALIVE
+#endif
+
 
 #ifndef __TINTIN_H__
 #define __TINTIN_H__
