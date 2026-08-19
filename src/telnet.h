@@ -96,14 +96,18 @@
 #define     TELOPT_NEW_ENVIRON   39
 #define     TELOPT_CHARSET       42  /* Charset */
 #define     TELOPT_STARTTLS      46
+
 #define     TELOPT_MSDP          69  /* Mud Server Data Protocol */
 #define     TELOPT_MSSP          70  /* Mud Server Status Protocol */
 #define     TELOPT_MCCP1         85
 #define     TELOPT_MCCP2         86  /* Mud Client Compression Protocol v2 */
 #define     TELOPT_MCCP3         87  /* Mud Client Compression Protocol v3 */
+#define     TELOPT_MCCP4         88
 #define     TELOPT_MSP           90  /* Mud Sound Protocol */
 #define     TELOPT_MXP           91  /* Mud eXtention Protocol */
 #define     TELOPT_ZMP           93  /* Zenith Mud Protocol */
+                             // 102  // Aardwolf
+                             // 200  // Achaea
 #define     TELOPT_GMCP         201  /* Generic Mud Communication Protocol */
 #define     TELOPT_EXOPL        255
 

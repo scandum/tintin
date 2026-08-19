@@ -529,6 +529,8 @@ void close_chat(struct chat_data *buddy, int unlink)
 
 	close(buddy->fd);
 
+	file_cleanup(buddy);
+
 	free(buddy->color);
 	free(buddy->download);
 	free(buddy->group);
@@ -2114,7 +2116,7 @@ void file_cleanup(struct chat_data *buddy)
 	if (buddy->file_name)
 	{
 		free(buddy->file_name);
-		
+
 		buddy->file_name = NULL;
 	}
 }

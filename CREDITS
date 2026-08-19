@@ -1,5 +1,5 @@
 Special thanks to the following
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 1992-1992 Peter Joachim Unold      see mods/0.3.mods The original TINTIN III
 1993-1995 Bill Reiss               see mods/1.5.mods Original #math code
@@ -18,11 +18,11 @@ Special thanks to the following
           David Champion                             Solaris forkpty fix
           Ben Love                                   Tab enhancements
           Adam Borowski                              SSL implementation
-          AdeBlanche & Jimmy0699                     PCRE2 upgrade
-
+          Jimmy0699 & AdeBlanche                     PCRE2 upgrade
+          Jay Howard & Claude                        Comprehensive code review
 
 Beta Testers
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 Unfortunately (or fortunately) there are too many to list, but your help has
 been greatly appreciated. You are invaluable to TinTin++'s continued success.
 
@@ -30,7 +30,7 @@ Thanks!
 
 
 Modification History
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
  0.3.mods apr 1992 - oct 1992
  1.5.mods jun 1993 - jan 1995
  1.8.mods apr 1997 - oct 2001
@@ -39,7 +39,7 @@ Modification History
 
 
 TinTin++ Developer
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 Igor van den Hoven - mudclient@gmail.com
 
 The email must contain either tintin or tintin++ in the subject or message,

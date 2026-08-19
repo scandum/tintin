@@ -74,19 +74,49 @@ void print_line(struct session *ses, char **str, int prompt)
 		str_cpy(&out, *str);
 	}
 
-	if (prompt)
-	{
-		print_stdout(0, 0, "%s", out);
-	}
-	else
-	{
-		print_stdout(0, 0, "%s\n", out);
-	}
+	puts_stdout(0, 0, out, prompt);
 
 //	add_line_screen(out);
 
 	pop_call();
 	return;
+}
+
+void puts_stdout(int row, int col, char *str, int prompt)
+{
+	if (gtd->detach_port)
+	{
+		if (gtd->detach_sock)
+		{
+			struct iovec iov[2] = {{(void *) str, strlen(str)}, {"\n", 1}};
+
+			if (writev(gtd->detach_sock, iov, prompt ? 1 : 2) == -1)
+			{
+				syserr_printf(gtd->ses, "puts_stdout: writev:");
+			}
+		}
+	}
+	else
+	{
+		if (gtd->level->ignore == 0)
+		{
+			SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
+		}
+
+		if (prompt)
+		{
+			fputs(str, stdout);
+		}
+		else
+		{
+			puts(str);
+		}
+
+		if (row && col)
+		{
+			set_line_screen(gtd->ses, str, row, col);
+		}
+	}
 }
 
 void print_stdout(int row, int col, char *format, ...)
@@ -126,6 +156,7 @@ void print_stdout(int row, int col, char *format, ...)
 	}
 	free(buffer);
 }
+
 
 /*
 	Word wrapper, only wraps scrolling region

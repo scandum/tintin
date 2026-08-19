@@ -1430,7 +1430,7 @@ DO_DRAW(draw_bot_side)
 	{
 		goto_pos(ses, bot_row, top_col);
 
-		print_stdout(bot_row, top_col, "%s", arg);
+		puts_stdout(bot_row, top_col, arg, TRUE);
 	}
 }
 
@@ -1624,7 +1624,7 @@ DO_DRAW(draw_line_horizontal)
 	{
 		goto_pos(ses, top_row, top_col);
 
-		print_stdout(top_row, top_col, "%s", line);
+		puts_stdout(top_row, top_col, line, TRUE);
 	}
 }
 
@@ -2028,7 +2028,7 @@ DO_DRAW(draw_rain)
 
 					goto_pos(ses, top_row + node->root->list[col]->val16[1], top_col + col);
 
-					print_stdout(0, 0, "%s", arg3);
+					puts_stdout(0, 0, arg3, TRUE);
 
 					continue;
 				}
@@ -2094,7 +2094,7 @@ DO_DRAW(draw_rain)
 
 				substitute(ses, arg2, arg3, SUB_COL);
 
-				print_stdout(0, 0, "%s", arg3);
+				puts_stdout(0, 0, arg3, TRUE);
 
 				row += size;
 			}
@@ -2120,21 +2120,19 @@ DO_DRAW(draw_rain)
 				{
 					sprintf(arg2, "%s ", dim_color_code(ses, code, node->root->list[col]->val16[0] - cnt));
 					substitute(ses, arg2, arg3, SUB_COL);
-					print_stdout(0, 0, "%s", arg3);
-
-					print_stdout(0, 0, " ");
+					puts_stdout(0, 0, arg3, TRUE);
 				}
 				else if (node->root->list[col]->val16[0] - cnt < 0)
 				{
 					snprintf(arg2, BUFFER_SIZE, "%s%.*s", fuzzy_color_code(ses, code), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
-					print_stdout(0, 0, "%s", arg3);
+					puts_stdout(0, 0, arg3, TRUE);
 				}
 				else
 				{
 					snprintf(arg2, BUFFER_SIZE, "%s%.*s", dim_color_code(ses, code, node->root->list[col]->val16[0] - cnt), size, &node->root->list[col]->arg2[row]);
 					substitute(ses, arg2, arg3, SUB_COL);
-					print_stdout(0, 0, "%s", arg3);
+					puts_stdout(0, 0, arg3, TRUE);
 				}
 
 				row += size;
@@ -2735,7 +2733,7 @@ DO_DRAW(draw_top_side)
 	{
 		goto_pos(ses, top_row, top_col);
 
-		print_stdout(top_row, top_col, "%s", arg);
+		puts_stdout(top_row, top_col, arg, TRUE);
 	}
 }
 

@@ -254,6 +254,8 @@ int delete_map(struct session *ses)
 {
 	int index, cnt;
 
+	SET_BIT(ses->map->flags, MAP_FLAG_DESTROY);
+
 	for (index = cnt = 0 ; index < ses->map->size ; index++)
 	{
 		if (ses->map->room_list[index])
@@ -276,10 +278,10 @@ int delete_map(struct session *ses)
 	free(ses->map->global_exit->cmd);
 	free(ses->map->global_exit->data);
 	free(ses->map->global_exit->color);
+	free(ses->map->global_exit);
 
 	free(ses->map->grid_rooms);
 	free(ses->map->grid_vnums);
-	free(ses->map->global_exit);
 
 	// probably need to use a dummy node
 
@@ -309,22 +311,30 @@ struct room_data *create_room(struct session *ses, char *format, ...)
 {
 	char *arg, buf[BUFFER_SIZE], arg1[BUFFER_SIZE];
 	struct room_data *newroom;
+	int vnum;
 	va_list args;
 
 	va_start(args, format);
 	vsprintf(buf, format, args);
 	va_end(args);
 
-	newroom = (struct room_data *) calloc(1, sizeof(struct room_data));
-
 	arg = get_arg_in_braces(ses, buf, arg1, GET_ONE);
 
-	newroom->vnum = atoi(arg1);
+	vnum = atoi(arg1);
 
-	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYNC) && ses->map->room_list[newroom->vnum] != NULL)
+	newroom = (struct room_data *) calloc(1, sizeof(struct room_data));
+
+	newroom->vnum = vnum;
+
+	if (vnum < 0 || vnum >= ses->map->size)
 	{
-		int vnum = newroom->vnum;
+		show_critical(ses, "#ERROR: #MAP CREATE_ROOM %.100s: INVALID VNUM.", arg1);
 
+		return newroom;
+	}
+
+	if (HAS_BIT(ses->map->flags, MAP_FLAG_SYNC) && ses->map->room_list[vnum] != NULL)
+	{
 		free(newroom);
 
 		return ses->map->room_list[vnum];
@@ -411,7 +421,10 @@ void delete_room(struct session *ses, int room, int exits)
 	struct exit_data *exit, *exit_next;
 	int cnt;
 
-	check_all_events(ses, EVENT_FLAG_MAP, 0, 2, "MAP DELETE ROOM", ntos(ses->map->room_list[room]->vnum), ses->map->room_list[room]->name);
+	if (!HAS_BIT(ses->map->flags, MAP_FLAG_DESTROY))
+	{
+		check_all_events(ses, EVENT_FLAG_MAP, 0, 2, "MAP DELETE ROOM", ntos(ses->map->room_list[room]->vnum), ses->map->room_list[room]->name);
+	}
 
 	while (ses->map->room_list[room]->f_exit)
 	{
@@ -456,6 +469,14 @@ struct exit_data *create_exit(struct session *ses, int vnum, char *format, ...)
 	va_start(args, format);
 	vsprintf(buf, format, args);
 	va_end(args);
+
+	if (vnum <= 0 || vnum >= ses->map->size || ses->map->room_list[vnum] == NULL)
+	{
+		show_critical(ses, "#ERROR: #MAP CREATE_EXIT %d: INVALID VNUM", vnum);
+
+		pop_call();
+		return NULL;
+	}
 
 	newexit = (struct exit_data *) calloc(1, sizeof(struct exit_data));
 
@@ -523,8 +544,10 @@ struct exit_data *create_exit(struct session *ses, int vnum, char *format, ...)
 
 void delete_exit(struct session *ses, int room, struct exit_data *exit)
 {
-	check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP DELETE EXIT", ntos(room), exit->name, exit->cmd, ntos(exit->vnum));
-
+	if (!HAS_BIT(ses->map->flags, MAP_FLAG_DESTROY))
+	{
+		check_all_events(ses, EVENT_FLAG_MAP, 0, 4, "MAP DELETE EXIT", ntos(room), exit->name, exit->cmd, ntos(exit->vnum));
+	}
 	free(exit->name);
 	free(exit->cmd);
 	free(exit->data);
@@ -532,8 +555,10 @@ void delete_exit(struct session *ses, int room, struct exit_data *exit)
 
 	UNLINK(exit, ses->map->room_list[room]->f_exit, ses->map->room_list[room]->l_exit)
 
-	set_room_exits(ses, room);
-
+	if (!HAS_BIT(ses->map->flags, MAP_FLAG_DESTROY))
+	{
+		set_room_exits(ses, room);
+	}
 	free(exit);
 }
 
@@ -3987,17 +4012,13 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 		search->arg = NULL;
 	}
 
-	if (search->name->regex)
-	{
-		pcre2_code_free(search->name->regex);
-		search->name->regex = NULL;
-	}
+	tintin_regex_free(search->name);
 
 	if (*buf)
 	{
 		strcat(buf, "$");
 
-		search->name->regex = tintin_regexp_compile(ses, search->name, buf, PCRE2_ANCHORED);
+		search->name->regex = tintin_regex_compile(ses, search->name, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN); // exits
@@ -4068,68 +4089,52 @@ void map_search_compile(struct session *ses, char *arg, char *var)
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN); // desc
 
-	if (search->desc->regex)
-	{
-		pcre2_code_free(search->desc->regex);
-		search->desc->regex = NULL;
-	}
+	tintin_regex_free(search->desc);
 
 	if (*buf)
 	{
 		strcat(buf, "$");
 
-		search->desc->regex = tintin_regexp_compile(ses, search->desc, buf, PCRE2_ANCHORED);
+		search->desc->regex = tintin_regex_compile(ses, search->desc, buf, PCRE2_ANCHORED);
 	}
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
 
 	// area
 
-	if (search->area->regex)
-	{
-		pcre2_code_free(search->area->regex);
-		search->area->regex = NULL;
-	}
+	tintin_regex_free(search->area);
 
 	if (*buf)
 	{
 		strcat(buf, "$");
 
-		search->area->regex = tintin_regexp_compile(ses, search->area, buf, PCRE2_ANCHORED);
+		search->area->regex = tintin_regex_compile(ses, search->area, buf, PCRE2_ANCHORED);
 	}
 
 	// note
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
 
-	if (search->note->regex)
-	{
-		pcre2_code_free(search->note->regex);
-		search->note->regex = NULL;
-	}
+	tintin_regex_free(search->note);
 
 	if (*buf)
 	{
 		strcat(buf, "$");
 
-		search->note->regex = tintin_regexp_compile(ses, search->note, buf, PCRE2_ANCHORED);
+		search->note->regex = tintin_regex_compile(ses, search->note, buf, PCRE2_ANCHORED);
 	}
 
 	// terrain
 
 	arg = sub_arg_in_braces(ses, arg, buf, GET_ALL, SUB_VAR|SUB_FUN);
 
-	if (search->terrain->regex)
-	{
-		pcre2_code_free(search->terrain->regex);
-		search->terrain->regex = NULL;
-	}
+	tintin_regex_free(search->terrain);
 
 	if (*buf)
 	{
 		strcat(buf, "$");
 
-		search->terrain->regex = tintin_regexp_compile(ses, search->terrain, buf, PCRE2_ANCHORED);
+		search->terrain->regex = tintin_regex_compile(ses, search->terrain, buf, PCRE2_ANCHORED);
 	}
 
 	// flag
@@ -4260,7 +4265,7 @@ int match_room(struct session *ses, int vnum, struct search_data *search)
 
 	if (search->name->regex)
 	{
-		if (!regexp_compare(ses, search->name->regex, room->name, room->name, 0, 0))
+		if (!tintin_regex_compare(ses, search->name->regex, room->name, room->name, 0, 0))
 		{
 			return 0;
 		}
@@ -4311,7 +4316,7 @@ int match_room(struct session *ses, int vnum, struct search_data *search)
 
 	if (search->desc->regex)
 	{
-		if (!regexp_compare(ses, search->desc->regex, room->desc, room->desc, 0, 0))
+		if (!tintin_regex_compare(ses, search->desc->regex, room->desc, room->desc, 0, 0))
 		{
 			return 0;
 		}
@@ -4320,7 +4325,7 @@ int match_room(struct session *ses, int vnum, struct search_data *search)
 
 	if (search->area->regex)
 	{
-		if (!regexp_compare(ses, search->area->regex, room->area, room->area, 0, 0))
+		if (!tintin_regex_compare(ses, search->area->regex, room->area, room->area, 0, 0))
 		{
 			return 0;
 		}
@@ -4329,7 +4334,7 @@ int match_room(struct session *ses, int vnum, struct search_data *search)
 
 	if (search->note->regex)
 	{
-		if (!regexp_compare(ses, search->note->regex, room->note, room->note, 0, 0))
+		if (!tintin_regex_compare(ses, search->note->regex, room->note, room->note, 0, 0))
 		{
 			return 0;
 		}
@@ -4338,7 +4343,7 @@ int match_room(struct session *ses, int vnum, struct search_data *search)
 
 	if (search->terrain)
 	{
-		if (!regexp_compare(ses, search->terrain->regex, room->terrain, room->terrain, 0, 0))
+		if (!tintin_regex_compare(ses, search->terrain->regex, room->terrain, room->terrain, 0, 0))
 		{
 			return 0;
 		}
@@ -5622,7 +5627,7 @@ DO_MAP(map_delete)
 
 DO_MAP(map_destroy)
 {
-	struct exit_data *exit;
+	struct exit_data *exit, *exit_next;
 	int index, cnt;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -5644,6 +5649,8 @@ DO_MAP(map_destroy)
 			return;
 		}
 
+		SET_BIT(ses->map->flags, MAP_FLAG_DESTROY);
+
 		for (index = cnt = 0 ; index < ses->map->size ; index++)
 		{
 			if (ses->map->room_list[index])
@@ -5656,29 +5663,24 @@ DO_MAP(map_destroy)
 				}
 			}
 		}
+		DEL_BIT(ses->map->flags, MAP_FLAG_DESTROY);
 
 		for (index = 0 ; index < ses->map->size ; index++)
 		{
 			if (ses->map->room_list[index])
 			{
-				for (exit = ses->map->room_list[index]->f_exit ; exit ; exit = exit->next)
+				for (exit = ses->map->room_list[index]->f_exit ; exit ; exit = exit_next)
 				{
+					exit_next = exit->next;
+
 					if (ses->map->room_list[exit->vnum] == NULL)
 					{
 						delete_exit(ses, index, exit);
-
-						if (ses->map->room_list[index]->f_exit)
-						{
-							exit = ses->map->room_list[index]->f_exit;
-						}
-						else
-						{
-							break;
-						}
 					}
 				}
 			}
 		}
+
 		show_message(ses, LIST_COMMAND, "#MAP DESTROY AREA: DELETED %d ROOMS.", cnt);
 	}
 	else if (is_abbrev(arg1, "WORLD"))
@@ -8126,7 +8128,6 @@ DO_MAP(map_roomflag)
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #MAP ROOMFLAG {%s} [GET|ON|OFF].", arg4);
 	}
 
-
 	if (HAS_BIT(flag, ROOM_FLAG_AVOID))
 	{
 		show_message(ses, LIST_COMMAND, "#MAP: AVOID FLAG SET TO %s.", HAS_BIT(ses->map->room_list[ses->map->in_room]->flags, ROOM_FLAG_AVOID) ? "ON" : "OFF");
@@ -8195,6 +8196,8 @@ DO_MAP(map_set)
 	}
 	else if (*arg1 == 0)
 	{
+		tintin_printf2(ses, "  DIRECTION: %d", ses->map->dir);
+		tintin_printf2(ses, "    PATHDIR: %s", dir_to_exit(ses, ses->map->dir));
 		tintin_printf2(ses, "   ROOMAREA: %s", room->area);
 		tintin_printf2(ses, "  ROOMCOLOR: %s", room->color);
 		tintin_printf2(ses, "   ROOMDATA: %s", room->data);

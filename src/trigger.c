@@ -81,7 +81,7 @@ void check_all_actions(struct session *ses, char *original, char *line, char *bu
 			continue;
 		}
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
 		{
 			show_debug(ses, LIST_ACTION, node, COLOR_DEBUG "#DEBUG ACTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
@@ -119,7 +119,7 @@ void check_all_actions_multi(struct session *ses, char *original, char *stripped
 
 		while (pto && pts)
 		{
-			if (!check_one_regexp(ses, node, pts, pto, 0))
+			if (!check_one_regex(ses, node, pts, pto, 0, REGEX_FLAG_ARG))
 			{
 				break;
 			}
@@ -190,6 +190,11 @@ DO_COMMAND(do_alias)
 	}
 	else
 	{
+		if (*arg3 && (atof(arg3) < 1 || atof(arg3) >= 10))
+		{
+			show_error(ses, LIST_ALIAS, "#WARNING: #ALIAS {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
+		}
+
 		update_node_list(ses->list[LIST_ALIAS], arg1, arg2, arg3, "");
 
 		show_message(ses, LIST_ALIAS, "#ALIAS {%s} NOW TRIGGERS {%s} @ {%s}.", arg1, arg2, arg3);
@@ -234,7 +239,7 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, line, line, PCRE2_ANCHORED))
+		if (check_one_regex(ses, node, line, line, PCRE2_ANCHORED, REGEX_FLAG_ARG))
 		{
 			i = strlen(node->arg1);
 
@@ -333,6 +338,11 @@ DO_COMMAND(do_button)
 	{
 		SET_BIT(gtd->event_flags, EVENT_FLAG_MOUSE);
 		SET_BIT(ses->event_flags, EVENT_FLAG_MOUSE);
+
+		if (*arg3 && (atof(arg3) < 1 || atof(arg3) >= 10))
+		{
+			show_error(ses, LIST_BUTTON, "#WARNING: #BUTTON {%s} {..} {%s} SHOULD HAVE A PRIORITY BETWEEN 1.000 and 9.999.", arg1, arg3);
+		}
 
 		node = update_node_list(ses->list[LIST_BUTTON], arg1, arg2, arg3, "");
 
@@ -497,6 +507,10 @@ DO_COMMAND(do_delay)
 		{
 			struct listnode *node;
 
+			if (is_number(arg1))
+			{
+				show_error(ses, LIST_DELAY, "#WARNING: #DELAY {%s}. A NAMED DELAY SHOULD NOT HAVE A NUMERIC NAME.", arg1);
+			}
 			get_number_string(ses, arg3, time);
 
 			sprintf(arg3, "%lld", gtd->utime);
@@ -614,7 +628,7 @@ void check_all_gags(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_NONE))
 		{
 //			show_debug(ses, LIST_GAG, node, "#DEBUG GAG {%s}", node->arg1);
 
@@ -701,7 +715,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
 		{
 			get_color_names(ses, node->arg2, color);
 
@@ -744,7 +758,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 				show_debug(ses, LIST_HIGHLIGHT, node, COLOR_DEBUG "#DEBUG HIGHLIGHT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 			}
-			while (check_one_regexp(ses, node, ptl, pto, 0));
+			while (check_one_regex(ses, node, ptl, pto, 0, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -866,7 +880,7 @@ int check_all_prompts(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
 		{
 			if (*node->arg2)
 			{
@@ -965,7 +979,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 			continue;
 		}
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
 		{
 			pto = original;
 			ptl = line;
@@ -1016,7 +1030,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 					break;
 				}
 			}
-			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE2_NOTBOL));
+			while (*pto && check_one_regex(ses, node, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -1056,7 +1070,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 			continue;
 		}
 
-		if (check_one_regexp(ses, node, line, original, 0))
+		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
 		{
 			pto = original;
 			ptl = line;
@@ -1107,7 +1121,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 					break;
 				}
 			}
-			while (*pto && check_one_regexp(ses, node, ptl, pto, PCRE2_NOTBOL));
+			while (*pto && check_one_regex(ses, node, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{

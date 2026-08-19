@@ -1,3 +1,18 @@
+Jun 2026        2.02.62
+------------------------------------------------------------------------------
+list.c          Added #list <var> tabulate [key] which will turn a list into
+                a table: #info configs save;#list info[CONFIGS] tabulate arg1
+
+trigger.c       Added invalid priority warnings to #alias and #button.
+
+scan.c          Fixed a minor issue with numeric data in #scan json.
+
+*.c             Fixed memory issues in port.c base.c files.c chat.c scan.c
+                history.c mapper.c - thanks to Jay & Claude for the reports.
+
+*.c             Various performance improvements in nest.c vt102.c regex.c
+                net.c text.c - thanks to Jay & Claude for the reports.
+
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------
 substitute.c    Fixed a bug causing improper handling of large variables.
@@ -1759,7 +1774,7 @@ class.c        Added #class {class} SIZE {variable} option to store the size
 event.c        Added the SHORT-CLICKED mouse events. It triggers when the
                time between pressing and releasing the mouse button is
                less than 0.5 seconds. The event is not triggered when
-               double or triple clicks occure, but will trigger on the
+               double or triple clicks occur, but will trigger on the
                first click of a double click, just like a triple click
                event will be preceded by a double click event.
 
@@ -4357,7 +4372,7 @@ math.c         Added a close to complete mathematical expression routine.
                adding some better string support.
 
 ivars.c        stripped all the stuff that is now covered by math.c or
-               variables.c only leaving #ifexits. And then it occured to me
+               variables.c only leaving #ifexits. And then it occurred to me
                that #if {"$variable" != "$*"} {true} {false} would
                very well replace the 'ifexits' check. So ivars.c is no more.
 

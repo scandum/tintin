@@ -1059,7 +1059,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 	struct listnode *node;
 	struct listroot *root;
 	struct session *sesptr;
-	char *temp, *buf, *buffer, *pti, *pto, *out, *ptt, *str;
+	char *temp, *buf, *pti, *pto, *out, *ptt, *str;
 	char *pte, old[10] = { 0 };
 	int i, skip, cnt, escape = FALSE, flags_neol = flags;
 
@@ -1068,10 +1068,10 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 	temp   = str_alloc_stack(0);
 	buf    = str_alloc_stack(0);
 
-	buffer = (string == result) ? str_alloc_stack(0) : result;
+	out = (string == result) ? str_alloc_stack(0) : result;
 
 	pti = string;
-	pto = out = buffer;
+	pto = out;
 
 	DEL_BIT(flags_neol, SUB_EOL|SUB_LNF);
 
@@ -1084,7 +1084,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 			continue;
 		}
 /*
-		if (pto - buffer > BUFFER_SIZE - 1000)
+		if (pto - out > BUFFER_SIZE - 1000)
 		{
 			pto += sprintf(pto, "[BUFFER OVERFLOW]"); // causes large variables to fail to load
 			goto eol;
@@ -1130,10 +1130,10 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 
 				if (string == result)
 				{
-					strcpy(result, buffer);
+					strcpy(result, out);
 				}
 				pop_call();
-				return pto - buffer;
+				return pto - out;
 
 			case '@':
 				if (HAS_BIT(flags, SUB_FUN) && !HAS_BIT(ses->list[LIST_FUNCTION]->flags, LIST_FLAG_IGNORE))
@@ -2024,7 +2024,17 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 							*pto++ = '\a';
 							break;
 						case 'b':
-							*pto++ = '\b';
+							if (HAS_BIT(flags, SUB_LOG))
+							{
+								if (pto > out)
+								{
+									pto--;
+								}
+							}
+							else
+							{
+								*pto++ = '\b';
+							}
 							break;
 						case 'c':
 							if (pti[1])

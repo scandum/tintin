@@ -85,13 +85,16 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 	fseek(file, 0, SEEK_SET);
 
-	if ((bufi = (char *) calloc(1, size + 2)) == NULL || (bufo = (char *) calloc(1, size + 2)) == NULL)
+	bufi = (char *) calloc(1, size + 2);
+	bufo = (char *) calloc(1, size + 2);
+
+	if (bufi == NULL || bufo == NULL)
 	{
 		check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 2, "READ ERROR", filename, "FAILED TO ALLOCATE MEMORY");
 
 		tintin_printf(ses, "#ERROR: #READ {%s}: FAILED TO ALLOCATE %d BYTES OF MEMORY.", filename, size + 2);
 
-		return ses;
+		goto end;
 	}
 
 
@@ -101,7 +104,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 		
 		tintin_printf(ses, "#ERROR: #READ {%s}: FREAD FAILURE.", filename);
 
-		return ses;
+		goto end;
 	}
 
 	pti = bufi;
@@ -300,10 +303,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s}: MISSING %d '%c' BETWEEN LINE %d AND %d.", filename, abs(lvl), lvl < 0 ? DEFAULT_OPEN : DEFAULT_CLOSE, fix == 0 ? 1 : ok, fix == 0 ? lnc + 1 : fix);
 
-		free(bufi);
-		free(bufo);
-
-		return ses;
+		goto end;
 	}
 
 	if (com)
@@ -312,10 +312,7 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 
 		tintin_printf(ses, "#ERROR: #READ {%s}: MISSING %d '%s'", filename, abs(com), com < 0 ? "/*" : "*/");
 
-		free(bufi);
-		free(bufo);
-
-		return ses;
+		goto end;
 	}
 
 	sprintf(temp, "#CONFIG {TINTIN CHAR} {%c}", bufo[0]);
@@ -397,11 +394,14 @@ struct session *read_file(struct session *ses, FILE *file, char *filename)
 			}
 		}
 	}
-	free(bufi);
-	free(bufo);
 
 	check_all_events(ses, EVENT_FLAG_SYSTEM, 0, 1, "READ FILE", filename);
 	check_all_events(ses, EVENT_FLAG_SYSTEM, 1, 1, "READ FILE %s", filename, filename);
+
+	end:
+
+	free(bufi);
+	free(bufo);
 
 	return ses;
 }

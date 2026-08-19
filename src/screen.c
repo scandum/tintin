@@ -391,7 +391,7 @@ DO_SCREEN(screen_clear)
 
 	if (is_abbrev(arg1, "ALL"))
 	{
-		print_stdout(0, 0, "\e[2J");
+		puts_stdout(0, 0, "\e[2J", TRUE);
 	}
 	else if (is_abbrev(arg1, "BOTTOM SPLIT"))
 	{
@@ -1212,7 +1212,7 @@ DO_SCREEN(screen_raise)
 	}
 	else if (is_abbrev(arg1, "MOUSE LOCATION"))
 	{
-		print_stdout(0, 0, "%s", "\e[2;1'z\e['|");
+		puts_stdout(0, 0, "\e[2;1'z\e['|", TRUE);
 	}
 	else if (is_abbrev(arg1, "LOCATION") || is_abbrev(arg1, "POSITION"))
 	{
@@ -1516,7 +1516,7 @@ void erase_top_region(struct session *ses)
 
 		for (row = 1 ; row < ses->split->top_row ; row++)
 		{
-			print_stdout(0, 0, "\e[K\e[B");
+			puts_stdout(0, 0, "\e[K\e[B", TRUE);
 		}
 		restore_pos(ses);
 	}
@@ -1533,7 +1533,7 @@ void erase_bot_region(struct session *ses)
 
 		for (row = ses->split->bot_row + 1 ; row < gtd->screen->rows ; row++)
 		{
-			print_stdout(0, 0, "\e[K\e[B");
+			puts_stdout(0, 0, "\e[K\e[B", TRUE);
 		}
 		restore_pos(ses);
 	}
@@ -1567,7 +1567,7 @@ void erase_right_region(struct session *ses)
 
 		for (row = ses->split->top_row ; row <= ses->split->bot_row ; row++)
 		{
-			print_stdout(0, 0, "\e[K\e[B");
+			puts_stdout(0, 0, "\e[K\e[B", TRUE);
 		}
 		restore_pos(ses);
 	}
@@ -1605,7 +1605,7 @@ void fill_scroll_region(struct session *ses, char *arg)
 
 		for (col = ses->split->top_col ; col <= ses->split->bot_col ; col++)
 		{
-			print_stdout(0, 0, "%s", arg);
+			puts_stdout(0, 0, arg, TRUE);
 		}
 	}
 	restore_pos(ses);
@@ -1622,13 +1622,13 @@ void fill_top_region(struct session *ses, char *arg)
 
 		for (row = 1 ; row < ses->split->top_row ; row++)
 		{
-			print_stdout(0, 0, "\e[0m");
+			puts_stdout(0, 0, "\e[0m", TRUE);
 
 			for (col = 0 ; col < gtd->screen->cols ; col++)
 			{
-				print_stdout(0, 0, "%s", arg);
+				puts_stdout(0, 0, arg, TRUE);
 			}
-			print_stdout(0, 0, "\n");
+			puts_stdout(0, 0, "\n", TRUE);
 		}
 		restore_pos(ses);
 	}
@@ -1645,12 +1645,12 @@ void fill_bot_region(struct session *ses, char *arg)
 
 		for (row = ses->split->bot_row + 1 ; row < gtd->screen->rows ; row++)
 		{
-			print_stdout(0, 0, "\e[0m");
+			puts_stdout(0, 0, "\e[0m", TRUE);
 			for (col = 0 ; col < gtd->screen->cols ; col++)
 			{
-				print_stdout(0, 0, "%s", arg);
+				puts_stdout(0, 0, arg, TRUE);
 			}
-			print_stdout(0, 0, "\n");
+			puts_stdout(0, 0, "\n", TRUE);
 		}
 		restore_pos(ses);
 	}
@@ -1670,7 +1670,7 @@ void fill_left_region(struct session *ses, char *arg)
 
 			for (col = 0 ; col < ses->split->top_col - 1 ; col++)
 			{
-				print_stdout(0, 0, "%s", arg);
+				puts_stdout(0, 0, arg, TRUE);
 			}
 		}
 		restore_pos(ses);
@@ -1691,7 +1691,7 @@ void fill_right_region(struct session *ses, char *arg)
 
 			for (col = ses->split->bot_col + 1 ; col <= gtd->screen->cols ; col++)
 			{
-				print_stdout(0, 0, "%s", arg);
+				puts_stdout(0, 0, arg, TRUE);
 			}
 		}
 		restore_pos(ses);
@@ -1727,7 +1727,7 @@ DO_SCREEN(screen_info)
 	}
 	if (*arg1)
 	{
-		print_stdout(0, 0, "\e[2J");
+		puts_stdout(0, 0, "\e[2J", TRUE);
 
 		print_screen();
 
@@ -2246,7 +2246,7 @@ void add_line_screen(struct session *ses, char *str, int row)
 
 	if (gtd->screen == NULL)
 	{
-		print_stdout(0, 0, "screen == NULL!\n");
+		puts_stdout(0, 0, "screen == NULL!", FALSE);
 
 		pop_call();
 		return;

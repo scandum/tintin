@@ -1100,7 +1100,7 @@ void input_printf(char *format, ...)
 	}
 	else
 	{
-		print_stdout(0, 0, "%s", buf);
+		puts_stdout(0, 0, buf, TRUE);
 
 		free(buf);
 	}

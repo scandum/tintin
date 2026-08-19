@@ -450,6 +450,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 {
 	char line[BUFFER_SIZE];
 	struct session *sesptr;
+	int i;
 
 	input = sub_arg_in_braces(ses, input, line, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -502,15 +503,53 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 		return ses;
 	}
 
-	if (!strcasecmp(line, "exit") || !strcasecmp(line, "quit"))
+	for (i = 0 ; *suggestion_table[i].name ; i++)
+	{
+		if (!strcasecmp(line, suggestion_table[i].name))
+		{
+			if (*suggestion_table[i].sug3)
+			{
+				tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: '%s' OR '%s' OR '%s'.", line, suggestion_table[i].sug1, suggestion_table[i].sug2, suggestion_table[i].sug3);
+			}
+			else if (*suggestion_table[i].sug2)
+			{
+				tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: '%s' OR '%s'.", line, suggestion_table[i].sug1, suggestion_table[i].sug2);
+			}
+			else
+			{
+				tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: '%s'.", line, suggestion_table[i].sug1);
+			}
+			break;
+		}
+	}
+
+	if (*suggestion_table[i].name == 0)
+	{
+		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'.", line);
+	}
+
+/*
+	if (!strcasecmp(line, "exit") || !strcasecmp(line, "quit") || !strcasecmp(line, "disconnect"))
 	{
 		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: 'end' OR 'zap'.", line);
+	}
+	else if (!strcasecmp(line, "connect"))
+	{
+		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: 'session' OR 'run'.", line);
+	}
+	else if (!strcasecmp(line, "trigger"))
+	{
+		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: 'action' OR 'info'.", line);
+	}
+	else if (!strcasecmp(line, "load"))
+	{
+		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'. SUGGESTION: 'read' OR 'info'.", line);
 	}
 	else
 	{
 		tintin_printf2(ses, "#ERROR: UNKNOWN TINTIN COMMAND '%s'.", line);
 	}
-
+*/
 	check_all_events(ses, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 1, "UNKNOWN COMMAND", line);
 
 	return ses;

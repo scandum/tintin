@@ -1,7 +1,60 @@
+- Look into -flto compiler optimization
+
+- #list reverse does not handle list tables
+
+- Update mudhalla mudlist
+
+- Fix location suggestions for MSSP
+
+- Double check that MTH frees MSDP data on session close
+
+- use binary search for get_color_names()
+
+- More thorough SGA checking for omitting \n in prompt handling. Needs to also have echo off.
+
+- Add #info landmarks save
+
+- Add #command <cmd> on/off
+
+- Add #config sandox
+
+- Add global variables
+
+- Add file handler to deal with global file access and file restriction for sandbox
+
+
+- Add MSLP #port example for debugging
+
+- See about having #sleep mimic nested delays
+
+- Some package repositories have ancient versions, so best to remove from
+  install instructions.
+
+- Add 1..1000 support to #map list distance
+
+- Check if #history is excluded large command inputs
+
+- Look into #map list resetting #map find path highlighting, and possibly
+  some bug that causes unwanted resets as well.
+
+- look into gui.h doing stuff in the background on screen resize while connected
+
 - Figure out how to deal with large images and packet fragmentation
   eden-test.rpgframework.de 4000
 
+- Add pcre precompilation to #replace
+
+- Look into passive support for kitty images
+
+- Look into lnav for log viewing improvements
+
 - #snoop scroll malfunctions if inputregion is changed (should be fixed)
+
+- add // comment support for command files
+
+- add "logging" helpfile
+
+- Add a method to more easily have two competing actions in two classes.
 
 #screen scroll 1 1 20 50
 #screen input 22 1 22 50

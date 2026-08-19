@@ -294,7 +294,7 @@ int port_new(struct session *ses, int sock)
 	new_buddy->ip       = strdup(inet_ntoa(sock_addr.sin_addr));
 	new_buddy->prefix   = strdup("");
 	new_buddy->color    = strdup("");
-	new_buddy->proxy    = strdup("");
+	new_buddy->proxyip  = strdup("");
 	new_buddy->ttype    = strdup("");
 
 	new_buddy->port     = 0;
@@ -358,11 +358,15 @@ void close_port(struct session *ses, struct port_data *buddy, int unlink)
 	end_mccp2(ses, buddy);
 	end_mccp3(ses, buddy);
 
+	uninit_msdp_data(buddy);
+
 	free(buddy->group);
 	free(buddy->ip);
 	free(buddy->name);
 	free(buddy->prefix);
 	free(buddy->color);
+	free(buddy->proxyip);
+	free(buddy->ttype);
 
 	free(buddy);
 

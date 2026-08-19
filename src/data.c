@@ -92,7 +92,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 			switch (type)
 			{
 				case LIST_ALIAS:
-					node->regex = tintin_regexp_compile(ses, node, node->arg1, PCRE2_ANCHORED);
+					node->regex = tintin_regex_compile(ses, node, node->arg1, PCRE2_ANCHORED);
 					break;
 
 				case LIST_ACTION:
@@ -100,7 +100,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 				case LIST_HIGHLIGHT:
 				case LIST_PROMPT:
 				case LIST_SUBSTITUTE:
-					node->regex = tintin_regexp_compile(ses, node, node->arg1, 0);
+					node->regex = tintin_regex_compile(ses, node, node->arg1, 0);
 					break;
 
 				case LIST_BUTTON:
@@ -196,7 +196,7 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 	switch (root->type)
 	{
 		case LIST_ALIAS:
-			node->regex = tintin_regexp_compile(root->ses, node, node->arg1, PCRE2_ANCHORED);
+			node->regex = tintin_regex_compile(root->ses, node, node->arg1, PCRE2_ANCHORED);
 			break;
 
 		case LIST_ACTION:
@@ -204,7 +204,7 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 		case LIST_HIGHLIGHT:
 		case LIST_PROMPT:
 		case LIST_SUBSTITUTE:
-			node->regex = tintin_regexp_compile(root->ses, node, node->arg1, 0);
+			node->regex = tintin_regex_compile(root->ses, node, node->arg1, 0);
 			break;
 
 		case LIST_DELAY:
@@ -381,16 +381,13 @@ void delete_node(struct session *ses, int type, struct listnode *node)
 {
 	if (HAS_BIT(list_table[type].flags, LIST_FLAG_REGEX))
 	{
-		if (node->regex)
-		{
-			pcre2_code_free(node->regex);
-		}
+		tintin_regex_free(node);
 	}
 
 	switch (type)
 	{
 		case LIST_CLASS:
-			clear_class(ses, node);
+			destroy_class(ses, node);
 
 			if (node->data)
 			{
@@ -419,17 +416,6 @@ void delete_node(struct session *ses, int type, struct listnode *node)
 	// dispose in memory update for one shot handling
 
 	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
-
-	if (!HAS_BIT(ses->flags, SES_FLAG_CLOSED))
-	{
-		switch (type)
-		{
-			case LIST_CLASS:
-				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", node->arg1);
-				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", node->arg1, node->arg1);
-				break;
-		}
-	}
 }
 
 void delete_index_list(struct listroot *root, int index)

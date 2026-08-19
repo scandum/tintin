@@ -51,6 +51,7 @@ extern DO_ARRAY(array_simplify);
 extern DO_ARRAY(array_size);
 extern DO_ARRAY(array_sort);
 extern DO_ARRAY(array_swap);
+extern DO_ARRAY(array_tabulate);
 extern DO_ARRAY(array_tokenize);
 
 typedef struct session *ARRAY(struct session *ses, struct listnode *list, char *arg, char *var, char *arg1, char *arg2);
@@ -90,6 +91,7 @@ struct array_type array_table[] =
 	{     "SORT",             array_sort,        "Sort a list table alphabetically"        },
 	{     "SRT",              array_sort,        NULL                                      },
 	{     "SWAP",             array_swap,        "Swap two list items"                     },
+	{     "TABULATE",         array_tabulate,    "Turn a list into a table"                },
 	{     "TOKENIZE",         array_tokenize,    "Create a list with given characters"     },
 	{     "",                 NULL,              ""                                        }
 };
@@ -186,6 +188,11 @@ DO_ARRAY(array_add)
 	if (list->root == NULL)
 	{
 		list->root = init_list(ses, LIST_VARIABLE, LIST_SIZE);
+	}
+
+	if (*arg == 0)
+	{
+		return ses;
 	}
 
 	if (list->root->used)
@@ -968,6 +975,51 @@ DO_ARRAY(array_swap)
 
 	show_error(ses, LIST_VARIABLE, "#LIST SWAP: VARIABLE {%s} IS NOT A LIST.", var);
 
+	return ses;
+}
+
+DO_ARRAY(array_tabulate)
+{
+	int index;
+
+	if (list->root == NULL)
+	{
+		show_error(ses, LIST_VARIABLE, "#LIST {%s} TABULATE: VARIABLE IS NOT A TABLE.", var);
+
+		return ses;
+	}
+
+	if (list->root->list[0]->root == NULL)
+	{
+		*arg = 0;
+
+		array_order(ses, list, arg, var, arg1, arg2);
+
+		for (index = 0 ; index < list->root->used ; index++)
+		{
+			str_cpy(&list->root->list[index]->arg1, list->root->list[index]->arg2);
+		}
+
+		return ses;
+	}
+
+	if (list->root->used)
+	{
+		array_indexate(ses, list, arg, var, arg1, arg2);
+
+		if (list->root->list[0]->root && *list->root->list[0]->arg2 == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LIST {%s} TABULATE: LIST IS NOT INDEXED.", var);
+
+			return ses;
+		}
+		quadsort(list->root->list, list->root->used, sizeof(size_t), cmp_list_num);
+
+		for (index = 0 ; index < list->root->used ; index++)
+		{
+			str_cpy(&list->root->list[index]->arg1, list->root->list[index]->arg2);
+		}
+	}
 	return ses;
 }
 

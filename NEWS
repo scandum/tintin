@@ -344,7 +344,7 @@ TinTin++ 1.88.0
     before doing anything so you don't end up with bogus, and trims leading 
     spaces/tabs. Make sure to remove non matching { }'s from #NOP comments,
     cause it will (and should) create error messages. The error message
-    will try to inform you on what line the error occured.
+    will try to inform you on what line the error occurred.
 
 06) Added #MACRO for macro support.
 

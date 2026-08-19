@@ -381,27 +381,28 @@ int delete_nest_node_with_wild(struct listroot *root, char *variable)
 }
 
 
-// Return the number of indices of a node.
+// Return the number of indices of a node
 
 int get_nest_size(struct listroot *root, char *variable)
 {
 	char name[BUFFER_SIZE], *arg;
+	struct listnode *node;
 	int index, count;
+
 	arg = get_arg_to_brackets(root->ses, variable, name);
 
 	if (!strcmp(arg, "[]"))
 	{
 		if (*name == 0)
 		{
-			return root->used + 1;
+			return root->used;
 		}
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node && node->root == NULL)
 		{
-			if (search_node_list(root, name))
-			{
-				return 1;
-			}
+			return 0;
 		}
 	}
 
@@ -414,148 +415,54 @@ int get_nest_size(struct listroot *root, char *variable)
 	{
 		// Handle regex queries
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node == NULL)
 		{
-			if (search_node_list(root, name) == NULL)
+			if (tintin_regex_check(root->ses, name))
 			{
-				if (tintin_regexp_check(root->ses, name))
+				for (index = count = 0 ; index < root->used ; index++)
 				{
-					for (index = count = 0 ; index < root->used ; index++)
+					if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
 					{
-						if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
-						{
-							count++;
-						}
-					}
-					return count + 1;
-				}
-				else if (strstr(name, "..") && is_math(root->ses, name))
-				{
-					int min, max, range;
-
-					if (root->used)
-					{
-						range = get_ellipsis(root->ses, root->used, name, &min, &max);
-
-
-						return range + 1;
-					}
-					else
-					{
-						return 1;
+						count++;
 					}
 				}
-				else
-				{
-					return 0;
-				}
+				return count;
 			}
+			else if (strstr(name, "..") && is_math(root->ses, name))
+			{
+				int min, max, range;
+
+				if (root->used)
+				{
+					range = get_ellipsis(root->ses, root->used, name, &min, &max);
+
+					return range;
+				}
+				return 0;
+			}
+			return -1;
 		}
 
-		root = search_nest_root(root, name);
+		root = node->root;
 
 		if (root)
 		{
 			if (!strcmp(arg, "[]"))
 			{
-				return root->used + 1;
+				return root->used;
 			}
 			arg = get_arg_in_brackets(root->ses, arg, name);
 		}
 	}
-
-	return 0;
-}
-
-int get_nest_size_index(struct listroot *root, char *variable, char **result)
-{
-	char name[BUFFER_SIZE], *arg;
-	int index, count;
-
-	arg = get_arg_to_brackets(root->ses, variable, name);
-
-	str_cpy(result, "");
-
-	if (!strcmp(arg, "[]"))
-	{
-		if (*name == 0)
-		{
-			return root->used + 1;
-		}
-
-		if (search_nest_root(root, name) == NULL)
-		{
-			if (search_node_list(root, name))
-			{
-				return 1;
-			}
-		}
-	}
-
-	if (*name == 0)
-	{
-		arg = get_arg_in_brackets(root->ses, arg, name);
-	}
-
-	while (root && *name)
-	{
-		// Handle regex queries
-
-		if (search_nest_root(root, name) == NULL)
-		{
-			if (search_node_list(root, name) == NULL)
-			{
-				if (tintin_regexp_check(root->ses, name))
-				{
-					for (index = count = 0 ; index < root->used ; index++)
-					{
-						if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
-						{
-							count++;
-						}
-					}
-					return count + 1;
-				}
-				else if (strstr(name, "..") && is_math(root->ses, name))
-				{
-					int min, max, range;
-
-					if (root->used)
-					{
-						range = get_ellipsis(root->ses, root->used, name, &min, &max);
-
-						return range + 1;
-					}
-					else
-					{
-						return 1;
-					}
-				}
-				else
-				{
-					return 0;
-				}
-			}
-		}
-
-		root = search_nest_root(root, name);
-
-		if (root)
-		{
-			if (!strcmp(arg, "[]"))
-			{
-				return root->used + 1;
-			}
-			arg = get_arg_in_brackets(root->ses, arg, name);
-		}
-	}
-
-	return 0;
+	return -1;
 }
 
 int get_nest_size_key(struct listroot *root, char *variable, char **result)
 {
 	char name[BUFFER_SIZE], *arg;
+	struct listnode *node;
 	int index, count;
 
 	arg = get_arg_to_brackets(root->ses, variable, name);
@@ -570,15 +477,14 @@ int get_nest_size_key(struct listroot *root, char *variable, char **result)
 			{
 				str_cat_printf(result, "{%s}", root->list[index]->arg1);
 			}
-			return root->used + 1;
+			return root->used;
 		}
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node && node->root == NULL)
 		{
-			if (search_node_list(root, name))
-			{
-				return 1;
-			}
+			return 0;
 		}
 	}
 
@@ -591,60 +497,53 @@ int get_nest_size_key(struct listroot *root, char *variable, char **result)
 	{
 		// Handle regex queries
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node == NULL)
 		{
-			if (search_node_list(root, name) == NULL)
+			if (tintin_regex_check(root->ses, name))
 			{
-				if (tintin_regexp_check(root->ses, name))
+				for (index = count = 0 ; index < root->used ; index++)
 				{
-					for (index = count = 0 ; index < root->used ; index++)
+					if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
 					{
-						if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
-						{
-							str_cat_printf(result, "{%s}", root->list[index]->arg1);
-							count++;
-						}
+						str_cat_printf(result, "{%s}", root->list[index]->arg1);
+						count++;
 					}
-					return count + 1;
 				}
-				else if (strstr(name, "..") && is_math(root->ses, name))
+				return count;
+			}
+
+			if (strstr(name, "..") && is_math(root->ses, name))
+			{
+				int min, max, range;
+
+				if (root->used)
 				{
-					int min, max, range;
+					range = get_ellipsis(root->ses, root->used, name, &min, &max);
 
-					if (root->used)
+					if (min < max)
 					{
-						range = get_ellipsis(root->ses, root->used, name, &min, &max);
-
-//						tintin_printf2(root->ses, "debug: %d %d %d\n", min, max, range);
-
-						if (min < max)
+						while (min <= max)
 						{
-							while (min <= max)
-							{
-								str_cat_printf(result, "{%s}", root->list[min++]->arg1);
-							}
+							str_cat_printf(result, "{%s}", root->list[min++]->arg1);
 						}
-						else
-						{
-							while (min >= max)
-							{
-								str_cat_printf(result, "{%s}", root->list[min--]->arg1);
-							}
-						}
-						return range + 1;
 					}
 					else
 					{
-						return 1;
+						while (min >= max)
+						{
+							str_cat_printf(result, "{%s}", root->list[min--]->arg1);
+						}
 					}
+					return range;
 				}
-				else
-				{
-					return 0;
-				}
+				return 0;
 			}
+			return -1;
 		}
-		root = search_nest_root(root, name);
+
+		root = node->root;
 
 		if (root)
 		{
@@ -654,18 +553,18 @@ int get_nest_size_key(struct listroot *root, char *variable, char **result)
 				{
 					str_cat_printf(result, "{%s}", root->list[index]->arg1);
 				}
-				return root->used + 1;
+				return root->used;
 			}
 			arg = get_arg_in_brackets(root->ses, arg, name);
 		}
 	}
-
-	return 0;
+	return -1;
 }
 
 int get_nest_size_val(struct listroot *root, char *variable, char **result)
 {
 	char name[BUFFER_SIZE], *arg;
+	struct listnode *node;
 	int index, count;
 
 	arg = get_arg_to_brackets(root->ses, variable, name);
@@ -678,18 +577,16 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 		{
 			for (index = 0 ; index < root->used ; index++)
 			{
-				show_nest_node(root->list[index], result, FALSE); // behaves like strcat
-//				str_cat_printf(result, "{%s}", root->list[index]->arg2);
+				show_nest_node(root->list[index], result, FALSE); // will cat vals to result
 			}
-			return root->used + 1;
+			return root->used;
 		}
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node && node->root == NULL)
 		{
-			if (search_node_list(root, name))
-			{
-				return 1;
-			}
+			return 0;
 		}
 	}
 
@@ -702,59 +599,53 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 	{
 		// Handle regex queries
 
-		if (search_nest_root(root, name) == NULL)
+		node = search_node_list(root, name);
+
+		if (node == NULL)
 		{
-			if (search_node_list(root, name) == NULL)
+			if (tintin_regex_check(root->ses, name))
 			{
-				if (tintin_regexp_check(root->ses, name))
+				for (index = count = 0 ; index < root->used ; index++)
 				{
-					for (index = count = 0 ; index < root->used ; index++)
+					if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
 					{
-						if (match(root->ses, root->list[index]->arg1, name, SUB_NONE))
-						{
-							show_nest_node(root->list[index], result, FALSE); // behaves like strcat
-							count++;
-						}
+						show_nest_node(root->list[index], result, FALSE); // will cat vals to result
+						count++;
 					}
-					return count + 1;
 				}
-				else if (strstr(name, "..") && is_math(root->ses, name))
+				return count;
+			}
+
+			if (strstr(name, "..") && is_math(root->ses, name))
+			{
+				int min, max, range;
+
+				if (root->used)
 				{
-					int min, max, range;
+					range = get_ellipsis(root->ses, root->used, name, &min, &max);
 
-					if (root->used)
+					if (min < max)
 					{
-						range = get_ellipsis(root->ses, root->used, name, &min, &max);
-
-						if (min < max)
+						while (min <= max)
 						{
-							while (min <= max)
-							{
-								show_nest_node(root->list[min++], result, FALSE);
-							}
+							show_nest_node(root->list[min++], result, FALSE);
 						}
-						else
-						{
-							while (min >= max)
-							{
-								show_nest_node(root->list[min--], result, FALSE);
-							}
-						}
-						return range + 1;
 					}
 					else
 					{
-						return 1;
+						while (min >= max)
+						{
+							show_nest_node(root->list[min--], result, FALSE);
+						}
 					}
+					return range;
 				}
-				else
-				{
-					return 0;
-				}
+				return 0;
 			}
+			return -1;
 		}
 
-		root = search_nest_root(root, name);
+		root = node->root;
 
 		if (root)
 		{
@@ -762,16 +653,14 @@ int get_nest_size_val(struct listroot *root, char *variable, char **result)
 			{
 				for (index = 0 ; index < root->used ; index++)
 				{
-					show_nest_node(root->list[index], result, FALSE); // behaves like strcat
-//					str_cat_printf(result, "{%s}", root->list[index]->arg2);
+					show_nest_node(root->list[index], result, FALSE); // will cat vals to result
 				}
-				return root->used + 1;
+				return root->used;
 			}
 			arg = get_arg_in_brackets(root->ses, arg, name);
 		}
 	}
-
-	return 0;
+	return -1;
 }
 
 struct listnode *get_nest_node_key(struct listroot *root, char *variable, char **result, int def)
@@ -781,7 +670,7 @@ struct listnode *get_nest_node_key(struct listroot *root, char *variable, char *
 
 	size = get_nest_size_key(root, variable, result); // will copy keys to result
 
-	if (size)
+	if (size >= 0)
 	{
 		return NULL;
 	}
@@ -817,9 +706,9 @@ struct listnode *get_nest_node_val(struct listroot *root, char *variable, char *
 	struct listnode *node;
 	int size;
 
-	size = get_nest_size_val(root, variable, result);
+	size = get_nest_size_val(root, variable, result); // will copy keys to result
 
-	if (size)
+	if (size >= 0)
 	{
 		return NULL;
 	}
@@ -855,11 +744,11 @@ int get_nest_index(struct listroot *root, char *variable, char **result, int def
 	struct listnode *node;
 	int index, size;
 
-	size = get_nest_size_index(root, variable, result);
+	size = get_nest_size(root, variable);
 
-	if (size)
+	if (size >= 0)
 	{
-		str_cpy_printf(result, "%d", size - 1);
+		str_cpy_printf(result, "%d", size);
 
 		return -1;
 	}

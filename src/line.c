@@ -297,7 +297,7 @@ DO_LINE(line_log)
 
 	if (*arg1 && *arg2)
 	{
-		substitute(ses, arg2, arg2, SUB_ESC|SUB_COL|SUB_LNF);
+		substitute(ses, arg2, arg2, SUB_ESC|SUB_COL|SUB_LNF|SUB_LOG);
 
 		if (ses->log->file && !strcmp(ses->log->name, arg1))
 		{
@@ -542,7 +542,7 @@ DO_LINE(line_json)
 
 	return ses;
 }
-	
+
 DO_LINE(line_multishot)
 {
 	unsigned int shots;

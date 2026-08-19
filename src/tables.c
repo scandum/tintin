@@ -70,6 +70,22 @@ struct substitution_type substitution_table[] =
 	{    "",                     0       }
 };
 
+struct suggestion_type suggestion_table[] =
+{
+	{    "connect",       "session",     "run",        ""            },
+	{    "disconnect",    "end",         "zap",        ""            },
+	{    "exit",          "end",         "zap",        ""            },
+	{    "forall",        "foreach",     "",           ""            },
+	{    "load",          "read",        "",           ""            },
+	{    "quit",          "end",         "zap",        ""            },
+	{    "say",           "showme",      "echo",       ""            },
+	{    "sleep",         "delay",       "",           ""            },
+	{    "trigger",       "action",      "info",       ""            },
+	{    "triggers",      "action",      "info",       ""            },
+	{    "wait",          "delay",       "",           ""            },
+	{    "",              "",            "",           ""            }
+};
+
 struct charset_type charset_table[] =
 {
 	{    "ASCII",         "iso-8859-1",  "ASCII",      0                  },

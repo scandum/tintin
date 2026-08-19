@@ -159,8 +159,8 @@ DO_HISTORY(history_get)
 
 	if (root->used == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#HISTORY GET: THE HISTORY LIST IS EMPTY.");
-
+		show_error(ses, LIST_COMMAND, "HISTORY GET: THE HISTORY LIST IS EMPTY.");
+		
 		return;
 	}
 

@@ -45,6 +45,58 @@ void init_msdp_table(void)
 	gtd->msdp_table_size = index;
 }
 
+void init_msdp_data(struct session *ses, struct port_data *buddy)
+{
+	int index;
+
+	if (buddy->msdp_data)
+	{
+		return;
+	}
+
+	buddy->msdp_data = (struct msdp_data **) calloc(gtd->msdp_table_size, sizeof(struct msdp_data *));
+
+	for (index = 0 ; index < gtd->msdp_table_size ; index++)
+	{
+		buddy->msdp_data[index] = (struct msdp_data *) calloc(1, sizeof(struct msdp_data));
+
+		buddy->msdp_data[index]->flags = msdp_table[index].flags;
+		buddy->msdp_data[index]->value = strdup("");
+	}
+
+	// Easiest to handle variable initialization here.
+
+	msdp_update_var(ses, buddy, "SPECIFICATION", "http://tintin.sourceforge.net/msdp");
+
+	msdp_update_varf(ses, buddy, "SCREEN_ROWS",     "%d", gtd->screen->rows);
+	msdp_update_varf(ses, buddy, "SCREEN_COLS",     "%d", gtd->screen->cols);
+	msdp_update_varf(ses, buddy, "SCREEN_HEIGHT",   "%d", gtd->screen->height);
+	msdp_update_varf(ses, buddy, "SCREEN_WIDTH",    "%d", gtd->screen->width);
+
+	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_HEIGHT", "%d", gtd->screen->pos_height);
+	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_WIDTH",  "%d", gtd->screen->pos_width);
+
+	msdp_update_varf(ses, buddy, "SCREEN_FOCUS",     "%d", gtd->screen->focus);
+	msdp_update_varf(ses, buddy, "SCREEN_MINIMIZED", "%d", gtd->screen->minimized);
+
+	return;
+}
+
+void uninit_msdp_data(struct port_data *buddy)
+{
+	if (buddy->msdp_data)
+	{
+		int index;
+
+		for (index = 0 ; index < gtd->msdp_table_size ; index++)
+		{
+			free(buddy->msdp_data[index]->value);
+			free(buddy->msdp_data[index]);
+		}
+		free(buddy->msdp_data);
+	}
+}
+
 // Binary search on the msdp_table.
 
 int msdp_find(char *var)

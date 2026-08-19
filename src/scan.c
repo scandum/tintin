@@ -655,6 +655,9 @@ DO_SCAN(scan_json)
 							break;
 
 						case ' ':
+						case '\t':
+						case '\n':
+						case '\r':
 							i++;
 							break;
 

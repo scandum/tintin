@@ -402,7 +402,7 @@ char *addregextoken(struct scriptroot *root, int lvl, int type, int cmd, char *s
 
 	if (*arg3 == 0)
 	{
-		show_error(root->ses, LIST_COMMAND, "#SYNTAX: #REGEXP <TEXT> <EXPRESSION> <TRUE> [FALSE]");
+		show_error(root->ses, LIST_COMMAND, "#SYNTAX: #REGEX <TEXT> <EXPRESSION> <TRUE> [FALSE]");
 	}
 	addtoken(root, lvl, type, cmd, arg1);
 

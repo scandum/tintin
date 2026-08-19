@@ -187,6 +187,21 @@ void clear_class(struct session *ses, struct listnode *group)
 	}
 }
 
+void destroy_class(struct session *ses, struct listnode *group)
+{
+	clear_class(ses, group);
+
+	if (!HAS_BIT(ses->flags, SES_FLAG_CLOSED))
+	{
+		if (atoi(group->arg3) != 0)
+		{
+			class_close(ses, group, NULL, NULL);
+		}
+		check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DESTROYED", group->arg1);
+		check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DESTROYED %s", group->arg1, group->arg1);
+	}
+}
+
 DO_CLASS(class_assign)
 {
 	if (node == NULL)
@@ -242,15 +257,15 @@ DO_CLASS(class_close)
 
 	if (atoi(node->arg3) == 0)
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} IS ALREADY CLOSED.", node->arg1);
 	}
 	else
 	{
-		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", arg1);
+		show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN CLOSED.", node->arg1);
 
-		update_node_list(ses->list[LIST_CLASS], arg1, "", "0", node->arg4);
+		update_node_list(ses->list[LIST_CLASS], node->arg1, "", "0", node->arg4);
 
-		if (!strcmp(ses->group, arg1))
+		if (!strcmp(ses->group, node->arg1))
 		{
 			check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS DEACTIVATED", ses->group);
 			check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS DEACTIVATED %s", ses->group, ses->group);
@@ -264,7 +279,7 @@ DO_CLASS(class_close)
 				show_message(ses, LIST_CLASS, "#CLASS {%s} HAS BEEN ACTIVATED.", node->arg1);
 
 				check_all_events(ses, EVENT_FLAG_CLASS, 0, 1, "CLASS ACTIVATED", node->arg1);
-				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", arg1, arg1);
+				check_all_events(ses, EVENT_FLAG_CLASS, 1, 1, "CLASS ACTIVATED %s", node->arg1, node->arg1);
 			}
 			else
 			{

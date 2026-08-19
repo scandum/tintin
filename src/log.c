@@ -372,7 +372,7 @@ void vt102_to_html(struct session *ses, char *txt, char *out)
 	char xtc[6]  = { '0', '6', '8', 'B', 'D', 'F' };
 	char *ans[16] = { "000", "A00", "0A0", "AA0", "00A", "A0A", "0AA", "AAA", "555", "F55", "5F5", "FF5", "55F", "F5F", "5FF", "FFF" };
 
-	int vtc, fgc, bgc, cnt, skip;
+	int vtc, fgc, bgc, skip, cnt;
 	int rgb[6] = { 0, 0, 0, 0, 0, 0 };
 
 	vtc = ses->vtc;

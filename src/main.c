@@ -1,7 +1,7 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2019 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
 *   TinTin++ is free software; you can redistribute it and/or modify          *
 *   it under the terms of the GNU General Public License as published by      *
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
 
 				case 'V':
 					printf("\nTinTin++ " CLIENT_VERSION "\n");
-					printf("\n(C) 2004-2019 Igor van den Hoven\n");
+					printf("\n(C) 2004-2026 Igor van den Hoven\n");
 					printf("\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\n");
 					exit(1);
 			}
@@ -510,6 +510,12 @@ void init_tintin(int greeting)
 	gtd->time           = time(NULL);
 	gtd->utime          = utime();
 
+	gtd->match_data     = pcre2_match_data_create(101, NULL);
+	gtd->jit_stack      = pcre2_jit_stack_create(16 * 1024, 1024 * 1024, NULL);
+	gtd->match_context  = pcre2_match_context_create(NULL);
+
+	pcre2_jit_stack_assign(gtd->match_context, NULL, gtd->jit_stack);
+
 	for (index = 0 ; index < 100 ; index++)
 	{
 		gtd->vars[index] = strdup("");
@@ -703,7 +709,7 @@ void quitmsg(char *message)
 
 	if (crashed++)
 	{
-		print_stdout(0, 0, "quitmsg(crashed)\n");
+		puts_stdout(0, 0, "quitmsg(crashed)", FALSE);
 
 		fflush(NULL);
 
@@ -741,7 +747,7 @@ void quitmsg(char *message)
 		{
 			print_stdout(0, 0, "\n\e[0m%s", message);
 		}
-		print_stdout(0, 0, "\nGoodbye from TinTin++\n\n");
+		puts_stdout(0, 0, "\nGoodbye from TinTin++\n\n", TRUE);
 	}
 	fflush(stdout);
 
@@ -797,7 +803,7 @@ void syserr_signal(int signal, char *msg)
 
 	if (crashed++)
 	{
-		print_stdout(0, 0, "syserr_signal(crashed)\n");
+		puts_stdout(0, 0, "syserr_signal(crashed)", FALSE);
 
 		fflush(NULL);
 
@@ -814,7 +820,7 @@ void syserr_signal(int signal, char *msg)
 
 	sprintf(buf, "\e[1;31mFATAL SIGNAL FROM (%s): %s\e[0m\n", msg, strsignal(signal));
 
-	print_stdout(0, 0, "%s", buf);
+	puts_stdout(0, 0, buf, TRUE);
 
 	fflush(NULL);
 
@@ -828,7 +834,7 @@ void syserr_fatal(int signal, char *msg)
 
 	if (crashed++)
 	{
-		print_stdout(0, 0, "\e[1;36msyserr_fatal(crashed) \e[0m\n");
+		puts_stdout(0, 0, "\e[1;36msyserr_fatal(crashed) \e[0m", FALSE);
 
 		fflush(NULL);
 
@@ -839,7 +845,7 @@ void syserr_fatal(int signal, char *msg)
 	{
 		crashed--;
 
-		check_all_events(gts, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 0, "SIGHUB");
+		check_all_events(gts, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 0, "SIGHUP");
 
 		crashed++;
 	}
@@ -864,7 +870,7 @@ void syserr_fatal(int signal, char *msg)
 
 	reset_screen(gts);
 
-	print_stdout(0, 0, "\e[?1049l\e[r");
+	puts_stdout(0, 0, "\e[?1049l\e[r", TRUE);
 
 	dump_stack();
 

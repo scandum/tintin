@@ -720,7 +720,7 @@ int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigne
 
 					if (!strcasecmp(var, "IPADDRESS"))
 					{
-						RESTRING(buddy->proxy, val);
+						RESTRING(buddy->proxyip, val);
 					}
 				}
 				break;
@@ -813,39 +813,14 @@ int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned ch
 
 int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
 {
-	int index;
-
 	if (buddy->msdp_data)
 	{
 		return 3;
 	}
 
-	buddy->msdp_data = (struct msdp_data **) calloc(gtd->msdp_table_size, sizeof(struct msdp_data *));
+	server_telopt_debug(ses, "INFO INITIALIZING MSDP");
 
-	for (index = 0 ; index < gtd->msdp_table_size ; index++)
-	{
-		buddy->msdp_data[index] = (struct msdp_data *) calloc(1, sizeof(struct msdp_data));
-
-		buddy->msdp_data[index]->flags = msdp_table[index].flags;
-		buddy->msdp_data[index]->value = strdup("");
-	}
-
-	server_telopt_debug(ses, "INFO MSDP INITIALIZED");
-
-	// Easiest to handle variable initialization here.
-
-	msdp_update_var(ses, buddy, "SPECIFICATION", "http://tintin.sourceforge.net/msdp");
-
-	msdp_update_varf(ses, buddy, "SCREEN_ROWS",     "%d", gtd->screen->rows);
-	msdp_update_varf(ses, buddy, "SCREEN_COLS",     "%d", gtd->screen->cols);
-	msdp_update_varf(ses, buddy, "SCREEN_HEIGHT",   "%d", gtd->screen->height);
-	msdp_update_varf(ses, buddy, "SCREEN_WIDTH",    "%d", gtd->screen->width);
-
-	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_HEIGHT", "%d", gtd->screen->pos_height);
-	msdp_update_varf(ses, buddy, "SCREEN_LOCATION_WIDTH",  "%d", gtd->screen->pos_width);
-
-	msdp_update_varf(ses, buddy, "SCREEN_FOCUS",     "%d", gtd->screen->focus);
-	msdp_update_varf(ses, buddy, "SCREEN_MINIMIZED", "%d", gtd->screen->minimized);
+	init_msdp_data(ses, buddy);
 
 	return 3;
 }

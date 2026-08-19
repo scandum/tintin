@@ -29,7 +29,7 @@
 
 #ifdef HAVE_GNUTLS_H
 
-static gnutls_certificate_credentials_t ssl_cred = 0;
+static gnutls_certificate_credentials_t global_ssl_cred = NULL;
 
 static int ssl_check_cert(struct session *ses, gnutls_session_t sslses);
 
@@ -60,16 +60,22 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 
 	int ret;
 	
-	if (!ssl_cred)
+	if (!global_ssl_cred)
 	{
 		gnutls_global_init();
-		gnutls_certificate_allocate_credentials(&ssl_cred);
+		gnutls_certificate_allocate_credentials(&global_ssl_cred);
 	}
 
-	gnutls_init(&ssl_ses, GNUTLS_CLIENT);
+	if (gnutls_init(&ssl_ses, GNUTLS_CLIENT) != GNUTLS_E_SUCCESS)
+	{
+		show_error(ses, LIST_COMMAND, "#SSL: Failed to initialize GnuTLS.");
+
+		return 0;
+	}
+
 	gnutls_set_default_priority(ssl_ses);
-	gnutls_credentials_set(ssl_ses, GNUTLS_CRD_CERTIFICATE, ssl_cred);
-	gnutls_transport_set_ptr(ssl_ses, (gnutls_transport_ptr_t) (long int) ses->socket);
+	gnutls_credentials_set(ssl_ses, GNUTLS_CRD_CERTIFICATE, global_ssl_cred);
+	gnutls_transport_set_ptr(ssl_ses, (gnutls_transport_ptr_t) (intptr_t) ses->socket);
 	gnutls_server_name_set(ssl_ses, GNUTLS_NAME_DNS, ses->session_host, strlen(ses->session_host));
 
 	do 
@@ -78,10 +84,11 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 	}
 	while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
 
-	if (ret)
+	if (ret < 0)
 	{
-		tintin_printf2(ses, "#SSL: handshake failed error: %s", gnutls_strerror(ret));
+		tintin_printf2(ses, "#SSL: GnuTLS handshake failed: %s", gnutls_strerror(ret));
 		gnutls_deinit(ssl_ses);
+
 		return 0;
 	}
 /*
@@ -96,6 +103,7 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 	if (!ssl_check_cert(ses, ssl_ses))
 	{
 		gnutls_deinit(ssl_ses);
+
 		return 0;
 	}
 	return ssl_ses;
@@ -104,19 +112,19 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 
 static int get_cert_file(struct session *ses, char *result)
 {
-	char name[BUFFER_SIZE], *ptr;
+	char filename[BUFFER_SIZE], *ptr;
 
-	sprintf(name, "%s_%s", ses->session_host, ses->session_port);
+	sprintf(filename, "%s_%s", ses->session_host, ses->session_port);
 
-	ptr = name;
+	ptr = filename;
 
 	while (*ptr)
 	{
-		if (*ptr == ':')
+		if (*ptr == ':' || *ptr == '.')
 		{
-			*ptr++ = '.';
+			*ptr++ = '_';
 		}
-		else if (is_alnum(*ptr) || *ptr == '-' || *ptr == '.' || *ptr == '_')
+		else if (is_alnum(*ptr) || *ptr == '-' || *ptr == '_')
 		{
 			ptr++;
 		}
@@ -125,8 +133,7 @@ static int get_cert_file(struct session *ses, char *result)
 			return 0;
 		}
 	}
-
-	sprintf(result, "%s/ssl/%s.crt", gtd->system->tt_dir, name);
+	sprintf(result, "%s/ssl/%s.crt", gtd->system->tt_dir, filename);
 
 	return 1;
 }
@@ -136,7 +143,7 @@ static void load_cert(struct session *ses, gnutls_x509_crt_t *cert)
 {
 	char cert_file[STRING_SIZE];
 	FILE *fp;
-	gnutls_datum_t bptr;
+	gnutls_datum_t cert_data;
 	
 	if (!get_cert_file(ses, cert_file))
 	{
@@ -148,18 +155,23 @@ static void load_cert(struct session *ses, gnutls_x509_crt_t *cert)
 		return;
 	}
 
-	bptr.size = fread(cert_file, 1, STRING_SIZE, fp);
-	bptr.data = (unsigned char *) cert_file;
+	cert_data.size = fread(cert_file, 1, STRING_SIZE, fp);
+	cert_data.data = (unsigned char *) cert_file;
 
 	fclose(fp);
 	
-	gnutls_x509_crt_init(cert);
+	if (gnutls_x509_crt_init(cert) != GNUTLS_E_SUCCESS)
+	{
+		*cert = NULL;
 
-	if (gnutls_x509_crt_import(*cert, &bptr, GNUTLS_X509_FMT_PEM))
+		return;
+	}
+
+	if (gnutls_x509_crt_import(*cert, &cert_data, GNUTLS_X509_FMT_PEM) != GNUTLS_E_SUCCESS)
 	{
 		gnutls_x509_crt_deinit(*cert);
 
-		*cert = 0;
+		*cert = NULL;
 	}
 }
 
@@ -288,7 +300,7 @@ static int ssl_check_cert(struct session *ses, gnutls_session_t ssl_ses)
 		goto badcert;
 	}
 
-	t = time(0);
+	t = time(NULL);
 
 	if (gnutls_x509_crt_get_activation_time(cert) > t)
 	{

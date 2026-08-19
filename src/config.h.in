@@ -19,9 +19,6 @@
 /* Define to 1 if you have the `forkpty' function. */
 #undef HAVE_FORKPTY
 
-/* Define to 1 if your system has /dev/ptms (STREAMS pseudoterminal mux). */
-#undef HAVE__DEV_PTMX
-
 /* Define to 1 if you have the `getaddrinfo' function. */
 #undef HAVE_GETADDRINFO
 
@@ -38,6 +35,9 @@
 #undef HAVE_GETTIMEOFDAY
 
 /* Define to 1 if you have the <gnutls/gnutls.h> header file. */
+#undef HAVE_GNUTLS_GNUTLS_H
+
+/* Define to 1 if you have <gnutls/gnutls.h>. */
 #undef HAVE_GNUTLS_H
 
 /* Define to 1 if you have the `inet_ntoa' function. */
@@ -46,20 +46,32 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `gnutls' library (-lgnutls). */
+#undef HAVE_LIBGNUTLS
+
+/* Define to 1 if you have the `m' library (-lm). */
+#undef HAVE_LIBM
+
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
+
+/* Define to 1 if you have the `pcre2-8' library (-lpcre2-8). */
+#undef HAVE_LIBPCRE2_8
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
-/* Define to 1 if you have the `termcap' library (-ltermcap). */
-#undef HAVE_LIBTERMCAP
+/* Define to 1 if you have the `socket' library (-lsocket). */
+#undef HAVE_LIBSOCKET
 
 /* Define to 1 if you have the `util' library (-lutil). */
 #undef HAVE_LIBUTIL
 
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
+
+/* Define to 1 if you have the `zstd' library (-lzstd). */
+#undef HAVE_LIBZSTD
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -81,6 +93,9 @@
 
 /* Define to 1 if you have the <param.h> header file. */
 #undef HAVE_PARAM_H
+
+/* Define to 1 if you have the <pcre2.h> header file. */
+#undef HAVE_PCRE2_H
 
 /* Define to 1 if you have the `popen' function. */
 #undef HAVE_POPEN
@@ -141,12 +156,11 @@
 /* Define to 1 if you have the `strncasecmp' function. */
 #undef HAVE_STRNCASECMP
 
+/* Define to 1 if you have the <stropts.h> header file. */
+#undef HAVE_STROPTS_H
+
 /* Define to 1 if you have the `strstr' function. */
 #undef HAVE_STRSTR
-
-/* Define to 1 if you have the <stropts.h> header file. */
-
-#undef HAVE_STROPTS_H
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
@@ -183,9 +197,6 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
-/* Define to 1 if you have the <termcap.h> header file. */
-#undef HAVE_TERMCAP_H
-
 /* Define to 1 if you have the <time.h> header file. */
 #undef HAVE_TIME_H
 
@@ -198,6 +209,9 @@
 /* Define to 1 if you have the `utime' function. */
 #undef HAVE_UTIME
 
+/* Define to 1 if you have the <utime.h> header file. */
+#undef HAVE_UTIME_H
+
 /* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
 #undef HAVE_UTIME_NULL
 
@@ -207,8 +221,14 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
+/* Define to 1 if you have the <zstd.h> header file. */
+#undef HAVE_ZSTD_H
+
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
+
+/* Define to 1 if you have the file `/dev/ptmx'. */
+#undef HAVE__DEV_PTMX
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
@@ -225,6 +245,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

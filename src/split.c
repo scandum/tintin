@@ -233,7 +233,7 @@ void dirty_screen(struct session *ses)
 
 	refresh_session_terminal(ses);
 
-	print_stdout(0, 0, "\e=");
+	puts_stdout(0, 0, "\e=", TRUE);
 
 	if (HAS_BIT(ses->flags, SES_FLAG_SPLIT))
 	{
@@ -359,7 +359,7 @@ void split_show(struct session *ses, char *prompt, char *row_str, char *col_str)
 			erase_cols(gtd->screen->cols);
 		}
 	
-		print_stdout(0, 0, "%s", buf1);
+		puts_stdout(0, 0, buf1, TRUE);
 	}
 
 	set_line_screen(ses, buf1, row, col);

@@ -4,7 +4,7 @@ summary: TinTin++ is a scriptable MUD client.
 description: TinTin++ is a MUD client that features an easy to learn yet powerful scripting language, a versatile automapper, and advanced VT100 interface controls.
 icon: tintin-128.png
 
-base: core18
+base: core24
 grade: stable
 confinement: strict
 
@@ -31,8 +31,9 @@ parts:
       - zlib1g-dev
       - gnutls-dev
     override-build: |
-      src/configure
-      mv Makefile config.h src/
-      make -j -C src
-      cp src/tt++ $SNAPCRAFT_PART_INSTALL/
+      cd src
+      ./configure
+      make
+      cp tt++ $SNAPCRAFT_PART_INSTALL/
+      cd ..
       snapcraftctl set-version $(head -n 1 mods/igr.mods | awk -F ' ' '{print $3}' | tr -d '\r')

@@ -30,6 +30,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <signal.h>
 #include <sys/socket.h>
@@ -153,6 +154,12 @@ int connect_mud(struct session *ses, char *host, char *port)
 	if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval)) < 0)
 	{
 		syserr_printf(ses, "connect_mud: setsockopt:");
+	}
+	else
+	{
+		optval = 300; setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE,  &optval, sizeof(optval));
+		optval = 10;  setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval));
+		optval = 5;   setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT,   &optval, sizeof(optval));
 	}
 
 	if (gts->connect_retry == 0)
@@ -428,7 +435,7 @@ int detect_prompt(struct session *ses, char *original)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regexp(ses, node, strip, original, 0))
+		if (check_one_regex(ses, node, strip, original, 0, REGEX_FLAG_NONE))
 		{
 			return TRUE;
 		}
@@ -616,7 +623,11 @@ void process_more_output(struct session *ses, char *append, int prompt)
 	str_cpy(&ses->more_output, "");
 	ses->check_output = 0;
 
+	gtd->mud_output_line = line;
+
 	process_one_line(ses, line, prompt);
+
+	gtd->mud_output_line = gtd->mud_output_buf + gtd->mud_output_len;
 
 	if (readmud == 0)
 	{
@@ -638,32 +649,27 @@ void process_one_line(struct session *ses, char *linebuf, int prompt)
 
 	raw_len = strlen(linebuf);
 
-	// temp and str_len are only read when an event or a prompt uses them.
-
-	str_len = 0;
-	*temp = 0;
-
 	if (prompt || HAS_BIT(gtd->event_flags, EVENT_FLAG_OUTPUT|EVENT_FLAG_CATCH))
 	{
 		str_len = strip_vt102_codes(linebuf, temp);
-	}
 
-	check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, temp);
+		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 2, "RECEIVED LINE", linebuf, temp);
 
-	if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED LINE", linebuf, temp))
-	{
-		pop_call();
-		return;
-	}
-
-	if (str_len && prompt)
-	{
-		check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 4, "RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len));
-
-		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 4, "CATCH RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len)))
+		if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 2, "CATCH RECEIVED LINE", linebuf, temp))
 		{
 			pop_call();
 			return;
+		}
+
+		if (str_len && prompt)
+		{
+			check_all_events(ses, SUB_SEC|EVENT_FLAG_OUTPUT, 0, 4, "RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len));
+
+			if (check_all_events(ses, SUB_SEC|EVENT_FLAG_CATCH, 0, 4, "CATCH RECEIVED PROMPT", linebuf, temp, ntos(raw_len), ntos(str_len)))
+			{
+				pop_call();
+				return;
+			}
 		}
 	}
 
@@ -688,7 +694,7 @@ void process_one_line(struct session *ses, char *linebuf, int prompt)
 
 		strip_non_vt102_codes(linebuf, temp);
 
-		print_stdout(0, 0, "%s", temp);
+		puts_stdout(0, 0, temp, TRUE);
 
 		strip_vt102_codes(linebuf, temp);
 

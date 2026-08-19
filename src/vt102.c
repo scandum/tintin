@@ -392,18 +392,13 @@ int skip_vt102_codes_non_graph(char *str)
 
 int get_vt102_width(struct session *ses, char *str, int *str_len)
 {
-	int raw_len;
-
 	*str_len = 0;
 
 	if (*str)
 	{
-		// A vt102 code always starts with a control character, so printable
-		// bytes can skip the scan entirely.
-
 		if ((unsigned char) *str < 32 || (unsigned char) *str == 127)
 		{
-			raw_len = skip_vt102_codes(str);
+			int raw_len = skip_vt102_codes(str);
 
 			if (raw_len)
 			{
@@ -1069,11 +1064,11 @@ int interpret_vt102_codes(struct session *ses, char *str, int real)
 
 	switch (str[skip])
 	{
-		case   8:
+		case  8:
 			ses->cur_col = UMAX(1, ses->cur_col - 1);
 			return TRUE;
 
-		case  27:   /* ESC */
+		case 27:   /* ESC */
 			break;
 
 		case 11:    /* VT  */

@@ -292,7 +292,7 @@ DO_COMMAND(do_replace)
 		return ses;
 	}
 
-	if (tintin_regexp(ses, NULL, node->arg2, arg2, 0, REGEX_FLAG_CMD) == FALSE)
+	if (tintin_regex_match(ses, NULL, node->arg2, arg2, 0, REGEX_FLAG_CMD) == FALSE)
 	{
 		show_message(ses, LIST_VARIABLE, "#REPLACE: {%s} NOT FOUND IN {%s}.", arg2, node->arg2);
 	}
@@ -326,7 +326,7 @@ DO_COMMAND(do_replace)
 				break;
 			}
 		}
-		while (tintin_regexp(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
+		while (tintin_regex_match(ses, NULL, pti, arg2, 0, REGEX_FLAG_CMD));
 
 		str_cat(&str, pti);
 

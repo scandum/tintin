@@ -770,14 +770,14 @@ void dispose_session(struct session *ses)
 		fclose(ses->log->line_file);
 	}
 
-	if (ses->map)
-	{
-		delete_map(ses);
-	}
-
 	for (index = 0 ; index < LIST_MAX ; index++)
 	{
 		kill_list(ses->list[index]);
+	}
+
+	if (ses->map)
+	{
+		delete_map(ses);
 	}
 
 	for (index = 0 ; index < LIST_MAX ; index++)

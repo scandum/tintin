@@ -380,7 +380,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 		}
 		else
 		{
-			print_stdout(0, 0, "%s", temp);
+			puts_stdout(0, 0, temp, TRUE);
 
 			add_line_screen(ses, temp, ses->cur_row);
 
@@ -395,7 +395,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 		{
 			word_wrap_split(ses, buffer->str, temp, ses->wrap, start, end, 0, &height, &width);
 
-			print_stdout(0, 0, "%s", temp);
+			puts_stdout(0, 0, temp, TRUE);
 
 			add_line_screen(ses, temp, ses->cur_row);
 
@@ -420,7 +420,7 @@ void buffer_print(struct session *ses, int index, int start, int end)
 
 					str_len = strip_vt102_strlen(ses, pti);
 
-					print_stdout(0, 0, "%s", pti);
+					puts_stdout(0, 0, pti, TRUE);
 
 					add_line_screen(ses, pti, ses->cur_row);
 
@@ -750,7 +750,7 @@ DO_BUFFER(buffer_up)
 
 	if (*arg)
 	{
-		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 	}
 
 	if (is_math(ses, arg1))
@@ -799,7 +799,7 @@ DO_BUFFER(buffer_down)
 
 	if (*arg)
 	{
-		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+		arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 	}
 
 	if (is_math(ses, arg1))
@@ -856,7 +856,7 @@ DO_BUFFER(buffer_jump)
 {
 	int line;
 
-	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
 
 	line = get_number(ses, arg1);
 

@@ -30,13 +30,23 @@
 
 int match(struct session *ses, char *str, char *exp, int sub)
 {
-	char expbuf[BUFFER_SIZE];
-
+/*
 	sprintf(expbuf, "\\A%s\\Z", exp);
 
 	substitute(ses, expbuf, expbuf, sub);
 
-	return tintin_regexp(ses, NULL, str, expbuf, 0, 0);
+	return tintin_regex_compare(ses, NULL, str, expbuf, 0, 0);
+*/
+	if (sub)
+	{
+		char expbuf[BUFFER_SIZE];
+
+		substitute(ses, exp, expbuf, sub);
+
+		return tintin_regex_compare(ses, NULL, str, expbuf, PCRE2_ANCHORED|PCRE2_ENDANCHORED, 0);
+	}
+
+	return tintin_regex_compare(ses, NULL, str, exp, PCRE2_ANCHORED|PCRE2_ENDANCHORED, 0);
 }
 
 int find(struct session *ses, char *str, char *exp, int sub, int flag)
@@ -48,13 +58,21 @@ int find(struct session *ses, char *str, char *exp, int sub, int flag)
 		substitute(ses, str, strbuf, SUB_VAR|SUB_FUN);
 		substitute(ses, exp, expbuf, SUB_VAR|SUB_FUN);
 
-		return tintin_regexp(ses, NULL, strbuf, expbuf, 0, flag);
+		if (flag)
+		{
+			return tintin_regex_match(ses, NULL, strbuf, expbuf, 0, flag);
+		}
+		return tintin_regex_compare(ses, NULL, strbuf, expbuf, 0, 0);
 	}
-	else
+
+	if (flag)
 	{
-		return tintin_regexp(ses, NULL, str, exp, 0, flag);
+		return tintin_regex_match(ses, NULL, str, exp, 0, flag);
 	}
+	return tintin_regex_compare(ses, NULL, str, exp, 0, 0);
 }
+
+// This code is never called as it's handled in tokenize.c
 
 DO_COMMAND(do_regexp)
 {
@@ -64,11 +82,11 @@ DO_COMMAND(do_regexp)
 
 	if (*arg3 == 0)
 	{
-		show_error(ses, LIST_COMMAND, "#SYNTAX: #REGEXP <TEXT> <EXPRESSION> <TRUE> [FALSE]");
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #REGEX <TEXT> <EXPRESSION> <TRUE> [FALSE]");
 	}
 	else
 	{
-		if (tintin_regexp(ses, NULL, arg1, arg2, 0, REGEX_FLAG_CMD))
+		if (tintin_regex_match(ses, NULL, arg1, arg2, 0, REGEX_FLAG_CMD))
 		{
 			substitute(ses, arg3, arg3, SUB_CMD);
 
@@ -89,14 +107,14 @@ DO_COMMAND(do_regexp)
 	return ses;
 }
 
-int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
+int tintin_regex_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
 {
 	pcre2_code *regex;
-	int i, j, matches;
+	int matches;
 
 	if (nodepcre == NULL)
 	{
-		regex = regexp_compile(ses, exp, comp_option);
+		regex = tintin_regex_compile(ses, NULL, exp, comp_option);
 	}
 	else
 	{
@@ -108,26 +126,51 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 		return FALSE;
 	}
 
-	static pcre2_match_data *match_data = NULL;
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
 
-	if (match_data == NULL)
+	if (nodepcre == NULL)
 	{
-		match_data = pcre2_match_data_create(101, NULL);
+		pcre2_code_free(regex);
 	}
 
-	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, match_data, NULL);
+	return matches > 0;
+}
 
-	if (matches <= 0)
+
+int tintin_regex_match(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
+{
+	pcre2_code *regex;
+	int i, j, matches;
+
+	if (nodepcre == NULL)
 	{
-		if (nodepcre == NULL)
-		{
-			pcre2_code_free(regex);
-		}
+		regex = tintin_regex_compile(ses, NULL, exp, comp_option);
+	}
+	else
+	{
+		regex = nodepcre;
+	}
 
+	if (regex == NULL)
+	{
 		return FALSE;
 	}
 
-	PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
+
+	if (nodepcre == NULL)
+	{
+		pcre2_code_free(regex);
+	}
+
+	if (matches <= 0)
+	{
+		return FALSE;
+	}
+
+	flag += tintin_match_data(ses, exp);
+
+	PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(gtd->match_data);
 
 	memcpy(gtd->match, ovector, matches * 2 * sizeof(PCRE2_SIZE));
 
@@ -192,39 +235,13 @@ int regexp_compare(struct session *ses, pcre2_code *nodepcre, char *str, char *e
 			break;
 	}
 
-	if (nodepcre == NULL)
-	{
-		pcre2_code_free(regex);
-	}
-
 	return TRUE;
 }
 
-pcre2_code *regexp_compile(struct session *ses, char *exp, int comp_option)
-{
-	int errorcode;
-	PCRE2_SIZE erroroffset;
-/*
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
-	{
-		comp_option |= PCRE2_UTF|PCRE2_NO_UTF_CHECK|PCRE2_UCP;
-	}
-*/
-	pcre2_code *regex = pcre2_compile((PCRE2_SPTR) exp, PCRE2_ZERO_TERMINATED, comp_option, &errorcode, &erroroffset, NULL);
-/*
-	if (regex)
-	{
-		pcre2_jit_compile(regex, PCRE2_JIT_COMPLETE);
-	}
-*/
-	return regex;
-}
 
+// Used by triggers
 
-
-// Check if the string matches and fill in wildcards on success
-
-int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int comp_option)
+int check_one_regex(struct session *ses, struct listnode *node, char *line, char *original, int comp_option, int flag)
 {
 	char *exp, *str, result[BUFFER_SIZE];
 
@@ -249,11 +266,264 @@ int check_one_regexp(struct session *ses, struct listnode *node, char *line, cha
 		str = line;
 	}
 
-	return tintin_regexp(ses, node->regex, str, exp, comp_option, REGEX_FLAG_ARG);
+	if (flag)
+	{
+		return tintin_regex_match(ses, node->regex, str, exp, comp_option, flag);
+	}
+
+	return tintin_regex_compare(ses, node->regex, str, exp, comp_option, 0);
 }
 
-// Keep synched with tintin_regexp and tintin_regexp_compile
 
+// check if a table key is a regex
+
+int tintin_regex_check(struct session *ses, char *exp)
+{
+	if (*exp == '^')
+	{
+		return TRUE;
+	}
+
+	while (*exp)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, exp))
+		{
+			exp += 2;
+			continue;
+		}
+
+		switch (exp[0])
+		{
+			case '\\':
+			case '{':
+				return TRUE;
+
+			case '$':
+				if (exp[1] == 0)
+				{
+					return TRUE;
+				}
+				break;
+
+			case '%':
+				switch (exp[1])
+				{
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+
+					case 'a':
+					case 'A':
+					case 'c':
+					case 'd':
+					case 'D':
+					case 'i':
+					case 'I':
+					case 'p':
+					case 'P':
+					case 's':
+					case 'S':
+					case 'u':
+					case 'U':
+					case 'w':
+					case 'W':
+					case '?':
+					case '*':
+					case '+':
+					case '.':
+					case '%':
+						return TRUE;
+
+					case '!':
+						switch (exp[2])
+						{
+							case 'a':
+							case 'A':
+							case 'c':
+							case 'd':
+							case 'D':
+							case 'p':
+							case 'P':
+							case 's':
+							case 'S':
+							case 'u':
+							case 'U':
+							case 'w':
+							case 'W':
+							case '?':
+							case '*':
+							case '+':
+							case '.':
+							case '{':
+								return TRUE;
+						}
+						break;
+				}
+				break;
+		}
+		exp++;
+	}
+	return FALSE;
+}
+
+// keep synched with tintin_regex_compile
+
+int tintin_match_data(struct session *ses, char *exp)
+{
+	char tmp[BUFFER_SIZE], *pte;
+	int arg = 1, var = 1, flag = 0;
+
+	pte = exp;
+
+	while (*pte == '^')
+	{
+		pte++;
+	}
+
+	while (*pte)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pte))
+		{
+			pte += 2;
+			continue;
+		}
+
+		switch (pte[0])
+		{
+			case '\\':
+				if (pte[1] == 0)
+				{
+					pte++;
+					break;
+				}
+				pte += 2;
+				break;
+
+			case '{':
+				gtd->args[next_arg(var)] = next_arg(arg);
+				pte = get_arg_in_braces(ses, pte, tmp, GET_ALL);
+				break;
+
+			case '[':
+			case ']':
+			case '(':
+			case ')':
+			case '|':
+			case '.':
+			case '?':
+			case '+':
+			case '*':
+			case '^':
+				pte++;
+				break;
+
+			// variables should already have been substituted
+
+			case '$':
+				pte++;
+				break;
+
+			case '%':
+				switch (pte[1])
+				{
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+						flag = REGEX_FLAG_FIX;
+						arg = is_digit(pte[2]) ? (pte[1] - '0') * 10 + (pte[2] - '0') : pte[1] - '0';
+						gtd->args[next_arg(var)] = next_arg(arg);
+						pte += is_digit(pte[2]) ? 3 : 2;
+						break;
+
+					case 'a':
+					case 'A':
+					case 'c':
+					case 'D':
+					case 'p':
+					case 'P':
+					case 's':
+					case 'S':
+					case 'u':
+					case 'U':
+					case 'w':
+					case 'W':
+					case '*':
+					case '+':
+					case '.':
+					case '?':
+						gtd->args[next_arg(var)] = next_arg(arg);
+						pte += 2;
+						break;
+
+					case 'i':
+					case 'I':
+					case '%':
+						pte += 2;
+						break;
+
+					case '!':
+						switch (pte[2])
+						{
+							case 'a':
+							case 'A':
+							case 'c':
+							case 'd':
+							case 'D':
+							case 'p':
+							case 'P':
+							case 's':
+							case 'S':
+							case 'u':
+							case 'U':
+							case 'w':
+							case 'W':
+							case '?':
+							case '*':
+							case '+':
+							case '.':
+								pte += 3;
+								break;
+
+							case '{':
+								pte = get_arg_in_braces(ses, pte+2, tmp, GET_ALL);
+								break;
+
+							default:
+								pte++;
+								break;
+						}
+						break;
+
+					default:
+						pte++;
+						break;
+				}
+				break;
+
+			default:
+				pte++;
+				break;
+		}
+	}
+	return flag;
+}
+
+
+// Keep synched with tintin_regex_compile
 
 int get_regex_range(char *in, char *out, int *var, int *arg)
 {
@@ -369,478 +639,20 @@ int get_regex_range(char *in, char *out, int *var, int *arg)
 }
 
 
-// check if a table key is a regex
-
-int tintin_regexp_check(struct session *ses, char *exp)
-{
-	if (*exp == '^')
-	{
-		return TRUE;
-	}
-
-	while (*exp)
-	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, exp))
-		{
-			exp += 2;
-			continue;
-		}
-
-		switch (exp[0])
-		{
-			case '\\':
-			case '{':
-				return TRUE;
-
-			case '$':
-				if (exp[1] == 0)
-				{
-					return TRUE;
-				}
-				break;
-
-			case '%':
-				switch (exp[1])
-				{
-					case '0':
-					case '1':
-					case '2':
-					case '3':
-					case '4':
-					case '5':
-					case '6':
-					case '7':
-					case '8':
-					case '9':
-
-					case 'a':
-					case 'A':
-					case 'c':
-					case 'd':
-					case 'D':
-					case 'i':
-					case 'I':
-					case 'p':
-					case 'P':
-					case 's':
-					case 'S':
-					case 'u':
-					case 'U':
-					case 'w':
-					case 'W':
-					case '?':
-					case '*':
-					case '+':
-					case '.':
-					case '%':
-						return TRUE;
-
-					case '!':
-						switch (exp[2])
-						{
-							case 'a':
-							case 'A':
-							case 'c':
-							case 'd':
-							case 'D':
-							case 'p':
-							case 'P':
-							case 's':
-							case 'S':
-							case 'u':
-							case 'U':
-							case 'w':
-							case 'W':
-							case '?':
-							case '*':
-							case '+':
-							case '.':
-							case '{':
-								return TRUE;
-						}
-						break;
-				}
-				break;
-		}
-		exp++;
-	}
-	return FALSE;
-}
-
-// 1. convert tinexp to pcre
-// 2. store tintin %00-99 index in gtd->args that links to pcre index in gtd->vars or gtd->args
-// 3. call regexp_compare
-//    3.1 compile the pcre if not already compiled
-//    3.2 run the pcre and return FALSE if there's not a match
-//    3.3 set gtd->vars or gtd->args to the pcre index, unless %00-%99 was found and FIX flag is set
-//    3.4 If FIX is set the gtd->args index is used and valid tinexp is assumed
-//    3.4 return TRUE
-
-int tintin_regexp(struct session *ses, pcre2_code *nodepcre, char *str, char *exp, int comp_option, int flag)
+pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, char *exp, int comp_option)
 {
 	char out[BUFFER_SIZE], *pti, *pto;
-	int i, arg = 1, var = 1, fix = 0;
+	pcre2_code *regex;
+	PCRE2_SIZE erroroffset;
+	int i, errorcode;
 
 	pti = exp;
 	pto = out;
 
-	while (*pti == '^')
+	if (node)
 	{
-		*pto++ = *pti++;
+		node->flags = 0;
 	}
-
-	while (*pti)
-	{
-		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
-		{
-			*pto++ = *pti++;
-
-			switch (*pti)
-			{
-				case '\\':
-				case '[':
-				case ']':
-				case '(':
-				case ')':
-				case '|':
-				case '.':
-				case '?':
-				case '+':
-				case '*':
-				case '$':
-				case '^':
-					*pto++ = '\\';
-					break;
-			}
-			*pto++ = *pti++;
-			continue;
-		}
-
-		switch (pti[0])
-		{
-			case '\\':
-				if (pti[1] == 'n')
-				{
-					SET_BIT(comp_option, PCRE2_MULTILINE);
-				}
-				else if (pti[1] == 0)
-				{
-					pti++;
-					*pto++ = '\\';
-					*pto++ = 'z';
-					break;
-				}
-				*pto++ = *pti++;
-				*pto++ = *pti++;
-				break;
-
-			case '{':
-				gtd->args[next_arg(var)] = next_arg(arg);
-				*pto++ = '(';
-				pti = get_arg_in_braces(ses, pti, pto, GET_ALL);
-				pto += strlen(pto);
-				*pto++ = ')';
-				break;
-
-			case '[':
-			case ']':
-			case '(':
-			case ')':
-			case '|':
-			case '.':
-			case '?':
-			case '+':
-			case '*':
-			case '^':
-				*pto++ = '\\';
-				*pto++ = *pti++;
-				break;
-
-			// variables should already have been substituted, check eol marker.
-
-			case '$':
-				for (i = 1 ; pti[i] == '$' ; i++)
-				{
-					continue;
-				}
-
-				if (pti[i] != 0 && pti[i] != '\n')
-				{
-					*pto++ = '\\';
-				}
-				*pto++ = *pti++;
-				break;
-
-			case '%':
-				switch (pti[1])
-				{
-					case '0':
-					case '1':
-					case '2':
-					case '3':
-					case '4':
-					case '5':
-					case '6':
-					case '7':
-					case '8':
-					case '9':
-						fix = REGEX_FLAG_FIX;
-						arg = is_digit(pti[2]) ? (pti[1] - '0') * 10 + (pti[2] - '0') : pti[1] - '0';
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += is_digit(pti[2]) ? 3 : 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(.*)" : "(.*?)");
-						break;
-
-					case 'a':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "([^\\0]*)" : "([^\\0]*?)");
-						break;
-
-					case 'A':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(\\n*)" : "(\\n*?)");
-						break;
-
-					case 'c':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "((?:\\e\\[[0-9;]*m)*)" : "((?:\\e\\[[0-9;]*m)*?)");
-						break;
-
-					case 'd':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "([0-9]*)" : "([0-9]*?)");
-						break;
-
-					case 'D':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "([^0-9]*)" : "([^0-9]*?)");
-						break;
-
-					case 'i':
-						pti += 2;
-						pto += sprintf(pto, "%s", "(?i)");
-						break;
-
-					case 'I':
-						pti += 2;
-						pto += sprintf(pto, "%s", "(?-i)");
-						break;
-
-					case 'p':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "([\\x20-\\xfe]*)" : "([\\x20-\\xfe]*?)");
-						break;
-
-					case 'P':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "([^\\x20-\\xfe]*)" : "([^\\x20-\\xfe]*?)");
-						break;
-
-					case 's':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(\\s*)" : "(\\s*?)");
-						break;
-
-					case 'S':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(\\S*)" : "(\\S*?)");
-						break;
-
-					case 'u':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "((?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*)" : "((?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?)");
-//						pto += sprintf(pto, "%s", *pti == 0 ? "((?:[\\x00-\\x7F|\\xC0-\\xF4][\\x80-\\xC0]{1,3})*)" : "((?:[\\x00-\\x7F|\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?)");
-						break;
-
-					case 'U':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(^[\\xF5-\\xFF]*)" : "([\\xF5-\\xFF]*?)");
-						break;
-
-
-					case 'w':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(\\w*)" : "(\\w*?)");
-						break;
-
-					case 'W':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(\\W*)" : "(\\W*?)");
-						break;
-
-					case '*':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(.*)" : "(.*?)");
-						break;
-
-					case '+':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2 + get_regex_range(&pti[2], pto, &var, &arg);
-						pto += strlen(pto);
-						break;
-
-					case '%':
-						*pto++ = *pti++;
-						pti++;
-						break;
-
-					case '.':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", "(.)");
-						break;
-
-					case '?':
-						gtd->args[next_arg(var)] = next_arg(arg);
-						pti += 2;
-						pto += sprintf(pto, "%s", *pti == 0 ? "(.?)" : "(.?" "?)");
-						break;
-
-					case '!':
-						switch (pti[2])
-						{
-							case 'a':
-								gtd->args[next_arg(var)] = next_arg(arg);
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[^\\0]*" : "[^\\0]*?");
-								break;
-
-							case 'A':
-								gtd->args[next_arg(var)] = next_arg(arg);
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "\\n*" : "\\n*?");
-								break;
-
-							case 'c':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "(?:\\e\\[[0-9;]*m)*" : "(?:\\e\\[[0-9;]*m)*?");
-								break;
-
-							case 'd':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[0-9]*" : "[0-9]*?");
-								break;
-
-							case 'D':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[^0-9]*" : "[^0-9]*?");
-								break;
-
-							case 'p':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[\\x20-\\xfe]*" : "[\\x20-\\xfe]*?");
-								break;
-
-							case 'P':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[^\\x20-\\xfe]*" : "[^\\x20-\\xfe]*?");
-								break;
-
-							case 's':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "\\s*" : "\\s*?");
-								break;
-
-							case 'S':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "\\S*" : "\\S*?");
-								break;
-
-							case 'u':
-								gtd->args[next_arg(var)] = next_arg(arg);
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "(?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*" : "(?:[\\x00-\\x7F]|[\\xC0-\\xF4][\\x80-\\xC0]{1,3})*?");
-								break;
-
-							case 'U':
-								gtd->args[next_arg(var)] = next_arg(arg);
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "[\\xF5-\\xFF]*" : "[\\xF5-\\xFF]*?");
-								break;
-
-							case 'w':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "\\w*" : "\\w*?");
-								break;
-
-							case 'W':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? "\\W*" : "\\W*?");
-								break;
-
-							case '?':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? ".?" : ".?" "?");
-								break;
-
-							case '*':
-								pti += 3;
-								pto += sprintf(pto, "%s", *pti == 0 ? ".*" : ".*?");
-								break;
-
-							case '+':
-								pti += 3 + get_regex_range(pti + 3, pto, NULL, NULL);
-								pto += strlen(pto);
-								break;
-
-							case '.':
-								pti += 3;
-								pto += sprintf(pto, "%s", ".");
-								break;
-
-							case '{':
-								pti = get_arg_in_braces(ses, pti+2, pto, GET_ALL);
-								if (strstr(pto, "\\n"))
-								{
-									SET_BIT(comp_option, PCRE2_MULTILINE);
-								}
-								pto += strlen(pto);
-								break;
-
-							default:
-								*pto++ = *pti++;
-								break;
-						}
-						break;
-
-					default:
-						*pto++ = *pti++;
-						break;
-				}
-				break;
-
-			default:
-				*pto++ = *pti++;
-				break;
-		}
-	}
-	*pto = 0;
-
-	return regexp_compare(ses, nodepcre, str, out, comp_option, flag + fix);
-}
-
-pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int comp_option)
-{
-	char out[BUFFER_SIZE], *pti, *pto;
-
-	pti = exp;
-	pto = out;
-
-	node->flags = 0;
 
 	if (*pti == '~')
 	{
@@ -882,14 +694,17 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 		switch (pti[0])
 		{
 			case '\\':
-				if (pti[1] == 'e')
+				if (pti[1] == 'e' && node)
 				{
 					SET_BIT(node->flags, NODE_FLAG_COLOR);
 				}
 				else if (pti[1] == 'n')
 				{
+					if (node)
+					{
+						SET_BIT(node->flags, NODE_FLAG_MULTI);
+					}
 					SET_BIT(comp_option, PCRE2_MULTILINE);
-					SET_BIT(node->flags, NODE_FLAG_MULTI);
 				}
 				else if (pti[1] == 0)
 				{
@@ -907,7 +722,7 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 				pti = get_arg_in_braces(ses, pti, pto, GET_ALL);
 				while (*pto)
 				{
-					if (pto[0] == '$' || pto[0] == '@')
+					if (node && (pto[0] == '$' || pto[0] == '@'))
 					{
 						if (pto[1] == DEFAULT_OPEN || is_alnum(pto[1]) || pto[0] == pto[1])
 						{
@@ -916,8 +731,11 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 					}
 					if (pto[0] == '\\' && pto[1] == 'n')
 					{
+						if (node)
+						{
+							SET_BIT(node->flags, NODE_FLAG_MULTI);
+						}
 						SET_BIT(comp_option, PCRE2_MULTILINE);
-						SET_BIT(node->flags, NODE_FLAG_MULTI);
 					}
 					pto++;
 				}
@@ -925,7 +743,7 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 				break;
 
 			case '&':
-				if (pti[1] == DEFAULT_OPEN)
+				if (node && pti[1] == DEFAULT_OPEN)
 				{
 					return NULL;
 				}
@@ -933,7 +751,7 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 				break;
 
 			case '@':
-				if (pti[1] == DEFAULT_OPEN || is_alnum(pti[1]))
+				if (node && (pti[1] == DEFAULT_OPEN || is_alnum(pti[1])))
 				{
 					return NULL;
 				}
@@ -941,19 +759,15 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 				break;
 
 			case '$':
-				if (pti[1] == DEFAULT_OPEN || is_alnum(pti[1]))
+				if (node && (pti[1] == DEFAULT_OPEN || is_alnum(pti[1])))
 				{
 					return NULL;
 				}
-				{
-					int i = 1;
-	
-					while (pti[i] == '$') i++;
+				for (i = 1 ; pti[i] == '$' ; i++) continue;
 
-					if (pti[i])
-					{
-						*pto++ = '\\';
-					}
+				if (pti[i])
+				{
+					*pto++ = '\\';
 				}
 				*pto++ = *pti++;
 				break;
@@ -995,7 +809,10 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 						break;
 
 					case 'c':
-						SET_BIT(node->flags, NODE_FLAG_COLOR);
+						if (node)
+						{
+							SET_BIT(node->flags, NODE_FLAG_COLOR);
+						}
 						pti += 2;
 						pto += sprintf(pto, "%s", *pti == 0 ? "((?:\\e\\[[0-9;]*m)*)" : "((?:\\e\\[[0-9;]*m)*?)");
 						break;
@@ -1094,7 +911,10 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 								break;
 
 							case 'c':
-								SET_BIT(node->flags, NODE_FLAG_COLOR);
+								if (node)
+								{
+									SET_BIT(node->flags, NODE_FLAG_COLOR);
+								}
 								pti += 3;
 								pto += sprintf(pto, "%s", *pti == 0 ? "(?:\\e\\[[0-9;]*m)*" : "(?:\\e\\[[0-9;]*m)*?");
 								break;
@@ -1164,7 +984,7 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 
 								while (*pto)
 								{
-									if (pto[0] == '$' || pto[0] == '@')
+									if (node && (pto[0] == '$' || pto[0] == '@'))
 									{
 										if (pto[1] == DEFAULT_OPEN || is_alnum(pto[1]) || pto[0] == pto[1])
 										{
@@ -1173,8 +993,11 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 									}
 									if (pto[0] == '\\' && pto[1] == 'n')
 									{
+										if (node)
+										{
+											SET_BIT(node->flags, NODE_FLAG_MULTI);
+										}
 										SET_BIT(comp_option, PCRE2_MULTILINE);
-										SET_BIT(node->flags, NODE_FLAG_MULTI);
 									}
 									pto++;
 								}
@@ -1199,11 +1022,32 @@ pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, ch
 	}
 	*pto = 0;
 
-	if (HAS_BIT(node->flags, NODE_FLAG_COLOR) && *exp != '~')
+	if (node && HAS_BIT(node->flags, NODE_FLAG_COLOR) && *exp != '~')
 	{
 		show_error(ses, LIST_COMMAND, "#WARNING: REGEX {%s} MATCHES ESCAPE CODES BUT DOES NOT START WITH A '~'.", exp);
 	}
-	return regexp_compile(ses, out, comp_option);
+
+//	if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8))
+//	{
+//		comp_option |= PCRE2_UTF|PCRE2_NO_UTF_CHECK|PCRE2_UCP;
+//	}
+
+	regex = pcre2_compile((PCRE2_SPTR) out, PCRE2_ZERO_TERMINATED, comp_option, &errorcode, &erroroffset, NULL);
+
+	if (node && regex)
+	{
+		pcre2_jit_compile(regex, PCRE2_JIT_COMPLETE);
+	}
+	return regex;
+}
+
+void tintin_regex_free(struct listnode *node)
+{
+	if (node->regex)
+	{
+		pcre2_code_free(node->regex);
+		node->regex = NULL;
+	}
 }
 
 void tintin_macro_compile(char *input, char *output)

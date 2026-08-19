@@ -2132,6 +2132,7 @@ int client_init_mccp3(struct session *ses)
 	stream->zfree       = zlib_free;
 	stream->opaque      = Z_NULL;
 
+//	if (deflateInit2(stream, Z_BEST_COMPRESSION, Z_DEFLATED, 11, 5, Z_DEFAULT_STRATEGY) != Z_OK)
 	if (deflateInit(stream, Z_BEST_COMPRESSION) != Z_OK)
 	{
 		client_telopt_debug(ses, "INFO MCCP3 FAILED TO INITIALIZE");

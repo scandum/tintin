@@ -554,7 +554,6 @@ char is_csichar(char input)
 	return HAS_BIT(character_table[(unsigned char) input], CHAR_FLAG_CSI);
 }
 
-char is_print(char input)
-{
+char is_print(char input) {
 	return HAS_BIT(character_table[(unsigned char) input], CHAR_FLAG_PRINT);
 }

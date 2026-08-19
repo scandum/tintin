@@ -272,6 +272,42 @@ void show_error(struct session *ses, int index, char *format, ...)
 	return;
 }
 
+void show_critical(struct session *ses, char *format, ...)
+{
+	char *buffer;
+	va_list args;
+
+	push_call("show_critical(%p,%p)",ses,format);
+
+	if (HAS_BIT(gtd->event_flags, EVENT_FLAG_REFORMAT) && check_all_events(ses, EVENT_FLAG_REFORMAT, 1, 0, "REFORMAT %s", format))
+	{
+		format = get_variable_def(ses, "result", format);
+	}
+
+	va_start(args, format);
+	if (vasprintf(&buffer, format, args) == -1)
+	{
+		syserr_printf(ses, "show_error: vasprintf:");
+
+		pop_call();
+		return;
+	}
+	va_end(args);
+
+	check_all_events(ses, SUB_SEC|EVENT_FLAG_SYSTEM, 0, 1, "RECEIVED ERROR", buffer);
+
+	gtd->level->verbose++;
+
+	tintin_puts2(ses, buffer);
+
+	gtd->level->verbose--;
+
+	free(buffer);
+
+	pop_call();
+	return;
+}
+
 void show_debug(struct session *ses, int index, struct listnode *node, char *format, ...)
 {
 	struct listroot *root;

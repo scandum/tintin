@@ -206,14 +206,14 @@
 #define STACK_SIZE                    1000
 #define NAME_SIZE                      256
 #define NUMBER_SIZE                    100
-#define LEGEND_SIZE                     50
-#define COLOR_SIZE                      50
-#define CHAR_SIZE                        5
+#define LEGEND_SIZE                     48
+#define COLOR_SIZE                      48
+#define CHAR_SIZE                        8
 #define LIST_SIZE                        2
 
 
 #define CLIENT_NAME              "TinTin++"
-#define CLIENT_VERSION           "2.02.61 "
+#define CLIENT_VERSION           "2.02.62b"
 
 
 #define XT_E                            0x27
@@ -572,6 +572,7 @@ enum operators
 #define SUB_LNF                       BV10
 #define SUB_SIL                       BV11 // silent
 #define SUB_LIT                       BV12 // no soft escaping
+#define SUB_LOG                       BV13
 
 /*
 #define SUB_ARG                       BV01 reserved
@@ -780,6 +781,7 @@ enum operators
 #define MAP_FLAG_PANCAKE              BV19
 #define MAP_FLAG_FAST                 BV20
 #define MAP_FLAG_AUTOLINK             BV21
+#define MAP_FLAG_DESTROY              BV22
 
 #define MAP_SEARCH_NAME                0
 #define MAP_SEARCH_EXITS               1
@@ -1126,6 +1128,9 @@ struct tintin_data
 	struct memory_data    * memory;
 	struct system_data    * system;
 	struct termios          old_terminal;
+	pcre2_match_data      * match_data;
+	pcre2_match_context   * match_context;
+	pcre2_jit_stack       * jit_stack;
 	char                  * detach_file;
 	int                     detach_port;
 	struct process_data     detach_info;
@@ -1163,9 +1168,6 @@ struct tintin_data
 	int                     event_flags;
 	struct scriptroot     * script_stack[STACK_SIZE];
 	int                     script_index;
-	char                    tintin_char;
-	char                    verbatim_char;
-	char                    repeat_char;
 	PCRE2_SIZE              match[202];
 	char                  * vars[100];
 	char                  * cmds[100];
@@ -1173,6 +1175,9 @@ struct tintin_data
 	int                     varc;
 	int                     cmdc;
 	char                    color_reset[COLOR_SIZE];
+	char                    tintin_char;
+	char                    verbatim_char;
+	char                    repeat_char;
 };
 
 struct session
@@ -1229,7 +1234,7 @@ struct session
 	int                     scrollback_tab;
 	int                     tab_width;
 	unsigned long long      rand;
-	unsigned short          rkey;
+	unsigned int            rkey;
 	struct port_data      * proxy;
 };
 
@@ -1404,7 +1409,7 @@ struct port_data
 	int                     comm_flags;
 	int                     mtts_flags;
 	struct msdp_data     ** msdp_data;
-	char                  * proxy;
+	char                  * proxyip;
 	char                  * ttype;
 	char                    telbuf[BUFFER_SIZE];
 	int                     teltop;
@@ -1466,10 +1471,10 @@ struct map_data
 	int                     global_vnum;
 	struct exit_data      * global_exit;
 	int                     version;
-	unsigned short          display_stamp;
 	int                     nofollow;
 	char                    legend[LEGEND_MAX][LEGEND_SIZE];
 	char                    legend_raw[LEGEND_MAX][LEGEND_SIZE];
+	unsigned short          display_stamp;
 };
 
 struct room_data
@@ -1484,13 +1489,13 @@ struct room_data
 	unsigned short            exit_size;
 	unsigned short            search_stamp;
 	unsigned short            display_stamp;
+	short                     terrain_flags;
+	int                       terrain_index;
 	int                       flags;
 	int                       w;
 	int                       x;
 	int                       y;
 	int                       z;
-	int                       terrain_index;
-	short                     terrain_flags;
 	char                    * area;
 	char                    * color;
 	char                    * data;
@@ -1523,14 +1528,14 @@ struct search_data
 	int                     vnum;
 	int                     min;
 	int                     max;
-	unsigned short          stamp;
 	char                  * arg;
 	struct listnode       * area;
 	struct listnode       * desc;
 	struct listnode       * name;
 	struct listnode       * note;
 	struct listnode       * terrain;
-	int                     exit_size;
+	unsigned short          stamp;
+	unsigned short          exit_size;
 	long long               exit_dirs;
 	char                  * exit_list;
 	long long               flag;
@@ -1857,6 +1862,14 @@ struct substitution_type
 	int                     bitvector;
 };
 
+struct suggestion_type
+{
+	char                  * name;
+	char                  * sug1;
+	char                  * sug2;
+	char                  * sug3;
+};
+
 struct timer_type
 {
 	char                  * name;
@@ -1977,7 +1990,8 @@ extern DO_CHAT(chat_zap);
 #ifndef __CLASS_H__
 #define __CLASS_H__
 
-extern void clear_class(struct session *ses, struct listnode *group);
+//extern void clear_class(struct session *ses, struct listnode *group);
+extern void destroy_class(struct session *ses, struct listnode *group);
 
 #endif
 
@@ -2456,6 +2470,8 @@ extern DO_COMMAND(do_test);
 #define __MSDP_H__
 
 extern void init_msdp_table(void);
+extern void init_msdp_data(struct session *ses, struct port_data *buddy);
+extern void uninit_msdp_data(struct port_data *buddy);
 extern  int msdp_find(char *var);
 extern void arachnos_devel(struct session *ses, char *fmt, ...);
 extern void arachnos_mudlist(struct session *ses, char *fmt, ...);
@@ -2717,6 +2733,7 @@ extern void dispose_session(struct session *ses);
 
 extern void show_message(struct session *ses, int index, char *format, ...);
 extern void show_error(struct session *ses, int index, char *format, ...);
+extern void show_critical(struct session *ses, char *format, ...);
 extern void show_debug(struct session *ses, int index, struct listnode *node, char *format, ...);
 extern void show_info(struct session *ses, int index, char *format, ...);
 extern void tintin_header(struct session *ses, int width, char *format, ...);
@@ -2844,6 +2861,7 @@ extern struct port_type port_table[];
 extern struct rank_type rank_table[];
 extern struct stamp_type huge_stamp_table[];
 extern struct substitution_type substitution_table[];
+extern struct suggestion_type suggestion_table[];
 extern struct telopt_type telopt_table[];
 extern   char *telcmds[];
 extern struct timer_type timer_table[];
@@ -2895,6 +2913,7 @@ extern char *get_charset(struct session *ses);
 #define __TEXT_H__
 
 extern void print_line(struct session *ses, char **str, int isaprompt);
+extern void puts_stdout(int row, int col, char *str, int prompt);
 extern void print_stdout(int row, int col, char *format, ...);
 extern  int word_wrap(struct session *ses, char *textin, char *textout, int display, int *height, int *width);
 extern  int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, int start, int end, int flags, int *height, int *width);
@@ -2912,12 +2931,14 @@ DO_COMMAND(do_regexp);
 extern int substitute(struct session *ses, char *string, char *result, int flags);
 extern int match(struct session *ses, char *str, char *exp, int flags);
 extern int find(struct session *ses, char *str, char *exp, int sub, int flag);
-extern int regexp_compare(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
-extern int check_one_regexp(struct session *ses, struct listnode *node, char *line, char *original, int option);
-extern int tintin_regexp_check(struct session *ses, char *exp);
-extern int tintin_regexp(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
-extern pcre2_code *regexp_compile(struct session *ses, char *exp, int option);
-extern pcre2_code *tintin_regexp_compile(struct session *ses, struct listnode *node, char *exp, int option);
+extern int tintin_regex_compare(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
+extern int tintin_regex_match(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
+extern int check_one_regex(struct session *ses, struct listnode *node, char *line, char *original, int option, int flag);
+extern int tintin_regex_check(struct session *ses, char *exp);
+extern int tintin_regex(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
+extern int tintin_match_data(struct session *ses, char *exp);
+extern pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, char *exp, int option);
+extern void tintin_regex_free(struct listnode *node);
 extern void  tintin_macro_compile(char *input, char *output);
 
 #endif
