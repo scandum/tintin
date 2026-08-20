@@ -36,6 +36,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#if !defined(TCP_KEEPIDLE) && defined(TCP_KEEPALIVE)
+#define TCP_KEEPIDLE TCP_KEEPALIVE
+#endif
+
 /*
 	IPv6 compatible connect code.
 */

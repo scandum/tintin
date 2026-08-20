@@ -104,10 +104,6 @@
 	#define SO_PEERCRED 17
 #endif
 
-#if !defined(TCP_KEEPIDLE) && defined(TCP_KEEPALIVE)
-#define TCP_KEEPIDLE TCP_KEEPALIVE
-#endif
-
 
 #ifndef __TINTIN_H__
 #define __TINTIN_H__
