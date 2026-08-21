@@ -694,7 +694,7 @@ DO_BUFFER(buffer_clear)
 		min = ses->scroll->used + min;
 	}
 
-	min = URANGE(1, min, ses->scroll->used - 1);
+	min = URANGE(0, min, ses->scroll->used - 1);
 
 	if (*arg2 == 0)
 	{
@@ -709,7 +709,7 @@ DO_BUFFER(buffer_clear)
 			max = ses->scroll->used + max;
 		}
 
-		max = URANGE(1, max, ses->scroll->used - 1);
+		max = URANGE(0, max, ses->scroll->used - 1);
 	}
 
 	if (min > max)
@@ -734,6 +734,11 @@ DO_BUFFER(buffer_clear)
 
 	ses->scroll->used -= range;
 	ses->scroll->line = URANGE(-1, ses->scroll->line - range, ses->scroll->used - 1);
+
+	if (ses->scroll->used == 0)
+	{
+		add_line_buffer(ses, "", 0);
+	}
 }
 
 DO_BUFFER(buffer_up)
