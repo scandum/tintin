@@ -1044,7 +1044,7 @@ DO_BUFFER(buffer_get)
 	{
 		min = ses->scroll->used + min;
 	}
-	min = URANGE(1, min, ses->scroll->used - 1);
+	min = URANGE(0, min, ses->scroll->used - 1);
 
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
 
@@ -1061,7 +1061,7 @@ DO_BUFFER(buffer_get)
 	{
 		max = ses->scroll->used + max;
 	}
-	max = URANGE(1, max, ses->scroll->used - 1);
+	max = URANGE(0, max, ses->scroll->used - 1);
 
 	if (min > max)
 	{
