@@ -442,6 +442,13 @@ int skip_all_vt102_codes_non_graph(char *str)
 
 int get_vt102_width(struct session *ses, char *str, int *str_len)
 {
+	if ((unsigned char) *str > 31 && (unsigned char) *str < 127)
+	{
+		*str_len = 1;
+
+		return 1;
+	}
+
 	*str_len = 0;
 
 	if (*str)
