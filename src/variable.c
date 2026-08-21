@@ -1169,7 +1169,7 @@ int string_str_str_len(struct session *ses, char *str, int start, int end)
 
 int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_end)
 {
-	int raw_cnt, ret_cnt, tot_len, width, col_len;
+	int raw_cnt, ret_cnt, tot_len, width, col_len, skip;
 
 	raw_cnt = raw_start;
 	ret_cnt = 0;
@@ -1184,9 +1184,11 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 
 		if ((unsigned char) str[raw_cnt] < 32 || str[raw_cnt] == 127)
 		{
-			if (skip_vt102_codes(&str[raw_cnt]))
+			skip = skip_vt102_codes(&str[raw_cnt]);
+
+			if (skip)
 			{
-				raw_cnt += skip_vt102_codes(&str[raw_cnt]);
+				raw_cnt += skip;
 
 				continue;
 			}
