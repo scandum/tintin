@@ -594,7 +594,7 @@ int strip_vt102_codes(char *str, char *buf)
 
 	while (*pti)
 	{
-		while ((skip = skip_vt102_codes(pti)))
+		while (((unsigned char) *pti < 32 || (unsigned char) *pti == 127) && (skip = skip_vt102_codes(pti)))
 		{
 			pti += skip;
 		}
@@ -669,7 +669,7 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 
 	while (*pts)
 	{
-		while ((skip = skip_vt102_codes(pts)))
+		while (((unsigned char) *pts < 32 || (unsigned char) *pts == 127) && (skip = skip_vt102_codes(pts)))
 		{
 			pts += skip;
 		}
@@ -694,7 +694,7 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 				return pts;
 			}
 
-			while ((skip = skip_vt102_codes(pti)))
+			while (((unsigned char) *pti < 32 || (unsigned char) *pti == 127) && (skip = skip_vt102_codes(pti)))
 			{
 				pti += skip;
 			}
@@ -1020,7 +1020,7 @@ int strip_vt102_strlen(struct session *ses, char *str)
 
 	while (*pti)
 	{
-		size = skip_vt102_codes(pti);
+		size = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
 
 		if (size == 0)
 		{

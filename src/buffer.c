@@ -244,7 +244,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 			continue;
 		}
 
-		skip = skip_vt102_codes(pti);
+		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
 
 		if (SCROLL(ses))
 		{
