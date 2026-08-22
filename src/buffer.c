@@ -231,8 +231,21 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 
 	pti = pto = ses->scroll->input;
 
-	while (*pti != 0)
+	while (*pti)
 	{
+		if ((unsigned char) *pti >= 32 && *pti != 127)
+		{
+			if (SCROLL(ses))
+			{
+				*pto++ = *pti++;
+			}
+			else
+			{
+				pti++;
+			}
+			continue;
+		}
+
 		skip = skip_vt102_codes_non_graph(pti);
 
 		if (skip)
@@ -243,33 +256,18 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 
 			continue;
 		}
-
-		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
+		skip = UMAX(1, skip_vt102_codes(pti));
 
 		if (SCROLL(ses))
 		{
-			if (skip)
-			{
-				while (skip--)
-				{
-					*pto++ = *pti++;
-				}
-			}
-			else
+			while (skip--)
 			{
 				*pto++ = *pti++;
 			}
 		}
 		else
 		{
-			if (skip)
-			{
-				pti += skip;
-			}
-			else
-			{
-				pti++;
-			}
+			pti += skip;
 		}
 	}
 	*pto = 0;

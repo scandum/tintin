@@ -384,7 +384,7 @@ void vt102_to_html(struct session *ses, char *txt, char *out)
 
 	while (*pti)
 	{
-		while ((skip = skip_vt102_codes_non_graph(pti)))
+		if ((skip = skip_all_vt102_codes_non_graph(pti)))
 		{
 			pti += skip;
 		}

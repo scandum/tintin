@@ -999,27 +999,33 @@ int string_str_raw_len(struct session *ses, char *str, int start, int end)
 
 	while (raw_cnt < tot_len)
 	{
-		skip = skip_vt102_codes(&str[raw_cnt]);
-
-		if (skip)
+		if ((unsigned char) str[raw_cnt] < 32 || str[raw_cnt] == 127)
 		{
-			if (str_cnt >= start)
-			{
-				ret_cnt += skip;
-			}
-			raw_cnt += skip;
+			skip = skip_vt102_codes(&str[raw_cnt]);
 
-			continue;
+			if (skip)
+			{
+				if (str_cnt >= start)
+				{
+					ret_cnt += skip;
+				}
+				raw_cnt += skip;
+
+				continue;
+			}
 		}
 
-		col_len = is_tintin_code(&str[raw_cnt]);
-
-		if (col_len)
+		if (str[raw_cnt] == '<' || str[raw_cnt] == '\\' || str[raw_cnt] == '\e')
 		{
-			ret_cnt += (str_cnt >= start) ? col_len : 0;
-			raw_cnt += col_len;
+			col_len = is_tintin_code(&str[raw_cnt]);
 
-			continue;
+			if (col_len)
+			{
+				ret_cnt += (str_cnt >= start) ? col_len : 0;
+				raw_cnt += col_len;
+
+				continue;
+			}
 		}
 
 		if (str_cnt >= end)
@@ -1085,22 +1091,28 @@ int string_str_str_len(struct session *ses, char *str, int start, int end)
 
 	while (raw_cnt < tot_len)
 	{
-		skip = skip_vt102_codes(&str[raw_cnt]);
-
-		if (skip)
+		if ((unsigned char) str[raw_cnt] < 32 || str[raw_cnt] == 127)
 		{
-			raw_cnt += skip;
+			skip = skip_vt102_codes(&str[raw_cnt]);
 
-			continue;
+			if (skip)
+			{
+				raw_cnt += skip;
+
+				continue;
+			}
 		}
 
-		col_len = is_tintin_code(&str[raw_cnt]);
-
-		if (col_len)
+		if (str[raw_cnt] == '<' || str[raw_cnt] == '\\' || str[raw_cnt] == '\e')
 		{
-			raw_cnt += col_len;
+			col_len = is_tintin_code(&str[raw_cnt]);
 
-			continue;
+			if (col_len)
+			{
+				raw_cnt += col_len;
+
+				continue;
+			}
 		}
 
 		if (str_cnt >= end)
@@ -1170,20 +1182,26 @@ int string_raw_str_len(struct session *ses, char *str, int raw_start, int raw_en
 			break;
 		}
 
-		if (skip_vt102_codes(&str[raw_cnt]))
+		if ((unsigned char) str[raw_cnt] < 32 || str[raw_cnt] == 127)
 		{
-			raw_cnt += skip_vt102_codes(&str[raw_cnt]);
+			if (skip_vt102_codes(&str[raw_cnt]))
+			{
+				raw_cnt += skip_vt102_codes(&str[raw_cnt]);
 
-			continue;
+				continue;
+			}
 		}
 
-		col_len = is_tintin_code(&str[raw_cnt]);
-
-		if (col_len)
+		if (str[raw_cnt] == '<' || str[raw_cnt] == '\\' || str[raw_cnt] == '\e')
 		{
-			raw_cnt += col_len;
+			col_len = is_tintin_code(&str[raw_cnt]);
 
-			continue;
+			if (col_len)
+			{
+				raw_cnt += col_len;
+
+				continue;
+			}
 		}
 
 		if (str[raw_cnt] == '\\')

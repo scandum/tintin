@@ -191,29 +191,32 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 
 	while (*pti && pto - textout < BUFFER_SIZE)
 	{
-		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
-
-		if (skip)
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-			if (ses->color)
-			{
-				get_color_codes(color, pti, color, GET_ONE);
+			skip = skip_vt102_codes(pti);
 
-				if (HAS_BIT(flags, WRAP_FLAG_DISPLAY))
-				{
-					interpret_vt102_codes(ses, pti, TRUE);
-				}
-
-				for (i = 0 ; i < skip ; i++)
-				{
-					*pto++ = *pti++;
-				}
-			}
-			else
+			if (skip)
 			{
-				pti += skip;
+				if (ses->color)
+				{
+					get_color_codes(color, pti, color, GET_ONE);
+
+					if (HAS_BIT(flags, WRAP_FLAG_DISPLAY))
+					{
+						interpret_vt102_codes(ses, pti, TRUE);
+					}
+
+					for (i = 0 ; i < skip ; i++)
+					{
+						*pto++ = *pti++;
+					}
+				}
+				else
+				{
+					pti += skip;
+				}
+				continue;
 			}
-			continue;
 		}
 
 		if (*pti == '\n')
@@ -382,24 +385,27 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			return 1;
 		}
 
-		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
-
-		if (skip)
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-			if (ses->color)
-			{
-				get_color_codes(color, pti, color, GET_ONE);
+			skip = skip_vt102_codes(pti);
 
-				for (i = 0 ; i < skip ; i++)
-				{
-					*pto++ = *pti++;
-				}
-			}
-			else
+			if (skip)
 			{
-				pti += skip;
+				if (ses->color)
+				{
+					get_color_codes(color, pti, color, GET_ONE);
+
+					for (i = 0 ; i < skip ; i++)
+					{
+						*pto++ = *pti++;
+					}
+				}
+				else
+				{
+					pti += skip;
+				}
+				continue;
 			}
-			continue;
 		}
 
 		if (*pti == '\n')

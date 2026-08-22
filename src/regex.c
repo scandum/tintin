@@ -126,7 +126,7 @@ int tintin_regex_compare(struct session *ses, pcre2_code *nodepcre, char *str, c
 		return FALSE;
 	}
 
-	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, PCRE2_ZERO_TERMINATED, 0, 0, gtd->match_data, gtd->match_context);
 
 	if (nodepcre == NULL)
 	{
@@ -156,7 +156,7 @@ int tintin_regex_match(struct session *ses, pcre2_code *nodepcre, char *str, cha
 		return FALSE;
 	}
 
-	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, PCRE2_ZERO_TERMINATED, 0, 0, gtd->match_data, gtd->match_context);
 
 	if (nodepcre == NULL)
 	{

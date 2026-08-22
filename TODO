@@ -1,3 +1,11 @@
+- Look into error 38.1
+
+- Look into Greptile
+
+- https://github.com/github-linguist/linguist/blob/main/CONTRIBUTING.md#adding-a-language
+
+- Look deeper into the #buffer clear;#buffer get crash bug and how to properly set the range.
+
 - Look into -flto compiler optimization
 
 - #list reverse does not handle list tables

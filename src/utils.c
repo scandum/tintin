@@ -456,7 +456,7 @@ char *indent_one(int len)
 
 	memset(outbuf[cnt], ' ', UMAX(1, len));
 
-	outbuf[cnt][len] = 0;
+	outbuf[cnt][len < STACK_SIZE ? len : STACK_SIZE - 1] = 0;
 
 	return outbuf[cnt];
 }

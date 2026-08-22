@@ -788,7 +788,13 @@ int check_key(char *input, int len)
 						}
 						else
 						{
-							telnet_printf(gtd->ses, -1, "%.*s", len + 1, gtd->macro_buf);
+							gtd->macro_buf[len+1] = 0;
+
+							if (HAS_BIT(gtd->ses->list[LIST_COMMAND]->flags, LIST_FLAG_INFO))
+							{
+								show_info(gtd->ses, LIST_COMMAND, "#INFO COMMAND: OSC (%s)", str_convert_meta(gtd->macro_buf, TRUE));
+							}
+							telnet_printf(gtd->ses, -1, "%s", gtd->macro_buf);
 						}
 						gtd->macro_buf[0] = 0;
 						pop_call();

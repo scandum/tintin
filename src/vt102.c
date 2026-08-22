@@ -241,6 +241,10 @@ int skip_vt102_codes(char *str)
 					return skip;
 
 				case 'R':
+					if (str[3] == '\a')
+					{
+						return 4;
+					}
 					return 3;
 
 				default:
@@ -275,6 +279,29 @@ int skip_vt102_codes(char *str)
 		}
 	}
 	return skip;
+}
+
+int skip_all_vt102_codes(char *str)
+{
+	char *pts = str;
+	int skip;
+
+	while (*pts)
+	{
+		if ((unsigned char) *pts >= 32 && *pts != 127)
+		{
+			return pts - str;
+		}
+
+		skip = skip_vt102_codes(pts);
+
+		if (skip == 0)
+		{
+			return pts - str;
+		}
+		pts += skip;
+	}
+	return pts - str;
 }
 
 int skip_vt102_codes_non_graph(char *str)
@@ -390,13 +417,36 @@ int skip_vt102_codes_non_graph(char *str)
 	return 0;
 }
 
+int skip_all_vt102_codes_non_graph(char *str)
+{
+	char *pts = str;
+	int skip;
+
+	while (*pts)
+	{
+		if ((unsigned char) *pts >= 32 && *pts != 127)
+		{
+			return pts - str;
+		}
+
+		skip = skip_vt102_codes_non_graph(pts);
+
+		if (skip == 0)
+		{
+			return pts - str;
+		}
+		pts += skip;
+	}
+	return pts - str;
+}
+
 int get_vt102_width(struct session *ses, char *str, int *str_len)
 {
 	*str_len = 0;
 
 	if (*str)
 	{
-		if ((unsigned char) *str < 32 || (unsigned char) *str == 127)
+		if ((unsigned char) *str < 32 || *str == 127)
 		{
 			int raw_len = skip_vt102_codes(str);
 
@@ -584,19 +634,22 @@ int find_secure_color_code(char *str)
 }
 
 
-int strip_vt102_codes(char *str, char *buf)
+int strip_vt102_codes(char *str, char *out)
 {
 	char *pti, *pto;
 	int skip;
 
 	pti = (char *) str;
-	pto = (char *) buf;
+	pto = (char *) out;
 
 	while (*pti)
 	{
-		while (((unsigned char) *pti < 32 || (unsigned char) *pti == 127) && (skip = skip_vt102_codes(pti)))
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-			pti += skip;
+			if ((skip = skip_all_vt102_codes(pti)))
+			{
+				pti += skip;
+			}
 		}
 
 		if (*pti)
@@ -606,23 +659,26 @@ int strip_vt102_codes(char *str, char *buf)
 	}
 	*pto = 0;
 
-	return pto - buf;
+	return pto - out;
 }
 
 
-void strip_vt102_codes_non_graph(char *str, char *buf)
+void strip_vt102_codes_non_graph(char *str, char *out)
 {
 	char *pti, *pto;
 	int skip;
 
 	pti = str;
-	pto = buf;
+	pto = out;
 
 	while (*pti)
 	{
-		while ((skip = skip_vt102_codes_non_graph(pti)))
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-			pti += skip;
+			if ((skip = skip_all_vt102_codes_non_graph(pti)))
+			{
+				pti += skip;
+			}
 		}
 
 		if (*pti)
@@ -633,21 +689,24 @@ void strip_vt102_codes_non_graph(char *str, char *buf)
 	*pto = 0;
 }
 
-void strip_non_vt102_codes(char *str, char *buf)
+void strip_non_vt102_codes(char *str, char *out)
 {
 	char *pti, *pto;
-	int len;
+	int skip;
 
 	pti = str;
-	pto = buf;
+	pto = out;
 
 	while (*pti)
 	{
-		while ((len = skip_vt102_codes(pti)) != 0)
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-			memcpy(pto, pti, len);
-			pti += len;
-			pto += len;
+			if ((skip = skip_all_vt102_codes(pti)))
+			{
+				memcpy(pto, pti, skip);
+				pti += skip;
+				pto += skip;
+			}
 		}
 
 		if (*pti)
@@ -663,15 +722,16 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 	char *pti, *ptm, *pts;
 	int skip;
 
-	push_call("strip_vt102_strstr(%p,%p,%p)",str,buf,len);
-
 	pts = str;
 
 	while (*pts)
 	{
-		while (((unsigned char) *pts < 32 || (unsigned char) *pts == 127) && (skip = skip_vt102_codes(pts)))
+		if ((unsigned char) *pts < 32 || *pts == 127)
 		{
-			pts += skip;
+			if ((skip = skip_all_vt102_codes(pts)))
+			{
+				pts += skip;
+			}
 		}
 
 		pti = pts;
@@ -690,18 +750,19 @@ char *strip_vt102_strstr(char *str, char *buf, int *len)
 				{
 					*len = pti - pts;
 				}
-				pop_call();
 				return pts;
 			}
 
-			while (((unsigned char) *pti < 32 || (unsigned char) *pti == 127) && (skip = skip_vt102_codes(pti)))
+			if ((unsigned char) *pti < 32 || *pti == 127)
 			{
-				pti += skip;
+				if ((skip = skip_all_vt102_codes(pti)))
+				{
+					pti += skip;
+				}
 			}
 		}
 		pts++;
 	}
-	pop_call();
 	return NULL;
 }
 
@@ -1012,38 +1073,38 @@ void get_color_codes(char *old, char *str, char *buf, int flags)
 int strip_vt102_strlen(struct session *ses, char *str)
 {
 	char *pti;
-	int size, width, str_len;
-	
-	str_len = 0;
+	int width, len;
 
 	pti = str;
+	len = 0;
 
 	while (*pti)
 	{
-		size = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
-
-		if (size == 0)
+		if ((unsigned char) *pti < 32 || *pti == 127)
 		{
-/*			if (*pti == '\t')
-			{
-				width = ses->tab_width - str_len % ses->tab_width;
-				size  = 1;
-			}
-			else
-*/
+			pti += skip_all_vt102_codes(pti);
+		}
+
+		if (*pti)
+		{
+//			if (*pti == '\t')
+//			{
+//				width = ses->tab_width - str_len % ses->tab_width;
+//				size  = 1;
+//			}
+
 			if (HAS_BIT(ses->charset, CHARSET_FLAG_UTF8) && is_utf8_head(pti))
 			{
-				size = get_utf8_width(pti, &width, NULL);
+				pti += get_utf8_width(pti, &width, NULL);
 			}
 			else
 			{
-				size = get_ascii_width(pti, &width);
+				pti += get_ascii_width(pti, &width);
 			}
-			str_len += width;
+			len += width;
 		}
-		pti += size;
 	}
-	return str_len;
+	return len;
 }
 
 // outdated

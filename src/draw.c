@@ -748,15 +748,18 @@ void string_to_font(struct session *ses, long long flags, char *in, char *out)
 
 	while (*pti)
 	{
-		skip = skip_vt102_codes(pti);
+		skip = skip_all_vt102_codes(pti);
 
 		if (skip)
 		{
 			pto += sprintf(pto, "%.*s", skip, pti);
 
 			pti += skip;
-			
-			continue;
+
+			if (*pti == 0)
+			{
+				break;
+			}
 		}
 
 		if (*pti >= 32)

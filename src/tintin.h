@@ -703,6 +703,7 @@ enum operators
 #define NODE_FLAG_MULTI               BV02
 #define NODE_FLAG_DEBUG               BV03
 
+
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
 #define LOG_FLAG_OVERWRITE            BV02
@@ -1037,6 +1038,7 @@ enum operators
 
 #define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && (HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))))
 
+#define IS_CTRL(c)                ((unsigned char) c < 32 || c == 127)
 
 
 /*
@@ -3106,7 +3108,9 @@ extern int find_secure_color_code(char *str);
 extern int get_vt102_width(struct session *ses, char *str, int *width);
 extern int strip_vt102_width(struct session *ses, char *str, int *width);
 extern int skip_vt102_codes(char *str);
+extern int skip_all_vt102_codes(char *str);
 extern int skip_vt102_codes_non_graph(char *str);
+extern int skip_all_vt102_codes_non_graph(char *str);
 extern int strip_vt102_codes(char *str, char *buf);
 extern void strip_vt102_codes_non_graph(char *str, char *buf);
 extern void strip_non_vt102_codes(char *str, char *buf);
