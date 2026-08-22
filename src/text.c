@@ -191,7 +191,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 
 	while (*pti && pto - textout < BUFFER_SIZE)
 	{
-		skip = skip_vt102_codes(pti);
+		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
 
 		if (skip)
 		{
@@ -382,7 +382,7 @@ int word_wrap_split(struct session *ses, char *textin, char *textout, int wrap, 
 			return 1;
 		}
 
-		skip = skip_vt102_codes(pti);
+		skip = (unsigned char) *pti < 32 || (unsigned char) *pti == 127 ? skip_vt102_codes(pti) : 0;
 
 		if (skip)
 		{
