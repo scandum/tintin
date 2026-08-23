@@ -1038,7 +1038,6 @@ enum operators
 
 #define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && (HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))))
 
-#define IS_CTRL(c)                ((unsigned char) c < 32 || c == 127)
 
 
 /*

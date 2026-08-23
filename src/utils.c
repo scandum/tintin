@@ -454,9 +454,11 @@ char *indent_one(int len)
 
 	cnt = (cnt + 1) % 10;
 
-	memset(outbuf[cnt], ' ', UMAX(1, len));
+	len = URANGE(0, len, STACK_SIZE - 1);
 
-	outbuf[cnt][len < STACK_SIZE ? len : STACK_SIZE - 1] = 0;
+	memset(outbuf[cnt], ' ', len);
+
+	outbuf[cnt][len] = 0;
 
 	return outbuf[cnt];
 }
