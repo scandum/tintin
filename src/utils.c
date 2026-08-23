@@ -449,16 +449,19 @@ char *ntos(long long number)
 
 char *indent_one(int len)
 {
-	static char outbuf[10][STACK_SIZE];
+	static char out[10][STACK_SIZE + 1];
 	static int cnt;
 
 	cnt = (cnt + 1) % 10;
 
-	memset(outbuf[cnt], ' ', UMAX(1, len));
+	if (out[cnt][0] == 0)
+	{
+		memset(out[cnt], ' ', STACK_SIZE);
+	}
 
-	outbuf[cnt][len < STACK_SIZE ? len : STACK_SIZE - 1] = 0;
+	len = URANGE(0, len, STACK_SIZE);
 
-	return outbuf[cnt];
+	return &out[cnt][STACK_SIZE - len];
 }
 
 char *indent(int len)

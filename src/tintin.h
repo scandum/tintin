@@ -197,9 +197,10 @@
 
 #define HISTORY_FILE         "history.txt"
 
+#define RLIMIT_SIZE               67108864
 #define MALLOC_SIZE                1000000
-#define STRING_SIZE                 100000
-#define BUFFER_SIZE                  50000
+#define STRING_SIZE                 120000
+#define BUFFER_SIZE                  60000
 #define INPUT_SIZE                   10000
 #define PATH_SIZE                     4096
 #define STACK_SIZE                    1000

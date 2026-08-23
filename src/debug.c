@@ -30,6 +30,7 @@ int push_call_printf(char *format, ...)
 {
 	int len;
 	va_list ap;
+	static time_t warning;
 
 	len = gtd->memory->debug_len;
 
@@ -52,15 +53,20 @@ int push_call_printf(char *format, ...)
 
 	gtd->memory->debug[len]->index = gtd->memory->stack_len;
 
-	if (gtd->memory->debug_len++ == 100)
+	gtd->memory->debug_len++;
+
+	if (gtd->memory->debug_len > 100 && warning < gtd->time)
 	{
-		tintin_printf2(gtd->ses, "\e[1;31merror: push_call_printf: stack size is going past 100.");
+		tintin_printf2(gtd->ses, "\e[1;31merror: push_call_printf: stack size is going past 100.\n");
 
-		tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[1;31m%03d\e[1;32m] [%03d] = \e[1;31m%s\e[0m", len, gtd->memory->debug[len]->index, gtd->memory->debug[len]->name);
+		for (int i = 19 ; i >= 0 ; i--)
+		{
+			tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[0;36m%03d\e[1;32m] [\e[0;36m%03d\e[1;32m] = \e[0;36m%s\e[0m", i, gtd->memory->debug[i]->index, gtd->memory->debug[i]->name);
+		}
 
-		return FALSE;
+		warning = gtd->time + 3600;
 	}
-	if (gtd->memory->debug_len > 500)
+	else if (gtd->memory->debug_len > 300)
 	{
 		return FALSE;
 	}

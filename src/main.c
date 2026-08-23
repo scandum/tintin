@@ -3,19 +3,7 @@
 *                                                                             *
 *   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -28,6 +16,7 @@
 #include "tintin.h"
 
 #include <signal.h>
+#include <sys/resource.h>
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -145,9 +134,28 @@ void trap_handler(int signal)
 
 int main(int argc, char **argv)
 {
+	struct rlimit rl;
+	char *arg;
 	int c, i = 0, greeting = 0;
 
-	char arg[BUFFER_SIZE];
+	arg = malloc(BUFFER_SIZE);
+
+	if (getrlimit(RLIMIT_STACK, &rl) == 0)
+	{
+		if (rl.rlim_cur < RLIMIT_SIZE)
+		{
+			rl.rlim_cur = RLIMIT_SIZE;
+
+			if (rl.rlim_max < RLIMIT_SIZE)
+			{
+				rl.rlim_max = RLIMIT_SIZE;
+			}
+		}
+		if (setrlimit(RLIMIT_STACK, &rl) != 0)
+		{
+			perror("setrlimit: failed to increase stack size");
+		}
+	}
 
 	#ifdef SOCKS
 		SOCKSinit(argv[0]);
@@ -452,6 +460,8 @@ int main(int argc, char **argv)
 	}
 
 	check_all_events(gts, EVENT_FLAG_SYSTEM, 0, 0, "PROGRAM START");
+
+	free(arg);
 
 	mainloop();
 

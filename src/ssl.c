@@ -1,28 +1,16 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2008-2019 Adam Borowski and Igor van den Hoven                  *
+*   Copyright 2014-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
 *                (T)he K(I)cki(N) (T)ickin D(I)kumud Clie(N)t                 *
 *                                                                             *
 *                         coded by Adam Borowski 2008                         *
-*                   modifications by Igor van den Hoven 2014                  *
+*                      recoded by Igor van den Hoven 2014                     *
 ******************************************************************************/
 
 #include "tintin.h"
@@ -120,13 +108,13 @@ static int get_cert_file(struct session *ses, char *result)
 
 	while (*ptr)
 	{
-		if (*ptr == ':' || *ptr == '.')
-		{
-			*ptr++ = '_';
-		}
-		else if (is_alnum(*ptr) || *ptr == '-' || *ptr == '_')
+		if (is_varchar(*ptr))
 		{
 			ptr++;
+		}
+		else if (*ptr == ':' || *ptr == '.' || *ptr == '-')
+		{
+			*ptr++ = '_';
 		}
 		else
 		{
