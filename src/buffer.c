@@ -1,20 +1,9 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2020 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -286,7 +275,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	{
 		if (ses->log->file)
 		{
-			logit(ses, ses->scroll->input, ses->log->file, LOG_FLAG_LINEFEED);
+			logit(ses, ses->scroll->input, ses->log->file, LOG_FLAG_LINEFEED|LOG_FLAG_UPDATE);
 		}
 	}
 

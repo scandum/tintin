@@ -144,11 +144,13 @@ int main(int argc, char **argv)
 	{
 		if (rl.rlim_cur < RLIMIT_SIZE)
 		{
-			rl.rlim_cur = RLIMIT_SIZE;
-
 			if (rl.rlim_max < RLIMIT_SIZE)
 			{
-				rl.rlim_max = RLIMIT_SIZE;
+				rl.rlim_cur = rl.rlim_max;
+			}
+			else
+			{
+				rl.rlim_cur = RLIMIT_SIZE;
 			}
 		}
 		if (setrlimit(RLIMIT_STACK, &rl) != 0)
@@ -156,6 +158,8 @@ int main(int argc, char **argv)
 			perror("setrlimit: failed to increase stack size");
 		}
 	}
+
+	setvbuf(stdout, NULL, _IOFBF, 16 * 1024);
 
 	#ifdef SOCKS
 		SOCKSinit(argv[0]);
@@ -302,7 +306,15 @@ int main(int argc, char **argv)
 				case 'V':
 					printf("\nTinTin++ " CLIENT_VERSION "\n");
 					printf("\n(C) 2004-2026 Igor van den Hoven\n");
-					printf("\nLicense GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n\n");
+					/******************************************************************************
+*   This file is part of TinTin++                                             *
+*                                                                             *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
+*                                                                             *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
+******************************************************************************/
+
+					printf("\nLicense LGPL-2.1: GNU GPL version 2.1 or later.\n\n");
 					exit(1);
 			}
 		}

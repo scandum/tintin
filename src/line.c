@@ -1,20 +1,9 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2020 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -301,11 +290,11 @@ DO_LINE(line_log)
 
 		if (ses->log->file && !strcmp(ses->log->name, arg1))
 		{
-			logit(ses, arg2, ses->log->file, LOG_FLAG_NONE);
+			logit(ses, arg2, ses->log->file, LOG_FLAG_NONE|LOG_FLAG_UPDATE);
 		}
 		else if (ses->log->line_time == gtd->time && !strcmp(ses->log->line_name, arg1))
 		{
-			logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE);
+			logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE|LOG_FLAG_UPDATE);
 		}
 		else
 		{
@@ -323,7 +312,7 @@ DO_LINE(line_log)
 
 				logheader(ses, ses->log->line_file, LOG_FLAG_APPEND | HAS_BIT(ses->log->mode, LOG_FLAG_HTML));
 
-				logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE);
+				logit(ses, arg2, ses->log->line_file, LOG_FLAG_NONE|LOG_FLAG_UPDATE);
 			}
 			else
 			{
@@ -375,11 +364,11 @@ DO_LINE(line_logverbatim)
 	{
 		if (ses->log->file && !strcmp(ses->log->name, arg1))
 		{
-			logit(ses, arg2, ses->log->file, LOG_FLAG_LINEFEED);
+			logit(ses, arg2, ses->log->file, LOG_FLAG_LINEFEED|LOG_FLAG_UPDATE);
 		}
 		else if (ses->log->line_time == gtd->time && !strcmp(ses->log->line_name, arg1))
 		{
-			logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN);
+			logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN|LOG_FLAG_UPDATE);
 		}
 		else
 		{
@@ -395,7 +384,7 @@ DO_LINE(line_logverbatim)
 				ses->log->line_file = logfile;
 				ses->log->line_time = gtd->time;
 
-				logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN);
+				logit(ses, arg2, ses->log->line_file, LOG_FLAG_LINEFEED|LOG_FLAG_PLAIN|LOG_FLAG_UPDATE);
 			}
 			else
 			{

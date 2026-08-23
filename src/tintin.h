@@ -1,21 +1,9 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2020 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -197,7 +185,7 @@
 
 #define HISTORY_FILE         "history.txt"
 
-#define RLIMIT_SIZE               67108864
+#define RLIMIT_SIZE               67092480
 #define MALLOC_SIZE                1000000
 #define STRING_SIZE                 120000
 #define BUFFER_SIZE                  60000
@@ -631,6 +619,7 @@ enum operators
 #define TINTIN_FLAG_NOHUP             BV15 // fixes tcsetattr crashes with nohup
 #define TINTIN_FLAG_HIBERNATE         BV16
 #define TINTIN_FLAG_REPORTCSIT        BV17
+#define TINTIN_FLAG_FILEUPDATE        BV18
 
 #define CONFIG_FLAG_AUTOPATCH         BV01
 #define CONFIG_FLAG_AUTOPROMPT        BV02
@@ -668,7 +657,7 @@ enum operators
 #define SES_FLAG_SNOOPSCROLL          BV13
 #define SES_FLAG_SPLIT                BV14
 #define SES_FLAG_UPDATEVTMAP          BV15
-
+#define SES_FLAG_FILEUPDATE           BV16
 
 #define TELOPT_FLAG_TELNET            BV01
 #define TELOPT_FLAG_SGA               BV02
@@ -715,7 +704,8 @@ enum operators
 #define LOG_FLAG_PLAIN                BV07
 #define LOG_FLAG_RAW                  BV08
 #define LOG_FLAG_STAMP                BV09
-
+#define LOG_FLAG_FLUSH                BV10
+#define LOG_FLAG_UPDATE               BV11
 
 // Saved in map files, so don't swap around
 

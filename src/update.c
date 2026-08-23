@@ -1,20 +1,9 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2020 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -512,6 +501,30 @@ void update_sessions(void)
 		DEL_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 
 		fflush(stdout);
+	}
+
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE))
+	{
+		DEL_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE);
+
+		for (ses = gts ; ses ; ses = gtd->update)
+		{
+			gtd->update = ses->next;
+
+			if (HAS_BIT(ses->flags, SES_FLAG_FILEUPDATE))
+			{
+				DEL_BIT(ses->flags, SES_FLAG_FILEUPDATE);
+
+				if (ses->log->file)
+				{
+					fflush(ses->log->file);
+				}
+				if (ses->log->line_file)
+				{
+					fflush(ses->log->line_file);
+				}
+			}
+		}
 	}
 }
 

@@ -1,20 +1,9 @@
 /******************************************************************************
 *   This file is part of TinTin++                                             *
 *                                                                             *
-*   Copyright 2004-2020 Igor van den Hoven                                    *
+*   Copyright 2004-2026 Igor van den Hoven                                    *
 *                                                                             *
-*   TinTin++ is free software; you can redistribute it and/or modify          *
-*   it under the terms of the GNU General Public License as published by      *
-*   the Free Software Foundation; either version 3 of the License, or         *
-*   (at your option) any later version.                                       *
-*                                                                             *
-*   This program is distributed in the hope that it will be useful,           *
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             *
-*   GNU General Public License for more details.                              *
-*                                                                             *
-*   You should have received a copy of the GNU General Public License         *
-*   along with TinTin++.  If not, see https://www.gnu.org/licenses.           *
+*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
 ******************************************************************************/
 
 /******************************************************************************
@@ -126,7 +115,7 @@ int tintin_regex_compare(struct session *ses, pcre2_code *nodepcre, char *str, c
 		return FALSE;
 	}
 
-	matches = pcre2_match(regex, (PCRE2_SPTR) str, PCRE2_ZERO_TERMINATED, 0, 0, gtd->match_data, gtd->match_context);
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
 
 	if (nodepcre == NULL)
 	{
@@ -156,7 +145,7 @@ int tintin_regex_match(struct session *ses, pcre2_code *nodepcre, char *str, cha
 		return FALSE;
 	}
 
-	matches = pcre2_match(regex, (PCRE2_SPTR) str, PCRE2_ZERO_TERMINATED, 0, 0, gtd->match_data, gtd->match_context);
+	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
 
 	if (nodepcre == NULL)
 	{
@@ -1033,7 +1022,7 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 //		comp_option |= PCRE2_UTF|PCRE2_NO_UTF_CHECK|PCRE2_UCP;
 //	}
 
-	regex = pcre2_compile((PCRE2_SPTR) out, PCRE2_ZERO_TERMINATED, comp_option, &errorcode, &erroroffset, NULL);
+	regex = pcre2_compile((PCRE2_SPTR) out, strlen(out), comp_option, &errorcode, &erroroffset, NULL);
 
 	if (node && regex)
 	{
