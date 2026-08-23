@@ -846,6 +846,10 @@ void syserr_signal(int signal, char *msg)
 
 	fflush(NULL);
 
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE))
+	{
+		update_files();
+	}
 	abort();
 }
 
@@ -903,5 +907,9 @@ void syserr_fatal(int signal, char *msg)
 
 	fflush(NULL);
 
+	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE))
+	{
+		update_files();
+	}
 	abort();
 }

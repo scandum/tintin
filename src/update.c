@@ -335,6 +335,33 @@ void update_input(void)
 	return;
 }
 
+void update_files(void)
+{
+	struct session *ses;
+
+	DEL_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE);
+
+	for (ses = gts ; ses ; ses = gtd->update)
+	{
+		gtd->update = ses->next;
+
+		if (HAS_BIT(ses->flags, SES_FLAG_FILEUPDATE))
+		{
+			DEL_BIT(ses->flags, SES_FLAG_FILEUPDATE);
+
+			if (ses->log->file)
+			{
+				fflush(ses->log->file);
+			}
+			if (ses->log->line_file)
+			{
+				fflush(ses->log->line_file);
+			}
+		}
+	}
+}
+
+
 void update_sessions(void)
 {
 	fd_set read_fd, error_fd;
@@ -505,26 +532,7 @@ void update_sessions(void)
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE))
 	{
-		DEL_BIT(gtd->flags, TINTIN_FLAG_FILEUPDATE);
-
-		for (ses = gts ; ses ; ses = gtd->update)
-		{
-			gtd->update = ses->next;
-
-			if (HAS_BIT(ses->flags, SES_FLAG_FILEUPDATE))
-			{
-				DEL_BIT(ses->flags, SES_FLAG_FILEUPDATE);
-
-				if (ses->log->file)
-				{
-					fflush(ses->log->file);
-				}
-				if (ses->log->line_file)
-				{
-					fflush(ses->log->line_file);
-				}
-			}
-		}
+		update_files();
 	}
 }
 
