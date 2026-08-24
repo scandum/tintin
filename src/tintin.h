@@ -2973,7 +2973,7 @@ extern void check_all_substitutions_multi(struct session *ses, char *original, c
 extern void mainloop(void);
 extern void init_cpu(void);
 extern void show_cpu(struct session *ses);
-
+extern void update_files(void);
 
 #ifndef __UTILS_H__
 #define __UTILS_H__
