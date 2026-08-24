@@ -460,6 +460,16 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 					}
 					break;
 
+				case ASCII_ESC:
+					skip = catch_vt102_codes(ses, cpsrc, cplen);
+
+					if (skip)
+					{
+						cpsrc += skip;
+						cplen -= skip;
+						continue;
+					}
+					break;
 
 				default:
 					if (HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
@@ -470,23 +480,11 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 						if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || !IS_SPLIT(ses))
 						{
-							if (!HAS_BIT(ses->telopts, TELOPT_FLAG_SGA))
+							if (HAS_BIT(ses->telopts, TELOPT_FLAG_ECHO) || !HAS_BIT(ses->telopts, TELOPT_FLAG_SGA))
 							{
 								*cpdst++ = '\n';
 								gtd->mud_output_len++;
 							}
-						}
-					}
-
-					if (*cpsrc == ASCII_ESC)
-					{
-						skip = catch_vt102_codes(ses, cpsrc, cplen);
-
-						if (skip)
-						{
-							cpsrc += skip;
-							cplen -= skip;
-							continue;
 						}
 					}
 					break;

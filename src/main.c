@@ -304,17 +304,9 @@ int main(int argc, char **argv)
 					break;
 
 				case 'V':
-					printf("\nTinTin++ " CLIENT_VERSION "\n");
-					printf("\n(C) 2004-2026 Igor van den Hoven\n");
-					/******************************************************************************
-*   This file is part of TinTin++                                             *
-*                                                                             *
-*   Copyright 2004-2026 Igor van den Hoven                                    *
-*                                                                             *
-*   SPDX-License-Identifier: LGPL-2.1-or-later                                *
-******************************************************************************/
-
-					printf("\nLicense LGPL-2.1: GNU GPL version 2.1 or later.\n\n");
+					printf("\n" CLIENT_NAME " " CLIENT_VERSION "\n");
+					printf("\n" CLIENT_COPYRIGHT "\n");
+					printf("\n" CLIENT_LICENSE "\n\n");
 					exit(1);
 			}
 		}

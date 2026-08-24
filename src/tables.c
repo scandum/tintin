@@ -68,8 +68,8 @@ struct suggestion_type suggestion_table[] =
 	{    "quit",          "end",         "zap",        ""            },
 	{    "say",           "showme",      "echo",       ""            },
 	{    "sleep",         "delay",       "",           ""            },
+	{    "tls",           "ssl",         "",           ""            },
 	{    "trigger",       "action",      "info",       ""            },
-	{    "triggers",      "action",      "info",       ""            },
 	{    "wait",          "delay",       "",           ""            },
 	{    "",              "",            "",           ""            }
 };

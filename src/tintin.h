@@ -202,16 +202,17 @@
 
 #define CLIENT_NAME              "TinTin++"
 #define CLIENT_VERSION           "2.02.62b"
+#define CLIENT_COPYRIGHT                   "(C) 2004-2026 Igor van den Hoven"
+#define CLIENT_LICENSE                     "LGPL-2.1: GNU GPL version 2.1 or later"
 
-
-#define XT_E                            0x27
-#define XT_C                            0x5B
-#define XT_O                            0x5D
-#define XT_W                            0x74
-#define XT_T                            0x07
-#define XT_CS                           0x73
-#define XT_S                            "\073"
-#define XT_V                            "\000"
+#define XT_E                         0x27
+#define XT_C                         0x5B
+#define XT_O                         0x5D
+#define XT_W                         0x74
+#define XT_T                         0x07
+#define XT_CS                        0x73
+#define XT_S                       "\073"
+#define XT_V                       "\000"
 
 /*
 	<faa> - red

@@ -1753,24 +1753,26 @@ DO_COMMAND(do_info)
 					{
 						sprintf(name, "info[SYSTEM]");
 
-						set_nest_node_ses(ses, name, "{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_NAME, CLIENT_VERSION);
+						set_nest_node_ses(ses, name, "{CLIENT_COPYRIGHT}{%s}{CLIENT_LICENSE}{%s}{CLIENT_NAME}{%s}{CLIENT_VERSION}{%s}", CLIENT_COPYRIGHT, CLIENT_LICENSE, CLIENT_NAME, CLIENT_VERSION);
 						add_nest_node_ses(ses, name, "{CWD}{%s}{EXEC}{%s}{HOME}{%s}{LANG}{%s}{OS}{%s}{PID}{%d}{TERM}{%s}{TINTIN}{%s}", cwd, gtd->system->exec, gtd->system->home, gtd->system->lang, gtd->system->os, getpid(), gtd->system->term, gtd->system->tt_dir);
-						add_nest_node_ses(ses, name, "{DETACH_FILE}{%s}{ATTACH_FILE}{%s}", gtd->detach_port > 0 ? gtd->detach_file : "", gtd->attach_sock > 0 ? gtd->attach_file : "");
+						add_nest_node_ses(ses, name, "{ATTACH_FILE}{%s}{DETACH_FILE}{%s}", gtd->attach_sock > 0 ? gtd->attach_file : "", gtd->detach_port > 0 ? gtd->detach_file : "");
 
 						show_message(ses, LIST_COMMAND, "#INFO: DATA WRITTEN TO {info[SYSTEM]}");
 					}
 					else
 					{
-						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME    = %s", CLIENT_NAME);
-						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION = %s", CLIENT_VERSION);
-						tintin_printf2(ses, "#INFO SYSTEM: CWD            = %s", cwd);
-						tintin_printf2(ses, "#INFO SYSTEM: EXEC           = %s", gtd->system->exec);
-						tintin_printf2(ses, "#INFO SYSTEM: HOME           = %s", gtd->system->home);
-						tintin_printf2(ses, "#INFO SYSTEM: LANG           = %s", gtd->system->lang);
-						tintin_printf2(ses, "#INFO SYSTEM: OS             = %s", gtd->system->os);
-						tintin_printf2(ses, "#INFO SYSTEM: PID            = %d", getpid());
-						tintin_printf2(ses, "#INFO SYSTEM: TERM           = %s", gtd->system->term);
-						tintin_printf2(ses, "#INFO SYSTEM: TINTIN         = %s", gtd->system->tt_dir);
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_NAME      = %s", CLIENT_NAME);
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_VERSION   = %s", CLIENT_VERSION);
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_COPYRIGHT = %s", CLIENT_COPYRIGHT);
+						tintin_printf2(ses, "#INFO SYSTEM: CLIENT_LICENSE   = %s", CLIENT_LICENSE);
+						tintin_printf2(ses, "#INFO SYSTEM: CWD              = %s", cwd);
+						tintin_printf2(ses, "#INFO SYSTEM: EXEC             = %s", gtd->system->exec);
+						tintin_printf2(ses, "#INFO SYSTEM: HOME             = %s", gtd->system->home);
+						tintin_printf2(ses, "#INFO SYSTEM: LANG             = %s", gtd->system->lang);
+						tintin_printf2(ses, "#INFO SYSTEM: OS               = %s", gtd->system->os);
+						tintin_printf2(ses, "#INFO SYSTEM: PID              = %d", getpid());
+						tintin_printf2(ses, "#INFO SYSTEM: TERM             = %s", gtd->system->term);
+						tintin_printf2(ses, "#INFO SYSTEM: TINTIN           = %s", gtd->system->tt_dir);
 					}
 				}
 				break;
