@@ -165,7 +165,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 
 	SET_BIT(gtd->flags, TINTIN_FLAG_SESSIONUPDATE);
 
-	if (gtd->level->ignore == 0)
+	if (!IS_IGNORED(LIST_EVENT) || !HAS_BIT(ses->list[LIST_EVENT]->flags, LIST_FLAG_IGNORE))
 	{
 		SET_BIT(ses->flags, SES_FLAG_BUFFERUPDATE);
 	}
@@ -224,7 +224,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 	{
 		if ((unsigned char) *pti >= 32 && *pti != 127)
 		{
-			if (SCROLL(ses))
+			if (IS_SCROLL(ses))
 			{
 				*pto++ = *pti++;
 			}
@@ -247,7 +247,7 @@ void add_line_buffer(struct session *ses, char *line, int prompt)
 		}
 		skip = UMAX(1, skip_vt102_codes(pti));
 
-		if (SCROLL(ses))
+		if (IS_SCROLL(ses))
 		{
 			while (skip--)
 			{

@@ -87,7 +87,7 @@ void puts_stdout(int row, int col, char *str, int prompt)
 	}
 	else
 	{
-		if (gtd->level->ignore == 0)
+		if (!IS_IGNORED(LIST_MAX))
 		{
 			SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 		}
@@ -130,7 +130,7 @@ void print_stdout(int row, int col, char *format, ...)
 	}
 	else
 	{
-		if (gtd->level->ignore == 0)
+		if (!IS_IGNORED(LIST_MAX))
 		{
 			SET_BIT(gtd->flags, TINTIN_FLAG_DISPLAYUPDATE);
 		}
@@ -252,7 +252,7 @@ int word_wrap(struct session *ses, char *textin, char *textout, int flags, int *
 
 			if (HAS_BIT(ses->config_flags, CONFIG_FLAG_WORDWRAP))
 			{
-				if (ses->cur_col - cur_space >= 15 || wrap <= 20 || !SCROLL(ses))
+				if (ses->cur_col - cur_space >= 15 || wrap <= 20 || !IS_SCROLL(ses))
 				{
 					*pto++ = '\n';
 					pto += sprintf(pto, "%s", color);

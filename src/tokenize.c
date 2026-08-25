@@ -533,7 +533,7 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 
 	while (*str)
 	{
-		if (!VERBATIM(root->ses))
+		if (!IS_VERBATIM(root->ses))
 		{
 			str = space_out(str);
 		}
@@ -542,13 +542,13 @@ void tokenize_script(struct scriptroot *root, int lvl, char *str)
 		{
 			if (*str == gtd->repeat_char && gtd->level->repeat == 0)
 			{
-				str = get_arg_all(root->ses, str+1, line, VERBATIM(root->ses));
+				str = get_arg_all(root->ses, str+1, line, IS_VERBATIM(root->ses));
 
 				addtoken(root, lvl, TOKEN_TYPE_REPEAT, -1, line);
 			}
 			else
 			{
-				str = get_arg_all(root->ses, str, line, VERBATIM(root->ses));
+				str = get_arg_all(root->ses, str, line, IS_VERBATIM(root->ses));
 
 				addtoken(root, lvl, TOKEN_TYPE_STRING, -1, line);
 			}

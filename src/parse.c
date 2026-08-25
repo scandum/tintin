@@ -185,7 +185,7 @@ struct session *parse_input(struct session *ses, char *input)
 */
 	line = str_alloc_stack(0);
 
-	if (VERBATIM(ses))
+	if (IS_VERBATIM(ses))
 	{
 		sub_arg_all(ses, input, line, 1, SUB_SEC);
 
@@ -1182,7 +1182,7 @@ void write_mud(struct session *ses, char *command, int flags)
 
 	size = substitute(ses, command, output, flags);
 
-	if (gtd->level->ignore == 0 && HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
+	if (!IS_IGNORED(LIST_PATHDIR) && HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING))
 	{
 		if (ses->map == NULL || ses->map->nofollow == 0)
 		{
@@ -1190,7 +1190,7 @@ void write_mud(struct session *ses, char *command, int flags)
 		}
 	}
 
-	if (gtd->level->ignore == 0 && ses->map && ses->map->in_room && ses->map->nofollow == 0)
+	if (!IS_IGNORED(LIST_PATHDIR) && ses->map && ses->map->in_room && ses->map->nofollow == 0)
 	{
 		int quiet, follow;
 
@@ -1220,19 +1220,19 @@ void check_one_line_multi(struct session *ses, char *original, char *stripped)
 {
 	char *buf;
 
-	if (gtd->level->ignore || HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
+	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
 		return;
 	}
 
 	buf = str_alloc_stack(0);
 
-	if (!HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_actions_multi(ses, original, stripped, buf);
 	}
 
-	if (!HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_SUBSTITUTE) && !HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_substitutions_multi(ses, original, stripped);
 	}
@@ -1242,12 +1242,7 @@ void check_one_line(struct session *ses, char *line)
 {
 	char *strip, *buf;
 
-	if (gtd->level->ignore)
-	{
-		return;
-	}
-
-	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
+	if (IS_IGNORED(LIST_MAX) || HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
 		return;
 	}
@@ -1261,27 +1256,27 @@ void check_one_line(struct session *ses, char *line)
 
 	strip_vt102_codes(line, strip);
 
-	if (!HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_actions(ses, line, strip, buf);
 	}
 
-	if (!HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_PROMPT) && !HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_prompts(ses, line, strip);
 	}
 
-	if (!HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_GAG) && !HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_gags(ses, line, strip);
 	}
 
-	if (!HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_SUBSTITUTE) && !HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_substitutions(ses, line, strip);
 	}
 
-	if (!HAS_BIT(ses->list[LIST_HIGHLIGHT]->flags, LIST_FLAG_IGNORE))
+	if (!IS_IGNORED(LIST_HIGHLIGHT) && !HAS_BIT(ses->list[LIST_HIGHLIGHT]->flags, LIST_FLAG_IGNORE))
 	{
 		check_all_highlights(ses, line, strip);
 	}

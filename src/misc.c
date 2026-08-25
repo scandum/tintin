@@ -178,6 +178,21 @@ DO_COMMAND(do_test)
 //		tintin_printf(ses, "<118>\ufffd", arg2);
 	}
 
+	if (!strcmp(arg1, "pack"))
+	{
+		command(gtd->ses, do_line, "ignore {variables;functions} #scan file validate {#format valid[z64] {%%+64z} {&0}}", arg1, arg2, arg3, arg4);
+		command(gtd->ses, do_line, "ignore {#log remove validate.h;#line sub var #line logverbatim validate.h {char *tt_valid = \"$valid[z64]\";}}", arg1, arg2, arg3, arg4);
+
+		return ses;
+	}
+
+	if (!strcmp(arg1, "unpack"))
+	{
+		command(gtd->ses, do_line, "quiet {#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format v %%+64Z {$c};#log remove validate.tin;#line sub var #line logverbatim validate.tin {$v};#system chmod 764 validate.tin}", arg1, arg2, arg3, arg4);
+
+		return ses;
+	}
+
 	if (!strcmp(arg1, "rain"))
 	{
 		strcpy(arg2, "9");

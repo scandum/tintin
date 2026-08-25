@@ -166,7 +166,7 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 	va_list list;
 	int cnt, sub, found;
 
-	if (gtd->level->ignore)
+	if (IS_IGNORED(LIST_EVENT))
 	{
 		return 0;
 	}

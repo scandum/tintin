@@ -15,6 +15,11 @@ scan.c          Fixed a minor issue with numeric data in #scan json.
                 net.c text.c buffer.c main.c log.c - thanks to Jay & Claude
                 for the reports.
 
+*.c             Changed the TinTin++ license from GPL-3 to LGPL 2.1
+
+line.c          Added #line ignore [list] {argument}. Example:
+                #line ignore {variables;functions} {#showme @gts{${test}}}
+ 
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------
 substitute.c    Fixed a bug causing improper handling of large variables.

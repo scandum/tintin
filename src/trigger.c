@@ -207,7 +207,7 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 
 	root = ses->list[LIST_ALIAS];
 
-	if (gtd->level->ignore || HAS_BIT(root->flags, LIST_FLAG_IGNORE))
+	if (IS_IGNORED(LIST_ALIAS) || HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 	{
 		return FALSE;
 	}

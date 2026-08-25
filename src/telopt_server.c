@@ -195,7 +195,7 @@ int server_translate_telopts(struct session *ses, struct port_data *buddy, unsig
 				}
 				else
 				{
-					port_socket_printf(ses, buddy, "%c%c%c", IAC, DONT, TELOPT_MCCP3);
+					port_socket_printf(ses, buddy, "%c%c%c", IAC, WONT, TELOPT_MCCP3);
 					inflateEnd(buddy->mccp3);
 					free(buddy->mccp3);
 					buddy->mccp3 = NULL;
@@ -250,7 +250,7 @@ int server_translate_telopts(struct session *ses, struct port_data *buddy, unsig
 
 				syserr_printf(ses, "server_translate_telopts: inflate:");
 
-				port_socket_printf(ses, buddy, "%c%c%c", IAC, DONT, TELOPT_MCCP3);
+				port_socket_printf(ses, buddy, "%c%c%c", IAC, WONT, TELOPT_MCCP3);
 				inflateEnd(buddy->mccp3);
 				free(buddy->mccp3);
 				buddy->mccp3 = NULL;

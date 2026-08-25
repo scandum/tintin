@@ -235,6 +235,8 @@ DO_LINE(line_gag)
 
 DO_LINE(line_ignore)
 {
+	int i, flags = 0;
+
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ALL);
 
 	if (*arg1 == 0)
@@ -244,10 +246,77 @@ DO_LINE(line_ignore)
 		return ses;
 	}
 
+	arg = get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg2 == 0)
+	{
+		flags = 1 << LIST_ACTION | 1 << LIST_ALIAS | 1 << LIST_EVENT | 1 << LIST_GAG | 1 << LIST_HIGHLIGHT | 1 << LIST_HISTORY | 1 << LIST_PATHDIR | 1 << LIST_PROMPT | 1 << LIST_SUBSTITUTE | 1 << LIST_MAX;
+
+		gtd->level->ignore++;
+
+		if (gtd->level->ignore < STACK_SIZE)
+		{
+			gtd->ignore_flags[gtd->level->ignore] = flags;
+
+			ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
+		}
+		else if (gtd->level->ignore == STACK_SIZE)
+		{
+			show_error(ses, LIST_COMMAND, "#ERROR: #LINE IGNORE: MAXIMUM STACK SIZE REACHED.");		
+		}
+		gtd->level->ignore--;
+
+		return ses;
+	}
+
+	arg = arg1;
+
+	while (*arg)
+	{
+		arg = get_arg_in_braces(ses, arg, arg3, GET_ONE);
+
+		for (i = 0 ; i < LIST_MAX ; i++)
+		{
+			if (is_abbrev(arg3, list_table[i].name_multi))
+			{
+				SET_BIT(flags, 1 << i);
+				break;
+			}
+		}
+		if (i == LIST_MAX)
+		{
+			show_error(ses, LIST_COMMAND, "#LINE IGNORE: UNKNOWN LISTNAME {%s}.", arg3);
+		}
+		if (*arg == COMMAND_SEPARATOR)
+		{
+			arg++;
+		}
+	}
+
+	if (flags == 0)
+	{
+		for (i = 0 ; i < LIST_MAX ; i++)
+		{
+			if (!HAS_BIT(list_table[i].flags, LIST_FLAG_HIDE))
+			{
+				show_error(ses, LIST_COMMAND, "#SYNTAX: #LINE {IGNORE} {%s} <COMMAND>", list_table[i].name_multi);
+			}
+		}
+		return ses;
+	}
+
 	gtd->level->ignore++;
 
-	ses = script_driver(ses, LIST_COMMAND, NULL, arg1);
+	if (gtd->level->ignore < STACK_SIZE)
+	{
+		gtd->ignore_flags[gtd->level->ignore] = flags;
 
+		ses = script_driver(ses, LIST_COMMAND, NULL, arg2);
+	}
+	else if (gtd->level->ignore == STACK_SIZE)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #LINE IGNORE: MAXIMUM STACK SIZE REACHED.");
+	}
 	gtd->level->ignore--;
 
 	return ses;
@@ -648,9 +717,13 @@ DO_LINE(line_substitute)
 			if (is_abbrev(arg3, substitution_table[i].name))
 			{
 				SET_BIT(flags, substitution_table[i].bitvector);
+				break;
 			}
 		}
-
+		if (*substitution_table[i].name == 0)
+		{
+			show_error(ses, LIST_COMMAND, "#LINE SUBSTITUTE: UNKNOWN OPTION {%s}.", arg3);
+		}
 		if (*arg == COMMAND_SEPARATOR)
 		{
 			arg++;

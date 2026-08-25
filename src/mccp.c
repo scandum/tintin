@@ -15,9 +15,17 @@
 #include "tintin.h"
 
 /*
-	client MCCP 2 + 3
+	client MCCP 2 + 3 + 4
 */
 
+extern  int  client_recv_will_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_send_dont_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+
+extern  int  client_init_mccp3(struct session *ses);
 
 void *zlib_alloc( void *opaque, unsigned int items, unsigned int size )
 {
@@ -29,3 +37,4 @@ void zlib_free( void *opaque, void *address )
 {
 	free(address);
 }
+

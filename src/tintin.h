@@ -1026,12 +1026,13 @@ enum operators
 
 #define IS_SPLIT(ses)             (gtd->screen->rows != (ses)->split->bot_row)
 
-#define SCROLL(ses)               ((ses)->cur_row == 0 || ((ses)->cur_row >= (ses)->split->top_row && (ses)->cur_row <= (ses)->split->bot_row) || ((ses)->cur_row >= ses->input->top_row && (ses)->cur_row <= ses->input->bot_row))
+#define IS_SCROLL(ses)            ((ses)->cur_row == 0 || ((ses)->cur_row >= (ses)->split->top_row && (ses)->cur_row <= (ses)->split->bot_row) || ((ses)->cur_row >= ses->input->top_row && (ses)->cur_row <= ses->input->bot_row))
 
-#define VERBATIM(ses)             (gtd->level->verbatim || (gtd->level->input == 0 && (HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))))
+#define IS_VERBATIM(ses)          (gtd->level->verbatim || (gtd->level->input == 0 && (HAS_BIT((ses)->config_flags, CONFIG_FLAG_VERBATIM) || HAS_BIT(gtd->flags, TINTIN_FLAG_CHILDLOCK))))
 
 #define IS_CTRL(c)                ((unsigned char) c < 32 || c == 127)
 
+#define IS_IGNORED(listtype)      (HAS_BIT(gtd->ignore_flags[gtd->level->ignore], 1 << listtype))
 
 /*
 	Compatibility
@@ -1161,6 +1162,7 @@ struct tintin_data
 	int                     event_flags;
 	struct scriptroot     * script_stack[STACK_SIZE];
 	int                     script_index;
+	int                     ignore_flags[STACK_SIZE];
 	PCRE2_SIZE              match[202];
 	char                  * vars[100];
 	char                  * cmds[100];
@@ -2402,6 +2404,13 @@ extern void syserr_printf(struct session *ses, char *fmt, ...);
 
 void *zlib_alloc(void *opaque, unsigned int items, unsigned int size);
 void  zlib_free(void *opaque, void *address);
+
+extern  int  client_recv_will_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_send_dont_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 
 #endif
 

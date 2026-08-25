@@ -349,7 +349,7 @@ void show_debug(struct session *ses, int index, struct listnode *node, char *for
 		}
 	}
 	end:
-	
+
 	free(buffer);
 
 	pop_call();
@@ -610,15 +610,15 @@ void tintin_puts(struct session *ses, char *string)
 
 	check_one_line(ses, string);
 
-	if (ses->gagline > 0)
+	if (!IS_IGNORED(LIST_GAG) && ses->gagline > 0)
 	{
 		ses->gagline--;
 
-		gtd->level->ignore++;
+//		gtd->level->ignore++;
 
 		show_debug(ses, LIST_GAG, NULL, COLOR_DEBUG "#DEBUG GAG " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} " COLOR_COMMAND "[" COLOR_STRING "%d" COLOR_COMMAND "]", string, ses->gagline + 1);
 
-		gtd->level->ignore--;
+//		gtd->level->ignore--;
 	}
 	else
 	{

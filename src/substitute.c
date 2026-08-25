@@ -1125,7 +1125,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				return pto - out;
 
 			case '@':
-				if (HAS_BIT(flags, SUB_FUN) && !HAS_BIT(ses->list[LIST_FUNCTION]->flags, LIST_FLAG_IGNORE))
+				if (HAS_BIT(flags, SUB_FUN) && !IS_IGNORED(LIST_FUNCTION) && !HAS_BIT(ses->list[LIST_FUNCTION]->flags, LIST_FLAG_IGNORE))
 				{
 					i = 1;
 					escape = FALSE;
@@ -1277,7 +1277,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '*':
-				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
+				if (HAS_BIT(flags, SUB_VAR) && !IS_IGNORED(LIST_VARIABLE) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;
@@ -1383,7 +1383,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 				break;
 
 			case '$':
-				if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
+				if (HAS_BIT(flags, SUB_VAR) && !IS_IGNORED(LIST_VARIABLE) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;
@@ -1517,7 +1517,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						pti += is_digit(pti[2]) ? 3 : 2;
 					}
 				}
-				else if (HAS_BIT(flags, SUB_VAR) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
+				else if (HAS_BIT(flags, SUB_VAR) && !IS_IGNORED(LIST_VARIABLE) && !HAS_BIT(ses->list[LIST_VARIABLE]->flags, LIST_FLAG_IGNORE) && is_variable(ses, pti))
 				{
 					int brace = FALSE;
 					i = 1;

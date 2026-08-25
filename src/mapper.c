@@ -110,7 +110,7 @@ DO_COMMAND(do_map)
 				*arg2 = 0;
 				*arg3 = 0;
 
-				if (gtd->level->ignore == 0)
+				if (!IS_IGNORED(LIST_PATHDIR))
 				{
 					if (HAS_BIT(map_table[cnt].flags, MAP_FLAG_VTMAP))
 					{

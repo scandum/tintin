@@ -2565,8 +2565,10 @@ struct help_type help_table[] =
 		"<278>           Gag the next line, or given lines. Use + or - to increase\n"
 		"<278>           or decrease the current amount.\n"
 		"\n"
-		"<278>         <178>#line ignore {argument}\n"
-		"<278>           Argument is executed without any triggers being checked.\n"
+		"<278>         <178>#line ignore [options] {argument}\n"
+		"<278>           Argument is executed without any triggers being checked, unless one\n"
+		"<278>           or more list types are provided, in which case the given lists are\n"
+		"<278>           ignored.\n"
 		"\n"
 		"<278>         <178>#line local {argument}\n"
 		"<278>           Argument is executed with all newly and indirectly\n"
@@ -3721,9 +3723,12 @@ struct help_type help_table[] =
 		TOKEN_TYPE_COMMAND,
 		"<178>Command<278>: #message <178>{<278>listname<178>} {<278>on<178>|<278>off<178>}\n"
 		"\n"
-		"<278>         This will show the message status of all your lists if typed without an\n"
-		"<278>         argument. If you set for example VARIABLES to OFF you will no longer be\n"
-		"<278>         spammed when correctly using the #VARIABLE and #UNVARIABLE commands.\n"
+		"<278>         This will show the message status of all your tintin lists if typed\n"
+		"<278>         without an argument. If you set for example VARIABLES to OFF you will\n"
+		"<278>         no longer be spammed when using the #VARIABLE or #UNVARIABLE commands.\n"
+		"\n"
+		"<278>         Keep in mind this setting is for manually entered input. All triggers,\n"
+		"<278>         which includes aliases, execute commands with messages suppressed.\n"
 		,
 		"class debug ignore info kill"
 	},

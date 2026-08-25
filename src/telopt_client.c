@@ -45,7 +45,7 @@ extern  int  client_recv_will_mccp2(struct session *ses, int cplen, unsigned cha
 extern  int  client_send_dont_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_init_mccp2(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
-extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc); // obsolete
 extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 
 extern  int  client_init_mccp3(struct session *ses);

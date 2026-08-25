@@ -180,7 +180,14 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 		node->shots = gtd->level->mshot;
 	}
 
-	node->group = HAS_BIT(root->flags, LIST_FLAG_CLASS) ? strdup(root->ses->group) : strdup("");
+	if (IS_IGNORED(LIST_CLASS))
+	{
+		node->group = strdup("");
+	}
+	else
+	{
+		node->group = HAS_BIT(root->flags, LIST_FLAG_CLASS) ? strdup(root->ses->group) : strdup("");
+	}
 
 	switch (root->type)
 	{
