@@ -360,6 +360,14 @@ int main(int argc, char **argv)
 					{
 						gtd->ses = command(gtd->ses, do_test, "regex");
 					}
+					else if (!strcasecmp(optarg, "validate"))
+					{
+						gtd->ses = command(gtd->ses, do_test, "validate");
+
+						printf(CLIENT_NAME " " CLIENT_VERSION " Invalid: %s\n", atoi(gtd->ses->list[LIST_VARIABLE]->list[0]->arg2) ? gtd->ses->list[LIST_VARIABLE]->list[0]->arg2 : "zero");
+
+						quitmsg("");
+					}
 					else
 					{
 						tintin_printf2(NULL, "Option arguments are: -l <rain|regex>.");

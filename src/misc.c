@@ -193,6 +193,36 @@ DO_COMMAND(do_test)
 		return ses;
 	}
 
+	if (!strcmp(arg1, "validate"))
+	{
+		FILE *file;
+		size_t len;
+
+		gtd->level->quiet++;
+
+		command(ses, do_line, "quiet {#kill;#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format {a} %%+64Z {$c}}", arg1, arg2, arg3, arg4);
+
+		file = open_memstream(&arg, (size_t *) &len);
+
+		fprintf(file, "%s", ses->list[LIST_VARIABLE]->list[0]->arg2);
+
+		fclose(file);
+
+		command(ses, do_line, "quiet {#unvar {a} {c};#var yml 1}", arg1, arg2, arg3, arg4);
+
+		file = fmemopen(arg, len, "r");
+
+		read_file(ses, file, arg1);
+
+		fclose(file);
+
+		free(arg);
+
+		gtd->level->quiet--;
+
+		return ses;
+	}
+
 	if (!strcmp(arg1, "rain"))
 	{
 		strcpy(arg2, "9");
