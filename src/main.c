@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 
 	if (argc > 1)
 	{
-		while ((c = getopt(argc, argv, "a: e: g G h l H M:: r: R:: s t: T v V")) != EOF)
+		while ((c = getopt(argc, argv, "a: e: g G h H l: M:: r: R:: s t: T v V")) != EOF)
 		{
 			switch (c)
 			{

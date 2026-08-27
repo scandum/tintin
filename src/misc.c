@@ -140,167 +140,140 @@ DO_COMMAND(do_test)
 {
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 
-	if (!strcmp(arg1, "pointers"))
+	switch (*arg1 % 32)
 	{
-		char data = 'X';
-		char *test = &data;
-		unsigned long int index = (unsigned long int) test;
-
-		printf("data %c index %lu test %c\n", data, index, *test);
-
-		test = 0;
-
-		printf("data %c index %lu test %c\n", data, index, test[index]);
-	}
-
-	if (!strcmp(arg1, "gmcp"))
-	{
-		execute(ses, "%s", "#event {IAC SB GMCP} {#var {%0} {%1};#line debug #var {%0}}");
-
-		test_gmcp(ses, "Char.Defences.List [ { \"name\": \"boar tattoo\", \"desc\": \"boar tattoo\" }, { \"name\": \"moss tattoo\", \"desc\": \"moss tattoo\" } ]");
-
-		test_gmcp(ses, "MG.room.info { \"exits\": [ ], \"short\": \"Dschungel.\", \"id\": \"1\"}");
-
-		test_gmcp(ses, "char.combat_immunity {\"combat_immunity\": \"a tame dragon is immune to your attack\"}");
-
-		test_gmcp(ses, "room.info { \"num\": 5922, \"name\": \"At the entrance of the park\", \"zone\": \"zoo\", \"terrain\": \"city\", \"exits\": { \"e\": 5920, \"s\": 5916, \"w\": 12611 }, \"coord\": { \"id\": 0, \"x\": 37, \"y\": 19, \"cont\": 0 } }");
-	}
-
-	if (!strcmp(arg1, "bla"))
-	{
-		int a = 1;
-		int b = 0;
-		int c = a / b;
-
-		printf("%d", c);
-
-		tintin_printf(ses, "len: %d", strip_color_strlen(ses, arg));
-//		tintin_printf(ses, "<118>\ufffd", arg2);
-	}
-
-	if (!strcmp(arg1, "pack"))
-	{
-		command(gtd->ses, do_line, "ignore {variables;functions} #scan file validate {#format valid[z64] {%%+64z} {&0}}", arg1, arg2, arg3, arg4);
-		command(gtd->ses, do_line, "ignore {#log remove validate.h;#line sub var #line logverbatim validate.h {char *tt_valid = \"$valid[z64]\";}}", arg1, arg2, arg3, arg4);
-
-		return ses;
-	}
-
-	if (!strcmp(arg1, "unpack"))
-	{
-		command(gtd->ses, do_line, "quiet {#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format v %%+64Z {$c};#log remove validate.tin;#line sub var #line logverbatim validate.tin {$v};#system chmod 764 validate.tin}", arg1, arg2, arg3, arg4);
-
-		return ses;
-	}
-
-	if (!strcmp(arg1, "validate"))
-	{
-		FILE *file;
-		size_t len;
-
-		gtd->level->quiet++;
-
-		command(ses, do_line, "quiet {#kill;#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format {a} %%+64Z {$c}}", arg1, arg2, arg3, arg4);
-
-		file = open_memstream(&arg, (size_t *) &len);
-
-		fprintf(file, "%s", ses->list[LIST_VARIABLE]->list[0]->arg2);
-
-		fclose(file);
-
-		command(ses, do_line, "quiet {#unvar {a} {c};#var yml 1}", arg1, arg2, arg3, arg4);
-
-		file = fmemopen(arg, len, "r");
-
-		read_file(ses, file, arg1);
-
-		fclose(file);
-
-		free(arg);
-
-		gtd->level->quiet--;
-
-		return ses;
-	}
-
-	if (!strcmp(arg1, "rain"))
-	{
-		strcpy(arg2, "9");
-		strcpy(arg3, "<f3c3>");
-		strcpy(arg1, "1 9");
-
-		if (is_digit(arg[0]))
-		{
-			sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
-
-			if ((is_hex(arg[1]) && is_hex(arg[2]) && is_hex(arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
+		case CTRL_G:
+			if (!strcmp(arg1, "gui"))
 			{
-				sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
+				char data[BUFFER_SIZE];
+				FILE *file;
+				size_t len;
 
-				if (is_digit(arg[4]) && is_digit(arg[5]))
-				{
-					sprintf(arg1, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
-				}
+				strcpy(data, tt_gui);
+
+				len = strlen(data);
+
+				file = fmemopen(data, len, "r");
+
+				gtd->level->quiet++;
+
+				ses = read_file(ses, file, "tt_gui.h");
+
+				gtd->level->quiet--;
+
+				fclose(file);
 			}
-		}
-		command(gtd->ses, do_line, "quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg1);
+			else if (!strcmp(arg1, "gmcp"))
+			{
+				execute(ses, "%s", "#event {IAC SB GMCP} {#var {%0} {%1};#line debug #var {%0}}");
 
-		return ses;
-	}
+				test_gmcp(ses, "Char.Defences.List [ { \"name\": \"boar tattoo\", \"desc\": \"boar tattoo\" }, { \"name\": \"moss tattoo\", \"desc\": \"moss tattoo\" } ]");
 
-	if (!strcmp(arg1, "gui"))
-	{
-		char data[BUFFER_SIZE];
-		FILE *file;
-		size_t len;
+				test_gmcp(ses, "MG.room.info { \"exits\": [ ], \"short\": \"Dschungel.\", \"id\": \"1\"}");
 
-		strcpy(data, tt_gui);
+				test_gmcp(ses, "char.combat_immunity {\"combat_immunity\": \"a tame dragon is immune to your attack\"}");
 
-		len = strlen(data);
+				test_gmcp(ses, "room.info { \"num\": 5922, \"name\": \"At the entrance of the park\", \"zone\": \"zoo\", \"terrain\": \"city\", \"exits\": { \"e\": 5920, \"s\": 5916, \"w\": 12611 }, \"coord\": { \"id\": 0, \"x\": 37, \"y\": 19, \"cont\": 0 } }");
+			}
+			break;
 
-		file = fmemopen(data, len, "r");
+		case CTRL_P:
+			if (!strcmp(arg1, "pack"))
+			{
+				command(gtd->ses, do_line, "ignore {variables;functions} #scan file validate {#format valid[z64] {%%+64z} {&0}}", arg1, arg2, arg3, arg4);
+				command(gtd->ses, do_line, "ignore {#log remove validate.h;#line sub var #line logverbatim validate.h {char *tt_valid = \"$valid[z64]\";}}", arg1, arg2, arg3, arg4);
+			}
+			else if (!strcmp(arg1, "prompt"))
+			{
+				SET_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
+				SET_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT);
+			}
+			break;
 
-		gtd->level->quiet++;
+		case CTRL_R:
+			if (!strcmp(arg1, "rain"))
+			{
+				strcpy(arg2, "9");
+				strcpy(arg3, "<f3c3>");
+				strcpy(arg1, "1 9");
 
-		ses = read_file(ses, file, "tt_gui.h");
+				if (is_digit(arg[0]))
+				{
+					sprintf(arg2, "%d", (arg[0] - '0') * (arg[0] - '0'));
 
-		gtd->level->quiet--;
+					if ((is_hex(arg[1]) && is_hex(arg[2]) && is_hex(arg[3])) || (arg[1] == '?' && arg[2] == '?' && arg[3] == '?'))
+					{
+						sprintf(arg3, "<f%c%c%c>", arg[1], arg[2], arg[3]);
 
-		fclose(file);
+						if (is_digit(arg[4]) && is_digit(arg[5]))
+						{
+							sprintf(arg1, "%f %d %s", (arg[4] - '0') * (arg[4] - '0') / 10.0, (arg[5] - '0') * (arg[5] - '0'), &arg[6]);
+						}
+					}
+				}
+				command(gtd->ses, do_line, "quiet {#event {RECEIVED KEYPRESS} {#end \\};#screen cursor hide;#screen clear all;#event {SECOND} #loop 0 %s cnt #delay {$cnt / (1.0+%s)} #draw %s rain 1 1 -1 -1 rain %s}", arg2, arg2, arg3, arg1);
+			}
+			else if (!strcmp(arg1, "regex"))
+			{
+				char data[BUFFER_SIZE];
+				FILE *file;
+				size_t len;
 
-		return ses;
-	}
+				strcpy(data, tt_regex);
 
-	if (!strcmp(arg1, "regex"))
-	{
-		char data[BUFFER_SIZE];
-		FILE *file;
-		size_t len;
+				len = strlen(data);
 
-		strcpy(data, tt_regex);
+				file = fmemopen(data, len, "r");
 
-		len = strlen(data);
+				gtd->level->quiet++;
 
-		file = fmemopen(data, len, "r");
+				ses = read_file(ses, file, "tt_regex.h");
 
-		gtd->level->quiet++;
+				gtd->level->quiet--;
 
-		ses = read_file(ses, file, "tt_regex.h");
+				fclose(file);
 
-		gtd->level->quiet--;
+				return ses;
 
-		fclose(file);
+			}
+			break;
 
-		return ses;
+		case CTRL_U:
+			if (!strcmp(arg1, "unpack"))
+			{
+				command(gtd->ses, do_line, "quiet {#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format v %%+64Z {$c};#log remove validate.tin;#line sub var #line logverbatim validate.tin {$v};#system chmod 764 validate.tin}", arg1, arg2, arg3, arg4);
+			}
+			break;
 
-	}
+		case CTRL_V:
+			if (!strcmp(arg1, "validate"))
+			{
+				FILE *file;
+				size_t len;
 
-	if (!strcmp(arg1, "prompt"))
-	{
-		SET_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
-		SET_BIT(ses->config_flags, CONFIG_FLAG_AUTOPROMPT);
+				gtd->level->quiet++;
 
-		return ses;
+				command(ses, do_line, "quiet {#kill;#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format {a} %%+64Z {$c}}", arg1, arg2, arg3, arg4);
+
+				file = open_memstream(&arg, (size_t *) &len);
+
+				fprintf(file, "%s", ses->list[LIST_VARIABLE]->list[0]->arg2);
+
+				fclose(file);
+
+				command(ses, do_line, "quiet {#unvar {a} {c};#var yml 1}", arg1, arg2, arg3, arg4);
+
+				file = fmemopen(arg, len, "r");
+
+				read_file(ses, file, arg1);
+
+				fclose(file);
+
+				free(arg);
+
+				gtd->level->quiet--;
+			}
+			break;
 	}
 	return ses;
 }
