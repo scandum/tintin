@@ -1,0 +1,60 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev libgnutls28-dev libz-dev libzstd-dev
+
+      - name: Configure
+        working-directory: src
+        run: ./configure
+
+      - name: Build
+        working-directory: src
+        env:
+          # make implicit function declarations an error on gcc too,
+          # so the Linux job catches what is a hard error on macOS/clang
+          CFLAGS: -Werror=implicit-function-declaration
+        run: make -j$(nproc)
+
+      - name: Smoke test
+        working-directory: src
+        run: |
+          out=$(./tt++ -V 2>&1 || true)
+          echo "$out" | grep -q 'TinTin++'
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: brew install pcre2 gnutls zstd
+
+      - name: Configure
+        working-directory: src
+        run: |
+          # Homebrew on Apple Silicon lives under /opt/homebrew, which
+          # neither configure nor clang search by default
+          BREW=$(brew --prefix)
+          ./configure --includedir=$BREW/include \
+                      CPPFLAGS=-I$BREW/include \
+                      LDFLAGS=-L$BREW/lib
+
+      - name: Build
+        working-directory: src
+        run: make -j$(sysctl -n hw.ncpu)
+
+      - name: Smoke test
+        working-directory: src
+        run: |
+          out=$(./tt++ -V 2>&1 || true)
+          echo "$out" | grep -q 'TinTin++'
