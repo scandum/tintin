@@ -14,6 +14,7 @@
 
 #include "tintin.h"
 
+#include <sys/uio.h>
 
 void print_line(struct session *ses, char **str, int prompt)
 {
