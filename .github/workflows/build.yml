@@ -56,5 +56,5 @@ jobs:
       - name: Smoke test
         working-directory: src
         run: |
-          out=$(./tt++ -V 2>&1 || true)
-          echo "$out" | grep -q 'TinTin++'
+          out=$(./tt++ -l validate 2>&1 || true)
+          echo "$out" | grep -q 'Invalid: zero'
