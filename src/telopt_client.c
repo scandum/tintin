@@ -953,7 +953,7 @@ int client_recv_sb_mssp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 {
-	char var[BUFFER_SIZE], val[BUFFER_SIZE], plain[BUFFER_SIZE], *pto;
+	char var[BUFFER_SIZE], val[BUFFER_SIZE], plain[BUFFER_SIZE], *pto, *ptb;
 	int i, nest, state[100], last;
 
 	var[0] = val[0] = state[0] = nest = last = 0;
@@ -965,8 +965,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 	i = 3;
 	pto = var;
+	ptb = var;
 
-	while (i < cplen && nest < 99)
+	while (i < cplen && nest < 99 && pto - ptb < BUFFER_SIZE - 32)
 	{
 		if (src[i] == IAC && src[i+1] == SE)
 		{
@@ -1040,6 +1041,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = var;
+					ptb = var;
 				}
 				last = MSDP_VAR;
 				break;
@@ -1069,6 +1071,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
 					pto = val;
+					ptb = val;
 				}
 				last = MSDP_VAL;
 				break;
@@ -1125,8 +1128,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 
 	i = 3;
 	pto = var;
+	ptb = var;
 
-	while (i < cplen && nest < 99)
+	while (i < cplen && nest < 99 && pto - ptb < BUFFER_SIZE - 32)
 	{
 		if (src[i] == IAC && src[i+1] == SE)
 		{
@@ -1199,6 +1203,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = var;
+					ptb = var;
 				}
 				last = MSDP_VAR;
 				break;
@@ -1233,6 +1238,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
 					pto = val;
+					ptb = val;
 				}
 				last = MSDP_VAL;
 				break;
@@ -1654,7 +1660,7 @@ int client_recv_sb_zmp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 {
-	char mod[BUFFER_SIZE], val[BUFFER_SIZE], json[BUFFER_SIZE], *pto;
+	char mod[BUFFER_SIZE], val[BUFFER_SIZE], json[BUFFER_SIZE], *pto, *ptb;
 	int i, state[100], nest, type;
 
 	push_call("client_recv_sb_gmcp(%p,%d,%p)",ses,cplen,src);
@@ -1670,6 +1676,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 	i = 3;
 
 	pto = mod;
+	ptb = mod;
 
 	// space out
 
@@ -1680,7 +1687,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	// grab module
 
-	while (i < cplen && src[i] != IAC)
+	while (i < cplen && src[i] != IAC && pto - ptb < BUFFER_SIZE - 32)
 	{
 		if (src[i] == ' ' || src[i] == '{' || src[i] == '[')
 		{
@@ -1694,8 +1701,9 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 	// parse JSON content
 
 	pto = val;
+	ptb = val;
 
-	while (i < cplen && src[i] != IAC && nest < 99)
+	while (i < cplen && src[i] != IAC && nest < 99 && pto - ptb < BUFFER_SIZE - 32)
 	{
 		switch (src[i])
 		{
@@ -1768,7 +1776,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				}
 				type = 1;
 
-				while (i < cplen && src[i] != IAC && type == 1)
+				while (i < cplen && src[i] != IAC && type == 1 && pto - ptb < BUFFER_SIZE - 32)
 				{
 					switch (src[i])
 					{
@@ -1836,7 +1844,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 				type = 1;
 
-				while (i < cplen && src[i] != IAC && type == 1)
+				while (i < cplen && src[i] != IAC && type == 1 && pto - ptb < BUFFER_SIZE - 32)
 				{
 					switch (src[i])
 					{
@@ -1869,9 +1877,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 	// Raw json data for debugging purposes.
 
 	pto = json;
+	ptb = json;
 	i = 3;
 
-	while (i < cplen && src[i] != IAC)
+	while (i < cplen && src[i] != IAC && pto - ptb < BUFFER_SIZE - 32)
 	{
 		switch (src[i])
 		{
@@ -2252,7 +2261,7 @@ int client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 	pt1 = var1;
 	pt2 = var2;
 
-	for (i = 3 ; i < cplen ; i++)
+	for (i = 3 ; i < cplen && pt2 - var2 < BUFFER_SIZE - 20 ; i++)
 	{
 		if (cpsrc[i] == IAC && i + 1 < cplen && cpsrc[i+1] == SE)
 		{
