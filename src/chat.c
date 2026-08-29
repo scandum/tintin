@@ -34,7 +34,7 @@ extern  int chat_new(int s);
 extern void chat_printf(char *format, ...);
 extern  int process_chat_input(struct chat_data *buddy);
 extern void get_chat_commands(struct chat_data *buddy, char *buf, int len);
-extern void chat_name_change(struct chat_data *buddy, char *txt);
+extern struct chat_data *chat_name_change(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_everybody(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_personal(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_group(struct chat_data *buddy, char *txt);
@@ -866,7 +866,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 		switch (ptc)
 		{
 			case CHAT_NAME_CHANGE:
-				chat_name_change(buddy, txt);
+				buddy = chat_name_change(buddy, txt);
 				break;
 
 			case CHAT_REQUEST_CONNECTIONS:
@@ -977,7 +977,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 }
 
 
-void chat_name_change(struct chat_data *buddy, char *name)
+struct chat_data *chat_name_change(struct chat_data *buddy, char *name)
 {
 	struct chat_data *node;
 
@@ -989,7 +989,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		close_chat(buddy, TRUE);
 
-		return;
+		return NULL;
 	}
 
 	for (node = gtd->chat ; node ; node = node->next)
@@ -1002,7 +1002,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 			close_chat(buddy, TRUE);
 
-			return;
+			return NULL;
 		}
 	}
 
@@ -1014,7 +1014,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		close_chat(buddy, TRUE);
 
-		return;
+		return NULL;
 	}
 
 	if (strcmp(name, buddy->name))
@@ -1023,6 +1023,8 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		RESTRING(buddy->name, name);
 	}
+
+	return buddy;
 }
 
 void chat_receive_text_everybody(struct chat_data *buddy, char *txt)
