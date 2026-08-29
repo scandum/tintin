@@ -1725,7 +1725,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			case '}':
-				nest--;
+				if (nest)
+				{
+					nest--;
+				}
 				i++;
 				if (nest != 0)
 				{
@@ -1744,7 +1747,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			case ']':
-				nest--;
+				if (nest)
+				{
+					nest--;
+				}
 				i++;
 				if (nest != 0)
 				{
