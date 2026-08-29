@@ -1907,7 +1907,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<F%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'F' && (pti[2] == '?' || pti[3] == '?' || pti[4] == '?') && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'F' && pti[2] && pti[3] && pti[4] && (pti[2] == '?' || pti[3] == '?' || pti[4] == '?') && pti[5] == '>')
 					{
 						c4096_rnd(ses, &pti[2]);
 
@@ -1957,7 +1957,7 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 						}
 						pti += sprintf(old, "<B%c%c%c>", pti[2], pti[3], pti[4]);
 					}
-					else if (toupper((int) pti[1]) == 'B' && (pti[2] == '?' || pti[3] == '?' || pti[4] == '?') && pti[5] == '>')
+					else if (toupper((int) pti[1]) == 'B' && pti[2] && pti[3] && pti[4] && (pti[2] == '?' || pti[3] == '?' || pti[4] == '?') && pti[5] == '>')
 					{
 						c4096_rnd(ses, &pti[2]);
 
