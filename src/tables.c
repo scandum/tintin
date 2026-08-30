@@ -1063,7 +1063,7 @@ struct telopt_type telopt_table[] =
 	{    "MCCP1",             TEL_N,               0 }, /* Obsolete */
 	{    "MCCP2",             TEL_Y,               ANNOUNCE_WILL }, /* Mud Client Compression Protocol v2 */
 	{    "MCCP3",             TEL_N,               ANNOUNCE_WILL }, /* Mud Client Compression Protocol v3 */
-	{    "88",                TEL_N,               0 },
+	{    "MCCP4",             TEL_Y,               0 },
 	{    "89",                TEL_N,               0 },
 	{    "MSP",               TEL_N,               0 }, /* Mud Sound Protocl */
 	{    "MXP",               TEL_N,               0 }, /* Mud eXtension Protocol */

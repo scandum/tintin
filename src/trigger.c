@@ -271,8 +271,14 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 
 			if (!strncmp(node->arg1, line, strlen(node->arg1)) && !strcmp(node->arg2, buf) && *gtd->vars[0])
 			{
-				show_error(ses, LIST_ACTION, "#WARNING: #ALIAS {%s} CONTAINS NO %%0-%%99 BUT IS CALLED WITH ARGUMENT {%s}.", node->arg1, gtd->vars[0]);
+				static time_t warning;
 
+				if (warning < gtd->time)
+				{
+					show_error(ses, LIST_ACTION, "#WARNING: #ALIAS {%s} CONTAINS NO %%0-%%99 BUT IS CALLED WITH ARGUMENT {%s}.", node->arg1, gtd->vars[0]);
+
+					warning = gtd->time + 3600;
+				}
 				sprintf(input, "%s %s", buf, gtd->vars[0]);
 			}
 			else

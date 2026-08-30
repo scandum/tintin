@@ -108,18 +108,23 @@
         Sub negotiation
 */
 
-#define	    ENV_IS                0
-#define	    ENV_SEND              1
-#define     ENV_INFO              2
+#define	    ENV_IS                  0
+#define	    ENV_SEND                1
+#define     ENV_INFO                2
 
-#define     ENV_VAR               0
-#define     ENV_VAL               1
-#define     ENV_ESC               2 /* Not implemented in tintin */
-#define     ENV_USR               3
+#define     ENV_VAR                 0
+#define     ENV_VAL                 1
+#define     ENV_ESC                 2 /* Not implemented in tintin */
+#define     ENV_USR                 3
 
-#define     CHARSET_REQUEST       1
-#define     CHARSET_ACCEPTED      2
-#define     CHARSET_REJECTED      3
+#define     CHARSET_REQUEST         1
+#define     CHARSET_ACCEPTED        2
+#define     CHARSET_REJECTED        3
+
+#define     MCCP4_ACCEPT_ENCODING   1
+#define     MCCP4_BEGIN_ENCODING    2
+#define     MCCP4_WONT            252
+
 /*
  TTABLE-IS ..................04
  TTABLE-REJECTED ............05

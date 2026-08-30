@@ -512,7 +512,7 @@ int mathexp_tokenize(struct session *ses, char *str, int seed, int debug)
 					case ':':
 						if (debug && wonky == 0)
 						{
-							show_error(gtd->ses, LIST_COMMAND, "#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
+
 						}
 						*pta++ = *pti++;
 						break;
@@ -1481,6 +1481,10 @@ int is_number(char *str)
 				break;
 
 			case ':':
+				if (i == 1)
+				{
+					show_error(gtd->ses, LIST_COMMAND, "#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
+				}
 				if (i == 4)
 				{
 					return FALSE;

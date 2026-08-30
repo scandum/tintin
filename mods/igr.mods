@@ -19,7 +19,9 @@ scan.c          Fixed a minor issue with numeric data in #scan json.
 
 line.c          Added #line ignore [list] {argument}. Example:
                 #line ignore {variables;functions} {#showme @gts{${test}}}
- 
+
+mccp.c          Added basic server to client mccp4 zstd support.
+
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------
 substitute.c    Fixed a bug causing improper handling of large variables.

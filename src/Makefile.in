@@ -8,7 +8,7 @@
 
 DEFINES = -D_GNU_SOURCE @DEFS@
 
-CC = @CC@ -g -O3 -Wall -flto
+CC = @CC@ -g -O3 -Wall -flto=auto
 MAKE = @MAKE@
 
 prefix = @prefix@

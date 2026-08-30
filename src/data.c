@@ -1551,12 +1551,18 @@ DO_COMMAND(do_info)
 				{
 					if (ses->mccp2)
 					{
-						tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0);
+						tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0, 32768);
 					}
 					if (ses->mccp3)
 					{
-						tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u PERCENT: %3d", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0);
+						tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0, 262144);
 					}
+#ifdef HAVE_ZSTD_H
+					if (ses->mccp4)
+					{
+						tintin_printf2(ses, "#INFO MCCP4: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp4_in, ses->mccp4_out, ses->mccp4_out ? 100 * ses->mccp4_in / ses->mccp4_out : 0, ZSTD_sizeof_DStream(ses->mccp4));
+					}
+#endif
 				}
 				else if (is_abbrev(arg1, "MEMORY"))
 				{

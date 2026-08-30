@@ -32,6 +32,10 @@
 
 #include "config.h"
 
+#ifdef HAVE_ZSTD_H
+   #include <zstd.h>
+#endif
+
 #if defined(HAVE_STRING_H)
 #include <string.h>
 #elif defined(HAVE_STRINGS_H)
@@ -1183,6 +1187,11 @@ struct session
 	struct port_data      * port;
 	z_stream              * mccp2;
 	z_stream              * mccp3;
+#ifdef HAVE_ZSTD_H
+	ZSTD_DStream          * mccp4;
+	unsigned int            mccp4_in;
+	unsigned int            mccp4_out;
+#endif
 	gnutls_session_t        ssl;
 	struct termios          cur_terminal;
 	struct log_data       * log;
@@ -1220,7 +1229,6 @@ struct session
 	int                     read_max;
 	unsigned long long      connect_retry;
 	int                     connect_error;
-//	char                    more_output[BUFFER_SIZE];
 	char                  * more_output;
 	int                     color;
 	char                    color_patch[100];
@@ -2411,6 +2419,9 @@ extern  int  client_init_mccp2(struct session *ses, int cplen, unsigned char *cp
 extern  int  client_recv_will_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_recv_will_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_send_dont_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int client_init_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
 
 #endif
 
@@ -2877,7 +2888,8 @@ extern struct map_legend_group_type map_legend_group_table[];
 #define __TELOPT_H__
 
 extern void test_gmcp(struct session *ses, char *buf);
-extern int get_mtts_val(struct session *ses);
+extern  int get_mtts_val(struct session *ses);
+extern void client_telopt_debug(struct session *ses, char *format, ...);
 extern  int client_translate_telopts(struct session *ses, unsigned char *src, int cplen);
 extern  int client_write_compressed(struct session *ses, char *txt, int length);
 extern  int client_send_sb_naws(struct session *ses, int cplen, unsigned char *cpsrc);
