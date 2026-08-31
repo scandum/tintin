@@ -1951,7 +1951,7 @@ extern DO_COMMAND(do_chat);
 
 extern void process_chat_connections(fd_set *read_set, fd_set *write_set, fd_set *exc_set);
 extern void chat_socket_printf(struct chat_data *buddy, char *format, ...);
-extern void close_chat(struct chat_data *buddy, int unlink);
+extern struct chat_data *close_chat(struct chat_data *buddy, int unlink);
 extern void chat_forward_session(struct session *ses, char *linelog);
 
 extern DO_CHAT(chat_accept);
@@ -2421,7 +2421,7 @@ extern  int  client_recv_dont_mccp3(struct session *ses, int cplen, unsigned cha
 extern  int  client_recv_wont_mccp3(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_recv_will_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
 extern  int  client_send_dont_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
-extern  int client_init_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
+extern  int  client_init_mccp4(struct session *ses, int cplen, unsigned char *cpsrc);
 
 #endif
 

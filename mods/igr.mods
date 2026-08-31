@@ -8,8 +8,8 @@ trigger.c       Added invalid priority warnings to #alias and #button.
 scan.c          Fixed a minor issue with numeric data in #scan json.
 
 *.c             Fixed memory issues in port.c base.c files.c chat.c scan.c
-                history.c mapper.c buffer.c - thanks to Jay & Claude for the
-                reports.
+                history.c mapper.c buffer.c telopt_client.c substitute.c
+                - thanks to Jay & Claude for the reports.
 
 *.c             Various performance improvements in nest.c vt102.c regex.c
                 net.c text.c buffer.c main.c log.c - thanks to Jay & Claude

@@ -1014,7 +1014,7 @@ int client_recv_sb_mssp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 {
-	char var[BUFFER_SIZE], val[BUFFER_SIZE], plain[BUFFER_SIZE], *pto;
+	char var[BUFFER_SIZE], val[BUFFER_SIZE], plain[BUFFER_SIZE], *pto, *ptv;
 	int i, nest, state[100], last;
 
 	var[0] = val[0] = state[0] = nest = last = 0;
@@ -1025,9 +1025,9 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 	}
 
 	i = 3;
-	pto = var;
+	pto = ptv = var;
 
-	while (i < cplen && nest < 99)
+	while (i < cplen && nest < 99 && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		if (src[i] == IAC && src[i+1] == SE)
 		{
@@ -1100,7 +1100,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
-					pto = var;
+					pto = ptv = var;
 				}
 				last = MSDP_VAR;
 				break;
@@ -1129,7 +1129,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 1, 3, "IAC SB MSDP %s", var, var, val, plain);
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 3, "IAC SB MSDP", var, val, plain);
 					}
-					pto = val;
+					pto = ptv = val;
 				}
 				last = MSDP_VAL;
 				break;
@@ -1182,12 +1182,17 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 		i++;
 	}
 
+	if (pto - ptv >= BUFFER_SIZE - 5000)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: RCVD IAC SB MSDP: DATA EXCEEDS %d BYTES.", pto - ptv);
+	}
+
 	var[0] = val[0] = last = 0;
 
 	i = 3;
-	pto = var;
+	pto = ptv = var;
 
-	while (i < cplen && nest < 99)
+	while (i < cplen && nest < 99 && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		if (src[i] == IAC && src[i+1] == SE)
 		{
@@ -1259,7 +1264,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
-					pto = var;
+					pto = ptv = var;
 				}
 				last = MSDP_VAR;
 				break;
@@ -1293,7 +1298,7 @@ int client_recv_sb_msdp(struct session *ses, int cplen, unsigned char *src)
 						check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB MSDP2JSON %s", var, var, plain);
 						check_all_events(ses, EVENT_FLAG_TELNET, 0, 2, "IAC SB MSDP2JSON", var, plain);
 					}
-					pto = val;
+					pto = ptv = val;
 				}
 				last = MSDP_VAL;
 				break;
@@ -1715,7 +1720,7 @@ int client_recv_sb_zmp(struct session *ses, int cplen, unsigned char *src)
 
 int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 {
-	char mod[BUFFER_SIZE], val[BUFFER_SIZE], json[BUFFER_SIZE], *pto;
+	char mod[BUFFER_SIZE], val[BUFFER_SIZE], json[BUFFER_SIZE], *pto, *ptv;
 	int i, state[100], nest, type;
 
 	push_call("client_recv_sb_gmcp(%p,%d,%p)",ses,cplen,src);
@@ -1730,7 +1735,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	i = 3;
 
-	pto = mod;
+	pto = ptv = mod;
 
 	// space out
 
@@ -1741,7 +1746,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	// grab module
 
-	while (i < cplen && src[i] != IAC)
+	while (i < cplen && src[i] != IAC && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		if (src[i] == ' ' || src[i] == '{' || src[i] == '[')
 		{
@@ -1754,9 +1759,9 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 
 	// parse JSON content
 
-	pto = val;
+	pto = ptv = val;
 
-	while (i < cplen && src[i] != IAC && nest < 99)
+	while (i < cplen && src[i] != IAC && nest < 99 && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		switch (src[i])
 		{
@@ -1778,7 +1783,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			case '}':
-				nest--;
+				if (nest)
+				{
+					nest--;
+				}
 				i++;
 				if (nest != 0)
 				{
@@ -1797,7 +1805,10 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 				break;
 
 			case ']':
-				nest--;
+				if (nest)
+				{
+					nest--;
+				}
 				i++;
 				if (nest != 0)
 				{
@@ -1927,12 +1938,17 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 	}
 	*pto = 0;
 
+	if (pto - ptv >= BUFFER_SIZE - 5000)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: RCVD IAC SB GMCP: DATA EXCEEDS %d BYTES.", pto - ptv);
+	}
+
 	// Raw json data for debugging purposes.
 
-	pto = json;
+	pto = ptv = json;
 	i = 3;
 
-	while (i < cplen && src[i] != IAC)
+	while (i < cplen && src[i] != IAC && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		switch (src[i])
 		{

@@ -1775,7 +1775,11 @@ int substitute(struct session *ses, char *string, char *result, int flags)
 			case '<':
 				if (HAS_BIT(flags, SUB_COL))
 				{
-					if (old[0] && !strncmp(old, pti, strlen(old)))
+					if (pti[1] == 0 || pti[2] == 0 || pti[3] == 0 || pti[4] == 0)
+					{
+						*pto++ = *pti++;
+					}
+					else if (old[0] && !strncmp(old, pti, strlen(old)))
 					{
 						pti += strlen(old);
 					}

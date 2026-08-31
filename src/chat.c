@@ -34,7 +34,7 @@ extern  int chat_new(int s);
 extern void chat_printf(char *format, ...);
 extern  int process_chat_input(struct chat_data *buddy);
 extern void get_chat_commands(struct chat_data *buddy, char *buf, int len);
-extern void chat_name_change(struct chat_data *buddy, char *txt);
+extern struct chat_data *chat_name_change(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_everybody(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_personal(struct chat_data *buddy, char *txt);
 extern void chat_receive_text_group(struct chat_data *buddy, char *txt);
@@ -261,7 +261,7 @@ void *threaded_chat_call(void *arg)
 	static struct addrinfo hints;
 	struct chat_data *new_buddy;
 	struct timeval to;
-	fd_set wds, rds;
+	fd_set wds;
 
 	chat_printf("Attempting to call %s ...", arg);
 
@@ -390,60 +390,6 @@ void *threaded_chat_call(void *arg)
 	freeaddrinfo(address);
 
 	return NULL;
-
-//	old code
-
-	FD_ZERO(&rds);
-	FD_SET(sock, &rds);
-
-	to.tv_sec  = CALL_TIMEOUT;
-	to.tv_usec = 0;
-
-	if (select(FD_SETSIZE, &rds, NULL, NULL, &to) == -1)
-	{
-		close_chat(new_buddy, FALSE);
-		freeaddrinfo(address);
-
-		return NULL;
-	}
-
-	if (process_chat_input(new_buddy) == -1)
-	{
-		FD_CLR(new_buddy->fd, &rds);
-		close_chat(new_buddy, FALSE);
-		freeaddrinfo(address);
-
-		return NULL;
-	}
-
-	if (gtd->chat == NULL || *new_buddy->name == 0)
-	{
-		close_chat(new_buddy, FALSE);
-	}
-	else
-	{
-		if (fcntl(sock, F_SETFL, O_NDELAY|O_NONBLOCK) == -1)
-		{
-			syserr_printf(gtd->ses, "chat_new: fcntl O_NDELAY|O_NONBLOCK");
-		}
-
-#ifdef HAVE_LIBPTHREAD
-		while (gtd->chat->update)
-		{
-			chat_printf("Blocking the linking of %s.", new_buddy->name);
-
-			usleep(1000);
-
-			continue;
-		}
-#endif
-		LINK(new_buddy, gtd->chat->next, gtd->chat->prev);
-
-		chat_printf("Connection made to %s.", new_buddy->name);
-	}
-	freeaddrinfo(address);
-
-	return NULL;
 }
 
 #ifdef HAVE_LIBPTHREAD
@@ -490,7 +436,7 @@ DO_CHAT(chat_call)
 #endif
 
 
-void close_chat(struct chat_data *buddy, int unlink)
+struct chat_data *close_chat(struct chat_data *buddy, int unlink)
 {
 	buddy->flags = 0;
 
@@ -530,6 +476,8 @@ void close_chat(struct chat_data *buddy, int unlink)
 	free(buddy->version);
 
 	free(buddy);
+
+	return NULL;
 }
 
 
@@ -866,7 +814,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 		switch (ptc)
 		{
 			case CHAT_NAME_CHANGE:
-				chat_name_change(buddy, txt);
+				buddy = chat_name_change(buddy, txt);
 				break;
 
 			case CHAT_REQUEST_CONNECTIONS:
@@ -977,7 +925,7 @@ void get_chat_commands(struct chat_data *buddy, char *buf, int len)
 }
 
 
-void chat_name_change(struct chat_data *buddy, char *name)
+struct chat_data *chat_name_change(struct chat_data *buddy, char *name)
 {
 	struct chat_data *node;
 
@@ -987,9 +935,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		chat_printf("Refusing connection from %.21s:%d, name too long. (%d characters)", buddy->ip, buddy->port, strlen(name));
 
-		close_chat(buddy, TRUE);
-
-		return;
+		return close_chat(buddy, TRUE);
 	}
 
 	for (node = gtd->chat ; node ; node = node->next)
@@ -1000,9 +946,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 			chat_printf("Refusing name change from %s@%s:%d, already connected to someone named %s.", buddy->name, buddy->ip, buddy->port, name);
 
-			close_chat(buddy, TRUE);
-
-			return;
+			return close_chat(buddy, TRUE);
 		}
 	}
 
@@ -1012,9 +956,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		chat_printf("Refusing name change from %s@%s:%d, %s is an invalid name.", buddy->name, buddy->ip, buddy->port, name);
 
-		close_chat(buddy, TRUE);
-
-		return;
+		return close_chat(buddy, TRUE);
 	}
 
 	if (strcmp(name, buddy->name))
@@ -1023,6 +965,7 @@ void chat_name_change(struct chat_data *buddy, char *name)
 
 		RESTRING(buddy->name, name);
 	}
+	return buddy;
 }
 
 void chat_receive_text_everybody(struct chat_data *buddy, char *txt)
