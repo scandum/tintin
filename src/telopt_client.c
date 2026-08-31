@@ -1847,7 +1847,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 						case '\\':
 							i++;
 
-							if (i < cplen && src[i] == '"')
+							if (i < cplen && (src[i] == '"' || src[i] == '/'))
 							{
 								*pto++ = src[i++];
 							}
