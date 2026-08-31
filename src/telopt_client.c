@@ -272,7 +272,7 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 		ses->read_buf = (unsigned char *) realloc(ses->read_buf, ses->read_max);
 	}
 
-	memcpy(ses->read_buf + ses->read_len, cpsrc, cplen);
+	memmove(ses->read_buf + ses->read_len, cpsrc, cplen);
 
 	cpsrc = ses->read_buf;
 	cplen = ses->read_len + cplen;
@@ -2012,14 +2012,19 @@ void test_gmcp(struct session *ses, char *buf)
 }
 
 /*
-	Returns the length of a telnet subnegotiation
+	Checks if a telnet subnegotiation is valid
 */
 
 int client_skip_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 {
 	int i;
 
-	for (i = 1 ; i < cplen ; i++)
+	if (cpsrc[cplen - 1] == SE && cpsrc[cplen - 2] == IAC)
+	{
+		return cplen;
+	}
+
+	for (i = 3 ; i < cplen ; i++)
 	{
 		if (cpsrc[i] == SE && cpsrc[i-1] == IAC)
 		{
@@ -2034,7 +2039,7 @@ int client_skip_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 
 int client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	char *pt1, *pt2, var1[BUFFER_SIZE], var2[BUFFER_SIZE];
+	char *pto, var[BUFFER_SIZE], *ptv;
 	int i;
 
 	if (client_skip_sb(ses, cplen, cpsrc) > cplen)
@@ -2042,29 +2047,20 @@ int client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 		return cplen + 1;
 	}
 
-	pt1 = var1;
-	pt2 = var2;
+	i = 3;
+	pto = ptv = var;
 
-	for (i = 3 ; i < cplen ; i++)
+	while (i < cplen && pto - ptv < BUFFER_SIZE - 5000)
 	{
 		if (cpsrc[i] == IAC && i + 1 < cplen && cpsrc[i+1] == SE)
 		{
 			break;
 		}
-		else
-		{
-			*pt1++ = cpsrc[i];
-
-			sprintf(pt2, "%03d ", cpsrc[i]);
-
-			pt2 += 4;
-		}
+		*pto = cpsrc[i++];
 	}
+	*pto = 0;
 
-	*pt1 = 0;
-	*pt2 = 0;
-
-	check_all_events(ses, EVENT_FLAG_TELNET, 1, 2, "IAC SB %s", telopt_table[cpsrc[2]].name, var1, var2);
+	check_all_events(ses, EVENT_FLAG_TELNET, 1, 1, "IAC SB %s", telopt_table[cpsrc[2]].name, var);
 
 	return i + 2;
 }

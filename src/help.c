@@ -1797,7 +1797,7 @@ struct help_type help_table[] =
 		"<278>         <178>IAC SB MSDP [VAR]      <278>%0 variable  %1 data  %2 plain data\n"
 		"<278>         <178>IAC SB NEW-ENVIRON     <278>%0 variable  %1 data  %2 plain data\n"
 		"<278>         <178>IAC SB ZMP <VAR>       <278>%0 variable  %1 data\n"
-		"<278>         <178>IAC SB <VAR>           <278>%0 variable  %1 raw data  %2 plain data\n"
+		"<278>         <178>IAC SB <VAR>           <278>%0 variable  %1 data\n"
 		"\n"
 		"<278>         <128>TIME EVENTS\n"
 		"\n"

@@ -33,7 +33,8 @@
 #include "config.h"
 
 #ifdef HAVE_ZSTD_H
-   #include <zstd.h>
+	#define ZSTD_STATIC_LINKING_ONLY
+	#include <zstd.h>
 #endif
 
 #if defined(HAVE_STRING_H)
