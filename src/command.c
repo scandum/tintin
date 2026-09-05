@@ -234,6 +234,7 @@ extern DO_COMMAND(do_system);
 extern DO_COMMAND(do_tab);
 extern DO_COMMAND(do_textin);
 extern DO_COMMAND(do_tick);
+//extern DO_COMMAND(do_un);
 extern DO_COMMAND(do_unaction);
 extern DO_COMMAND(do_unalias);
 extern DO_COMMAND(do_unbutton);
@@ -319,7 +320,7 @@ struct command_type command_table[] =
 	{    "scan",              do_scan,              2, TOKEN_TYPE_COMMAND },
 	{    "screen",            do_screen,            2, TOKEN_TYPE_COMMAND },
 	{    "script",            do_script,            2, TOKEN_TYPE_COMMAND },
-	{    "send",              do_send,              1, TOKEN_TYPE_COMMAND },
+	{    "send",              do_send,              2, TOKEN_TYPE_COMMAND },
 	{    "session",           do_session,           1, TOKEN_TYPE_COMMAND },
 	{    "showme",            do_showme,            3, TOKEN_TYPE_COMMAND },
 	{    "snoop",             do_snoop,             2, TOKEN_TYPE_COMMAND },
@@ -332,6 +333,7 @@ struct command_type command_table[] =
 	{    "test",              do_test,              3, TOKEN_TYPE_COMMAND },
 	{    "textin",            do_textin,            2, TOKEN_TYPE_COMMAND },
 	{    "ticker",            do_tick,              3, TOKEN_TYPE_COMMAND },
+//	{    "un",                do_un,                2, TOKEN_TYPE_COMMAND },
 	{    "unaction",          do_unaction,          0, TOKEN_TYPE_COMMAND },
 	{    "unalias",           do_unalias,           0, TOKEN_TYPE_COMMAND },
 	{    "unbutton",          do_unbutton,          0, TOKEN_TYPE_COMMAND },

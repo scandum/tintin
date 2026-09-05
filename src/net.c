@@ -409,41 +409,16 @@ int read_buffer_mud(struct session *ses)
 	return TRUE;
 }
 
-int detect_prompt(struct session *ses, char *original)
-{
-	char strip[BUFFER_SIZE];
-	struct listroot *root = ses->list[LIST_PROMPT];
-	struct listnode *node;
-
-	if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
-	{
-		all_to_utf8(ses, original, strip);
-
-		strcpy(original, strip);
-	}
-
-	strip_vt102_codes(original, strip);
-
-	for (root->update = 0 ; root->update < root->used ; root->update++)
-	{
-		node = root->list[root->update];
-
-		if (check_one_regex(ses, node, strip, original, 0, REGEX_FLAG_NONE))
-		{
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
 void readmud(struct session *ses)
 {
 	char *line, *next_line/*, *strip*/;
-	char linebuf[STRING_SIZE];
+	char *linebuf;
 	int len;
 	struct session *cts;
 
 	push_call("readmud(%p)", ses);
+
+	linebuf = str_alloc_stack(STRING_SIZE);
 
 	line = gtd->mud_output_buf;
 
@@ -528,7 +503,7 @@ void readmud(struct session *ses)
 					{
 						if (ses->list[LIST_PROMPT]->list[0])
 						{
-							if (!detect_prompt(ses, line))
+							if (!check_one_prompt(ses, line))
 							{
 								str_cat(&ses->more_output, line);
 								ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);

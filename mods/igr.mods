@@ -20,7 +20,19 @@ scan.c          Fixed a minor issue with numeric data in #scan json.
 line.c          Added #line ignore [list] {argument}. Example:
                 #line ignore {variables;functions} {#showme @gts{${test}}}
 
-mccp.c          Added basic server to client mccp4 zstd support.
+mccp.c          Added basic server to client mccp4 zstd support for #session.
+
+telopt_server.c Added basic server to client mccp4 zstd support for #port.
+
+trigger.c       Using an alias that doesn't contain %0-%99 and providing an
+                an argument will no longer generate a warning, unless the
+                alias command ends with a ';'. If you do want the old behavior
+                change the alias end from ';' to ';#1'.
+
+regex.c         Increased trigger processing speed by 2x.
+
+misc.c          Calling #send with two arguments will generate a warning to
+                fix your scripts.
 
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------

@@ -359,11 +359,23 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 
 					if (iac_client_table[cnt].func == client_init_mccp2)
 					{
+#ifdef HAVE_ZSTD_H
+						if (ses->mccp2 || ses->mccp4)
+						{
+							client_telopt_debug(ses, "ERROR: MCCP %d IS ALREADY ENABLED", ses->mccp2 ? 2 : 4);
+						}
+#endif
 						pop_call();
 						return client_translate_telopts(ses, cpsrc + skip, cplen - skip);
 					}
 					if (iac_client_table[cnt].func == client_init_mccp4)
 					{
+#ifdef HAVE_ZSTD_H
+						if (ses->mccp2 || ses->mccp4)
+						{
+							client_telopt_debug(ses, "ERROR: MCCP %d IS ALREADY ENABLED", ses->mccp2 ? 2 : 4);
+						}
+#endif
 						pop_call();
 						return client_translate_telopts(ses, cpsrc + skip, cplen - skip);
 					}
@@ -1847,7 +1859,7 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 						case '\\':
 							i++;
 
-							if (i < cplen && src[i] == '"')
+							if (i < cplen && (src[i] == '"' || src[i] == '/'))
 							{
 								*pto++ = src[i++];
 							}

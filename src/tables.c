@@ -97,6 +97,14 @@ struct charset_type charset_table[] =
 	{    "",              "",            "",           0 }
 };
 
+long long mask_table[256] =
+{
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, BV63, 0, BV64, 0, BV01, BV02, BV03, BV04, BV05, BV06, BV07, BV08, BV09, BV10, 0, 0, 0, 0, 0, 0,
+	0, BV11, BV12, BV13, BV14, BV15, BV16, BV17, BV18, BV19, BV20, BV21, BV22, BV23, BV24, BV25, BV26, BV27, BV28, BV29, BV30, BV31, BV32, BV33, BV34, BV35, BV36, 0, 0, 0, 0, 0,
+	0, BV37, BV38, BV39, BV40, BV41, BV42, BV43, BV44, BV45, BV46, BV47, BV48, BV49, BV50, BV51, BV52, BV53, BV54, BV55, BV56, BV57, BV58, BV59, BV60, BV61, BV62, 0, 0, 0, 0, 0
+};
+
 char character_table[256] =
 {
 	0, // 0
@@ -1063,7 +1071,11 @@ struct telopt_type telopt_table[] =
 	{    "MCCP1",             TEL_N,               0 }, /* Obsolete */
 	{    "MCCP2",             TEL_Y,               ANNOUNCE_WILL }, /* Mud Client Compression Protocol v2 */
 	{    "MCCP3",             TEL_N,               ANNOUNCE_WILL }, /* Mud Client Compression Protocol v3 */
+#ifdef HAVE_ZSTD_H
 	{    "MCCP4",             TEL_Y,               0 },
+#else
+	{    "MCCP4",             TEL_N,               0 },
+#endif
 	{    "89",                TEL_N,               0 },
 	{    "MSP",               TEL_N,               0 }, /* Mud Sound Protocl */
 	{    "MXP",               TEL_N,               0 }, /* Mud eXtension Protocol */

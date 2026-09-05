@@ -123,7 +123,7 @@ DO_COMMAND(do_nop)
 	return ses;
 }
 
-
+/*
 DO_COMMAND(do_send)
 {
 	push_call("do_send(%p,%p)",ses,arg);
@@ -135,6 +135,31 @@ DO_COMMAND(do_send)
 	pop_call();
 	return ses;
 }
+*/
+
+DO_COMMAND(do_send)
+{
+	arg = sub_arg_in_braces(ses, arg, arg1, GET_ALL, SUB_VAR|SUB_FUN);
+
+	arg = space_out(arg);
+
+	if (*arg)
+	{
+		show_message(ses, LIST_COMMAND, "#WARNING: #SEND {%s} (%s): THE SEND COMMAND SHOULD NOT HAVE A SECOND ARGUMENT.", arg1, arg);
+	}
+	write_mud(ses, arg1, SUB_ESC|SUB_EOL);
+
+	return ses;
+/*
+	result = arg2;
+
+	format_string(ses, arg1, arg, arg2);
+
+	write_mud(ses, arg2, SUB_ESC|SUB_EOL);
+
+	return ses;
+*/
+}
 
 DO_COMMAND(do_test)
 {
@@ -142,6 +167,32 @@ DO_COMMAND(do_test)
 
 	switch (*arg1 % 32)
 	{
+		case CTRL_B:
+			if (!strcmp(arg1, "bla"))
+			{
+				long long start, end, flag = 0;
+
+				start = utime();
+
+				for (int x = 0 ; x < 1000000 ; x++)
+				{
+					for (int i = 0 ; i < 256 ; i++)
+					{
+						flag += mask_table[i];
+					}
+				}
+				end = utime();
+
+				tintin_printf2(ses, "mask: %lld time: %lld", flag, end - start);
+
+				for (int i = 0; i < 256 ; i++)
+				{
+					char j = i;
+					tintin_printf2(ses, "%3d  %1c:  %lld", i, i, mask_table[(unsigned char) j]);
+				}
+			}
+			break;
+
 		case CTRL_G:
 			if (!strcmp(arg1, "gui"))
 			{

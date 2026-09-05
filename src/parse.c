@@ -546,7 +546,7 @@ struct session *parse_tintin_command(struct session *ses, char *input)
 
 int cnt_arg_all(struct session *ses, char *string, int flag)
 {
-	char *arg, tmp[BUFFER_SIZE];
+	char *arg;
 	int cnt;
 
 	arg = string;
@@ -556,7 +556,7 @@ int cnt_arg_all(struct session *ses, char *string, int flag)
 	{
 		cnt++;
 
-		arg = get_arg_in_braces(ses, arg, tmp, flag);
+		arg = skip_arg_in_braces(ses, arg, flag);
 
 		if (*arg == COMMAND_SEPARATOR)
 		{
@@ -963,6 +963,7 @@ char *get_arg_stop_digits(struct session *ses, char *string, char *result, int f
 	return pti;
 }
 
+
 /*
 	advance ptr to next none-space
 */
@@ -1172,6 +1173,230 @@ char *get_char(struct session *ses, char *string, char *result)
 }
 
 /*
+	same as functions above, but skip, keep synchronised
+*/
+
+char *skip_arg_all(struct session *ses, char *string, int verbatim)
+{
+	char *pti;
+	int skip, nest = 0;
+
+	pti = string;
+
+	if (*pti == gtd->verbatim_char)
+	{
+		while (*pti)
+		{
+			pti++;
+		}
+		return pti;
+	}
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += 2;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			pti += skip;
+			continue;
+		}
+
+		if (*pti == '\\' && pti[1] == COMMAND_SEPARATOR)
+		{
+			pti++;
+		}
+		else if (*pti == COMMAND_SEPARATOR && nest == 0 && !verbatim)
+		{
+			break;
+		}
+		else if (*pti == DEFAULT_OPEN)
+		{
+			nest++;
+		}
+		else if (*pti == DEFAULT_CLOSE)
+		{
+			nest--;
+		}
+		pti++;
+	}
+	return pti;
+}
+
+char *skip_arg_in_braces(struct session *ses, char *string, int flag)
+{
+	char *pti;
+	int skip, nest = 1;
+
+	pti = HAS_BIT(flag, GET_SPC) ? string : space_out(string);
+
+	if (*pti != DEFAULT_OPEN)
+	{
+		if (!HAS_BIT(flag, GET_ALL))
+		{
+			pti = skip_arg_stop_spaces(ses, pti, flag);
+		}
+		else
+		{
+			pti = skip_arg_with_spaces(ses, pti, flag);
+		}
+		return pti;
+	}
+
+	pti++;
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += 2;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			pti += skip;
+			continue;
+		}
+
+		if (*pti == DEFAULT_OPEN)
+		{
+			nest++;
+		}
+		else if (*pti == DEFAULT_CLOSE)
+		{
+			nest--;
+
+			if (nest == 0)
+			{
+				break;
+			}
+		}
+		pti++;
+	}
+
+	if (*pti == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: SKIP BRACED ARGUMENT: UNMATCHED BRACE.");
+	}
+	else
+	{
+		pti++;
+	}
+	return pti;
+}
+
+char *skip_arg_with_spaces(struct session *ses, char *string, int flag)
+{
+	char *pti;
+	int skip, nest = 0;
+
+	pti = HAS_BIT(flag, GET_SPC) ? string : space_out(string);
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += 2;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			pti += skip;
+			continue;
+		}
+
+		if (*pti == '\\' && pti[1] == COMMAND_SEPARATOR)
+		{
+			pti++;
+		}
+		else if (*pti == COMMAND_SEPARATOR && nest == 0)
+		{
+			break;
+		}
+		else if (*pti == DEFAULT_OPEN)
+		{
+			nest++;
+		}
+		else if (*pti == DEFAULT_CLOSE)
+		{
+			nest--;
+		}
+		pti++;
+	}
+	return pti;
+}
+
+char *skip_arg_stop_spaces(struct session *ses, char *string, int flag)
+{
+	char *pti;
+	int skip, nest = 0;
+
+	pti = space_out(string);
+
+	while (*pti)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pti))
+		{
+			pti += 2;
+			continue;
+		}
+
+		skip = find_secure_color_code(pti);
+
+		if (skip)
+		{
+			pti += skip;
+			continue;
+		}
+
+		if (*pti == '\\' && pti[1] == COMMAND_SEPARATOR)
+		{
+			pti++;
+		}
+		else if (*pti == COMMAND_SEPARATOR && nest == 0)
+		{
+			break;
+		}
+		else if (is_space(*pti) && nest == 0)
+		{
+			pti++;
+			break;
+		}
+		else if (*pti == DEFAULT_OPEN)
+		{
+			nest++;
+		}
+		else if (*pti == '[' && HAS_BIT(flag, GET_NST))
+		{
+			nest++;
+		}
+		else if (*pti == DEFAULT_CLOSE)
+		{
+			nest--;
+		}
+		else if (*pti == ']' && HAS_BIT(flag, GET_NST))
+		{
+			nest--;
+		}
+		pti++;
+	}
+	return pti;
+}
+
+
+/*
 	send command to the mud
 */
 
@@ -1219,6 +1444,7 @@ void write_mud(struct session *ses, char *command, int flags)
 void check_one_line_multi(struct session *ses, char *original, char *stripped)
 {
 	char *buf;
+	struct ttre_data ttre;
 
 	if (HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
@@ -1227,20 +1453,28 @@ void check_one_line_multi(struct session *ses, char *original, char *stripped)
 
 	buf = str_alloc_stack(0);
 
+	ttre.txt      = stripped;
+	ttre.txt_len  = strlen(stripped);
+	ttre.txt_mask = string_mask(stripped);
+	ttre.raw      = original;
+	ttre.raw_len  = strlen(original);
+	ttre.raw_mask = string_mask(original);
+
 	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_actions_multi(ses, original, stripped, buf);
+		check_all_actions_multi(ses, ttre, original, stripped, buf);
 	}
 
 	if (!IS_IGNORED(LIST_SUBSTITUTE) && !HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_substitutions_multi(ses, original, stripped);
+		check_all_substitutions_multi(ses, ttre, original, stripped);
 	}
 }
 
 void check_one_line(struct session *ses, char *line)
 {
 	char *strip, *buf;
+	struct ttre_data ttre;
 
 	if (IS_IGNORED(LIST_MAX) || HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
 	{
@@ -1256,29 +1490,36 @@ void check_one_line(struct session *ses, char *line)
 
 	strip_vt102_codes(line, strip);
 
+	ttre.txt      = strip;
+	ttre.txt_len  = strlen(strip);
+	ttre.txt_mask = string_mask(strip);
+	ttre.raw      = line;
+	ttre.raw_len  = strlen(line);
+	ttre.raw_mask = string_mask(line);
+
 	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_actions(ses, line, strip, buf);
+		check_all_actions(ses, ttre, line, strip, buf);
 	}
 
 	if (!IS_IGNORED(LIST_PROMPT) && !HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_prompts(ses, line, strip);
+		check_all_prompts(ses, ttre, line, strip);
 	}
 
 	if (!IS_IGNORED(LIST_GAG) && !HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_gags(ses, line, strip);
+		check_all_gags(ses, ttre, line, strip);
 	}
 
 	if (!IS_IGNORED(LIST_SUBSTITUTE) && !HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_substitutions(ses, line, strip);
+		check_all_substitutions(ses, ttre, line, strip);
 	}
 
 	if (!IS_IGNORED(LIST_HIGHLIGHT) && !HAS_BIT(ses->list[LIST_HIGHLIGHT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_highlights(ses, line, strip);
+		check_all_highlights(ses, ttre, line, strip);
 	}
 
 	if (HAS_BIT(ses->log->mode, LOG_FLAG_NEXT))
@@ -1292,4 +1533,44 @@ void check_one_line(struct session *ses, char *line)
 
 	pop_call();
 	return;
+}
+
+int check_one_prompt(struct session *ses, char *line)
+{
+	char strip[BUFFER_SIZE];
+	struct listroot *root = ses->list[LIST_PROMPT];
+	struct listnode *node;
+	struct ttre_data ttre;
+
+	if (root->used == 0)
+	{
+		return FALSE;
+	}
+
+	if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
+	{
+		all_to_utf8(ses, line, strip);
+
+		strcpy(line, strip);
+	}
+
+	strip_vt102_codes(line, strip);
+
+	ttre.txt      = strip;
+	ttre.txt_len  = strlen(strip);
+	ttre.txt_mask = string_mask(strip);
+	ttre.raw      = line;
+	ttre.raw_len  = strlen(line);
+	ttre.raw_mask = string_mask(line);
+
+	for (root->update = 0 ; root->update < root->used ; root->update++)
+	{
+		node = root->list[root->update];
+
+		if (check_one_regex(ses, node, ttre, strip, line, 0, REGEX_FLAG_NONE))
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
 }

@@ -776,5 +776,3 @@ DO_LINE(line_verbose)
 
 	return ses;
 }
-
-	

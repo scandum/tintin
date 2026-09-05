@@ -288,6 +288,8 @@ DO_COMMAND(do_system)
 		goto_pos(gtd->ses, gtd->ses->split->bot_row, 1);
 	}
 
+	fflush(stdout);
+
 	if (system(arg1) == -1)
 	{
 		syserr_printf(ses, "do_system: system:");

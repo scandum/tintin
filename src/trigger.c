@@ -49,13 +49,13 @@ DO_COMMAND(do_action)
 
 DO_COMMAND(do_unaction)
 {
-	delete_node_with_wild(ses, LIST_ACTION, arg);
+	delete_node_with_wild(ses, LIST_ACTION, arg, "UNACTION");
 
 	return ses;
 }
 
 
-void check_all_actions(struct session *ses, char *original, char *line, char *buf)
+void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf)
 {
 	struct listroot *root = ses->list[LIST_ACTION];
 	struct listnode *node;
@@ -69,7 +69,7 @@ void check_all_actions(struct session *ses, char *original, char *line, char *bu
 			continue;
 		}
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
 		{
 			show_debug(ses, LIST_ACTION, node, COLOR_DEBUG "#DEBUG ACTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 
@@ -87,7 +87,7 @@ void check_all_actions(struct session *ses, char *original, char *line, char *bu
 	}
 }
 
-void check_all_actions_multi(struct session *ses, char *original, char *stripped, char *buf)
+void check_all_actions_multi(struct session *ses, struct ttre_data ttre, char *original, char *stripped, char *buf)
 {
 	struct listroot *root = ses->list[LIST_ACTION];
 	struct listnode *node;
@@ -107,7 +107,7 @@ void check_all_actions_multi(struct session *ses, char *original, char *stripped
 
 		while (pto && pts)
 		{
-			if (!check_one_regex(ses, node, pts, pto, 0, REGEX_FLAG_ARG))
+			if (!check_one_regex(ses, node, ttre, pts, pto, 0, REGEX_FLAG_ARG))
 			{
 				break;
 			}
@@ -193,7 +193,7 @@ DO_COMMAND(do_alias)
 
 DO_COMMAND(do_unalias)
 {
-	delete_node_with_wild(ses, LIST_ALIAS, arg);
+	delete_node_with_wild(ses, LIST_ALIAS, arg, "UNALIAS");
 
 	return ses;
 }
@@ -202,10 +202,16 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 {
 	struct listnode *node;
 	struct listroot *root;
+	struct ttre_data ttre;
 	char *buf, *line, *arg;
-	int i;
+	int i, arglen;
 
 	root = ses->list[LIST_ALIAS];
+
+	if (root->used == 0)
+	{
+		return FALSE;
+	}
 
 	if (IS_IGNORED(LIST_ALIAS) || HAS_BIT(root->flags, LIST_FLAG_IGNORE))
 	{
@@ -223,27 +229,29 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 
 	substitute(ses, input, line, SUB_VAR|SUB_FUN);
 
+	init_mask(&ttre, line, NULL);
+
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regex(ses, node, line, line, PCRE2_ANCHORED, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, line, PCRE2_ANCHORED, REGEX_FLAG_ARG))
 		{
-			i = strlen(node->arg1);
+			arglen = strlen(node->arg1);
 
-			if (!strncmp(node->arg1, line, i))
+			if (!strncmp(node->arg1, line, arglen))
 			{
-				if (line[i])
+				if (line[arglen])
 				{
-					if (line[i] != ' ')
+					if (line[arglen] != ' ')
 					{
 						continue;
 					}
-					arg = &line[i + 1];
+					arg = &line[arglen + 1];
 				}
 				else
 				{
-					arg = &line[i];
+					arg = &line[arglen];
 				}
 
 				RESTRING(gtd->vars[0], arg)
@@ -265,25 +273,30 @@ struct listnode *check_all_aliases(struct session *ses, char *input)
 
 					RESTRING(gtd->vars[i], buf);
 				}
-			}
+				arglen = substitute(ses, node->arg2, buf, SUB_ARG);
 
-			substitute(ses, node->arg2, buf, SUB_ARG);
-
-			if (!strncmp(node->arg1, line, strlen(node->arg1)) && !strcmp(node->arg2, buf) && *gtd->vars[0])
-			{
-				static time_t warning;
-
-				if (warning < gtd->time)
+				if (*gtd->vars[0] && !strcmp(node->arg2, buf))
 				{
-					show_error(ses, LIST_ACTION, "#WARNING: #ALIAS {%s} CONTAINS NO %%0-%%99 BUT IS CALLED WITH ARGUMENT {%s}.", node->arg1, gtd->vars[0]);
+//					static time_t warning;
 
-					warning = gtd->time + 3600;
+					if (buf[arglen - 1] == ';') // && warning < gtd->time)
+					{
+						show_error(ses, LIST_ACTION, "#WARNING: #ALIAS {%s} CONTAINS NO %%0-%%99, ENDS WITH ';', AND IS CALLED WITH ARGUMENT {%s}.", node->arg1, gtd->vars[0]);
+
+//						warning = gtd->time + 3600;
+					}
+					sprintf(input, "%s %s", buf, gtd->vars[0]);
 				}
-				sprintf(input, "%s %s", buf, gtd->vars[0]);
+				else
+				{
+					strcpy(input, buf);
+				}
 			}
 			else
 			{
-				sprintf(input, "%s", buf);
+				substitute(ses, node->arg2, buf, SUB_ARG);
+
+				strcpy(input, buf);
 			}
 
 			show_debug(ses, LIST_ALIAS, node, COLOR_DEBUG "#DEBUG ALIAS " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1, gtd->vars[0]);
@@ -382,7 +395,7 @@ DO_COMMAND(do_button)
 
 DO_COMMAND(do_unbutton)
 {
-	delete_node_with_wild(ses, LIST_BUTTON, arg);
+	delete_node_with_wild(ses, LIST_BUTTON, arg, "UNBUTTON");
 
 	return ses;
 }
@@ -525,11 +538,11 @@ DO_COMMAND(do_undelay)
 
 	if (is_alpha(*arg1))
 	{
-		delete_node_with_wild(ses, LIST_TICKER, arg);
+		delete_node_with_wild(ses, LIST_TICKER, arg, "UNDELAY");
 	}
 	else
 	{
-		delete_node_with_wild(ses, LIST_DELAY, arg);
+		delete_node_with_wild(ses, LIST_DELAY, arg, "UNDELAY");
 	}
 
 	return ses;
@@ -574,7 +587,7 @@ DO_COMMAND(do_function)
 
 DO_COMMAND(do_unfunction)
 {
-	delete_node_with_wild(ses, LIST_FUNCTION, arg);
+	delete_node_with_wild(ses, LIST_FUNCTION, arg, "UNFUNCTION");
 
 	return ses;
 }
@@ -608,12 +621,12 @@ DO_COMMAND(do_gag)
 
 DO_COMMAND(do_ungag)
 {
-	delete_node_with_wild(ses, LIST_GAG, arg);
+	delete_node_with_wild(ses, LIST_GAG, arg, "UNGAG");
 
 	return ses;
 }
 
-void check_all_gags(struct session *ses, char *original, char *line)
+void check_all_gags(struct session *ses, struct ttre_data ttre, char *original, char *line)
 {
 	struct listroot *root = ses->list[LIST_GAG];
 	struct listnode *node;
@@ -622,7 +635,7 @@ void check_all_gags(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_NONE))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_NONE))
 		{
 //			show_debug(ses, LIST_GAG, node, "#DEBUG GAG {%s}", node->arg1);
 
@@ -685,12 +698,12 @@ DO_COMMAND(do_highlight)
 
 DO_COMMAND(do_unhighlight)
 {
-	delete_node_with_wild(ses, LIST_HIGHLIGHT, arg);
+	delete_node_with_wild(ses, LIST_HIGHLIGHT, arg, "UNHIGHLIGHT");
 
 	return ses;
 }
 
-void check_all_highlights(struct session *ses, char *original, char *line)
+void check_all_highlights(struct session *ses, struct ttre_data ttre, char *original, char *line)
 {
 	struct listroot *root = ses->list[LIST_HIGHLIGHT];
 	struct listnode *node;
@@ -709,7 +722,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
 		{
 			get_color_names(ses, node->arg2, color);
 
@@ -752,7 +765,7 @@ void check_all_highlights(struct session *ses, char *original, char *line)
 
 				show_debug(ses, LIST_HIGHLIGHT, node, COLOR_DEBUG "#DEBUG HIGHLIGHT " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 			}
-			while (check_one_regex(ses, node, ptl, pto, 0, REGEX_FLAG_ARG));
+			while (check_one_regex(ses, node, (struct ttre_data){0}, ptl, pto, 0, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -805,7 +818,7 @@ DO_COMMAND(do_macro)
 
 DO_COMMAND(do_unmacro)
 {
-	delete_node_with_wild(ses, LIST_MACRO, arg);
+	delete_node_with_wild(ses, LIST_MACRO, arg, "UNMACRO");
 
 	return ses;
 }
@@ -854,13 +867,13 @@ DO_COMMAND(do_prompt)
 
 DO_COMMAND(do_unprompt)
 {
-	delete_node_with_wild(ses, LIST_PROMPT, arg);
+	delete_node_with_wild(ses, LIST_PROMPT, arg, "UNPROMPT");
 
 	return ses;
 }
 
 
-int check_all_prompts(struct session *ses, char *original, char *line)
+int check_all_prompts(struct session *ses, struct ttre_data ttre, char *original, char *line)
 {
 	struct listroot *root = ses->list[LIST_PROMPT];
 	struct listnode *node;
@@ -874,7 +887,7 @@ int check_all_prompts(struct session *ses, char *original, char *line)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
 		{
 			if (*node->arg2)
 			{
@@ -945,12 +958,12 @@ DO_COMMAND(do_substitute)
 
 DO_COMMAND(do_unsubstitute)
 {
-	delete_node_with_wild(ses, LIST_SUBSTITUTE, arg);
+	delete_node_with_wild(ses, LIST_SUBSTITUTE, arg, "UNSUBSTITUTE");
 
 	return ses;
 }
 
-void check_all_substitutions(struct session *ses, char *original, char *line)
+void check_all_substitutions(struct session *ses, struct ttre_data ttre, char *original, char *line)
 {
 	char *match, *subst, *result, *temp, *ptl, *ptm, *pto, *ptr;
 	struct listroot *root = ses->list[LIST_SUBSTITUTE];
@@ -973,7 +986,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 			continue;
 		}
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
 		{
 			pto = original;
 			ptl = line;
@@ -1024,7 +1037,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 					break;
 				}
 			}
-			while (*pto && check_one_regex(ses, node, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
+			while (*pto && check_one_regex(ses, node, (struct ttre_data){0}, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -1041,7 +1054,7 @@ void check_all_substitutions(struct session *ses, char *original, char *line)
 	return;
 }
 
-void check_all_substitutions_multi(struct session *ses, char *original, char *line)
+void check_all_substitutions_multi(struct session *ses, struct ttre_data ttre, char *original, char *line)
 {
 	char *match, *subst, *result, *temp, *ptl, *ptm, *pto, *ptr;
 	struct listroot *root = ses->list[LIST_SUBSTITUTE];
@@ -1064,7 +1077,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 			continue;
 		}
 
-		if (check_one_regex(ses, node, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
 		{
 			pto = original;
 			ptl = line;
@@ -1115,7 +1128,7 @@ void check_all_substitutions_multi(struct session *ses, char *original, char *li
 					break;
 				}
 			}
-			while (*pto && check_one_regex(ses, node, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
+			while (*pto && check_one_regex(ses, node, (struct ttre_data){0}, ptl, pto, PCRE2_NOTBOL, REGEX_FLAG_ARG));
 
 			if (node->shots && --node->shots == 0)
 			{
@@ -1160,7 +1173,7 @@ DO_COMMAND(do_tab)
 
 DO_COMMAND(do_untab)
 {
-	delete_node_with_wild(ses, LIST_TAB, arg);
+	delete_node_with_wild(ses, LIST_TAB, arg, "UNTAB");
 
 	return ses;
 }
@@ -1220,7 +1233,7 @@ DO_COMMAND(do_tick)
 
 DO_COMMAND(do_untick)
 {
-	delete_node_with_wild(ses, LIST_TICKER, arg);
+	delete_node_with_wild(ses, LIST_TICKER, arg, "UNTICK");
 
 	return ses;
 }

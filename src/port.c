@@ -346,6 +346,7 @@ void close_port(struct session *ses, struct port_data *buddy, int unlink)
 
 	end_mccp2(ses, buddy);
 	end_mccp3(ses, buddy);
+	end_mccp4(ses, buddy);
 
 	uninit_msdp_data(buddy);
 
@@ -418,6 +419,12 @@ void port_socket_write(struct session *ses, struct port_data *buddy, char *str, 
 		{
 			write_mccp2(ses, buddy, str, len);
 		}
+#ifdef HAVE_ZSTD_H
+		else if (buddy->mccp4)
+		{
+			write_mccp4(ses, buddy, str, len);
+		}
+#endif
 		else
 		{
 			if (write(buddy->fd, str, len) < 0)

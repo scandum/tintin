@@ -153,7 +153,7 @@ DO_COMMAND(do_event)
 
 DO_COMMAND(do_unevent)
 {
-	delete_node_with_wild(ses, LIST_EVENT, arg);
+	delete_node_with_wild(ses, LIST_EVENT, arg, "UNEVENT");
 
 	return ses;
 }
@@ -165,6 +165,11 @@ int check_all_events(struct session *ses, int flags, int args, int vars, char *f
 	char *name, *buf;
 	va_list list;
 	int cnt, sub, found;
+
+	if (ses && ses->list[LIST_EVENT]->used == 0)
+	{
+		return 0;
+	}
 
 	if (IS_IGNORED(LIST_EVENT))
 	{

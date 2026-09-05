@@ -962,7 +962,7 @@ int show_node_with_wild(struct session *ses, char *text, struct listroot *root)
 	return found;
 }
 
-int delete_node_with_wild(struct session *ses, int type, char *text)
+int delete_node_with_wild(struct session *ses, int type, char *text, char *command)
 {
 	struct listroot *root = ses->list[type];
 	struct listnode *node;
@@ -991,7 +991,7 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 	{
 		node = root->list[index];
 
-		show_message(ses, type, "#OK: {%s} IS NO LONGER %s %s.", node->arg1, (*list_table[type].name == 'A' || *list_table[type].name == 'E') ? "AN" : "A", list_table[type].name);
+		show_message(ses, type, "#OK: {%s} IS NO LONGER %s %s.", node->arg1, is_vowel(list_table[type].name) ? "AN" : "A", list_table[type].name);
 
 		delete_index_list(root, index);
 
@@ -1012,7 +1012,7 @@ int delete_node_with_wild(struct session *ses, int type, char *text)
 
 	if (found == 0)
 	{
-		show_message(ses, type, "#KILL: NO MATCHES FOUND FOR %s {%s}.", list_table[type].name, arg1);
+		show_message(ses, type, "#%s: NO MATCHES FOUND FOR %s {%s}.", command, list_table[type].name, arg1);
 
 		return FALSE;
 	}
@@ -1070,18 +1070,51 @@ DO_COMMAND(do_kill)
 		}
 		else
 		{
-			delete_node_with_wild(ses, index, arg);
+			delete_node_with_wild(ses, index, arg, "KILL");
 		}
 		break;
 	}
 
 	if (index == LIST_MAX)
 	{
-		show_error(ses, LIST_COMMAND, "#ERROR: #KILL {%s} {%s}: NO MATCH FOUND.", arg1, arg2);
+		show_error(ses, LIST_COMMAND, "#ERROR: #KILL {%s} {%s}: UNKNOWN LIST.", arg1, arg2);
 	}
 	return ses;
 }
 
+/*
+DO_COMMAND(do_un)
+{
+	int index;
+
+	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
+	      get_arg_in_braces(ses, arg, arg2, GET_ALL);
+
+	if (*arg1 == 0)
+	{
+		show_error(ses, LIST_COMMAND, "#SYNTAX: #UN {LIST} {PATTERN}");
+
+		return ses;
+	}
+
+	for (index = 0 ; index < LIST_MAX ; index++)
+	{
+		if (!is_abbrev(arg1, list_table[index].name))
+		{
+			continue;
+		}
+
+		delete_node_with_wild(ses, index, arg, "UN");
+		break;
+	}
+
+	if (index == LIST_MAX)
+	{
+		show_error(ses, LIST_COMMAND, "#ERROR: #UN {%s} {%s}: NO MATCH FOUND.", arg1, arg2);
+	}
+	return ses;
+}
+*/
 
 DO_COMMAND(do_message)
 {
@@ -1551,16 +1584,16 @@ DO_COMMAND(do_info)
 				{
 					if (ses->mccp2)
 					{
-						tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0, 32768);
+						tintin_printf2(ses, "#INFO MCCP2: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d%% MEMORY: %9u", ses->mccp2->total_in, ses->mccp2->total_out, ses->mccp2->total_out ? 100 - 100 * ses->mccp2->total_in / ses->mccp2->total_out : 0, 32768);
 					}
 					if (ses->mccp3)
 					{
-						tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0, 262144);
+						tintin_printf2(ses, "#INFO MCCP3: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d%% MEMORY: %9u", ses->mccp3->total_in, ses->mccp3->total_out, ses->mccp3->total_in ? 100 - 100 * ses->mccp3->total_out / ses->mccp3->total_in : 0, 262144);
 					}
 #ifdef HAVE_ZSTD_H
 					if (ses->mccp4)
 					{
-						tintin_printf2(ses, "#INFO MCCP4: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d MEMORY: %9u", ses->mccp4_in, ses->mccp4_out, ses->mccp4_out ? 100 * ses->mccp4_in / ses->mccp4_out : 0, ZSTD_sizeof_DStream(ses->mccp4));
+						tintin_printf2(ses, "#INFO MCCP4: TOTAL IN: %9u TOTAL OUT: %9u COMPRESSION: %3d%% MEMORY: %9u", ses->mccp4_in, ses->mccp4_out, ses->mccp4_out ? 100 - 100 * ses->mccp4_in / ses->mccp4_out : 0, ZSTD_sizeof_DStream(ses->mccp4));
 					}
 #endif
 				}

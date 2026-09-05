@@ -70,7 +70,11 @@ DO_COMMAND(do_session)
 				sesptr->session_port,
 				sesptr == gtd->ses ? "(ats)" : "",
 				sesptr->ssl ? "(ssl)" : sesptr->port ? "(port)" : HAS_BIT(sesptr->flags, SES_FLAG_RUN) ? " (run)" : "",
+#ifdef HAVE_ZSTD_H
+				sesptr->mccp2 && sesptr->mccp3 ? "(mccp 2+3)" : sesptr->mccp2 ? "(mccp 2)" : sesptr->mccp4 ? "(mccp 4)" : sesptr->mccp3 ? "(mccp 3)" : "",
+#else
 				sesptr->mccp2 && sesptr->mccp3 ? "(mccp 2+3)" : sesptr->mccp2 ? "(mccp 2)" : sesptr->mccp3 ? "(mccp 3)" : "",
+#endif
 				HAS_BIT(sesptr->flags, SES_FLAG_SNOOP|SES_FLAG_SNOOPSCROLL) ? "(snoop)" : "",
 				sesptr->log->file ? "(log)" : "");
 		}
@@ -684,6 +688,7 @@ void cleanup_session(struct session *ses)
 
 	client_end_mccp2(ses);
 	client_end_mccp3(ses);
+	client_end_mccp4(ses);
 
 	if (HAS_BIT(ses->flags, SES_FLAG_CONNECTED))
 	{

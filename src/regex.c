@@ -230,9 +230,27 @@ int tintin_regex_match(struct session *ses, pcre2_code *nodepcre, char *str, cha
 
 // Used by triggers
 
-int check_one_regex(struct session *ses, struct listnode *node, char *line, char *original, int comp_option, int flag)
+int check_one_regex(struct session *ses, struct listnode *node, struct ttre_data ttre, char *txt, char *raw, int comp_option, int flag)
 {
 	char *exp, *str, result[BUFFER_SIZE];
+
+	if (node->mask && ttre.txt)
+	{
+		if (*node->arg1 == '~')
+		{
+			if (HAS_BIT(ttre.raw_mask, node->mask) != node->mask)
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			if (HAS_BIT(ttre.txt_mask, node->mask) != node->mask)
+			{
+				return 0;
+			}
+		}
+	}
 
 	if (node->regex == NULL)
 	{
@@ -248,11 +266,11 @@ int check_one_regex(struct session *ses, struct listnode *node, char *line, char
 	if (*exp == '~')
 	{
 		exp++;
-		str = original;
+		str = raw;
 	}
 	else
 	{
-		str = line;
+		str = txt;
 	}
 
 	if (flag)
@@ -262,7 +280,6 @@ int check_one_regex(struct session *ses, struct listnode *node, char *line, char
 
 	return tintin_regex_compare(ses, node->regex, str, exp, comp_option, 0);
 }
-
 
 // check if a table key is a regex
 
@@ -366,7 +383,7 @@ int tintin_regex_check(struct session *ses, char *exp)
 
 int tintin_match_data(struct session *ses, char *exp)
 {
-	char tmp[BUFFER_SIZE], *pte;
+	char *pte;
 	int arg = 1, var = 1, flag = 0;
 
 	pte = exp;
@@ -397,7 +414,7 @@ int tintin_match_data(struct session *ses, char *exp)
 
 			case '{':
 				gtd->args[next_arg(var)] = next_arg(arg);
-				pte = get_arg_in_braces(ses, pte, tmp, GET_ALL);
+				pte = skip_arg_in_braces(ses, pte, GET_ALL);
 				break;
 
 			case '[':
@@ -489,7 +506,7 @@ int tintin_match_data(struct session *ses, char *exp)
 								break;
 
 							case '{':
-								pte = get_arg_in_braces(ses, pte+2, tmp, GET_ALL);
+								pte = skip_arg_in_braces(ses, pte+2, GET_ALL);
 								break;
 
 							default:
@@ -506,6 +523,179 @@ int tintin_match_data(struct session *ses, char *exp)
 
 			default:
 				pte++;
+				break;
+		}
+	}
+	return flag;
+}
+
+void init_mask(struct ttre_data *ttre, char *txt, char *raw)
+{
+	if (raw == NULL)
+	{
+		ttre->raw      = ttre->txt      = txt;
+		ttre->raw_len  = ttre->txt_len  = strlen(txt);
+		ttre->raw_mask = ttre->txt_mask = string_mask(txt);
+	}
+	else
+	{
+		ttre->txt      = txt;
+		ttre->txt_len  = strlen(txt);
+		ttre->txt_mask = string_mask(txt);
+
+		ttre->raw      = raw;
+		ttre->raw_len  = strlen(raw);
+		ttre->raw_mask = string_mask(raw);
+	}
+}
+
+long long string_mask(char *exp)
+{
+	char *pte;
+	long long flag = 0;
+
+	pte = exp;
+
+	while (*pte)
+	{
+		flag |= mask_table[(unsigned char) *pte++];
+	}
+	return flag;
+}
+
+// unused
+
+long long tintin_string_mask(struct session *ses, char *exp)
+{
+	char *pte;
+	long long flag = 0;
+
+	pte = exp;
+
+	while (*pte)
+	{
+		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pte))
+		{
+			pte++;
+			flag |= mask_table[(unsigned char) *pte++];
+			continue;
+		}
+
+		switch (pte[0])
+		{
+			case '\\':
+				if (pte[1] == 0)
+				{
+					pte++;
+					break;
+				}
+				pte += 2;
+				break;
+
+			case '{':
+				pte = skip_arg_in_braces(ses, pte, GET_ALL);
+				break;
+
+			case '[':
+			case ']':
+			case '(':
+			case ')':
+			case '|':
+			case '.':
+			case '?':
+			case '+':
+			case '*':
+			case '^':
+				pte++;
+				break;
+
+			case '$':
+				pte++;
+				break;
+
+			case '%':
+				switch (pte[1])
+				{
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+						pte += is_digit(pte[2]) ? 3 : 2;
+						break;
+
+					case 'a':
+					case 'A':
+					case 'c':
+					case 'd':
+					case 'D':
+					case 'p':
+					case 'P':
+					case 's':
+					case 'S':
+					case 'u':
+					case 'U':
+					case 'w':
+					case 'W':
+					case '*':
+					case '+':
+					case '.':
+					case '?':
+						pte += 2;
+						break;
+
+					case 'i':
+					case 'I':
+					case '%':
+						pte += 2;
+						break;
+
+					case '!':
+						switch (pte[2])
+						{
+							case 'a':
+							case 'A':
+							case 'c':
+							case 'd':
+							case 'D':
+							case 'p':
+							case 'P':
+							case 's':
+							case 'S':
+							case 'u':
+							case 'U':
+							case 'w':
+							case 'W':
+							case '?':
+							case '*':
+							case '+':
+							case '.':
+								pte += 3;
+								break;
+
+							case '{':
+								pte = skip_arg_in_braces(ses, pte+2, GET_ALL);
+								break;
+
+							default:
+								pte++;
+								break;
+						}
+						break;
+
+					default:
+						pte++;
+						break;
+				}
+				break;
+
+			default:
+				flag |= mask_table[(unsigned char) *pte++];
 				break;
 		}
 	}
@@ -634,6 +824,7 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 	char out[BUFFER_SIZE], *pti, *pto;
 	pcre2_code *regex;
 	PCRE2_SIZE erroroffset;
+	long long mask = 0;
 	int i, errorcode;
 
 	pti = exp;
@@ -660,6 +851,8 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 		{
 			*pto++ = *pti++;
 
+			mask |= mask_table[(unsigned char) *pti];
+
 			switch (*pti)
 			{
 				case '\\':
@@ -684,24 +877,61 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 		switch (pti[0])
 		{
 			case '\\':
-				if (pti[1] == 'e' && node)
+				switch (pti[1])
 				{
-					SET_BIT(node->flags, NODE_FLAG_COLOR);
-				}
-				else if (pti[1] == 'n')
-				{
-					if (node)
-					{
-						SET_BIT(node->flags, NODE_FLAG_MULTI);
-					}
-					SET_BIT(comp_option, PCRE2_MULTILINE);
-				}
-				else if (pti[1] == 0)
-				{
-					pti++;
-					*pto++ = '\\';
-					*pto++ = 'z';
-					break;
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+						if (pti[2])
+						{
+							*pto++ = *pti++;
+						}
+						if (pti[2])
+						{
+							*pto++ = *pti++;
+						}
+						break;
+
+					case 'c':
+						if (pti[2])
+						{
+							*pto++ = *pti++;
+						}
+						break;
+					case 'e':
+						if (node)
+						{
+							SET_BIT(node->flags, NODE_FLAG_COLOR);
+						}
+						break;
+					case 'n':
+						if (node)
+						{
+							SET_BIT(node->flags, NODE_FLAG_MULTI);
+						}
+						SET_BIT(comp_option, PCRE2_MULTILINE);
+						break;
+
+					case 'x':
+						if (pti[2] != '{')
+						{
+							if (pti[2])
+							{
+								*pto++ = *pti++;
+							}
+							if (pti[2])
+							{
+								*pto++ = *pti++;
+							}
+						}
+						break;
+							
+					case '\0':
+						pti++;
+						*pto++ = '\\';
+						*pto++ = 'z';
+						continue;
 				}
 				*pto++ = *pti++;
 				*pto++ = *pti++;
@@ -762,12 +992,20 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 				*pto++ = *pti++;
 				break;
 
+			case '.':
+				if (node && !HAS_BIT(node->flags, NODE_FLAG_CASELESS))
+				{
+					mask |= mask_table[(int) *pti];
+				}
+				*pto++ = '\\';
+				*pto++ = *pti++;
+				break;
+
 			case '[':
 			case ']':
 			case '(':
 			case ')':
 			case '|':
-			case '.':
 			case '?':
 			case '+':
 			case '*':
@@ -818,11 +1056,19 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 						break;
 
 					case 'i':
+						if (node)
+						{
+							SET_BIT(node->flags, NODE_FLAG_CASELESS);
+						}
 						pti += 2;
 						pto += sprintf(pto, "%s", "(?i)");
 						break;
 
 					case 'I':
+						if (node)
+						{
+							DEL_BIT(node->flags, NODE_FLAG_CASELESS);
+						}
 						pti += 2;
 						pto += sprintf(pto, "%s", "(?-i)");
 						break;
@@ -1006,6 +1252,10 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 				break;
 
 			default:
+				if (node && !HAS_BIT(node->flags, NODE_FLAG_CASELESS))
+				{
+					mask |= mask_table[(int) *pti];
+				}
 				*pto++ = *pti++;
 				break;
 		}
@@ -1022,10 +1272,11 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 //		comp_option |= PCRE2_UTF|PCRE2_NO_UTF_CHECK|PCRE2_UCP;
 //	}
 
-	regex = pcre2_compile((PCRE2_SPTR) out, strlen(out), comp_option, &errorcode, &erroroffset, NULL);
+	regex = pcre2_compile((PCRE2_SPTR) out, pto - out, comp_option, &errorcode, &erroroffset, NULL);
 
 	if (node && regex)
 	{
+		node->mask = mask;
 		pcre2_jit_compile(regex, PCRE2_JIT_COMPLETE);
 	}
 	return regex;

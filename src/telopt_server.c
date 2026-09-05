@@ -16,32 +16,34 @@
 #include "telnet.h"
 
 void unannounce_support(struct session *ses, struct port_data *buddy);
-void telopt_debug(struct session *ses, char *format, ...);
-void debug_telopts(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
 void send_echo_off(struct session *ses, struct port_data *buddy);
 void send_echo_on(struct session *ses, struct port_data *buddy);
 void send_eor(struct session *ses, struct port_data *buddy);
-int process_do_eor(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_will_ttype(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_ttype_is(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_naws(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_will_new_environ(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_do_charset(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_msdp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_do_gmcp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_gmcp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_do_mssp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
+int process_do_eor(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_will_ttype(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_ttype_is(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_naws(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_will_new_environ(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_do_charset(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_do_msdp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_msdp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_do_gmcp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_gmcp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_do_mssp(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
 int start_mccp2(struct session *ses, struct port_data *buddy);
 void process_mccp2(struct session *ses, struct port_data *buddy);
-int process_do_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_do_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
-int process_sb_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
+int process_do_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_do_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
 
-int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen );
+int process_do_mccp4(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int process_sb_mccp4(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+
+int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
+int scan_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen);
 
 #define TELOPT_DEBUG 1
 
@@ -81,6 +83,9 @@ struct iac_type iac_server_table [] =
 	{ 3, (unsigned char []) { IAC, DO,   TELOPT_MCCP3, 0 },                     &process_do_mccp3},
 	{ 5, (unsigned char []) { IAC, SB,   TELOPT_MCCP3, IAC, SE, 0 },            &process_sb_mccp3},
 
+	{ 3, (unsigned char []) { IAC, DO,   TELOPT_MCCP4, 0 },                     &process_do_mccp4},
+	{ 3, (unsigned char []) { IAC, SB,   TELOPT_MCCP4, 0 },                     &process_sb_mccp4},
+
 	{ 0, NULL,                                                                  NULL}
 };
 
@@ -99,6 +104,63 @@ void server_telopt_debug(struct session *ses, char *format, ...)
 	}
 }
 
+void debug_telopts(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
+{
+	if (srclen > 1)
+	{
+		switch(src[1])
+		{
+			case IAC:
+				server_telopt_debug(ses, "RCVD IAC IAC");
+				break;
+
+			case DO:
+			case DONT:
+			case WILL:
+			case WONT:
+			case SB:
+				if (srclen > 2)
+				{
+					if (src[1] == SB)
+					{
+						if (scan_sb(ses, buddy, src, srclen) == srclen + 1)
+						{
+							server_telopt_debug(ses, "RCVD IAC SB %s ?", TELOPT(src[2]));
+						}
+						else
+						{
+							server_telopt_debug(ses, "RCVD IAC SB %s IAC SE", TELOPT(src[2]));
+						}
+					}
+					else
+					{
+						server_telopt_debug(ses, "RCVD IAC %s %s", TELCMD(src[1]), TELOPT(src[2]));
+					}
+				}
+				else
+				{
+					server_telopt_debug(ses, "RCVD IAC %s ?", TELCMD(src[1]));
+				}
+				break;
+
+			default:
+				if (TELCMD_OK(src[1]))
+				{
+					server_telopt_debug(ses, "RCVD IAC %s", TELCMD(src[1]));
+				}
+				else
+				{
+					server_telopt_debug(ses, "RCVD IAC %d", src[1]);
+				}
+				break;
+		}
+	}
+	else
+	{
+		server_telopt_debug(ses, "RCVD IAC ?");
+	}
+}
+
 /*
 	Call this to announce support for telopts marked as such in tables.c
 */
@@ -108,6 +170,14 @@ void announce_support(struct session *ses, struct port_data *buddy)
 	int i;
 
 	push_call("announce_support(%p,%p)",ses,buddy);
+
+#ifdef HAVE_ZSTD_H
+	server_telopt_debug(ses, "SENT IAC WILL %s", telopt_table[TELOPT_MCCP4].name);
+	port_telnet_printf(ses, buddy, 3, "%c%c%c", IAC, WILL, TELOPT_MCCP4);
+#endif
+	printf("\e[1;31mdebugging mccp4\n");
+	pop_call();
+	return;
 
 	for (i = 0 ; i < 255 ; i++)
 	{
@@ -396,77 +466,6 @@ int server_translate_telopts(struct session *ses, struct port_data *buddy, unsig
 	return strlen((char *) out);
 }
 
-void telopt_debug(struct session *ses, char *format, ...)
-{
-	char buf[BUFFER_SIZE];
-	va_list args;
-
-	if (HAS_BIT(ses->telopts, TELOPT_FLAG_DEBUG))
-	{
-		va_start(args, format);
-		vsprintf(buf, format, args);
-		va_end(args);
-
-		tintin_puts(ses, buf);
-	}
-}
-
-void debug_telopts(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
-{
-	if (srclen > 1)
-	{
-		switch(src[1])
-		{
-			case IAC:
-				server_telopt_debug(ses, "RCVD IAC IAC");
-				break;
-
-			case DO:
-			case DONT:
-			case WILL:
-			case WONT:
-			case SB:
-				if (srclen > 2)
-				{
-					if (src[1] == SB)
-					{
-						if (skip_sb(ses, buddy, src, srclen) == srclen + 1)
-						{
-							server_telopt_debug(ses, "RCVD IAC SB %s ?", TELOPT(src[2]));
-						}
-						else
-						{
-							server_telopt_debug(ses, "RCVD IAC SB %s IAC SE", TELOPT(src[2]));
-						}
-					}
-					else
-					{
-						server_telopt_debug(ses, "RCVD IAC %s %s", TELCMD(src[1]), TELOPT(src[2]));
-					}
-				}
-				else
-				{
-					server_telopt_debug(ses, "RCVD IAC %s ?", TELCMD(src[1]));
-				}
-				break;
-
-			default:
-				if (TELCMD_OK(src[1]))
-				{
-					server_telopt_debug(ses, "RCVD IAC %s", TELCMD(src[1]));
-				}
-				else
-				{
-					server_telopt_debug(ses, "RCVD IAC %d", src[1]);
-				}
-				break;
-		}
-	}
-	else
-	{
-		server_telopt_debug(ses, "RCVD IAC ?");
-	}
-}
 
 /*
 	Send to client to have it disable local echo
@@ -537,7 +536,7 @@ int process_sb_ttype_is(struct session *ses, struct port_data *buddy, unsigned c
 	char *pto;
 	int i;
 
-	if (skip_sb(ses, buddy, src, srclen) > srclen)
+	if (scan_sb(ses, buddy, src, srclen) > srclen)
 	{
 		return srclen + 1;
 	}
@@ -600,7 +599,7 @@ int process_sb_naws(struct session *ses, struct port_data *buddy, unsigned char 
 
 	buddy->cols = buddy->rows = 0;
 
-	if (skip_sb(ses, buddy, src, srclen) > srclen)
+	if (scan_sb(ses, buddy, src, srclen) > srclen)
 	{
 		return srclen + 1;
 	}
@@ -648,7 +647,7 @@ int process_sb_new_environ(struct session *ses, struct port_data *buddy, unsigne
 	char *pto;
 	int i;
 
-	if (skip_sb(ses, buddy, src, srclen) > srclen)
+	if (scan_sb(ses, buddy, src, srclen) > srclen)
 	{
 		return srclen + 1;
 	}
@@ -738,7 +737,7 @@ int process_sb_charset(struct session *ses, struct port_data *buddy, unsigned ch
 	char *pto;
 	int i;
 
-	if (skip_sb(ses, buddy, src, srclen) > srclen)
+	if (scan_sb(ses, buddy, src, srclen) > srclen)
 	{
 		return srclen + 1;
 	}
@@ -819,7 +818,7 @@ int process_sb_msdp(struct session *ses, struct port_data *buddy, unsigned char 
 	char *pto;
 	int i, nest;
 
-	if (skip_sb(ses, buddy, src, srclen) > srclen)
+	if (scan_sb(ses, buddy, src, srclen) > srclen)
 	{
 		return srclen + 1;
 	}
@@ -966,12 +965,12 @@ int process_do_mssp(struct session *ses, struct port_data *buddy, unsigned char 
 int start_mccp2(struct session *ses, struct port_data *buddy)
 {
 	z_stream *stream;
-
-	if (buddy->mccp2)
+#ifdef HAVE_ZSTD_H
+	if (buddy->mccp2 || buddy->mccp4)
 	{
 		return TRUE;
 	}
-
+#endif
 	stream = calloc(1, sizeof(z_stream));
 
 	stream->next_in	    = NULL;
@@ -1080,14 +1079,14 @@ void process_mccp2(struct session *ses, struct port_data *buddy)
 	}
 }
 
-int process_do_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
+int process_do_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
 	start_mccp2(ses, buddy);
 
 	return 3;
 }
 
-int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
+int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
 	end_mccp2(ses, buddy);
 
@@ -1096,12 +1095,12 @@ int process_dont_mccp2(struct session *ses, struct port_data *buddy, unsigned ch
 
 // MCCP3
 
-int process_do_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
+int process_do_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
 	return 3;
 }
 
-int process_sb_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
+int process_sb_mccp3(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
 	if (buddy->mccp3)
 	{
@@ -1143,17 +1142,215 @@ void end_mccp3(struct session *ses, struct port_data *buddy)
 	}
 }
 
-int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen )
+// MCCP4
+
+int process_do_mccp4(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
+{
+	return 3;
+}
+
+void process_mccp4(struct session *ses, struct port_data *buddy, int len)
+{
+	if (HAS_BIT(buddy->flags, PORT_FLAG_LINKLOST))
+	{
+		return;
+	}
+
+	if (write(buddy->fd, gtd->mccp_buf, len) < 1)
+	{
+		syserr_printf(ses, "process_mccp4: write");
+
+		SET_BIT(buddy->comm_flags, COMM_FLAG_DISCONNECT);
+	}
+}
+
+void write_mccp4(struct session *ses, struct port_data *buddy, char *txt, int length)
+{
+#ifdef HAVE_ZSTD_H
+	ZSTD_inBuffer input = { txt, (size_t)length, 0 };
+	ZSTD_outBuffer output = { gtd->mccp_buf, (size_t)gtd->mccp_len, 0 };
+
+	if (ZSTD_isError(ZSTD_compressStream(buddy->mccp4, &output, &input)))
+	{
+		return;
+	}
+
+	if (ZSTD_isError(ZSTD_flushStream(buddy->mccp4, &output))) // Z_SYNC_FLUSH equivalent
+	{
+		return;
+	}
+
+	process_mccp4(ses, buddy, output.pos);
+#endif
+	return;
+}
+
+void end_mccp4(struct session *ses, struct port_data *buddy)
+{
+#ifdef HAVE_ZSTD_H
+	if (buddy->mccp4 == NULL)
+	{
+		return;
+	}
+
+	ZSTD_outBuffer output = { gtd->mccp_buf, gtd->mccp_len, 0 };
+
+	size_t const remaining = ZSTD_endStream(buddy->mccp4, &output);
+
+	if (ZSTD_isError(remaining))
+	{
+		tintin_printf2(ses, "end_mccp4: failed to end ZSTD stream: %s", ZSTD_getErrorName(remaining));
+	}
+	else if (remaining > 0)
+	{
+		tintin_printf2(ses, "end_mccp4: stream not fully flushed, remaining: %d", (int) remaining);
+	}
+
+	if (!HAS_BIT(buddy->comm_flags, COMM_FLAG_DISCONNECT))
+	{
+		process_mccp4(ses, buddy, output.pos);
+	}
+
+	ZSTD_freeCStream(buddy->mccp4);
+
+	buddy->mccp4 = NULL;
+
+	server_telopt_debug(ses, "INFO MCCP4 COMPRESSION END");
+#endif
+	return;
+}
+
+int start_mccp4(struct session *ses, struct port_data *buddy)
+{
+#ifdef HAVE_ZSTD_H
+	ZSTD_CStream *stream;
+
+	if (buddy->mccp2 || buddy->mccp4)
+	{
+		tintin_printf2(ses, "\e[1;31mERROR: MCCP2 OR MCCP4 ALREADY INITIALIZED");
+		return TRUE;
+	}
+
+	stream = ZSTD_createCStream();
+
+	if (!stream)
+	{
+		tintin_printf2(ses, "start_mccp4: failed ZSTD_createCStream");
+		return FALSE;
+	}
+
+	ZSTD_CCtx_setParameter(stream, ZSTD_c_windowLog, 16); // 64 KB
+	ZSTD_CCtx_setParameter(stream, ZSTD_c_hashLog, 14); // 64 KB
+
+	if (ZSTD_isError(ZSTD_initCStream(stream, 1))) // fast
+	{
+		tintin_printf2(ses, "INFO IAC SB MCCP4 FAILED TO INITIALIZE ZSTD");
+
+		ZSTD_freeCStream(stream);
+
+		return FALSE;
+	}
+
+	port_socket_printf(ses, buddy, "%c%c%c%c%s%c%c", IAC, SB, TELOPT_MCCP4, MCCP4_BEGIN_ENCODING, "zstd", IAC, SE);
+
+	server_telopt_debug(ses, "SENT IAC SB MCCP4 BEGIN_ENCODING zstd");
+
+	buddy->mccp4 = stream;
+
+	server_telopt_debug(ses, "INFO IAC SB MCCP4 INITIALIZED");
+#endif
+	return TRUE;
+}
+
+int process_sb_mccp4(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
+{
+	char var[BUFFER_SIZE], *pto;
+	int i, skip, subopt;
+
+	skip = skip_sb(ses, buddy, src, srclen);
+
+	if (skip > srclen)
+	{
+		return skip;
+	}
+
+	subopt = src[3];
+
+	switch (subopt)
+	{
+		case MCCP4_ACCEPT_ENCODING:
+		case MCCP4_BEGIN_ENCODING:
+			break;
+		default:
+			port_socket_printf(ses, buddy, "%c%c%c%c%c%c%c", IAC, SB, TELOPT_MCCP4, MCCP4_WONT, subopt, IAC, SE);
+
+			server_telopt_debug(ses, "RCVD IAC SB MCCP4 %d", subopt);
+			server_telopt_debug(ses, "SENT IAC SB MCCP4 MCCP4_WONT %d", subopt);
+			return skip;
+	}
+	var[0] = 0;
+	pto = var;
+
+	i = 4;
+
+	while (i < srclen && src[i] != SE)
+	{
+		switch (src[i])
+		{
+			case IAC:
+			case ',':
+				*pto = 0;
+
+				if (!strcasecmp(var, "zstd"))
+				{
+					if (subopt == MCCP4_ACCEPT_ENCODING)
+					{
+						server_telopt_debug(ses, "RCVD IAC SB MCCP4 ACCEPT_ENCODING %s", var);
+
+						start_mccp4(ses, buddy);
+					}
+					return skip;
+				}
+				pto = var;
+				i++;
+				break;
+
+			default:
+				*pto++ = src[i++];
+		}
+	}
+	return skip;
+}
+
+int skip_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
 {
 	int i;
 
-	for (i = 1 ; i < srclen ; i++)
+	for (i = 3 ; i < srclen ; i++)
 	{
 		if (src[i] == SE && src[i-1] == IAC)
 		{
 			return i + 1;
 		}
 	}
+	return srclen + 1;
+}
 
+int scan_sb(struct session *ses, struct port_data *buddy, unsigned char *src, int srclen)
+{
+	int i;
+
+	if (src[srclen - 1] == SE && src[srclen - 2] == IAC)
+	{
+		return srclen;
+	}
+
+	for (i = 3 ; i < srclen ; i++)
+	{
+		if (src[i] == SE && src[i-1] == IAC)
+		{
+			return i + 1;
+		}
+	}
 	return srclen + 1;
 }

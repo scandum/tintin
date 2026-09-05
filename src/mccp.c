@@ -284,7 +284,6 @@ void client_end_mccp3(struct session *ses)
 
 int client_recv_will_mccp4(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-
 	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL TELOPT_MCCP4");
 
 	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL MCCP4"))
@@ -299,6 +298,8 @@ int client_recv_will_mccp4(struct session *ses, int cplen, unsigned char *cpsrc)
 		client_telopt_debug(ses, "SENT IAC DO MCCP4");
 
 		telnet_printf(ses, 10, "%c%c%c%c%s%c%c", IAC, SB, TELOPT_MCCP4, MCCP4_ACCEPT_ENCODING, "zstd", IAC, SE);
+
+		client_telopt_debug(ses, "SENT IAC SB MCCP4 ACCEPT_ENCODING zstd");
 	}
 	else
 	{

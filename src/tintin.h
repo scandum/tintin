@@ -192,8 +192,8 @@
 
 #define RLIMIT_SIZE               67092480
 #define MALLOC_SIZE                1000000
-#define STRING_SIZE                 120000
-#define BUFFER_SIZE                  60000
+#define STRING_SIZE                 200000
+#define BUFFER_SIZE                 100000
 #define INPUT_SIZE                   10000
 #define PATH_SIZE                     4096
 #define STACK_SIZE                    1000
@@ -387,6 +387,29 @@ enum operators
 #define BV39 (1LL << 38)
 #define BV40 (1LL << 39)
 #define BV41 (1LL << 40)
+#define BV42 (1LL << 41)
+#define BV43 (1LL << 42)
+#define BV44 (1LL << 43)
+#define BV45 (1LL << 44)
+#define BV46 (1LL << 45)
+#define BV47 (1LL << 46)
+#define BV48 (1LL << 47)
+#define BV49 (1LL << 48)
+#define BV50 (1LL << 49)
+#define BV51 (1LL << 50)
+#define BV52 (1LL << 51)
+#define BV53 (1LL << 52)
+#define BV54 (1LL << 53)
+#define BV55 (1LL << 54)
+#define BV56 (1LL << 55)
+#define BV57 (1LL << 56)
+#define BV58 (1LL << 57)
+#define BV59 (1LL << 58)
+#define BV60 (1LL << 59)
+#define BV61 (1LL << 60)
+#define BV62 (1LL << 61)
+#define BV63 (1LL << 62)
+#define BV64 (1LL << 63)
 
 
 #define BUFFER_FLAG_GREP                  BV01
@@ -698,7 +721,7 @@ enum operators
 #define NODE_FLAG_COLOR               BV01
 #define NODE_FLAG_MULTI               BV02
 #define NODE_FLAG_DEBUG               BV03
-
+#define NODE_FLAG_CASELESS            BV04
 
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
@@ -1070,6 +1093,7 @@ struct listnode
 	char                  * group;
 	unsigned int            shots;
 	int                     flags;
+	long long               mask;
 	union
 	{
 		pcre2_code        * regex;      // act, alias, gag, highlight, substitute
@@ -1333,31 +1357,6 @@ struct log_data
 	time_t                  stamp_time;
 };
 
-struct split_data
-{
-	int                     sav_top_row;
-	int                     sav_top_col;
-	int                     sav_bot_row;
-	int                     sav_bot_col;
-	int                     top_row;
-	int                     top_col;
-	int                     bot_row;
-	int                     bot_col;
-};
-
-struct scroll_data
-{
-	struct buffer_data   ** buffer;
-	int                     base;
-	int                     line;
-	int                     used;
-	int                     size;
-	int                     wrap;
-	time_t                  time;
-	char                  * input;
-	int                     flags;
-	int                     width;
-};
 
 struct buffer_data
 {
@@ -1425,6 +1424,11 @@ struct port_data
 	int                     rank;
 	z_stream              * mccp2;
 	z_stream              * mccp3;
+#ifdef HAVE_ZSTD_H
+	ZSTD_CStream          * mccp4;
+	unsigned int            mccp4_in;
+	unsigned int            mccp4_out;
+#endif
 	struct session        * ses;
 };
 
@@ -1610,6 +1614,32 @@ struct screen_data
 	int                     sav_col[STACK_SIZE];
 };
 
+struct scroll_data
+{
+	struct buffer_data   ** buffer;
+	int                     base;
+	int                     line;
+	int                     used;
+	int                     size;
+	int                     wrap;
+	time_t                  time;
+	char                  * input;
+	int                     flags;
+	int                     width;
+};
+
+struct split_data
+{
+	int                     sav_top_row;
+	int                     sav_top_col;
+	int                     sav_bot_row;
+	int                     sav_bot_col;
+	int                     top_row;
+	int                     top_col;
+	int                     bot_row;
+	int                     bot_col;
+};
+
 struct stack_data
 {
 	char                    * name;
@@ -1625,12 +1655,21 @@ struct str_data
 	short                     blank;
 };
 
-
+struct ttre_data
+{
+	char                    * txt;
+	unsigned int              txt_len;
+	long long                 txt_mask;
+	char                    * raw;
+	unsigned int              raw_len;
+	long long                 raw_mask;
+};
+	
 // unused
 
 struct window_data
 {
-	char                    *name;
+	char                  * name;
 
 	int                     top_row;
 	int                     top_col;
@@ -2217,7 +2256,7 @@ extern void remove_index_list(struct listroot *root, int index);
 extern void dispose_node(struct listnode *node);
 extern void delete_node(struct session *ses, int type, struct listnode *node);
 extern void delete_node_list(struct session *ses, int type, struct listnode *node);
-extern  int delete_node_with_wild(struct session *ses, int index, char *string);
+extern  int delete_node_with_wild(struct session *ses, int index, char *string, char *command);
 extern void delete_index_list(struct listroot *root, int index);
 extern  int search_index_list(struct listroot *root, char *text, char *priority);
 extern  int locate_index_list(struct listroot *root, char *text, char *priority);
@@ -2572,7 +2611,7 @@ extern  int is_speedwalk(struct session *ses, char *input);
 extern char *substitute_speedwalk(struct session *ses, char *input, char *output);
 extern void process_speedwalk(struct session *ses, char *input);
 extern struct session *parse_tintin_command(struct session *ses, char *input);
-extern int cnt_arg_all(struct session *ses, char *string, int flag);
+extern  int cnt_arg_all(struct session *ses, char *string, int flag);
 extern char *get_arg_all(struct session *ses, char *string, char *result, int verbatim);
 extern char *sub_arg_all(struct session *ses, char *string, char *result, int verbatim, int sub);
 extern char *get_arg_in_braces(struct session *ses, char *string, char *result, int flag);
@@ -2580,17 +2619,23 @@ extern char *sub_arg_in_braces(struct session *ses, char *string, char *result, 
 extern char *get_arg_with_spaces(struct session *ses, char *string, char *result, int flag);
 extern char *get_arg_stop_spaces(struct session *ses, char *string, char *result, int flag);
 extern char *sub_arg_stop_spaces(struct session *ses, char *string, char *result, int flag, int sub);
-
 extern char *get_arg_stop_digits(struct session *ses, char *string, char *result, int flag);
 extern char *space_out(char *string);
 extern char *get_arg_to_brackets(struct session *ses, char *string, char *result);
 extern char *get_arg_at_brackets(struct session *ses, char *string, char *result);
 extern char *get_arg_in_brackets(struct session *ses, char *string, char *result);
 extern char *get_char(struct session *ses, char *string, char *result);
+
+extern char *skip_arg_all(struct session *ses, char *string, int verbatim);
+extern char *skip_arg_in_braces(struct session *ses, char *string, int flag);
+extern char *skip_arg_with_spaces(struct session *ses, char *string, int flag);
+extern char *skip_arg_stop_spaces(struct session *ses, char *string, int flag);
+
 extern void write_mud(struct session *ses, char *command, int flags);
 
 extern void check_one_line_multi(struct session *ses, char *line, char *strip);
 extern void check_one_line(struct session *ses, char *line);
+extern  int check_one_prompt(struct session *ses, char *line);
 
 #endif
 
@@ -2860,6 +2905,7 @@ extern struct buffer_type buffer_table[];
 extern struct charset_type charset_table[];
 extern struct chat_type chat_table[];
 extern   char character_table[];
+extern long long mask_table[];
 extern struct color_type color_table[];
 extern struct color_type map_color_table[];
 //extern struct config_type config_table[];
@@ -2901,6 +2947,10 @@ extern void client_end_mccp2(struct session *ses);
 extern void end_mccp2(struct session *ses, struct port_data *buddy);
 extern void client_end_mccp3(struct session *ses);
 extern void end_mccp3(struct session *ses, struct port_data *buddy);
+extern void write_mccp4(struct session *ses, struct port_data *buddy, char *txt, int length);
+extern void client_end_mccp4(struct session *ses);
+extern void end_mccp4(struct session *ses, struct port_data *buddy);
+
 extern void init_msdp_table(void);
 
 #endif
@@ -2948,10 +2998,12 @@ extern int match(struct session *ses, char *str, char *exp, int flags);
 extern int find(struct session *ses, char *str, char *exp, int sub, int flag);
 extern int tintin_regex_compare(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
 extern int tintin_regex_match(struct session *ses, pcre2_code *regex, char *str, char *exp, int option, int flag);
-extern int check_one_regex(struct session *ses, struct listnode *node, char *line, char *original, int option, int flag);
+extern int check_one_regex(struct session *ses, struct listnode *node, struct ttre_data ttre, char *txt, char *raw, int option, int flag);
 extern int tintin_regex_check(struct session *ses, char *exp);
 extern int tintin_regex(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
 extern int tintin_match_data(struct session *ses, char *exp);
+extern void init_mask(struct ttre_data *ttre, char *txt, char *raw);
+extern long long string_mask(char *str);
 extern pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, char *exp, int option);
 extern void tintin_regex_free(struct listnode *node);
 extern void  tintin_macro_compile(char *input, char *output);
@@ -2979,15 +3031,15 @@ extern char *script_viewer(struct session *ses, char *str);
 extern DO_COMMAND(do_delay);
 extern DO_COMMAND(do_function);
 
-extern void check_all_actions(struct session *ses, char *original, char *line, char *buf);
-extern void check_all_actions_multi(struct session *ses, char *original, char *line, char *buf);
+extern void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf);
+extern void check_all_actions_multi(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf);
 extern struct listnode *check_all_aliases(struct session *ses, char *input);
 extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);
-extern void check_all_gags(struct session *ses, char *original, char *line);
-extern void check_all_highlights(struct session *ses, char *original, char *line);
-extern  int check_all_prompts(struct session *ses, char *original, char *line);
-extern void check_all_substitutions(struct session *ses, char *original, char *line);
-extern void check_all_substitutions_multi(struct session *ses, char *original, char *line);
+extern void check_all_gags(struct session *ses, struct ttre_data ttre, char *original, char *line);
+extern void check_all_highlights(struct session *ses, struct ttre_data ttre, char *original, char *line);
+extern  int check_all_prompts(struct session *ses, struct ttre_data ttre, char *original, char *line);
+extern void check_all_substitutions(struct session *ses, struct ttre_data ttre, char *original, char *line);
+extern void check_all_substitutions_multi(struct session *ses, struct ttre_data ttre, char *original, char *line);
 
 #endif
 

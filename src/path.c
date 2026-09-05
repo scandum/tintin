@@ -1049,7 +1049,7 @@ DO_COMMAND(do_unpathdir)
 		}
 		else
 		{
-			delete_node_with_wild(ses, LIST_PATHDIR, arg1);
+			delete_node_with_wild(ses, LIST_PATHDIR, arg1, "UNPATHDIR");
 		}
 		arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	}

@@ -5194,7 +5194,19 @@ struct help_type help_table[] =
 		,
 		"pcre substitutions escape_codes"
 	},
-
+/*	{
+		"UN",
+		TOKEN_TYPE_COMMAND,
+		"<178>Command<278>: #un <178>{<278>list<178><178>} {<278>pattern<178>}\n"
+		"\n"
+		"<278>         Removes the triggers in the chosen list that match the given\n"
+		"<278>         pattern.\n"
+		"\n"
+		"<178>Example<278>: #un alias %*test*\n"
+		,
+		"class debug ignore info kill message"
+	},
+*/
 	{
 		"VARIABLE",
 		TOKEN_TYPE_CONFIG,
