@@ -367,12 +367,15 @@ DO_LINE(line_log)
 		}
 		else
 		{
+			if (ses->log->line_file)
+			{
+				fclose(ses->log->line_file);
+
+				ses->log->line_file = NULL;
+			}
+
 			if ((logfile = fopen(arg1, "a")))
 			{
-				if (ses->log->line_file)
-				{
-					fclose(ses->log->line_file);
-				}
 				free(ses->log->line_name);
 
 				ses->log->line_name = strdup(arg1);
@@ -395,23 +398,29 @@ DO_LINE(line_log)
 		{
 			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
-		else if ((logfile = fopen(arg1, "a")))
+		else
 		{
 			if (ses->log->next_file)
 			{
 				fclose(ses->log->next_file);
+
+				ses->log->next_file = NULL;
 			}
-			free(ses->log->next_name);
 
-			ses->log->next_name = strdup(arg1);
-			ses->log->next_file = logfile;
-			ses->log->next_time = gtd->time;
+			if ((logfile = fopen(arg1, "a")))
+			{
+				free(ses->log->next_name);
 
-			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s}: COULDN'T OPEN FILE.", arg1);
+				ses->log->next_name = strdup(arg1);
+				ses->log->next_file = logfile;
+				ses->log->next_time = gtd->time;
+
+				SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
+			}
+			else
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOG {%s}: COULDN'T OPEN FILE.", arg1);
+			}
 		}
 	}
 	else
@@ -441,12 +450,15 @@ DO_LINE(line_logverbatim)
 		}
 		else
 		{
+			if (ses->log->line_file)
+			{
+				fclose(ses->log->line_file);
+
+				ses->log->line_file = NULL;
+			}
+
 			if ((logfile = fopen(arg1, "a")))
 			{
-				if (ses->log->line_file)
-				{
-					fclose(ses->log->line_file);
-				}
 				free(ses->log->line_name);
 
 				ses->log->line_name = strdup(arg1);
@@ -467,23 +479,29 @@ DO_LINE(line_logverbatim)
 		{
 			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
 		}
-		else if ((logfile = fopen(arg1, "a")))
+		else
 		{
 			if (ses->log->next_file)
 			{
 				fclose(ses->log->next_file);
+
+				ses->log->next_file = NULL;
 			}
-			free(ses->log->next_name);
 
-			ses->log->next_name = strdup(arg1);
-			ses->log->next_file = logfile;
-			ses->log->next_time = gtd->time;
+			if ((logfile = fopen(arg1, "a")))
+			{
+				free(ses->log->next_name);
 
-			SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
-		}
-		else
-		{
-			show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s}: COULDN'T OPEN FILE.", arg1);
+				ses->log->next_name = strdup(arg1);
+				ses->log->next_file = logfile;
+				ses->log->next_time = gtd->time;
+
+				SET_BIT(ses->log->mode, LOG_FLAG_NEXT);
+			}
+			else
+			{
+				show_error(ses, LIST_COMMAND, "#ERROR: #LINE LOGVERBATIM {%s}: COULDN'T OPEN FILE.", arg1);
+			}
 		}
 	}
 	else

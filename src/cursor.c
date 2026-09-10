@@ -1374,6 +1374,7 @@ DO_CURSOR(cursor_get)
 DO_CURSOR(cursor_history_next)
 {
 	struct listroot *root = ses->list[LIST_HISTORY];
+	struct listnode *node;
 
 	if (HAS_BIT(gtd->ses->input->flags, INPUT_FLAG_HISTORYSEARCH))
 	{
@@ -1382,13 +1383,31 @@ DO_CURSOR(cursor_history_next)
 			return;
 		}
 
+		if (*gtd->ses->input->buf == 0)
+		{
+			return;
+		}
+
+		node = create_regex_node(gtd->ses, gtd->ses->input->buf, "", "", "");
+
+//		node->regex = tintin_regex_compile(gtd->ses, node, node->arg1, 0);
+
 		for (root->update++ ; root->update < root->used ; root->update++)
 		{
-			if (*gtd->ses->input->buf && find(ses, root->list[root->update]->arg1, gtd->ses->input->buf, SUB_NONE, REGEX_FLAG_NONE))
+			if (HAS_BIT(root->list[root->update]->mask, node->mask) != node->mask)
+			{
+				continue;
+			}
+
+			if (pcre2_match(node->regex, (PCRE2_SPTR) root->list[root->update]->arg1, str_len(root->list[root->update]->arg1), 0, 0, gtd->match_data, gtd->match_context) > 0)
 			{
 				break;
 			}
+
+//			if (find(ses, root->list[root->update]->arg1, gtd->ses->input->buf, SUB_NONE, REGEX_FLAG_NONE)) break;
 		}
+
+		delete_regex_node(node);
 
 		if (root->update < root->used)
 		{

@@ -175,10 +175,10 @@ void announce_support(struct session *ses, struct port_data *buddy)
 	server_telopt_debug(ses, "SENT IAC WILL %s", telopt_table[TELOPT_MCCP4].name);
 	port_telnet_printf(ses, buddy, 3, "%c%c%c", IAC, WILL, TELOPT_MCCP4);
 #endif
-	printf("\e[1;31mdebugging mccp4\n");
+/*	printf("\e[1;31mdebugging mccp4\n");
 	pop_call();
 	return;
-
+*/
 	for (i = 0 ; i < 255 ; i++)
 	{
 		if (telopt_table[i].flags)
@@ -1224,6 +1224,7 @@ int start_mccp4(struct session *ses, struct port_data *buddy)
 {
 #ifdef HAVE_ZSTD_H
 	ZSTD_CStream *stream;
+	size_t init_result;
 
 	if (buddy->mccp2 || buddy->mccp4)
 	{
@@ -1239,9 +1240,21 @@ int start_mccp4(struct session *ses, struct port_data *buddy)
 		return FALSE;
 	}
 
+	init_result = ZSTD_initCStream(stream, 1);
+
+	if (ZSTD_isError(init_result))
+	{
+		tintin_printf2(ses, "start_mccp4: failed ZSTD_initCStream");
+
+		ZSTD_freeCStream(stream);
+
+		return FALSE;
+	}
+
+#ifdef HAVE_DECL_ZSTD_C_WINDOWLOG
 	ZSTD_CCtx_setParameter(stream, ZSTD_c_windowLog, 16); // 64 KB
 	ZSTD_CCtx_setParameter(stream, ZSTD_c_hashLog, 14); // 64 KB
-
+#endif
 	if (ZSTD_isError(ZSTD_initCStream(stream, 1))) // fast
 	{
 		tintin_printf2(ses, "INFO IAC SB MCCP4 FAILED TO INITIALIZE ZSTD");

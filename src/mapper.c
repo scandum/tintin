@@ -6875,7 +6875,7 @@ DO_MAP(map_landmark)
 
 DO_MAP(map_unlandmark)
 {
-	delete_node_with_wild(ses, LIST_LANDMARK, arg, "UN LANDMARK");
+	delete_node_with_wild(ses, LIST_LANDMARK, arg, "MAP UNLANDMARK");
 }
 
 DO_MAP(map_leave)
@@ -8492,7 +8492,7 @@ DO_MAP(map_terrain)
 
 DO_MAP(map_unterrain)
 {
-	if (delete_node_with_wild(ses, LIST_TERRAIN, arg, "UN TERRAIN"))
+	if (delete_node_with_wild(ses, LIST_TERRAIN, arg, "MAP UNTERRAIN"))
 	{
 		SET_BIT(ses->map->flags, MAP_FLAG_UPDATETERRAIN);
 	}

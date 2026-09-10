@@ -722,6 +722,7 @@ enum operators
 #define NODE_FLAG_MULTI               BV02
 #define NODE_FLAG_DEBUG               BV03
 #define NODE_FLAG_CASELESS            BV04
+#define NODE_FLAG_CUSTOM              BV05
 
 #define LOG_FLAG_NONE                    0
 #define LOG_FLAG_LINEFEED             BV01
@@ -1657,12 +1658,13 @@ struct str_data
 
 struct ttre_data
 {
-	char                    * txt;
-	unsigned int              txt_len;
-	long long                 txt_mask;
 	char                    * raw;
 	unsigned int              raw_len;
 	long long                 raw_mask;
+
+	char                    * txt;
+	unsigned int              txt_len;
+	long long                 txt_mask;
 };
 	
 // unused
@@ -2041,6 +2043,7 @@ extern void destroy_class(struct session *ses, struct listnode *group);
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
+extern struct command_type command_table[];
 extern void init_commands(void);
 
 #endif
@@ -2255,6 +2258,7 @@ extern void remove_node_list(struct session *ses, int type, struct listnode *nod
 extern void remove_index_list(struct listroot *root, int index);
 extern void dispose_node(struct listnode *node);
 extern void delete_node(struct session *ses, int type, struct listnode *node);
+extern void delete_regex_node(struct listnode *node);
 extern void delete_node_list(struct session *ses, int type, struct listnode *node);
 extern  int delete_node_with_wild(struct session *ses, int index, char *string, char *command);
 extern void delete_index_list(struct listroot *root, int index);
@@ -2267,6 +2271,7 @@ extern  int nsearch_list(struct listroot *root, char *text);
 extern struct listroot *init_list(struct session *ses, int type, int size);
 extern struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int type);
 extern struct listnode *create_node(char *arg1, char *arg2, char *arg3, char *arg4);
+extern struct listnode *create_regex_node(struct session *ses, char *arg1, char *arg2, char *arg3, char *arg4);
 extern struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2, char *arg3, char *arg4);
 extern struct listnode *insert_node_list(struct listroot *root, struct listnode *node);
 extern struct listnode *insert_index_list(struct listroot *root, struct listnode *node, int index);
@@ -2439,6 +2444,7 @@ extern void abort_handler(int signal);
 extern void pipe_handler(int signal);
 extern void suspend_handler(int signal);
 extern void trap_handler(int signal);
+extern void validate(void);
 extern  int main(int argc, char **argv);
 extern void init_tintin(int greeting);
 extern void quitmsg(char *message);
@@ -2635,7 +2641,7 @@ extern void write_mud(struct session *ses, char *command, int flags);
 
 extern void check_one_line_multi(struct session *ses, char *line, char *strip);
 extern void check_one_line(struct session *ses, char *line);
-extern  int check_one_prompt(struct session *ses, char *line);
+extern  int detect_prompt(struct session *ses, char *line);
 
 #endif
 
@@ -3002,8 +3008,9 @@ extern int check_one_regex(struct session *ses, struct listnode *node, struct tt
 extern int tintin_regex_check(struct session *ses, char *exp);
 extern int tintin_regex(struct session *ses, pcre2_code *pcre, char *str, char *exp, int option, int flag);
 extern int tintin_match_data(struct session *ses, char *exp);
-extern void init_mask(struct ttre_data *ttre, char *txt, char *raw);
+extern void init_mask(struct ttre_data *ttre, char *raw, char *txt);
 extern long long string_mask(char *str);
+extern long long tintin_string_mask(struct session *ses, char *exp);
 extern pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, char *exp, int option);
 extern void tintin_regex_free(struct listnode *node);
 extern void  tintin_macro_compile(char *input, char *output);
@@ -3031,7 +3038,7 @@ extern char *script_viewer(struct session *ses, char *str);
 extern DO_COMMAND(do_delay);
 extern DO_COMMAND(do_function);
 
-extern void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf);
+extern void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *stripped);
 extern void check_all_actions_multi(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf);
 extern struct listnode *check_all_aliases(struct session *ses, char *input);
 extern void check_all_buttons(struct session *ses, short row, short col, char *arg1, char *arg2, char *word, char *line);

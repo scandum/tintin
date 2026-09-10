@@ -1,6 +1,6 @@
 - Look into error 38.1
 
-- Add #un command
+- Finish up ctrl-r
 
 - Fix up #dict
 
@@ -63,6 +63,8 @@
 - #snoop scroll malfunctions if inputregion is changed (should be fixed)
 
 - add // comment support for command files
+
+- look into windows terminal scrollwheel bug with #split 1 1 auto scroll
 
 - add "logging" helpfile
 

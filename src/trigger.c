@@ -55,10 +55,13 @@ DO_COMMAND(do_unaction)
 }
 
 
-void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *line, char *buf)
+void check_all_actions(struct session *ses, struct ttre_data ttre, char *original, char *stripped)
 {
 	struct listroot *root = ses->list[LIST_ACTION];
 	struct listnode *node;
+	char *buf;
+
+	buf = str_alloc_stack(0);
 
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
@@ -69,7 +72,7 @@ void check_all_actions(struct session *ses, struct ttre_data ttre, char *origina
 			continue;
 		}
 
-		if (check_one_regex(ses, node, ttre, line, original, 0, REGEX_FLAG_ARG))
+		if (check_one_regex(ses, node, ttre, stripped, original, 0, REGEX_FLAG_ARG))
 		{
 			show_debug(ses, LIST_ACTION, node, COLOR_DEBUG "#DEBUG ACTION " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}", node->arg1);
 

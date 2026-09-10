@@ -8,18 +8,29 @@
 
 AC_INIT([tintin], [2.02.62])
 
+if test -t 1 && type tput >/dev/null 2>&1; then
+    C_RED=`tput setaf 1`
+    C_GREEN=`tput setaf 2`
+    C_RESET=`tput sgr0`
+else
+    C_RED=""
+    C_GREEN=""
+    C_RESET=""
+fi
+
+AC_MSG_RESULT([${C_GREEN}Configuring TinTin++${C_RESET}])
+
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR([tintin.h])
 
 AC_CONFIG_HEADERS([config.h])
 
-AC_MSG_RESULT([Configuring TinTin++])
-
 AC_SUBST(MYINCLUDE)
 AC_SUBST(MYLIB)    
 AC_SUBST(mybindir)
 AC_SUBST(BIG5)
+
 
 if [ test $bindir != "\${exec_prefix}/bin" ]
 then
@@ -59,15 +70,15 @@ AC_PROG_EGREP
 
 AC_CHECK_HEADERS([arpa/inet.h ctype.h fcntl.h net/errno.h netdb.h netinet/in.h param.h pthread.h socks.h stdlib.h string.h strings.h sys/ioctl.h sys/param.h sys/ptem.h sys/socket.h sys/termio.h sys/time.h time.h unistd.h util.h pty.h stropts.h]) 
 AC_CHECK_HEADERS([zlib.h],,
-	[AC_MSG_ERROR([zlib header file not found, is the development part present])])
+	[AC_MSG_ERROR([${C_RED}zlib header file not found, is the development part present${C_RESET}])])
 AC_CHECK_HEADERS([gnutls/gnutls.h],
 	[AC_DEFINE([HAVE_GNUTLS_H],[1],[Define to 1 if you have <gnutls/gnutls.h>.])],
-	[AC_MSG_WARN([gnutls header file not found, is the develoment part present])])
+	[AC_MSG_WARN([${C_RED}gnutls header file not found, is the develoment part present${C_RESET}])])
 AC_CHECK_HEADERS([pcre2.h],,
-	[AC_MSG_ERROR([pcre2 header file not found, is the development part present])],
+	[AC_MSG_ERROR([${C_RED}pcre2 header file not found, is the development part present${C_RESET}])],
 	[#define PCRE2_CODE_UNIT_WIDTH 8])
 AC_CHECK_HEADERS([zstd.h],,
-	[AC_MSG_WARN([zstd header file not found, is the develoment part present])])
+	[AC_MSG_WARN([${C_RED}zstd header file not found, is the develoment part present${C_RESET}])])
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -92,7 +103,8 @@ AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday inet_ntoa memset select s
 # Checks libraries
 
 AC_CHECK_LIB(z, inflate,,
-	[AC_MSG_ERROR([zlib runtime library not working, is it AND the corresponding development (header) file installed])])
+	[AC_MSG_ERROR([${C_RED}zlib runtime library not working, is it AND the corresponding development (header) file installed${C_RESET}])])
+
 AC_CHECK_LIB([zstd], [ZSTD_compress])
 
 AC_CHECK_LIB(pthread, pthread_create)
@@ -105,7 +117,14 @@ dnl	[AC_MSG_ERROR([pcre2 runtime library not working, is it AND the correspondin
 AC_CHECK_LIB(gnutls, gnutls_init)
 AC_CHECK_LIB(m, sqrt)
 
+
+AC_CHECK_DECL([ZSTD_c_windowLog],,
+	[AS_ECHO(["${C_RED}Your zstd library is too old. Update libzstd to a newer version.${C_RESET}"])],
+	[[#include <zstd.h>]])
+
+
 AC_CHECK_PROGS(MAKE, gmake make)
+
 
 AC_CHECK_FILES([/dev/ptmx])
 

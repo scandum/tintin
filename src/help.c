@@ -2398,7 +2398,7 @@ struct help_type help_table[] =
 		"<178>Example<278>: #tick <178>{<278>tick<178>} {<278>#delay 50 #show 10 SECONDS TO TICK!;#show TICK!!!<178>} {<278>60<178>}\n"
 		"\n"
 		"<278>         This creates a ticker with the name <178>{<278>tick<178>}<278> which will print TICK!!!,\n"
-		"<278>         as well as print a warning when the next tick will occure.\n"
+		"<278>         as well as print a warning when the next tick will occur.\n"
 		"\n"
 		"<278>         You can remove tickers with #untick\n"
 		"\n"

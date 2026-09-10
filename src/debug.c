@@ -46,12 +46,15 @@ int push_call_printf(char *format, ...)
 
 	if (gtd->memory->debug_len > 100 && warning < gtd->time)
 	{
+		gtd->level->verbose++;
+
 		tintin_printf2(gtd->ses, "\e[1;31merror: push_call_printf: stack size is going past 100.\n");
 
-		for (int i = 19 ; i >= 0 ; i--)
+		for (int i = 0 ; i < 20 ; i++)
 		{
 			tintin_printf2(gtd->ses, "\e[1;32mDEBUG_STACK[\e[0;36m%03d\e[1;32m] [\e[0;36m%03d\e[1;32m] = \e[0;36m%s\e[0m", i, gtd->memory->debug[i]->index, gtd->memory->debug[i]->name);
 		}
+		gtd->level->verbose--;
 
 		warning = gtd->time + 3600;
 	}

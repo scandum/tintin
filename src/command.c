@@ -110,15 +110,6 @@ void init_commands()
 {
 	int index, ref;
 
-	for (index = 1 ; *command_table[index].name ; index++)
-	{
-		if (strcmp(command_table[index - 1].name, command_table[index].name) > 0)
-		{
-			print_stdout(0, 0, "\e[1;31minit_tintin() unsorted command table %s vs %s.", command_table[index - 1].name, command_table[index].name);
-			exit(1);
-		}
-	}
-
 	for (ref = 0 ; ref < 32 ; ref++)
 	{
 		for (index = 0 ; *command_table[index].name ; index++)

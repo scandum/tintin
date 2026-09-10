@@ -77,6 +77,7 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 			node->arg4  = str_dup_clone(sourcelist->list[i]->arg4);
 			node->shots = sourcelist->list[i]->shots;
 			node->group = strdup(sourcelist->list[i]->group);
+			node->mask  = sourcelist->list[i]->mask;
 
 			switch (type)
 			{
@@ -94,7 +95,6 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 
 				case LIST_BUTTON:
 				case LIST_EVENT:
-//				case LIST_TICKER:
 				case LIST_PATHDIR:
 					node->val64 = sourcelist->list[i]->val64;
 					break;
@@ -107,10 +107,6 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 					}
 					break;
 
-				case LIST_VARIABLE:
-					copy_nest_node(ses->list[type], node, sourcelist->list[i]);
-					break;
-
 				case LIST_TICKER:
 					node->val64 = gtd->utime + (long long) (tintoi(node->arg3) * 1000000.0);
 
@@ -118,6 +114,10 @@ struct listroot *copy_list(struct session *ses, struct listroot *sourcelist, int
 					{
 						gtd->utime_next_tick = node->val64;
 					}
+					break;
+
+				case LIST_VARIABLE:
+					copy_nest_node(ses->list[type], node, sourcelist->list[i]);
 					break;
 
 				default:
@@ -147,6 +147,24 @@ struct listnode *create_node(char *arg1, char *arg2, char *arg3, char *arg4)
 	node->arg2 = str_dup(arg2);
 	node->arg3 = str_dup(arg3);
 	node->arg4 = str_dup(arg4);
+
+	return node;
+}
+
+struct listnode *create_regex_node(struct session *ses, char *arg1, char *arg2, char *arg3, char *arg4)
+{
+	struct listnode *node;
+
+	node = (struct listnode *) calloc(1, sizeof(struct listnode));
+
+	node->arg1 = str_dup(arg1);
+	node->arg2 = str_dup(arg2);
+	node->arg3 = str_dup(arg3);
+	node->arg4 = str_dup(arg4);
+
+	node->flags = NODE_FLAG_CUSTOM;
+
+	node->regex = tintin_regex_compile(ses, node, node->arg1, 0);
 
 	return node;
 }
@@ -210,6 +228,13 @@ struct listnode *create_node_list(struct listroot *root, char *arg1, char *arg2,
 			{
 				gtd->utime_next_delay = node->val64;
 			}
+			break;
+
+		case LIST_BUTTON:
+		case LIST_CLASS:
+		case LIST_COMMAND:
+		case LIST_HISTORY:
+			node->mask = string_mask(node->arg1);
 			break;
 
 		case LIST_TICKER:
@@ -414,6 +439,13 @@ void delete_node(struct session *ses, int type, struct listnode *node)
 	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
 }
 
+void delete_regex_node(struct listnode *node)
+{
+	tintin_regex_free(node);
+
+	insert_index_list(gtd->dispose_list, node, gtd->dispose_list->used);
+}
+
 void delete_index_list(struct listroot *root, int index)
 {
 	struct listnode *node = root->list[index];
@@ -486,7 +518,7 @@ int search_index_list(struct listroot *root, char *text, char *priority)
 		case SORT_PRIORITY:
 			if (priority)
 			{
-				bsearch_priority_list(root, text, priority, 0);
+				return bsearch_priority_list(root, text, priority, 0);
 			}
 			break;
 	}
@@ -786,11 +818,34 @@ int bsearch_priority_list(struct listroot *root, char *text, char *priority, int
 
 int nsearch_list(struct listroot *root, char *text)
 {
+	struct listnode *node;
+	long long text_mask;
 	int i;
+
+	switch (root->type)
+	{
+		case LIST_ALIAS:
+		case LIST_ACTION:
+		case LIST_GAG:
+		case LIST_HIGHLIGHT:
+		case LIST_PROMPT:
+		case LIST_SUBSTITUTE:
+			text_mask = tintin_string_mask(root->ses, text);
+			break;
+		default:
+			text_mask = string_mask(text);
+			break;
+	}
 
 	for (i = 0 ; i < root->used ; i++)
 	{
-		if (!strcmp(text, root->list[i]->arg1))
+		node = root->list[i];
+
+		if (text_mask != node->mask)
+		{
+			continue;
+		}
+		if (!strcmp(text, node->arg1))
 		{
 			return i;
 		}

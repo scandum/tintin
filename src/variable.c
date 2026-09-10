@@ -356,7 +356,7 @@ int valid_variable(struct session *ses, char *arg)
 
 	if (is_digit(*arg))
 	{
-		show_error(ses, LIST_COMMAND, "#WARNING: VALIDATE {%s}: VARIABLES SHOULD NOT START WITH A NUMBER.", arg);
+		show_error(ses, LIST_COMMAND, "#WARNING: VARIABLE {%s}: VARIABLES SHOULD NOT START WITH A NUMBER.", arg);
 	}
 
 	return TRUE;

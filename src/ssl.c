@@ -100,7 +100,7 @@ gnutls_session_t ssl_negotiate(struct session *ses)
 
 static int get_cert_file(struct session *ses, char *result)
 {
-	char filename[BUFFER_SIZE], *ptr;
+	char filename[PATH_SIZE], *ptr;
 
 	sprintf(filename, "%s_%s", ses->session_host, ses->session_port);
 

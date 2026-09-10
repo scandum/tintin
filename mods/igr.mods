@@ -34,6 +34,8 @@ regex.c         Increased trigger processing speed by 2x.
 misc.c          Calling #send with two arguments will generate a warning to
                 fix your scripts.
 
+regex.c         Increased command history processing speed by 15x.
+
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------
 substitute.c    Fixed a bug causing improper handling of large variables.

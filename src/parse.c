@@ -1453,12 +1453,7 @@ void check_one_line_multi(struct session *ses, char *original, char *stripped)
 
 	buf = str_alloc_stack(0);
 
-	ttre.txt      = stripped;
-	ttre.txt_len  = strlen(stripped);
-	ttre.txt_mask = string_mask(stripped);
-	ttre.raw      = original;
-	ttre.raw_len  = strlen(original);
-	ttre.raw_mask = string_mask(original);
+	init_mask(&ttre, original, stripped);
 
 	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
@@ -1471,9 +1466,9 @@ void check_one_line_multi(struct session *ses, char *original, char *stripped)
 	}
 }
 
-void check_one_line(struct session *ses, char *line)
+void check_one_line(struct session *ses, char *original)
 {
-	char *strip, *buf;
+	char *stripped;
 	struct ttre_data ttre;
 
 	if (IS_IGNORED(LIST_MAX) || HAS_BIT(ses->config_flags, CONFIG_FLAG_CONVERTMETA))
@@ -1481,50 +1476,44 @@ void check_one_line(struct session *ses, char *line)
 		return;
 	}
 
-	push_call("do_one_line(%s,%p)",ses->name,line);
+	push_call("do_one_line(%s,%p)",ses->name,original);
 
 	push_script_stack(ses, LIST_VARIABLE);
 
-	strip = str_alloc_stack(0);
-	buf   = str_alloc_stack(0);
+	stripped = str_alloc_stack(0);
 
-	strip_vt102_codes(line, strip);
+	strip_vt102_codes(original, stripped);
 
-	ttre.txt      = strip;
-	ttre.txt_len  = strlen(strip);
-	ttre.txt_mask = string_mask(strip);
-	ttre.raw      = line;
-	ttre.raw_len  = strlen(line);
-	ttre.raw_mask = string_mask(line);
+	init_mask(&ttre, original, stripped);
 
 	if (!IS_IGNORED(LIST_ACTION) && !HAS_BIT(ses->list[LIST_ACTION]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_actions(ses, ttre, line, strip, buf);
+		check_all_actions(ses, ttre, original, stripped);
 	}
 
 	if (!IS_IGNORED(LIST_PROMPT) && !HAS_BIT(ses->list[LIST_PROMPT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_prompts(ses, ttre, line, strip);
+		check_all_prompts(ses, ttre, original, stripped);
 	}
 
 	if (!IS_IGNORED(LIST_GAG) && !HAS_BIT(ses->list[LIST_GAG]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_gags(ses, ttre, line, strip);
+		check_all_gags(ses, ttre, original, stripped);
 	}
 
 	if (!IS_IGNORED(LIST_SUBSTITUTE) && !HAS_BIT(ses->list[LIST_SUBSTITUTE]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_substitutions(ses, ttre, line, strip);
+		check_all_substitutions(ses, ttre, original, stripped);
 	}
 
 	if (!IS_IGNORED(LIST_HIGHLIGHT) && !HAS_BIT(ses->list[LIST_HIGHLIGHT]->flags, LIST_FLAG_IGNORE))
 	{
-		check_all_highlights(ses, ttre, line, strip);
+		check_all_highlights(ses, ttre, original, stripped);
 	}
 
 	if (HAS_BIT(ses->log->mode, LOG_FLAG_NEXT))
 	{
-		logit(ses, line, ses->log->next_file, LOG_FLAG_LINEFEED|LOG_FLAG_FLUSH);
+		logit(ses, original, ses->log->next_file, LOG_FLAG_LINEFEED|LOG_FLAG_FLUSH);
 
 		DEL_BIT(ses->log->mode, LOG_FLAG_NEXT);
 	}
@@ -1535,9 +1524,9 @@ void check_one_line(struct session *ses, char *line)
 	return;
 }
 
-int check_one_prompt(struct session *ses, char *line)
+int detect_prompt(struct session *ses, char *original)
 {
-	char strip[BUFFER_SIZE];
+	char raw[BUFFER_SIZE], txt[BUFFER_SIZE];
 	struct listroot *root = ses->list[LIST_PROMPT];
 	struct listnode *node;
 	struct ttre_data ttre;
@@ -1549,25 +1538,22 @@ int check_one_prompt(struct session *ses, char *line)
 
 	if (HAS_BIT(ses->charset, CHARSET_FLAG_ALL_TOUTF8))
 	{
-		all_to_utf8(ses, line, strip);
-
-		strcpy(line, strip);
+		all_to_utf8(ses, original, raw);
+	}
+	else
+	{
+		strcpy(raw, original);
 	}
 
-	strip_vt102_codes(line, strip);
+	strip_vt102_codes(raw, txt);
 
-	ttre.txt      = strip;
-	ttre.txt_len  = strlen(strip);
-	ttre.txt_mask = string_mask(strip);
-	ttre.raw      = line;
-	ttre.raw_len  = strlen(line);
-	ttre.raw_mask = string_mask(line);
+	init_mask(&ttre, raw, txt);
 
 	for (root->update = 0 ; root->update < root->used ; root->update++)
 	{
 		node = root->list[root->update];
 
-		if (check_one_regex(ses, node, ttre, strip, line, 0, REGEX_FLAG_NONE))
+		if (check_one_regex(ses, node, ttre, txt, raw, 0, REGEX_FLAG_NONE))
 		{
 			return TRUE;
 		}

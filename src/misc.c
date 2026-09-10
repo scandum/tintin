@@ -191,6 +191,43 @@ DO_COMMAND(do_test)
 					tintin_printf2(ses, "%3d  %1c:  %lld", i, i, mask_table[(unsigned char) j]);
 				}
 			}
+			if (!strcmp(arg1, "bli"))
+			{
+				struct listroot *root = ses->list[LIST_HISTORY];
+				struct listnode *node;
+				int i, match = 0;
+				long long start, end;
+
+				start = utime();
+
+				node = create_regex_node(ses, "bla%*", "", "", "");
+
+				for (i = 0 ; i < root->used ; i++)
+				{
+#if 1
+					if (HAS_BIT(root->list[i]->mask, node->mask) != node->mask)
+					{
+						continue;
+					}
+#endif
+#if 1
+					if (pcre2_match(node->regex, (PCRE2_SPTR) root->list[i]->arg1, str_len(root->list[i]->arg1), 0, 0, gtd->match_data, gtd->match_context) > 0)
+					{
+						match++;
+					}
+#else
+					if (find(gtd->ses, root->list[i]->arg1, "bla", SUB_NONE, REGEX_FLAG_NONE))
+					{
+						match++;
+					}
+#endif
+				}
+				delete_regex_node(node);
+
+				end = utime();
+
+				tintin_printf2(ses, "matched: %d time: %lld", match, end - start);
+			}
 			break;
 
 		case CTRL_G:
@@ -302,6 +339,8 @@ DO_COMMAND(do_test)
 				FILE *file;
 				size_t len;
 
+				validate();
+
 				gtd->level->quiet++;
 
 				command(ses, do_line, "quiet {#kill;#scan file validate.h {#var c {&0}};#replace c {^char *tt_valid = \"%%a\";$} {&1};#format {a} %%+64Z {$c}}", arg1, arg2, arg3, arg4);
@@ -328,4 +367,3 @@ DO_COMMAND(do_test)
 	}
 	return ses;
 }
-

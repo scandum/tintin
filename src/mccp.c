@@ -284,7 +284,7 @@ void client_end_mccp3(struct session *ses)
 
 int client_recv_will_mccp4(struct session *ses, int cplen, unsigned char *cpsrc)
 {
-	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL TELOPT_MCCP4");
+	check_all_events(ses, EVENT_FLAG_TELNET, 0, 0, "IAC WILL MCCP4");
 
 	if (check_all_events(ses, EVENT_FLAG_CATCH, 0, 0, "CATCH IAC WILL MCCP4"))
 	{

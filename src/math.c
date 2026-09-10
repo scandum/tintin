@@ -1443,6 +1443,7 @@ unsigned long long tintou(char *str)
 int is_number(char *str)
 {
 	char *ptr = str;
+	static time_t warning;
 	int i = 1, d = 0, valid = 0;
 
 	if (*ptr == 0)
@@ -1481,10 +1482,6 @@ int is_number(char *str)
 				break;
 
 			case ':':
-				if (i == 1)
-				{
-					show_error(gtd->ses, LIST_COMMAND, "#WARNING: COMPUTING {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
-				}
 				if (i == 4)
 				{
 					return FALSE;
@@ -1511,6 +1508,12 @@ int is_number(char *str)
 		{
 			break;
 		}
+	}
+	if (valid && i > 1 && warning < gtd->time)
+	{
+		warning = gtd->time + 3600;
+
+		show_error(gtd->ses, LIST_COMMAND, "#WARNING: IS_NUMBER {%s}. THE : TIME OPERATOR IN #MATH WILL BE REMOVED IN FUTURE RELEASES.", str);
 	}
 	return valid;
 }

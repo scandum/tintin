@@ -127,6 +127,32 @@ void trap_handler(int signal)
 }
 
 
+void validate()
+{
+	int index;
+
+	for (index = 1 ; index ; index++)
+	{
+		if (*event_table[index].name == 0)
+		{
+			break;
+		}
+
+		if (strcmp(event_table[index - 1].name, event_table[index].name) > 0)
+		{
+			print_stdout(0, 0, "\e[1;31validate: unsorted event table %s vs %s.", event_table[index - 1].name, event_table[index].name);
+		}
+	}
+
+	for (index = 1 ; *command_table[index].name ; index++)
+	{
+		if (strcmp(command_table[index - 1].name, command_table[index].name) > 0)
+		{
+			print_stdout(0, 0, "\e[1;31validate: unsorted command table %s vs %s.", command_table[index - 1].name, command_table[index].name);
+		}
+	}
+}
+
 /****************************************************************************/
 /* main() - show title - setup signals - init lists - readcoms - mainloop() */
 /****************************************************************************/
@@ -475,6 +501,8 @@ int main(int argc, char **argv)
 
 	free(arg);
 
+	fflush(NULL);
+
 	mainloop();
 
 	return 0;
@@ -542,21 +570,6 @@ void init_tintin(int greeting)
 	{
 		gtd->vars[index] = strdup("");
 		gtd->cmds[index] = strdup("");
-	}
-
-	for (index = 1 ; index ; index++)
-	{
-		if (*event_table[index].name == 0)
-		{
-			break;
-		}
-
-		if (strcmp(event_table[index - 1].name, event_table[index].name) > 0)
-		{
-			print_stdout(0, 0, "\e[1;31minit_tintin() unsorted event table %s vs %s.", event_table[index - 1].name, event_table[index].name);
-
-			break;
-		}
 	}
 
 	init_commands();
@@ -719,6 +732,7 @@ void init_tintin(int greeting)
 			}
 		}
 	}
+
 	pop_call();
 	return;
 }

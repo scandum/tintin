@@ -134,15 +134,15 @@ int tintin_regex_match(struct session *ses, pcre2_code *nodepcre, char *str, cha
 	if (nodepcre == NULL)
 	{
 		regex = tintin_regex_compile(ses, NULL, exp, comp_option);
+
+		if (regex == NULL)
+		{
+			return FALSE;
+		}
 	}
 	else
 	{
 		regex = nodepcre;
-	}
-
-	if (regex == NULL)
-	{
-		return FALSE;
 	}
 
 	matches = pcre2_match(regex, (PCRE2_SPTR) str, strlen(str), 0, 0, gtd->match_data, gtd->match_context);
@@ -529,23 +529,23 @@ int tintin_match_data(struct session *ses, char *exp)
 	return flag;
 }
 
-void init_mask(struct ttre_data *ttre, char *txt, char *raw)
+void init_mask(struct ttre_data *ttre, char *raw, char *txt)
 {
-	if (raw == NULL)
+	if (txt == NULL)
 	{
-		ttre->raw      = ttre->txt      = txt;
-		ttre->raw_len  = ttre->txt_len  = strlen(txt);
-		ttre->raw_mask = ttre->txt_mask = string_mask(txt);
+		ttre->raw      = ttre->txt      = raw;
+//		ttre->raw_len  = ttre->txt_len  = strlen(raw);
+		ttre->raw_mask = ttre->txt_mask = string_mask(raw);
 	}
 	else
 	{
-		ttre->txt      = txt;
-		ttre->txt_len  = strlen(txt);
-		ttre->txt_mask = string_mask(txt);
-
 		ttre->raw      = raw;
-		ttre->raw_len  = strlen(raw);
+//		ttre->raw_len  = strlen(raw);
 		ttre->raw_mask = string_mask(raw);
+
+		ttre->txt      = txt;
+//		ttre->txt_len  = strlen(txt);
+		ttre->txt_mask = string_mask(txt);
 	}
 }
 
@@ -563,12 +563,11 @@ long long string_mask(char *exp)
 	return flag;
 }
 
-// unused
-
 long long tintin_string_mask(struct session *ses, char *exp)
 {
 	char *pte;
 	long long flag = 0;
+	unsigned char caseless = FALSE;
 
 	pte = exp;
 
@@ -577,7 +576,11 @@ long long tintin_string_mask(struct session *ses, char *exp)
 		if (HAS_BIT(ses->charset, CHARSET_FLAG_EUC) && is_euc_head(ses, pte))
 		{
 			pte++;
-			flag |= mask_table[(unsigned char) *pte++];
+			if (caseless == FALSE)
+			{
+				flag |= mask_table[(unsigned char) *pte];
+			}
+			pte++;
 			continue;
 		}
 
@@ -650,7 +653,14 @@ long long tintin_string_mask(struct session *ses, char *exp)
 						break;
 
 					case 'i':
+						pte += 2;
+						caseless = TRUE;
+						break;
 					case 'I':
+						pte += 2;
+						caseless = FALSE;
+						break;
+
 					case '%':
 						pte += 2;
 						break;
@@ -695,13 +705,16 @@ long long tintin_string_mask(struct session *ses, char *exp)
 				break;
 
 			default:
-				flag |= mask_table[(unsigned char) *pte++];
+				if (caseless == FALSE)
+				{
+					flag |= mask_table[(unsigned char) *pte];
+				}
+				pte++;
 				break;
 		}
 	}
 	return flag;
 }
-
 
 // Keep synched with tintin_regex_compile
 
@@ -832,12 +845,15 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 
 	if (node)
 	{
-		node->flags = 0;
-	}
+		if (!HAS_BIT(node->flags, NODE_FLAG_CUSTOM))
+		{
+			node->flags = 0;
 
-	if (*pti == '~')
-	{
-		pti++;
+			if (*pti == '~')
+			{
+				pti++;
+			}
+		}
 	}
 
 	while (*pti == '^')
@@ -995,7 +1011,7 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 			case '.':
 				if (node && !HAS_BIT(node->flags, NODE_FLAG_CASELESS))
 				{
-					mask |= mask_table[(int) *pti];
+					mask |= mask_table[(unsigned char) *pti];
 				}
 				*pto++ = '\\';
 				*pto++ = *pti++;
@@ -1254,7 +1270,7 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 			default:
 				if (node && !HAS_BIT(node->flags, NODE_FLAG_CASELESS))
 				{
-					mask |= mask_table[(int) *pti];
+					mask |= mask_table[(unsigned char) *pti];
 				}
 				*pto++ = *pti++;
 				break;
@@ -1262,7 +1278,7 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 	}
 	*pto = 0;
 
-	if (node && HAS_BIT(node->flags, NODE_FLAG_COLOR) && *exp != '~')
+	if (node && HAS_BIT(node->flags, NODE_FLAG_COLOR) && !HAS_BIT(node->flags, NODE_FLAG_CUSTOM) && *exp != '~')
 	{
 		show_error(ses, LIST_COMMAND, "#WARNING: REGEX {%s} MATCHES ESCAPE CODES BUT DOES NOT START WITH A '~'.", exp);
 	}

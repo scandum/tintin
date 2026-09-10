@@ -503,7 +503,7 @@ void readmud(struct session *ses)
 					{
 						if (ses->list[LIST_PROMPT]->list[0])
 						{
-							if (!check_one_prompt(ses, line))
+							if (!detect_prompt(ses, line))
 							{
 								str_cat(&ses->more_output, line);
 								ses->check_output = gtd->utime + (ses->packet_patch ? ses->packet_patch : 500000ULL);

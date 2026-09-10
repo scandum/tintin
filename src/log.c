@@ -148,11 +148,24 @@ DO_LOG(log_move)
 
 	arg = sub_arg_in_braces(ses, arg, arg3, GET_ALL, SUB_VAR|SUB_FUN);
 
+	if (ses->log->line_file && !strcmp(ses->log->line_name, arg2))
+	{
+		fclose(ses->log->line_file);
+
+		ses->log->line_file = NULL;
+	}
+
 	result = rename(arg2, arg3);
 
 	if (result == 0)
 	{
 		show_message(ses, LIST_COMMAND, "#LOG MOVE: FILE {%s} MOVED TO {%s}.", arg2, arg3);
+
+		if (ses->log->file && !strcmp(ses->log->name, arg2))
+		{
+			RESTRING(ses->log->name, arg3);
+		}
+
 	}
 	else
 	{
