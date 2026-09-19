@@ -1129,33 +1129,24 @@ struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format
 }
 
 
-struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, ...)
+struct listnode *set_nest_node(struct listroot *root, char *var, char *val)
 {
 	struct listroot *base;
 	struct listnode *node;
-	char *arg, *arg2, name[BUFFER_SIZE];
-	va_list args;
+	char *arg, key[BUFFER_SIZE];
 
-	push_call("set_nest_node(%p,%s,%p,...)",root,arg1,format);
+	push_call("set_nest_node(%p,%s,%p,...)",root,var,format);
 
-	va_start(args, format);
-	if (vasprintf(&arg2, format, args) == -1)
-	{
-		syserr_printf(root->ses, "set_nest_node: vasprintf");
-	}
-
-	va_end(args);
-
-	arg = get_arg_to_brackets(root->ses, arg1, name);
+	arg = get_arg_to_brackets(root->ses, var, key);
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", key, key, val, var);
 	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
-		base = search_nest_base_ses(root->ses, name);
+		base = search_nest_base_ses(root->ses, key);
 
 		if (base)
 		{
@@ -1165,15 +1156,15 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	while (*arg)
 	{
-		root = update_nest_root(root, name);
+		root = update_nest_root(root, key);
 
 		if (root)
 		{
-			arg = get_arg_in_brackets(root->ses, arg, name);
+			arg = get_arg_in_brackets(root->ses, arg, key);
 		}
 	}
 
-	node = search_node_list(root, name);
+	node = search_node_list(root, key);
 
 	if (node && node->root)
 	{
@@ -1182,24 +1173,24 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 		node->root = NULL;
 	}
 
-	if (*space_out(arg2) == DEFAULT_OPEN)
+	if (*space_out(val) == DEFAULT_OPEN)
 	{
-		update_nest_node(update_nest_root(root, name), arg2);
+		update_nest_node(update_nest_root(root, key), val);
 
-		node = search_node_list(root, name);
+		node = search_node_list(root, key);
 	}
 	else if (node)
 	{
-		str_cpy(&node->arg2, arg2);
+		str_cpy(&node->arg2, val);
 	}
 	else
 	{
-		if (*name == '-' || *name == '+')
+		if (*key == '-' || *key == '+')
 		{
-			get_number_string(root->ses, name, name);
+			get_number_string(root->ses, key, key);
 //			printf("debug: set_nest_node - or +\n");
 		}
-		node = update_node_list(root, name, arg2, "", "");
+		node = update_node_list(root, key, val, "", "");
 	}
 
 	if (gtd->level->shots)
@@ -1209,17 +1200,15 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		arg = get_arg_to_brackets(root->ses, arg1, name);
+		arg = get_arg_to_brackets(root->ses, var, key);
 
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", key, key, val, var);
 
-		if (strcmp(arg1, name))
+		if (strcmp(var, key))
 		{
-			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", var, key, val, var);
 		}
 	}
-
-	free(arg2);
 
 	pop_call();
 	return node;
@@ -1227,34 +1216,24 @@ struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, 
 
 // Like set, but don't erase old data.
 
-struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, ...)
+struct listnode *add_nest_node(struct listroot *root, char *var, char *val)
 {
 	struct listroot *base;
 	struct listnode *node;
-	char *arg, *arg2, name[BUFFER_SIZE];
-	va_list args;
+	char *arg, key[BUFFER_SIZE];
 
-	push_call("add_nest_node(%p,%s,%p,...)",root,arg1,format);
+	push_call("add_nest_node(%p,%s,%p,...)",root,var,format);
 
-	va_start(args, format);
-
-	if (vasprintf(&arg2, format, args) == -1)
-	{
-		syserr_printf(root->ses, "add_nest_node: vasprintf");
-	}
-
-	va_end(args);
-
-	arg = get_arg_to_brackets(root->ses, arg1, name);
+	arg = get_arg_to_brackets(root->ses, var, key);
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATE %s", key, key, val, var);
 	}
 
 	if (HAS_BIT(gtd->flags, TINTIN_FLAG_LOCAL))
 	{
-		base = search_nest_base_ses(root->ses, name);
+		base = search_nest_base_ses(root->ses, key);
 
 		if (base)
 		{
@@ -1264,15 +1243,15 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	while (*arg)
 	{
-		root = update_nest_root(root, name);
+		root = update_nest_root(root, key);
 
 		if (root)
 		{
-			arg = get_arg_in_brackets(root->ses, arg, name);
+			arg = get_arg_in_brackets(root->ses, arg, key);
 		}
 	}
 
-	node = search_node_list(root, name);
+	node = search_node_list(root, key);
 /*
 	if (node && node->root)
 	{
@@ -1282,21 +1261,21 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 	}
 */
 
-	if (*space_out(arg2) == DEFAULT_OPEN)
+	if (*space_out(val) == DEFAULT_OPEN)
 	{
-		root = update_nest_root(root, name);
+		root = update_nest_root(root, key);
 
-		update_nest_node(root, arg2);
+		update_nest_node(root, val);
 
-		node = search_node_list(root, name);
+		node = search_node_list(root, key);
 	}
 	else if (node)
 	{
-		str_cat(&node->arg2, arg2);
+		str_cat(&node->arg2, val);
 	}
 	else
 	{
-		node = update_node_list(root, name, arg2, "", "");
+		node = update_node_list(root, key, val, "", "");
 	}
 
 	if (gtd->level->shots)
@@ -1306,17 +1285,15 @@ struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, 
 
 	if (HAS_BIT(root->ses->event_flags, EVENT_FLAG_VARIABLE))
 	{
-		arg = get_arg_to_brackets(root->ses, arg1, name);
+		arg = get_arg_to_brackets(root->ses, var, key);
 
-		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", name, name, arg2, arg1);
+		check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", key, key, val, var);
 
-		if (strcmp(arg1, name))
+		if (strcmp(var, key))
 		{
-			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", arg1, name, arg2, arg1);
+			check_all_events(root->ses, EVENT_FLAG_VARIABLE, 1, 3, "VARIABLE UPDATED %s", var, key, val, var);
 		}
 	}
-
-	free(arg2);
 
 	pop_call();
 	return node;

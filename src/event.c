@@ -19,7 +19,7 @@ DO_COMMAND(do_event)
 {
 	struct listroot *root = ses->list[LIST_EVENT];
 	struct listnode *node;
-	int cnt, found, index;
+	int cnt, index;
 	char symbol;
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
@@ -33,36 +33,9 @@ DO_COMMAND(do_event)
 		{
 			symbol = ' ';
 
-			if (event_table[cnt].level)
+			if (HAS_BIT(ses->event_flags, event_table[cnt].flags))
 			{
-				symbol = '-';
-
-				if (HAS_BIT(ses->event_flags, event_table[cnt].flags))
-				{
-					found = 0;
-
-					for (index = 0 ; index < root->used ; index++)
-					{
-						node = root->list[index];
-
-						if (!strncmp(event_table[cnt].name, node->arg1, strlen(event_table[cnt].name)))
-						{
-							found++;
-						}
-					}
-
-					switch (found)
-					{
-						case 0:
-							break;
-						case 1:
-							symbol = '+';
-							break;
-						default:
-							symbol = '*';
-							break;
-					}
-				}
+				symbol = event_table[cnt].level > 1 ? '*' : event_table[cnt].level == 1 ? '+' : '-';
 			}
 			tintin_printf2(ses, "%c [%-26s] [%-8s] %s", symbol, event_table[cnt].name, event_table[cnt].group, event_table[cnt].desc);
 		}
@@ -80,36 +53,9 @@ DO_COMMAND(do_event)
 				{
 					symbol = ' ';
 
-					if (event_table[cnt].level)
+					if (HAS_BIT(ses->event_flags, event_table[cnt].flags))
 					{
-						symbol = '-';
-
-						if (HAS_BIT(ses->event_flags, event_table[cnt].flags))
-						{
-							found = 0;
-
-							for (index = 0 ; index < root->used ; index++)
-							{
-								node = root->list[index];
-
-								if (!strncmp(event_table[cnt].name, node->arg1, str_len(node->arg1)))
-								{
-									found++;
-								}
-							}
-
-							switch (found)
-							{
-								case 0:
-									break;
-								case 1:
-									symbol = '+';
-									break;
-								default:
-									symbol = '*';
-									break;
-							}
-						}
+						symbol = event_table[cnt].level > 1 ? '*' : event_table[cnt].level == 1 ? '+' : '-';
 					}
 					tintin_printf2(ses, "%c [%-26s] [%-8s] %s", symbol, event_table[cnt].name, event_table[cnt].group, event_table[cnt].desc);
 				}
@@ -123,28 +69,27 @@ DO_COMMAND(do_event)
 	}
 	else
 	{
-		for (index = 0 ; *event_table[index].name != 0 ; index++)
+		index = bsearch_event_table(arg1);
+
+		if (index >= 0)
 		{
-			if (!strncmp(event_table[index].name, arg1, strlen(event_table[index].name)))
+			show_message(ses, LIST_EVENT, "#EVENT {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
+
+			SET_BIT(ses->event_flags, event_table[index].flags);
+			SET_BIT(gtd->event_flags, event_table[index].flags);
+
+			node = update_node_list(root, arg1, arg2, "", "");
+
+			node->val32[0] = index;
+			node->val32[1] = event_table[index].flags;
+
+			if (node->val32[1] == 0)
 			{
-				show_message(ses, LIST_EVENT, "#EVENT {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
-
-				SET_BIT(ses->event_flags, event_table[index].flags);
-				SET_BIT(gtd->event_flags, event_table[index].flags);
-
-				node = update_node_list(root, arg1, arg2, "", "");
-
-				node->val32[0] = index;
-				node->val32[1] = event_table[index].flags;
-
-				if (node->val32[1] == 0)
-				{
-					tintin_printf2(gtd->ses, "\e[1;33mdo_event: event_table[index].flags == 0");
-				}
-				event_table[index].level++;
-
-				return ses;
+				tintin_printf2(gtd->ses, "\e[1;33mdo_event: event_table[index].flags == 0");
 			}
+			event_table[index].level++;
+
+			return ses;
 		}
 		show_error(ses, LIST_EVENT, "#ERROR: #EVENT {%s} IS NOT AN EXISTING EVENT.", arg1);
 	}
@@ -626,4 +571,23 @@ void mouse_event_handler(struct session *ses, char *arg1, char *arg2, int row, i
 	check_all_events(ses, EVENT_FLAG_MOUSE, 3, 8, "%s %s %d", arg1, arg2, rev_row, ntos(row), ntos(col), ntos(rev_row), ntos(rev_col), word, line, name, grid);
 
 	map_mouse_handler(ses, arg1, arg2, row, col, rev_row, rev_col, pix_row, pix_col);
+}
+
+void init_events()
+{
+	int index;
+
+	for (index = 0 ; ; index++)
+	{
+		event_table[index].len = strlen(event_table[index].name);
+
+		if (strcmp(event_table[index].name, event_table[index + 1].name) > 0)
+		{
+			if (*event_table[index + 1].name == 0)
+			{
+				break;
+			}
+			print_stdout(0, 0, "\e[1;31init_events: unsorted event table %s vs %s.", event_table[index - 1].name, event_table[index].name);
+		}
+	}
 }

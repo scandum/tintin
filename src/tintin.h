@@ -210,6 +210,9 @@
 #define CLIENT_COPYRIGHT                   "(C) 2004-2026 Igor van den Hoven"
 #define CLIENT_LICENSE                     "LGPL-2.1: GNU GPL version 2.1 or later"
 
+#define SPC_50                             "                                                  "
+#define SPC_500                            SPC_50 SPC_50 SPC_50 SPC_50 SPC_50 SPC_50 SPC_50 SPC_50 SPC_50 SPC_50
+
 #define XT_E                         0x27
 #define XT_C                         0x5B
 #define XT_O                         0x5D
@@ -1794,6 +1797,7 @@ struct event_type
 {
 	char                  * name;
 	int                     level;
+	int                     len;
 	int                     flags;
 	char                  * group;
 	char                  * desc;
@@ -2345,6 +2349,7 @@ extern DO_COMMAND(do_draw);
 
 extern  int check_all_events(struct session *ses, int flags, int args, int vars, char *fmt, ...);
 extern void mouse_handler(struct session *ses, int val1, int val2, int val3);
+extern void init_events(void);
 
 #endif
 
@@ -2582,8 +2587,8 @@ extern void view_nest_node_json(struct listnode *node, char **str_result, int ne
 extern void view_nest_node(struct listnode *node, char **str_result, int nest, int initialize, int color);
 extern struct listnode *set_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
 extern struct listnode *add_nest_node_ses(struct session *ses, char *arg1, char *format, ...);
-extern struct listnode *set_nest_node(struct listroot *root, char *arg1, char *format, ...);
-extern struct listnode *add_nest_node(struct listroot *root, char *arg1, char *format, ...);
+extern struct listnode *set_nest_node(struct listroot *root, char *key, char *val);
+extern struct listnode *add_nest_node(struct listroot *root, char *key, char *val);
 extern void copy_nest_node(struct listroot *dst_root, struct listnode *dst, struct listnode *src);
 
 #endif
@@ -2934,6 +2939,8 @@ extern struct timer_type timer_table[];
 extern struct map_legend_type map_legend_table[];
 extern struct map_legend_group_type map_legend_group_table[];
 
+extern int bsearch_event_table(char *text);
+
 #endif
 
 
@@ -3083,6 +3090,7 @@ extern char *ftos(double number);
 extern char *ntos(long long number);
 extern char *indent_one(int len);
 extern char *indent(int len);
+extern char *format(char *fmt, ...);
 extern int cat_sprintf(char *dest, char *fmt, ...);
 extern void ins_sprintf(char *dest, char *fmt, ...);
 extern char *str_ins_printf(char **str, int index, char *fmt, ...);

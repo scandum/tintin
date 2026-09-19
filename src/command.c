@@ -342,7 +342,7 @@ struct command_type command_table[] =
 	{    "untab",             do_untab,             0, TOKEN_TYPE_COMMAND },
 	{    "unticker",          do_untick,            0, TOKEN_TYPE_COMMAND },
 	{    "unvariable",        do_unvariable,        1, TOKEN_TYPE_COMMAND },
-	{    "variable",          do_variable,          1, TOKEN_TYPE_COMMAND },
+	{    "variable",          do_variable,          2, TOKEN_TYPE_COMMAND },
 	{    "while",             do_nop,               0, TOKEN_TYPE_WHILE   },
 	{    "write",             do_write,             2, TOKEN_TYPE_COMMAND },
 	{    "zap",               do_zap,               1, TOKEN_TYPE_COMMAND },

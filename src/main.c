@@ -131,19 +131,6 @@ void validate()
 {
 	int index;
 
-	for (index = 1 ; index ; index++)
-	{
-		if (*event_table[index].name == 0)
-		{
-			break;
-		}
-
-		if (strcmp(event_table[index - 1].name, event_table[index].name) > 0)
-		{
-			print_stdout(0, 0, "\e[1;31validate: unsorted event table %s vs %s.", event_table[index - 1].name, event_table[index].name);
-		}
-	}
-
 	for (index = 1 ; *command_table[index].name ; index++)
 	{
 		if (strcmp(command_table[index - 1].name, command_table[index].name) > 0)
@@ -573,6 +560,7 @@ void init_tintin(int greeting)
 	}
 
 	init_commands();
+	init_events();
 
 	gtd->screen = calloc(1, sizeof(struct screen_data));
 

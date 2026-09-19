@@ -2405,6 +2405,16 @@ int is_color_name(char *string)
 				{
 					return FALSE;
 				}
+				{
+					static time_t warning;
+
+					if (warning < gtd->time)
+					{
+						show_error(gtd->ses, LIST_HIGHLIGHT, "#WARNING: #HIGHLIGHT COLOR {%s} SHOULD BE CHANGED TO {%s}.", string, color_table[cnt].name);
+
+						warning = gtd->time + 3600;
+					}
+				}
 			}
 			string += strlen(color_table[cnt].name);
 		}

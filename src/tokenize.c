@@ -282,7 +282,7 @@ void handlereturntoken(struct session *ses, struct scriptnode *token)
 	{
 		DEL_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 
-		set_nest_node(gtd->script_stack[gtd->script_index - 1]->local, "result", "%s", arg);
+		set_nest_node(gtd->script_stack[gtd->script_index - 1]->local, "result", arg);
 
 		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 	}

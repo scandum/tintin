@@ -1910,7 +1910,6 @@ DO_DRAW(draw_rain)
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
 
-
 	if (!valid_variable(ses, arg1))
 	{
 		show_error(ses, LIST_COMMAND, "#SYNTAX: #DRAW <COLOR> RAIN %d %d %d %d <VARIABLE> [SPAWN] [FADE] [LEGEND]", top_row, top_col, bot_row, bot_col);
@@ -1922,7 +1921,7 @@ DO_DRAW(draw_rain)
 
 	if (node == NULL || node->root == NULL)
 	{
-		node = set_nest_node(ses->list[LIST_VARIABLE], arg1, "{0}{}");
+		node = set_nest_node_ses(ses, arg1, "{0}{}");
 	}
 
 	arg = get_arg_in_braces(ses, arg, arg1, GET_ONE);
@@ -2140,7 +2139,7 @@ DO_DRAW(draw_rain)
 		}
 		else
 		{
-			tintin_printf2(ses, "debug: problemo");
+			tintin_printf2(ses, "debug rain: problemo");
 		}
 	}
 }

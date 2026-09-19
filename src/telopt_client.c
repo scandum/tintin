@@ -543,24 +543,21 @@ int client_translate_telopts(struct session *ses, unsigned char *src, int cplen)
 						continue;
 					}
 					break;
+			}
+			if (HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
+			{
+				DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
 
-				default:
-					if (HAS_BIT(ses->telopts, TELOPT_FLAG_PROMPT))
+				// Fix up non vt muds
+
+				if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || !IS_SPLIT(ses))
+				{
+					if (HAS_BIT(ses->telopts, TELOPT_FLAG_ECHO) || !HAS_BIT(ses->telopts, TELOPT_FLAG_SGA))
 					{
-						DEL_BIT(ses->telopts, TELOPT_FLAG_PROMPT);
-
-						// Fix up non vt muds
-
-						if (HAS_BIT(ses->flags, SES_FLAG_SPLIT) || !IS_SPLIT(ses))
-						{
-							if (HAS_BIT(ses->telopts, TELOPT_FLAG_ECHO) || !HAS_BIT(ses->telopts, TELOPT_FLAG_SGA))
-							{
-								*cpdst++ = '\n';
-								gtd->mud_output_len++;
-							}
-						}
+						*cpdst++ = '\n';
+						gtd->mud_output_len++;
 					}
-					break;
+				}
 			}
 			*cpdst++ = *cpsrc++;
 			gtd->mud_output_len++;
@@ -1863,6 +1860,11 @@ int client_recv_sb_gmcp(struct session *ses, int cplen, unsigned char *src)
 							{
 								*pto++ = src[i++];
 							}
+							else if (i < cplen && src[i] == '\\')
+							{
+								*pto++ = '\\';
+								*pto++ = src[i++];
+							}
 							else
 							{
 								*pto++ = '\\';
@@ -2068,7 +2070,7 @@ int client_recv_sb(struct session *ses, int cplen, unsigned char *cpsrc)
 		{
 			break;
 		}
-		*pto = cpsrc[i++];
+		*pto++ = cpsrc[i++];
 	}
 	*pto = 0;
 

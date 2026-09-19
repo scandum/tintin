@@ -255,6 +255,8 @@ DO_COMMAND(do_test)
 			{
 				execute(ses, "%s", "#event {IAC SB GMCP} {#var {%0} {%1};#line debug #var {%0}}");
 
+				test_gmcp(ses, "Char.Debug {\"a\":\"x\\\\\",\"b\":\"end\"}");
+
 				test_gmcp(ses, "Char.Defences.List [ { \"name\": \"boar tattoo\", \"desc\": \"boar tattoo\" }, { \"name\": \"moss tattoo\", \"desc\": \"moss tattoo\" } ]");
 
 				test_gmcp(ses, "MG.room.info { \"exits\": [ ], \"short\": \"Dschungel.\", \"id\": \"1\"}");

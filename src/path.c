@@ -268,7 +268,8 @@ DO_PATH(path_map)
 DO_PATH(path_get)
 {
 	struct listroot *root = ses->list[LIST_PATH];
-	char result[STRING_SIZE], arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
+	struct listnode *node;
+	char arg1[BUFFER_SIZE], arg2[BUFFER_SIZE];
 
 	arg = sub_arg_in_braces(ses, arg, arg1, GET_ONE, SUB_VAR|SUB_FUN);
 	arg = sub_arg_in_braces(ses, arg, arg2, GET_ONE, SUB_VAR|SUB_FUN);
@@ -306,37 +307,31 @@ DO_PATH(path_get)
 	}
 	else if (is_abbrev(arg1, "LENGTH"))
 	{
-		sprintf(result, "%d", root->used);
+		set_nest_node_ses(ses, arg2, "%d", root->used);
 
-		set_nest_node_ses(ses, arg2, "%s", result);
-
-		show_message(ses, LIST_COMMAND, "#PATH GET: PATH LENGTH {%s} SAVED TO {%s}.", result, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH GET: PATH LENGTH {%d} SAVED TO {%s}.", root->used, arg2);
 	}
 	else if (is_abbrev(arg1, "MAPPING"))
 	{
-		sprintf(result, "%d", HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING) ? 1 : 0);
+		node = set_nest_node_ses(ses, arg2, "%d", HAS_BIT(ses->flags, SES_FLAG_PATHMAPPING) ? 1 : 0);
 
-		set_nest_node_ses(ses, arg2, "%s", result);
-
-		show_message(ses, LIST_COMMAND, "#PATH GET: PATH MAPPING {%s} SAVED TO {%s}.", result, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH GET: PATH MAPPING {%d} SAVED TO {%s}.", node->arg2, arg2);
 	}
 	else if (is_abbrev(arg1, "POSITION"))
 	{
-		sprintf(result, "%d", root->update + 1);
+		set_nest_node_ses(ses, arg2, "%d", root->update + 1);
 
-		set_nest_node_ses(ses, arg2, "%s", result);
-
-		show_message(ses, LIST_COMMAND, "#PATH GET: PATH POSITION {%s} SAVED TO {%s}.", result, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH GET: PATH POSITION {%d} SAVED TO {%s}.", root->update + 1, arg2);
 	}
 	else if (is_abbrev(arg1, "RUNNING"))
 	{
-		sprintf(result, "%.2f",
+		node = set_nest_node_ses(ses, arg2, "%.2f",
 			root->update >= root->used ? 0 :
 			root->list[root->update]->val64 == 0 ? 0 :
 			(root->list[root->update]->val64 - gtd->utime) < 10000 ? 0.01 :
 			(root->list[root->update]->val64 - gtd->utime) / 1000000.0);
 
-		show_message(ses, LIST_COMMAND, "#PATH GET: PATH RUNNING {%s} SAVED TO {%s}.", result, arg2);
+		show_message(ses, LIST_COMMAND, "#PATH GET: PATH RUNNING {%s} SAVED TO {%s}.", node->arg2, arg2);
 	}
 	else
 	{

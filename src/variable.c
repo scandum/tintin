@@ -17,7 +17,6 @@
 
 DO_COMMAND(do_variable)
 {
-	char *str;
 	struct listroot *root = ses->list[LIST_VARIABLE];
 	struct listnode *node;
 
@@ -29,25 +28,21 @@ DO_COMMAND(do_variable)
 	}
 	else if (*arg == 0)
 	{
-		char *path = str_alloc_stack(0);
-
-		node = search_nest_node_path(root, arg1, path);
+		node = search_nest_node_path(root, arg1, arg2);
 
 		if (node)
 		{
 			if (node->root)
 			{
-				char *str_result;
-
-				str_result = str_alloc_stack(0);
+				char *str_result = str_alloc_stack(0);
 
 				view_nest_node(node, &str_result, 0, TRUE, TRUE);
 
-				print_lines(ses, SUB_NONE, "", COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n" COLOR_BRACE "{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, path, str_result);
+				print_lines(ses, SUB_NONE, "", COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "}\n" COLOR_BRACE "{\n" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, arg2, str_result);
 			}
 			else
 			{
-				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, path, node->arg2);
+				tintin_printf2(ses, COLOR_TINTIN "%c" COLOR_COMMAND "%s " COLOR_BRACE "{" COLOR_STRING "%s" COLOR_BRACE "} {" COLOR_STRING "%s" COLOR_BRACE "}" COLOR_RESET "\n", gtd->tintin_char, list_table[LIST_VARIABLE].name, arg2, node->arg2);
 			}
 		}
 		else if (show_node_with_wild(ses, arg1, ses->list[LIST_VARIABLE]) == FALSE)
@@ -63,25 +58,24 @@ DO_COMMAND(do_variable)
 
 			return ses;
 		}
-		str = str_alloc_stack(strlen(arg));
 
-		arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
+		arg = sub_arg_in_braces(ses, arg, arg2, GET_ALL, SUB_VAR|SUB_FUN);
 
-		node = set_nest_node(root, arg1, "%s", str);
-
+		node = set_nest_node(root, arg1, arg2);
+/*
 		while (*arg)
 		{
 			arg = sub_arg_in_braces(ses, arg, str, GET_ALL, SUB_VAR|SUB_FUN);
 
 			if (*str)
 			{
-				add_nest_node(root, arg1, "%s", str);
+				add_nest_node(root, arg1, str);
 			}
 		}
+*/
+//		show_nest_node(node, &str, 1);
 
-		show_nest_node(node, &str, 1);
-
-		show_message(ses, LIST_VARIABLE, "#OK: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, str);
+		show_message(ses, LIST_VARIABLE, "#OK: VARIABLE {%s} HAS BEEN SET TO {%s}.", arg1, arg2);
 	}
 	return ses;
 }
@@ -156,7 +150,7 @@ DO_COMMAND(do_local)
 
 		DEL_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 
-		node = set_nest_node(root, arg1, "%s", str);
+		node = set_nest_node(root, arg1, str);
 
 		SET_BIT(gtd->flags, TINTIN_FLAG_LOCAL);
 
@@ -166,7 +160,7 @@ DO_COMMAND(do_local)
 
 			if (*str)
 			{
-				add_nest_node(root, arg1, "%s", str);
+				add_nest_node(root, arg1, str);
 			}
 		}
 

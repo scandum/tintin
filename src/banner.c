@@ -119,20 +119,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_expires(ses, "New Worlds Ateraan", "2030", arg1);
 
 
-	banner_create(ses, "Untold Dawn", arg1);
-
-	banner_desc(ses, "Untold Dawn",
-		"Untold Dawn is an early access post-cyberpunk permadeath text-based roleplay\n"
-		"required multiplayer game. The game aims to redefine the RPI genre with a focus\n"
-		"on building a positive community, innovative features and a fresh look on game\n"
-		"rules. The game was developed from scratch using Rust and Bevy, a project which\n"
-		"began in January of 2024.\n", arg1);
-
-	banner_website(ses, "Untold Dawn", "https://blog.untold-dawn.com", arg1);
-	banner_address(ses, "Untold Dawn", "ud www.untold-dawn.com 4000", arg1);
-	banner_expires(ses, "Untold Dawn", "2030", arg1);
-
-
 	banner_create(ses, "Northern Crossroads", arg1);
 
 	banner_desc(ses, "Northern Crossroads",
@@ -149,6 +135,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Northern Crossroads", "https://www.ncmud.org", arg1);
 	banner_address(ses, "Northern Crossroads", "NC ncmud.org 9000", arg1);
 	banner_expires(ses, "Northern Crossroads", "2031", arg1);
+
 
 	banner_create(ses, "Kallisti MUD", arg1);
 
@@ -186,6 +173,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "Legends of Kallisti", "LoK legendsofkallisti.com 4000", arg1);
 	banner_expires(ses, "Legends of Kallisti", "2031", arg1);
 
+
 	banner_create(ses, "Carrion Fields", arg1);
 
 	banner_desc(ses, "Carrion Fields",
@@ -204,6 +192,21 @@ void banner_init(struct session *ses, char *arg1)
 	banner_expires(ses, "Carrion Fields", "2031", arg1);
 
 /*
+	banner_create(ses, "Untold Dawn", arg1);
+
+	banner_desc(ses, "Untold Dawn",
+		"Untold Dawn is an early access post-cyberpunk permadeath text-based roleplay\n"
+		"required multiplayer game. The game aims to redefine the RPI genre with a focus\n"
+		"on building a positive community, innovative features and a fresh look on game\n"
+		"rules. The game was developed from scratch using Rust and Bevy, a project which\n"
+		"began in January of 2024.\n", arg1);
+
+	banner_website(ses, "Untold Dawn", "https://blog.untold-dawn.com", arg1);
+	banner_address(ses, "Untold Dawn", "ud www.untold-dawn.com 4000", arg1);
+	banner_expires(ses, "Untold Dawn", "2030", arg1);
+
+
+
 	banner_create(ses, "Lost Souls", arg1);
 
 	banner_desc(ses, "Lost Souls",
@@ -220,7 +223,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Lost Souls", "https://lostsouls.org", arg1);
 	banner_address(ses, "Lost Souls", "ls lostsouls.org 23", arg1);
 	banner_expires(ses, "Lost Souls", "2029", arg1);
-
 
 
 	banner_create(ses, "3Kingdoms", arg1);
@@ -273,6 +275,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "Armageddon", "arm armageddon.org 4050", arg1);
 	banner_expires(ses, "Armageddon", "2030", arg1);
 
+
 	banner_create(ses, "Threshold RPG", arg1);
 
 	banner_desc(ses, "Threshold RPG",
@@ -286,6 +289,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Threshold RPG", "https://www.thresholdrpg.com", arg1);
 	banner_address(ses, "Threshold RPG", "thresh thresholdrpg.com 3333", arg1);
 	banner_expires(ses, "Threshold RPG", "2028", arg1);
+
 
 	banner_create(ses, "Realm of Utopian Dreams (RUD)", arg1);
 
@@ -302,6 +306,7 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Realm of Utopian Dreams (RUD)", "http://rudmud.com", arg1);
 	banner_address(ses, "Realm of Utopian Dreams (RUD)", "rud rudmud.com 1701", arg1);
 	banner_expires(ses, "Realm of Utopian Dreams (RUD)", "2028", arg1);
+
 
 	banner_create(ses, "Primal Darkness", arg1);
 	

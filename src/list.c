@@ -214,7 +214,7 @@ DO_ARRAY(array_add)
 		{
 			str = get_arg_in_braces(ses, str, arg2, GET_ALL);
 
-			set_nest_node(list->root, ntos(index++), "%s", arg2);
+			set_nest_node(list->root, ntos(index++), arg2);
 
 			if (*str == COMMAND_SEPARATOR)
 			{
@@ -238,7 +238,6 @@ DO_ARRAY(array_clear)
 
 		list->root = NULL;
 	}
-
 	set_nest_node_ses(ses, var, "");
 
 	return ses;
@@ -346,7 +345,7 @@ DO_ARRAY(array_create)
 		{
 			str = get_arg_in_braces(ses, str, arg2, GET_ALL);
 
-			set_nest_node(list->root, ntos(index++), "%s", arg2);
+			set_nest_node(list->root, ntos(index++), arg2);
 
 			if (*str == COMMAND_SEPARATOR)
 			{
@@ -456,13 +455,13 @@ DO_ARRAY(array_explode)
 		{
 			if (*arg)
 			{
-				set_nest_node(list->root, ntos(index++), "%s", arg);
+				set_nest_node(list->root, ntos(index++), arg);
 			}
 			break;
 		}
 		*str = 0;
 
-		set_nest_node(list->root, ntos(index++), "%s", arg);
+		set_nest_node(list->root, ntos(index++), arg);
 
 		arg = str + strlen(arg1);
 	}
@@ -676,7 +675,7 @@ DO_ARRAY(array_insert)
 		str_cpy_printf(&list->root->list[cnt]->arg1, "%d", cnt + 2);
 	}
 
-	set_nest_node(list->root, ntos(index + 1), "%s", arg2);
+	set_nest_node(list->root, ntos(index + 1), arg2);
 
 	return ses;
 }
@@ -883,7 +882,7 @@ DO_ARRAY(array_set)
 
 			return ses;
 		}
-		set_nest_node(list->root, list->root->list[index]->arg1, "%s", arg2);
+		set_nest_node(list->root, list->root->list[index]->arg1, arg2);
 
 		return ses;
 	}
@@ -1062,7 +1061,7 @@ DO_ARRAY(array_tokenize)
 				i += sprintf(arg2, "%c", arg1[i]);
 			}
 
-			set_nest_node(list->root, ntos(index++), "%s", arg2);
+			set_nest_node(list->root, ntos(index++), arg2);
 		}
 
 		if (*arg == COMMAND_SEPARATOR)

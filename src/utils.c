@@ -425,10 +425,10 @@ char *ftos(double number)
 
 char *ntos(long long number)
 {
-	static char outbuf[10][NUMBER_SIZE];
+	static char outbuf[16][NUMBER_SIZE];
 	static int cnt;
 
-	cnt = (cnt + 1) % 10;
+	cnt = (cnt + 1) % 16;
 
 	sprintf(outbuf[cnt], "%lld", number);
 
@@ -437,33 +437,63 @@ char *ntos(long long number)
 
 char *indent_one(int len)
 {
-	static char out[10][STACK_SIZE + 1];
-	static int cnt;
+	static char out[1001] = SPC_500 SPC_500;
 
-	cnt = (cnt + 1) % 10;
-
-	if (out[cnt][0] == 0)
-	{
-		memset(out[cnt], ' ', STACK_SIZE);
-	}
-
-	len = URANGE(0, len, STACK_SIZE);
-
-	return &out[cnt][STACK_SIZE - len];
+	return &out[1000 - URANGE(0, len, 1000)];
 }
 
 char *indent(int len)
 {
-	static char outbuf[21][101];
-
-	len = URANGE(0, len, 20);
-
-	if (outbuf[len][0] == 0)
+	static char outbuf[21][101] =
 	{
-		sprintf(outbuf[len], "%*s", len * 4, "");
+		[0]  = "",
+		[1]  = "    ",
+		[2]  = "        ",
+		[3]  = "            ",
+		[4]  = "                ",
+		[5]  = "                    ",
+		[6]  = "                        ",
+		[7]  = "                            ",
+		[8]  = "                                ",
+		[9]  = "                                    ",
+		[10] = "                                        ",
+		[11] = "                                            ",
+		[12] = "                                                ",
+		[13] = "                                                    ",
+		[14] = "                                                        ",
+		[15] = "                                                            ",
+		[16] = "                                                                ",
+		[17] = "                                                                    ",
+		[18] = "                                                                        ",
+		[19] = "                                                                            ",
+		[20] = "                                                                                "
+	};
+
+	return outbuf[URANGE(0, len, 20)];
+}
+
+char *format(char *fmt, ...)
+{
+	static char out[STRING_SIZE];
+	int size;
+	va_list args;
+
+	va_start(args, fmt);
+	size = vsnprintf(out, STRING_SIZE, fmt, args);
+	va_end(args);
+
+	if (size < 0)
+	{
+		syserr_printf(gtd->ses, "format(%s, ...):", fmt);
+
+		return "(formatting error)";
 	}
 
-	return outbuf[len];
+	if (size >= STRING_SIZE)
+	{
+		tintin_printf2(gtd->ses, "#TINTIN ERROR: format(%s, ...): FORMAT LENGTH OF %d EXCEEDS STRING_SIZE.", fmt, size);
+	}
+	return out;
 }
 
 int cat_sprintf(char *dest, char *fmt, ...)

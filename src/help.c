@@ -2277,6 +2277,12 @@ struct help_type help_table[] =
 		"\n"
 		"<178>Example<278>: #alias greet say Greetings, most honorable %1\n"
 		"\n"
+		"<278>         If there are no variables on the right-side of the alias definition,\n"
+		"<278>         any arguments following the aliased command will be appended to the\n"
+		"<278>         command string.\n"
+		"\n"
+		"<178>Example<278>: #alias ff cast 'fireball' -- 'ff bob' equals: cast 'fireball' bob\n"
+
 		"<278>         If you want an alias to execute more commands, you must use braces.\n"
 		"\n"
 		"<178>Example<278>: #alias ws <178>{<278>wake;stand<178>}\n"

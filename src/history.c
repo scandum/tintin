@@ -134,6 +134,7 @@ DO_HISTORY(history_insert)
 DO_HISTORY(history_get)
 {
 	struct listroot *root = ses->list[LIST_HISTORY];
+	struct listnode *node;
 	char *arg3;
 	int cnt, min, max;
 
@@ -194,15 +195,15 @@ DO_HISTORY(history_get)
 
 	cnt = 0;
 
-	set_nest_node_ses(ses, arg1, "");
+	node = set_nest_node_ses(ses, arg1, "{1}{}");
 
 	while (min <= max)
 	{
-		sprintf(arg2, "%s[%d]", arg1, ++cnt);
+		sprintf(arg2, "%d", ++cnt);
 
 		substitute(ses, root->list[min++]->arg1, arg3, SUB_SEC);
 
-		set_nest_node_ses(ses, arg2, "%s", arg3);
+		add_nest_node(node->root, arg2, arg3);
 	}
 
 	show_message(ses, LIST_COMMAND, "#HISTORY GET: %d LINES SAVED TO {%s}.", cnt, arg1);

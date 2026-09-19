@@ -1,20 +1,22 @@
+- finish color_table_alpha
+
+- add #list <list> move <old index> <new index>
+
+- mark up/down fog exits in the right color
+
+- document %% $$ @@ && ** 
+
 - Look into error 38.1
 
-- Finish up ctrl-r
+- ztes
 
 - Fix up #dict
 
-- add static strlen handling in check_one_line
+- Look into static strlen handling in check_one_line
 
 - Look into Greptile
 
 - https://github.com/github-linguist/linguist/blob/main/CONTRIBUTING.md#adding-a-language
-
-- Look deeper into the #buffer clear;#buffer get crash bug and how to properly set the range.
-
-- #list reverse does not handle list tables
-
-- Update mudhalla mudlist
 
 - Look into compactness of #highlight color replacements
 
