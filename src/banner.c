@@ -186,6 +186,23 @@ void banner_init(struct session *ses, char *arg1)
 	banner_address(ses, "Legends of Kallisti", "LoK legendsofkallisti.com 4000", arg1);
 	banner_expires(ses, "Legends of Kallisti", "2031", arg1);
 
+	banner_create(ses, "Carrion Fields", arg1);
+
+	banner_desc(ses, "Carrion Fields",
+		"Carrion Fields blends high-caliber roleplay with complex, hardcore\n"
+		"player-vs-player combat and has been running continuously, 100% free, for \n"
+		"over 30 years.  Choose from among 22 races, 17 highly customizable classes\n"
+		"and several cabals and religions to suit your playstyle and the story you\n"
+		"want to tell.  With a massive, original world and coveted limited objects,\n"
+		"we've been described as \"the 'Dark Souls' of MUDs\".  Come join our vibrant\n"
+		"community for a real challenge and very real rewards: adrenaline-pumping\n"
+		"battles, memorable quests run by our volunteer immortal staff, and stories\n"
+		"that will stick with you for a lifetime.", arg1);
+
+	banner_website(ses, "Carrion Fields", "http://carrionfields.net", arg1);
+	banner_address(ses, "Carrion Fields", "cf carrionfields.net 4449", arg1);
+	banner_expires(ses, "Carrion Fields", "2031", arg1);
+
 /*
 	banner_create(ses, "Lost Souls", arg1);
 
@@ -301,23 +318,6 @@ void banner_init(struct session *ses, char *arg1)
 	banner_website(ses, "Primal Darkness", "https://www.primaldarkness.com", arg1);
 	banner_address(ses, "Primal Darkness", "pd mud.primaldarkness.com 5000", arg1);
 	banner_expires(ses, "Primal Darkness", "2028", arg1);
-
-	banner_create(ses, "Carrion Fields", arg1);
-
-	banner_desc(ses, "Carrion Fields",
-		"Carrion Fields blends high-caliber roleplay with complex, hardcore\n"
-		"player-vs-player combat and has been running continuously, 100% free, for \n"
-		"over 25 years.  Choose from among 21 races, 17 highly customizable classes\n"
-		"and several cabals and religions to suit your playstyle and the story you\n"
-		"want to tell.  With a massive, original world and coveted limited objects,\n"
-		"we've been described as \"the 'Dark Souls' of MUDs\".  Come join our vibrant\n"
-		"community for a real challenge and very real rewards: adrenaline-pumping\n"
-		"battles, memorable quests run by our volunteer immortal staff, and stories\n"
-		"that will stick with you for a lifetime.", arg1);
-
-	banner_website(ses, "Carrion Fields", "http://carrionfields.net", arg1);
-	banner_address(ses, "Carrion Fields", "cf carrionfields.net 4449", arg1);
-	banner_expires(ses, "Carrion Fields", "2026", arg1);
 */
 }
 
