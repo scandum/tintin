@@ -1531,14 +1531,12 @@ DO_CURSOR(cursor_history_prev)
 
 	while (root->update >= 0)
 	{
-		if (HAS_BIT(root->list[root->update]->mask, mask) != mask)
+		if (HAS_BIT(root->list[root->update]->mask, mask) == mask)
 		{
-			continue;
-		}
-
-		if (!strncmp(gtd->ses->input->tmp, root->list[root->update]->arg1, str_len(gtd->ses->input->tmp)))
-		{
-			break;
+			if (!strncmp(gtd->ses->input->tmp, root->list[root->update]->arg1, str_len(gtd->ses->input->tmp)))
+			{
+				break;
+			}
 		}
 		root->update--;
 	}

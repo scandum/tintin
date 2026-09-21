@@ -1,4 +1,8 @@
+- check that block exit flag works
+
 - finish color_table_alpha
+
+- fix #class assign subbing funvars
 
 - add #list <list> move <old index> <new index>
 
