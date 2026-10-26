@@ -422,8 +422,11 @@ void deltoken(struct scriptroot *root, struct scriptnode *token)
 			break;
 
 		case TOKEN_TYPE_LOOP:
+		case TOKEN_TYPE_BROKEN_LOOP:
 		case TOKEN_TYPE_FOREACH:
+		case TOKEN_TYPE_BROKEN_FOREACH:
 		case TOKEN_TYPE_PARSE:
+		case TOKEN_TYPE_BROKEN_PARSE:
 		case TOKEN_TYPE_SWITCH:
 			free(token->data->cpy);
 			free(token->data->hlt);
