@@ -1095,6 +1095,8 @@ void memory_update(void)
 	{
 		dispose_node(gtd->dispose_list->list[--gtd->dispose_list->used]);
 	}
+
+	str_pool_release();
 }
 
 void time_update(void)

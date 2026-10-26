@@ -1685,6 +1685,11 @@ DO_COMMAND(do_info)
 					{
 						str_ptr = gtd->memory->list[index];
 
+						if (str_ptr == NULL)
+						{
+							continue;
+						}
+
 						if (!HAS_BIT(str_ptr->flags, STR_FLAG_FREE) && str_ptr->max != NAME_SIZE + 1 && strlen(get_str_str(str_ptr)) != str_ptr->len)
 						{
 							tintin_printf2(ses, "#ERROR: index %d len = %d/%d max = %d flags = %d (%s)", index, strlen(get_str_str(str_ptr)), str_ptr->len, str_ptr->max, str_ptr->flags, get_str_str(str_ptr));
@@ -1713,6 +1718,11 @@ DO_COMMAND(do_info)
 					{
 						str_ptr = gtd->memory->list[gtd->memory->free[index]];
 
+						if (str_ptr == NULL)
+						{
+							continue;
+						}
+
 						if (HAS_BIT(str_ptr->flags, STR_FLAG_FREE))
 						{
 							quan += str_ptr->max;
@@ -1728,6 +1738,10 @@ DO_COMMAND(do_info)
 
 					tintin_printf2(ses, "#INFO MEMORY: FREED  MAX: %d", gtd->memory->free_max);
 					tintin_printf2(ses, "#INFO MEMORY: FREED  LEN: %d", gtd->memory->free_len);
+
+					tintin_printf2(ses, "#INFO MEMORY: EMPTY  LEN: %d", gtd->memory->empty);
+					tintin_printf2(ses, "#INFO MEMORY: RELEASED: %lld", gtd->memory->released);
+					tintin_printf2(ses, "#INFO MEMORY: COMPACTED: %lld", gtd->memory->compacted);
 
 					tintin_printf2(ses, "");
 
