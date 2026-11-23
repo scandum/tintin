@@ -36,6 +36,14 @@ misc.c          Calling #send with two arguments will generate a warning to
 
 regex.c         Increased command history processing speed by 15x.
 
+terminal.c      Enabling DECSET 7727 to force keypad mode in mintty. This
+                changes the behavior of the escape key to a unique key code.
+                Those doing something funky with the escape key need to update
+                their macros, or switch to using the alt key.
+
+mapper.c        Added #map set roomflag path, can be used to add temporary room
+                highlights.
+
 Jan 2026        2.02.61
 ------------------------------------------------------------------------------
 substitute.c    Fixed a bug causing improper handling of large variables.

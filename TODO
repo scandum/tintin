@@ -1,5 +1,23 @@
 - check that block exit flag works
 
+- #format %L does not sub vars, check similar issues as well, maybe use str_len_str
+
+- Look into #format %P that strips escapes, make %p strip trailing spaces and color codes.
+
+- warn when using $var[+ with a non number ?
+
+- Make %c greedy, consider %C option that also grabs spaces.
+
+- Look into integrating #regex into #switch as a #case alternative
+
+- Take a closer look at utility of CATCH RECEIVED PROMPT
+
+- Add universal time formatting support.
+
+- report stray tabs / spaces in script files
+
+- look into .map .tin security failing
+
 - finish color_table_alpha
 
 - fix #class assign subbing funvars

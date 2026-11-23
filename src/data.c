@@ -822,20 +822,21 @@ int nsearch_list(struct listroot *root, char *text)
 	long long text_mask;
 	int i;
 
-	switch (root->type)
+	if (HAS_BIT(list_table[root->type].flags, LIST_FLAG_REGEX))
 	{
-		case LIST_ALIAS:
-		case LIST_ACTION:
-		case LIST_GAG:
-		case LIST_HIGHLIGHT:
-		case LIST_PROMPT:
-		case LIST_SUBSTITUTE:
-			text_mask = tintin_string_mask(root->ses, text);
-			break;
-		default:
-			text_mask = string_mask(text);
-			break;
+//		text_mask = tintin_string_mask(root->ses, text);
+
+		for (i = 0 ; i < root->used ; i++)
+		{
+			if (!strcmp(text, root->list[i]->arg1))
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
+
+	text_mask = string_mask(text);
 
 	for (i = 0 ; i < root->used ; i++)
 	{

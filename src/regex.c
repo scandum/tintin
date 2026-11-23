@@ -563,6 +563,8 @@ long long string_mask(char *exp)
 	return flag;
 }
 
+// needs a lot more work, best to merge with tintin_match_data()
+
 long long tintin_string_mask(struct session *ses, char *exp)
 {
 	char *pte;
@@ -599,12 +601,17 @@ long long tintin_string_mask(struct session *ses, char *exp)
 				pte = skip_arg_in_braces(ses, pte, GET_ALL);
 				break;
 
+			case ',':
+			case '.':
+				flag |= mask_table[(unsigned char) *pte];
+				pte++;
+				break;
+
 			case '[':
 			case ']':
 			case '(':
 			case ')':
 			case '|':
-			case '.':
 			case '?':
 			case '+':
 			case '*':
@@ -1008,11 +1015,13 @@ pcre2_code *tintin_regex_compile(struct session *ses, struct listnode *node, cha
 				*pto++ = *pti++;
 				break;
 
+			case ',':
+				mask |= mask_table[(unsigned char) *pti];
+				*pto++ = *pti++;
+				break;
+
 			case '.':
-				if (node && !HAS_BIT(node->flags, NODE_FLAG_CASELESS))
-				{
-					mask |= mask_table[(unsigned char) *pti];
-				}
+				mask |= mask_table[(unsigned char) *pti];
 				*pto++ = '\\';
 				*pto++ = *pti++;
 				break;

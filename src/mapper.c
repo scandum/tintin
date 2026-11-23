@@ -8067,6 +8067,10 @@ DO_MAP(map_roomflag)
 		{
 			SET_BIT(flag, ROOM_FLAG_NOGLOBAL);
 		}
+		else if (is_abbrev(arg4, "path"))
+		{
+			SET_BIT(flag, ROOM_FLAG_PATH);
+		}
 		else if (is_abbrev(arg4, "static"))
 		{
 			SET_BIT(flag, ROOM_FLAG_STATIC);

@@ -74,7 +74,7 @@ void init_terminal(struct session *ses)
 		syserr_fatal(-1, "init_terminal: tcgetattr 2");
 	}
 
-	print_stdout(0, 0, "\e[?1004h\e=\e[>4;1m");
+	print_stdout(0, 0, "\e[?1004h\e=\e[?7727h\e[>4;1m");
 }
 
 void reset_terminal(struct session *ses)
