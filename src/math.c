@@ -92,6 +92,7 @@ long double tinternary(struct math_node *left, struct math_node *right);
 long double tincmp(struct math_node *left, struct math_node *right);
 long double tineval(struct session *ses, struct math_node *left, struct math_node *right);
 long double tindice(struct session *ses, struct math_node *left, struct math_node *right);
+long double tindiv(long double dividend, long double divisor);
 
 DO_COMMAND(do_math)
 {
@@ -1048,7 +1049,7 @@ void mathexp_level(struct session *ses, struct math_node *node)
 
 void mathexp_compute(struct session *ses, struct math_node *node)
 {
-	long double value = 0;
+	long double value = 0, divisor;
 
 	switch ((int) node->val)
 	{
@@ -1081,22 +1082,21 @@ void mathexp_compute(struct session *ses, struct math_node *node)
 			break;
 
 		case EXP_OP_DIVIDE:
-			if (node->next->val == 0)
+			divisor = precision ? node->next->val : truncl(node->next->val);
+
+			if (divisor == 0)
 			{
 				show_debug(ses, LIST_VARIABLE, NULL, "#DEBUG MATH: DIVISION BY ZERO.");
 				value = 0;
 				precision = 0;
 			}
+			else if (precision)
+			{
+				value = node->prev->val / divisor;
+			}
 			else
 			{
-				if (precision)
-				{
-					value = node->prev->val / node->next->val;
-				}
-				else
-				{
-					value = (long long) node->prev->val / (long long) node->next->val;
-				}
+				value = tindiv(truncl(node->prev->val), divisor);
 			}
 			break;
 
@@ -1587,4 +1587,30 @@ long double tindice(struct session *ses, struct math_node *left, struct math_nod
 	sum *= estimate;
 
 	return (long double) sum;
+}
+
+/*
+	Integer division that stays clear of the long long overflow traps
+
+	LLONG_MIN / -1 overflows and raises SIGFPE on x86, and converting a
+	value outside long long range is undefined, so negate instead of
+	dividing by -1, and stay in long double when the conversion cannot
+	represent an operand. The caller rejects a zero divisor
+*/
+
+long double tindiv(long double dividend, long double divisor)
+{
+	long double range = 9223372036854775808.0L; /* one past LLONG_MAX */
+
+	if (divisor == -1)
+	{
+		return 0 - dividend; /* 0 - x, not -x, so 0 / -1 stays +0 */
+	}
+
+	if (dividend >= -range && dividend < range && divisor >= -range && divisor < range)
+	{
+		return (long long) dividend / (long long) divisor;
+	}
+
+	return truncl(dividend / divisor);
 }
