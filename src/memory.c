@@ -14,7 +14,16 @@
 
 #include "tintin.h"
 
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
+
 struct str_data *str_alloc_list(int size);
+
+// freed strings kept for reuse, the older ones are given back to malloc
+
+#define STR_POOL_KEEP                 4096
+#define STR_POOL_COMPACT_MIN          65536
 
 char *restring(char *point, char *string)
 {
@@ -576,6 +585,8 @@ void str_alloc_free(struct str_data *str_ptr)
 	SET_BIT(str_ptr->flags, STR_FLAG_FREE);
 
 	gtd->memory->free[gtd->memory->free_len++] = str_ptr->index;
+
+	gtd->memory->free_full++;
 }
 
 void str_free(char *str)
@@ -650,7 +661,31 @@ struct str_data *str_alloc_list(int size)
 	{
 		int index = gtd->memory->free[--gtd->memory->free_len];
 
+		if (gtd->memory->free_low > gtd->memory->free_len)
+		{
+			gtd->memory->free_low = gtd->memory->free_len;
+		}
+
 		str_ptr = gtd->memory->list[index];
+
+		if (str_ptr == NULL)
+		{
+			// empty slot left by str_pool_release
+
+			str_ptr = (struct str_data *) calloc(1, sizeof(struct str_data) + size + 1);
+
+			str_ptr->max   = size + 1;
+			str_ptr->flags = STR_FLAG_LIST;
+			str_ptr->index = index;
+
+			gtd->memory->list[index] = str_ptr;
+
+			gtd->memory->empty--;
+
+			return str_ptr;
+		}
+
+		gtd->memory->free_full--;
 
 		DEL_BIT(str_ptr->flags, STR_FLAG_FREE);
 
@@ -683,4 +718,113 @@ struct str_data *str_alloc_list(int size)
 	*str = 0;
 
 	return str_ptr;
+}
+
+// Freed strings stay in the pool for reuse, without a limit a burst of garbage
+// inside one dispose window raises memory use for the life of the process.
+// Called from memory_update() after the dispose list has been emptied.
+
+static int str_pool_size(int len)
+{
+	int size = 2048;
+
+	while (size <= len)
+	{
+		size *= 2;
+	}
+	return size;
+}
+
+static void str_pool_compact(void)
+{
+	struct memory_data *mem = gtd->memory;
+	int i, j, k;
+
+	for (i = j = 0 ; i < mem->list_len ; i++)
+	{
+		if (mem->list[i])
+		{
+			mem->list[j] = mem->list[i];
+			mem->list[j]->index = j;
+			j++;
+		}
+	}
+	mem->list_len = j;
+
+	for (i = k = 0 ; i < mem->list_len ; i++)
+	{
+		if (HAS_BIT(mem->list[i]->flags, STR_FLAG_FREE))
+		{
+			mem->free[k++] = i;
+		}
+	}
+	mem->free_len  = k;
+	mem->free_full = k;
+	mem->free_low  = 0;
+	mem->empty     = 0;
+
+	mem->list_max = str_pool_size(mem->list_len + 1);
+	mem->list     = (struct str_data **) realloc(mem->list, sizeof(struct str_data *) * mem->list_max);
+
+	mem->free_max = str_pool_size(mem->free_len + 1);
+	mem->free     = (int *) realloc(mem->free, sizeof(int) * mem->free_max);
+
+	mem->compacted++;
+}
+
+void str_pool_release(void)
+{
+	struct memory_data *mem = gtd->memory;
+	int index, top, released = 0;
+	time_t now;
+
+	if (mem->free_full <= STR_POOL_KEEP)
+	{
+		return;
+	}
+
+	// keep the top STR_POOL_KEEP entries (reused first), release the older ones
+
+	top = mem->free_len - STR_POOL_KEEP;
+
+	while (mem->free_low < top)
+	{
+		index = mem->free[mem->free_low++];
+
+		if (mem->list[index])
+		{
+			free(mem->list[index]);
+
+			mem->list[index] = NULL;
+
+			mem->free_full--;
+			mem->empty++;
+			released++;
+		}
+	}
+
+	if (released == 0)
+	{
+		return;
+	}
+
+	mem->released += released;
+
+	now = time(NULL);
+
+	if (mem->empty >= STR_POOL_COMPACT_MIN && mem->empty > mem->list_len / 2 && now - mem->last_compact >= 10)
+	{
+		mem->last_compact = now;
+
+		str_pool_compact();
+	}
+
+#ifdef __GLIBC__
+	if (now - mem->last_trim >= 1)
+	{
+		mem->last_trim = now;
+
+		malloc_trim(0);
+	}
+#endif
 }

@@ -1580,6 +1580,17 @@ struct memory_data
 	int                     * free;
 	int                       free_len;
 	int                       free_max;
+
+	// FREE entries above STR_POOL_KEEP are given back to malloc, their list
+	// slot becomes NULL (an empty slot that stays in the free queue).
+
+	int                       free_full;  // free queue entries that still hold a str_data
+	int                       free_low;   // free[0 .. free_low) are known empty slots
+	int                       empty;      // NULL slots in list[0 .. list_len)
+	long long                 released;
+	long long                 compacted;
+	time_t                    last_trim;
+	time_t                    last_compact;
 };
 
 struct row_data
@@ -2517,6 +2528,7 @@ extern char *str_ins_printf(char **str, int index, char *fmt, ...);
 extern char *str_mov(char **str, int dst, int src);
 
 extern char *str_alloc_stack(int size);
+extern void str_pool_release(void);
 
 #endif
 
