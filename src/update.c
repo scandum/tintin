@@ -430,7 +430,20 @@ void update_sessions(void)
 					{
 						if (read_buffer_mud(ses) == FALSE)
 						{
-							readmud(ses);
+							// on EOF process only the bytes read in this poll: the buffer of an
+							// earlier poll was already processed (its lines are cut in place).
+							// A tail still held back by the packet patch is flushed once, as a
+							// line, as the #session died message would flush it (show.c).
+
+							if (gtd->mud_output_len)
+							{
+								readmud(ses);
+							}
+
+							if (ses->check_output)
+							{
+								process_more_output(ses, "", FALSE);
+							}
 
 							SET_BIT(ses->flags, SES_FLAG_LINKLOST);
 
